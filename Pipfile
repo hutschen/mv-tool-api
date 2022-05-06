@@ -6,6 +6,8 @@ name = "pypi"
 [packages]
 tornado = "*"
 sqlalchemy = "*"
+pyyaml = "*"
+marshmallow = "*"
 
 [dev-packages]
 sphinx = "*"
