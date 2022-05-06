@@ -15,15 +15,16 @@
 
 import tornado.web
 
-class RestHandler(tornado.web.RequestHandler):
-    def get(self):
-        self.write("Hello, world")
 
-    def post(self):
+class EndpointHandler(tornado.web.RequestHandler):
+    def get(self, id_):
+        self.write(f"Hello, {id_}")
+
+    def post(self, id_):
         pass
 
-    def put(self):
+    def put(self, id_):
         pass
 
-    def delete(self):
+    def delete(self, id_):
         pass

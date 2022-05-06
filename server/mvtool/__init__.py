@@ -14,9 +14,9 @@
 # GNU AGPL V3 for more details.
 
 import tornado.web
-from .rest import RestHandler
+from .rest import EndpointHandler
 
 def make_app():
     return tornado.web.Application([
-        (r"/", RestHandler),
+        (r"/(.*)", EndpointHandler),
     ])
