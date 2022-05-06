@@ -13,10 +13,10 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-import tornado.web
-from .rest import RestHandler
+import tornado.ioloop
+import mvtool
 
-def make_app():
-    return tornado.web.Application([
-        (r"/", RestHandler),
-    ])
+if __name__ == "__main__":
+    app = mvtool.make_app()
+    app.listen(8888)
+    tornado.ioloop.IOLoop.current().start()

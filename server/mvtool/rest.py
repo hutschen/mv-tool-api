@@ -12,3 +12,18 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
+
+import tornado.web
+
+class RestHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.write("Hello, world")
+
+    def post(self):
+        pass
+
+    def put(self):
+        pass
+
+    def delete(self):
+        pass
