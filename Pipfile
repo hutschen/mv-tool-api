@@ -8,6 +8,7 @@ tornado = "*"
 sqlalchemy = "*"
 pyyaml = "*"
 marshmallow = "*"
+marshmallow-sqlalchemy = "*"
 
 [dev-packages]
 sphinx = "*"
