@@ -12,3 +12,21 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
+from .endpoint import EndpointHandler
+
+class SQLAlchemyEndpoint(EndpointHandler):
+    def initialize(self, sqlalchemy_session, **kwargs):
+        super().initialize(**kwargs)
+        self._sqlalchemy_session = sqlalchemy_session
+
+    def create_object(self, object_, **kwargs):
+        return super().create_object(object_, **kwargs)
+
+    def get_object(self, **kwargs):
+        return super().get_object(**kwargs)
+
+    def update_object(self, object_, **kwargs):
+        return super().update_object(object_, **kwargs)
+
+    def delete_object(self, **kwargs):
+        return super().delete_object(**kwargs)
