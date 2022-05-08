@@ -13,8 +13,9 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from email.policy import strict
-from tornado.web import RequestHandler
+import tornado
+from tornado.web import RequestHandler, HTTPError
+from tornado.escape import json_decode
 from marshmallow import Schema, fields
 from marshmallow.exceptions import ValidationError
 
@@ -41,68 +42,102 @@ class ListOperationArgsSchema(Schema):
 
 
 class EndpointHandler(RequestHandler):
-    def initialize(self, body_schema,
+    def initialize(self, object_schema,
             create_operation_args_schema=CreateOperationArgsSchema,
             get_operation_args_schema=GetOperationArgsSchema,
             update_operation_args_schema=UpdateOperationArgsSchema,
             delete_operation_args_schema=DeleteOperationArgsSchema,
             list_operation_args_schema=ListOperationArgsSchema):
-        self._body_schema = body_schema()
-        self._body_list_schema = body_schema(many=True)
+        self._object_schema = object_schema()
+        self._objects_schema = object_schema(many=True)
         self._create_operation_args_schema = create_operation_args_schema()
         self._get_operation_args_schema = get_operation_args_schema()
         self._update_operation_args_schema = update_operation_args_schema()
         self._delete_operation_args_schema = delete_operation_args_schema()
         self._list_operation_args_schema = list_operation_args_schema()
 
-    def create_object(self, **kwargs):
-        raise NotImplementedError
+    def create_object(self, object_, **kwargs):
+        raise HTTPError(404, 'Operation not implemented.')
 
     def get_object(self, **kwargs):
-        raise NotImplementedError
+        raise HTTPError(404, 'Operation not implemented.')
 
-    def update_object(self, **kwargs):
-        raise NotImplementedError
+    def update_object(self, object_, **kwargs):
+        raise HTTPError(404, 'Operation not implemented.')
 
     def delete_object(self, **kwargs):
-        raise NotImplementedError
+        raise HTTPError(404, 'Operation not implemented.')
 
     def list_objects(self, **kwargs):
-        raise NotImplementedError
+        raise HTTPError(404, 'Operation not implemented.')
 
-    def post(self, **kwargs):
-        kwargs.update(self.request.arguments)
-        create_args = self._create_operation_args_schema.load(kwargs)
-        body = self.create_object(**create_args)
-        self.set_status(201)
-        self.write(self._body_schema.dump(body))
+    def prepare(self):
+        # collect and decode path and query arguments
+        arguments = dict()
+        for key, value in (self.path_kwargs | self.request.arguments).items():
+            value = value[0] if isinstance(value, list) else value
+            arguments[key] = self.decode_argument(value)
 
-    def get(self, **kwargs):
-        kwargs.update(self.request.arguments)
-        try:
-            get_args = self._get_operation_args_schema.load(kwargs)
-        except ValidationError as error:
-            pass
-        else:
-            body = self.get_object(**get_args)
-            self.write(self._body_schema.dump(body))
+        # decode body data
+        body = json_decode(self.request.body) if self.request.body else dict()
+        
+        validation_error_messages = set()
+        if 'GET' == self.request.method:
+            # try to get a single object
+            try:
+                kwargs = self._get_operation_args_schema.load(arguments)
+            except ValidationError as error:
+                validation_error_messages.update(error.messages)
+            else:
+                object_ = self.get_object(**kwargs)
+                self.finish(self._object_schema.dump(object_))
+                return
 
-        try:
-            list_args = self._list_operation_args_schema.load(kwargs)
-        except ValidationError:
-            pass
-        else:
-            objects = self.list_objects(**list_args)
-            self.write(self._body_list_schema.dump(objects))
+            # try to get a list of objects
+            try:
+                kwargs = self._list_operation_args_schema.load(arguments)
+            except ValidationError as error:
+                validation_error_messages.update(error.messages)
+            else:
+                objects = self.list_objects(**kwargs)
+                self.finish(self._objects_schema.dump(objects))
+                return
+            
+        elif 'POST' == self.request.method:
+            # try to create an object
+            try:
+                kwargs = self._create_operation_args_schema.load(arguments)
+                object_ = self._object_schema.load(body)
+            except ValidationError as error:
+                validation_error_messages.update(error.messages)
+            else:
+                object_ = self.create_object(object_, **kwargs)
+                self.set_status(201)
+                self.finish(self._object_schema.dump(object_))
+                return
 
-    def put(self, **kwargs):
-        kwargs.update(self.request.arguments)
-        update_args = self._update_operation_args_schema.load(kwargs)
-        body = self.update_object(**update_args)
-        self.write(self._body_schema.dump(body))
+        elif 'PUT' == self.request.method:
+            # try to update an object
+            try:
+                kwargs = self._update_operation_args_schema.load(arguments)
+                object_ = self._object_schema.load(body)
+            except ValidationError as error:
+                validation_error_messages.update(error.messages)
+            else:
+                object_ = self.update_object(object_, **kwargs)
+                self.finish(self._object_schema.dump(object_))
+                return
 
-    def delete(self, **kwargs):
-        kwargs.update(self.request.arguments)
-        delete_args = self._delete_operation_args_schema.load(kwargs)
-        body = self.delete_object(**delete_args)
-        self.write(self._body_schema.dump(body))
+        elif 'DELETE' == self.request.method:
+            # try to delete an object
+            try:
+                kwargs = self._delete_operation_args_schema.load(arguments)
+            except ValidationError as error:
+                validation_error_messages.update(error.messages)
+            else:
+                self.delete_object(object_, **kwargs)
+                self.finish()
+                return
+
+        raise HTTPError(400, 'Validation of argument or body failed: %s' 
+            % str(validation_error_messages))

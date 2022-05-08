@@ -32,7 +32,7 @@ class RequirementsHandler(EndpointHandler):
 def make_app():
     return tornado.web.Application([
         (r"/", RequirementsHandler, 
-            dict(body_schema=RequirementSchema)),
+            dict(object_schema=RequirementSchema)),
         (r"/(?P<id>[0-9]+)", RequirementsHandler, 
-            dict(body_schema=RequirementSchema)),
+            dict(object_schema=RequirementSchema)),
     ])
