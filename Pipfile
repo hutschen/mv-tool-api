@@ -5,7 +5,7 @@ name = "pypi"
 
 [packages]
 tornado = "*"
-sqlalchemy = "*"
+sqlalchemy = {extras = ["asyncio"], version = "*"}
 pyyaml = "*"
 marshmallow = "*"
 marshmallow-sqlalchemy = "*"
