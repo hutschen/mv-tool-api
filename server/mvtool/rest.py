@@ -13,37 +13,64 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-import tornado.web
+from tornado.web import RequestHandler
+from marshmallow import Schema, fields
 
 
-class RestHandler(tornado.web.RequestHandler):
-    def initialize(self, object_schema):
-        self._object_schema = object_schema
-        self._objects = dict()
+class CreateOperationArgsSchema(Schema):
+    id_ = fields.Integer(data_key='id')
 
-    def create_object(self):
+class GetOperationArgsSchema(Schema):
+    id_ = fields.Integer(data_key='id')
+
+class UpdateOperationArgsSchema(Schema):
+    id_ = fields.Integer(data_key='id')
+
+class DeleteOperationArgsSchema(Schema):
+    id_ = fields.Integer(data_key='id')
+
+class ListOperationArgsSchema(Schema):
+    page = fields.Integer(missing=1)
+    page_size = fields.Integer(missing=None)
+
+
+class EndpointHandler(RequestHandler):
+    def initialize(self, body_schema,
+            create_operation_args_schema=CreateOperationArgsSchema,
+            get_operation_args_schema=GetOperationArgsSchema,
+            update_operation_args_schema=UpdateOperationArgsSchema,
+            delete_operation_args_schema=DeleteOperationArgsSchema,
+            list_operation_args_schema=ListOperationArgsSchema):
+        self._body_schema = body_schema
+        self._create_operation_args_schema = create_operation_args_schema
+        self._get_operation_args_schema = get_operation_args_schema
+        self._update_operation_args_schema = update_operation_args_schema
+        self._delete_operation_args_schema = delete_operation_args_schema
+        self._list_operation_args_schema = list_operation_args_schema
+
+    def create_object(self, args):
+        raise NotImplementedError()
+
+    def get_object(self, args):
+        raise NotImplementedError()
+
+    def update_object(self, args):
+        raise NotImplementedError()
+
+    def delete_object(self, args):
+        raise NotImplementedError()
+
+    def list_objects(self, args):
+        raise NotImplementedError()
+
+    def post(self, **kwargs):
         pass
 
-    def get_object(self, id_):
+    def get(self, **kwargs):
         pass
 
-    def update_object(self, id_):
+    def put(self, **kwargs):
         pass
 
-    def delete_object(self, id_):
-        pass
-
-    def get_objects(self):
-        pass
-
-    def post(self):
-        pass
-
-    def get(self, id_):
-        self.write(f"Hello, {id_}")
-
-    def put(self, id_):
-        pass
-
-    def delete(self, id_):
+    def delete(self, **kwargs):
         pass

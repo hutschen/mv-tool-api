@@ -14,9 +14,10 @@
 # GNU AGPL V3 for more details.
 
 import tornado.web
-from .rest import EndpointHandler
+from . import rest
 
 def make_app():
     return tornado.web.Application([
-        (r"/(.*)", EndpointHandler),
+        (r"/", rest.EndpointHandler, dict(object_schema=None)),
+        (r"/(?P<id>[0-9]+)", rest.EndpointHandler, dict(object_schema=None)),
     ])
