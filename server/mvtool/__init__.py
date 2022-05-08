@@ -14,10 +14,25 @@
 # GNU AGPL V3 for more details.
 
 import tornado.web
-from . import rest
+from marshmallow import Schema, fields
+from .rest import EndpointHandler
+
+class RequirementSchema(Schema):
+    id_ = fields.Int(data_key='id', missing=None)
+    name = fields.Str()
+    description = fields.Str()
+
+
+class RequirementsHandler(EndpointHandler):
+    def get_object(self, id_):
+        return dict(
+            id_=id_, name='Requirement', description='A short description')
+
 
 def make_app():
     return tornado.web.Application([
-        (r"/", rest.EndpointHandler, dict(object_schema=None)),
-        (r"/(?P<id>[0-9]+)", rest.EndpointHandler, dict(object_schema=None)),
+        (r"/", RequirementsHandler, 
+            dict(body_schema=RequirementSchema)),
+        (r"/(?P<id>[0-9]+)", RequirementsHandler, 
+            dict(body_schema=RequirementSchema)),
     ])
