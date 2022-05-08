@@ -56,19 +56,19 @@ class EndpointHandler(RequestHandler):
         self._delete_operation_args_schema = delete_operation_args_schema()
         self._list_operation_args_schema = list_operation_args_schema()
 
-    def create_object(self, object_, **kwargs):
+    def get_object(self, **kwargs):
         raise HTTPError(404, 'Operation not implemented.')
 
-    def get_object(self, **kwargs):
+    def list_objects(self, **kwargs):
+        raise HTTPError(404, 'Operation not implemented.')
+
+    def create_object(self, object_, **kwargs):
         raise HTTPError(404, 'Operation not implemented.')
 
     def update_object(self, object_, **kwargs):
         raise HTTPError(404, 'Operation not implemented.')
 
     def delete_object(self, **kwargs):
-        raise HTTPError(404, 'Operation not implemented.')
-
-    def list_objects(self, **kwargs):
         raise HTTPError(404, 'Operation not implemented.')
 
     def prepare(self):
