@@ -15,7 +15,7 @@
 
 import tornado.web
 from marshmallow import Schema, fields
-from .rest import EndpointHandler
+from .endpoint import EndpointHandler
 
 class RequirementSchema(Schema):
     id_ = fields.Int(data_key='id', missing=None)
