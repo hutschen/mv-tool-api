@@ -19,17 +19,17 @@ class SQLAlchemyEndpointHandler(EndpointHandler):
         super().initialize(**kwargs)
         self._sqlalchemy_session = sqlalchemy_session
 
-    def list_objects(self, **kwargs):
-        return super().list_objects(**kwargs)
+    async def list_objects(self, **kwargs):
+        return await super().list_objects(**kwargs)
 
-    def get_object(self, **kwargs):
-        return super().get_object(**kwargs)
+    async def get_object(self, **kwargs):
+        return await super().get_object(**kwargs)
 
-    def create_object(self, object_, **kwargs):
-        return super().create_object(object_, **kwargs)
+    async def create_object(self, object_, **kwargs):
+        return await super().create_object(object_, **kwargs)
 
-    def update_object(self, object_, **kwargs):
-        return super().update_object(object_, **kwargs)
+    async def update_object(self, object_, **kwargs):
+        return await super().update_object(object_, **kwargs)
 
-    def delete_object(self, **kwargs):
-        return super().delete_object(**kwargs)
+    async def delete_object(self, **kwargs):
+        return await super().delete_object(**kwargs)

@@ -56,22 +56,22 @@ class EndpointHandler(RequestHandler):
         self._delete_operation_args_schema = delete_operation_args_schema()
         self._list_operation_args_schema = list_operation_args_schema()
 
-    def list_objects(self, **kwargs):
+    async def list_objects(self, **kwargs):
         raise HTTPError(404, 'Operation not implemented.')
 
-    def get_object(self, **kwargs):
+    async def get_object(self, **kwargs):
         raise HTTPError(404, 'Operation not implemented.')
 
-    def create_object(self, object_, **kwargs):
+    async def create_object(self, object_, **kwargs):
         raise HTTPError(404, 'Operation not implemented.')
 
-    def update_object(self, object_, **kwargs):
+    async def update_object(self, object_, **kwargs):
         raise HTTPError(404, 'Operation not implemented.')
 
-    def delete_object(self, **kwargs):
+    async def delete_object(self, **kwargs):
         raise HTTPError(404, 'Operation not implemented.')
 
-    def prepare(self):
+    async def prepare(self):
         # collect and decode path and query arguments
         arguments = dict()
         for key, value in (self.path_kwargs | self.request.arguments).items():
@@ -89,7 +89,7 @@ class EndpointHandler(RequestHandler):
             except ValidationError as error:
                 validation_error_messages.update(error.messages)
             else:
-                object_ = self.get_object(**kwargs)
+                object_ = await self.get_object(**kwargs)
                 self.finish(self._object_schema.dump(object_))
                 return
 
@@ -99,7 +99,7 @@ class EndpointHandler(RequestHandler):
             except ValidationError as error:
                 validation_error_messages.update(error.messages)
             else:
-                objects = self.list_objects(**kwargs)
+                objects = await self.list_objects(**kwargs)
                 self.finish(self._objects_schema.dump(objects))
                 return
             
@@ -111,7 +111,7 @@ class EndpointHandler(RequestHandler):
             except ValidationError as error:
                 validation_error_messages.update(error.messages)
             else:
-                object_ = self.create_object(object_, **kwargs)
+                object_ = await self.create_object(object_, **kwargs)
                 self.set_status(201)
                 self.finish(self._object_schema.dump(object_))
                 return
@@ -124,7 +124,7 @@ class EndpointHandler(RequestHandler):
             except ValidationError as error:
                 validation_error_messages.update(error.messages)
             else:
-                object_ = self.update_object(object_, **kwargs)
+                object_ = await self.update_object(object_, **kwargs)
                 self.finish(self._object_schema.dump(object_))
                 return
 
@@ -135,7 +135,7 @@ class EndpointHandler(RequestHandler):
             except ValidationError as error:
                 validation_error_messages.update(error.messages)
             else:
-                self.delete_object(object_, **kwargs)
+                await self.delete_object(object_, **kwargs)
                 self.finish()
                 return
 
