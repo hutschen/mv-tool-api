@@ -13,10 +13,9 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-import tornado.ioloop
-import mvtool
+
+from mvtool import App
 
 if __name__ == "__main__":
-    app = mvtool.make_app()
-    app.listen(8888)
-    tornado.ioloop.IOLoop.current().start()
+    app = App()
+    app.serve()

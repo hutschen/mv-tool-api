@@ -13,7 +13,9 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
+import signal
 import tornado.web
+import tornado.ioloop
 from marshmallow import Schema, fields
 from .endpoint import EndpointHandler
 
@@ -29,10 +31,26 @@ class RequirementsHandler(EndpointHandler):
             id_=id_, name='Requirement', description='A short description')
 
 
-def make_app():
-    return tornado.web.Application([
-        (r"/", RequirementsHandler, 
-            dict(object_schema=RequirementSchema)),
-        (r"/(?P<id>[0-9]+)", RequirementsHandler, 
-            dict(object_schema=RequirementSchema)),
-    ])
+class App(object):
+    def __init__(self):
+        self._config = dict(tornado=dict(debug=True, port=8888))
+
+    def serve(self):
+        tornado_config = self._config['tornado']
+        tornado_app = tornado.web.Application([
+            (r"/", RequirementsHandler, 
+                dict(object_schema=RequirementSchema)),
+            (r"/(?P<id>[0-9]+)", RequirementsHandler, 
+                dict(object_schema=RequirementSchema)),
+        ], debug=tornado_config['debug'])
+        tornado_app.listen(tornado_config['port'])
+
+        signal_handler = \
+            lambda signal, frame: tornado.ioloop.IOLoop.current(
+                ).add_callback_from_signal(self.stop_serving)
+        signal.signal(signal.SIGTERM, signal_handler)
+        signal.signal(signal.SIGINT, signal_handler)
+        tornado.ioloop.IOLoop.current().start()
+
+    def stop_serving(self):
+        tornado.ioloop.IOLoop.current().stop()
