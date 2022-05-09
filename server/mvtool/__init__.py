@@ -16,8 +16,11 @@
 import signal
 import tornado.web
 import tornado.ioloop
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.orm import sessionmaker
 from marshmallow import Schema, fields
-from .endpoint import EndpointHandler
+from .endpoint_sqlalchemy import SQLAlchemyEndpointHandler
 
 class RequirementSchema(Schema):
     id_ = fields.Int(data_key='id', missing=None)
@@ -25,7 +28,7 @@ class RequirementSchema(Schema):
     description = fields.Str()
 
 
-class RequirementsHandler(EndpointHandler):
+class RequirementsHandler(SQLAlchemyEndpointHandler):
     def get_object(self, id_):
         return dict(
             id_=id_, name='Requirement', description='A short description')
@@ -34,14 +37,20 @@ class RequirementsHandler(EndpointHandler):
 class App(object):
     def __init__(self):
         self._config = dict(tornado=dict(debug=True, port=8888))
+        
+        # connect to database
+        sqlalchemy_engine = create_async_engine(
+            'sqlite+aiosqlite:///:memory:', echo=True)
+        self._sqlalchemy_session = sessionmaker(
+            sqlalchemy_engine, expire_on_commit=False, class_=AsyncSession)
 
     def serve(self):
         tornado_config = self._config['tornado']
         tornado_app = tornado.web.Application([
             (r"/", RequirementsHandler, 
-                dict(object_schema=RequirementSchema)),
+                dict(sqlalchemy_session=self._sqlalchemy_session, object_schema=RequirementSchema)),
             (r"/(?P<id>[0-9]+)", RequirementsHandler, 
-                dict(object_schema=RequirementSchema)),
+                dict(sqlalchemy_session=self._sqlalchemy_session, object_schema=RequirementSchema)),
         ], debug=tornado_config['debug'])
         tornado_app.listen(tornado_config['port'])
 
