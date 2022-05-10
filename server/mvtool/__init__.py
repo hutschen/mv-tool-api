@@ -38,6 +38,7 @@ class RequirementSchema(SQLAlchemyAutoSchema):
     class Meta:
         model = Requirement
         load_instance = True
+        transient = True
 
     id = auto_field()
     name = auto_field()
@@ -45,10 +46,7 @@ class RequirementSchema(SQLAlchemyAutoSchema):
 
 
 class RequirementsHandler(SQLAlchemyEndpointHandler):
-    def get_object(self, id_):
-        return dict(
-            id_=id_, name='Requirement', description='A short description')
-
+    pass
 
 class App(object):
     def __init__(self):
