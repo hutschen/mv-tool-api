@@ -21,7 +21,7 @@ from marshmallow.exceptions import ValidationError
 
 
 class CreateOperationArgsSchema(Schema):
-    id_ = fields.Integer(data_key='id', required=True)
+    pass
 
 
 class GetOperationArgsSchema(Schema):
