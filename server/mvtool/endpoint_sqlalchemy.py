@@ -22,11 +22,14 @@ class SQLAlchemyEndpointHandler(EndpointHandler):
     async def list_objects(self, **kwargs):
         return await super().list_objects(**kwargs)
 
-    async def get_object(self, **kwargs):
+    async def get_object(self, id_):
         return await super().get_object(**kwargs)
 
     async def create_object(self, object_, **kwargs):
-        return await super().create_object(object_, **kwargs)
+        async with self._sqlalchemy_session() as session:
+            async with session.begin():
+                session.add(object_)
+        return object_
 
     async def update_object(self, object_, **kwargs):
         return await super().update_object(object_, **kwargs)

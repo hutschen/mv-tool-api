@@ -14,6 +14,7 @@
 # GNU AGPL V3 for more details.
 
 import signal
+import asyncio
 import tornado.web
 import tornado.ioloop
 import sqlalchemy as sa
@@ -53,10 +54,15 @@ class App(object):
         self._config = dict(tornado=dict(debug=True, port=8888))
         
         # connect to database
-        sqlalchemy_engine = create_async_engine(
+        self._sqlalchemy_engine = create_async_engine(
             'sqlite+aiosqlite:///:memory:', echo=True)
         self._sqlalchemy_session = sessionmaker(
-            sqlalchemy_engine, expire_on_commit=False, class_=AsyncSession)
+            self._sqlalchemy_engine, expire_on_commit=False, class_=AsyncSession)
+
+    async def initialize_database(self):
+        async with self._sqlalchemy_engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
+            await conn.run_sync(Base.metadata.create_all)
 
     def serve(self):
         tornado_config = self._config['tornado']
@@ -73,6 +79,7 @@ class App(object):
                 ).add_callback_from_signal(self.stop_serving)
         signal.signal(signal.SIGTERM, signal_handler)
         signal.signal(signal.SIGINT, signal_handler)
+        tornado.ioloop.IOLoop.current().run_sync(self.initialize_database)
         tornado.ioloop.IOLoop.current().start()
 
     def stop_serving(self):
