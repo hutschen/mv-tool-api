@@ -12,18 +12,29 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
+from tornado.web import HTTPError
+from sqlalchemy.future import select
 from .endpoint import EndpointHandler
 
 class SQLAlchemyEndpointHandler(EndpointHandler):
     def initialize(self, sqlalchemy_session, **kwargs):
         super().initialize(**kwargs)
         self._sqlalchemy_session = sqlalchemy_session
+        self._object_class = self._object_schema.Meta.model
 
     async def list_objects(self, **kwargs):
         return await super().list_objects(**kwargs)
 
     async def get_object(self, id_):
-        return await super().get_object(**kwargs)
+        stmt = select(self._object_class).where(self._object_class.id == id_)
+        async with self._sqlalchemy_session() as session:
+            results = await session.execute(stmt)
+            object_ = results.scalars().first()
+            if object_:
+                return object_
+            else:
+                raise HTTPError(404, '%s with id %d not found.' % (
+                    self._object_class.__name__, id_))
 
     async def create_object(self, object_, **kwargs):
         async with self._sqlalchemy_session() as session:
