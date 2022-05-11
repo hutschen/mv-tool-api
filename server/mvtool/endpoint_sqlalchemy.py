@@ -29,12 +29,12 @@ class SQLAlchemyEndpointHandler(EndpointHandler):
         statement = select(self._object_class).where(self._object_class.id == id_)
         async with self._sqlalchemy_session() as session:
             result = await session.execute(statement)
-            object_ = result.scalar()
-            if object_:
-                return object_
-            else:
-                raise HTTPError(404, '%s with id %d not found.' % (
-                    self._object_class.__name__, id_))
+            object_ = result.scalar_one_or_none()
+        if object_:
+            return object_
+        else:
+            raise HTTPError(404, '%s with id %d not found.' % (
+            self._object_class.__name__, id_))
 
     async def create_object(self, object_, **kwargs):
         async with self._sqlalchemy_session() as session:
