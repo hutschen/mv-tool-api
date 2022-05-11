@@ -28,8 +28,8 @@ class SQLAlchemyEndpointHandler(EndpointHandler):
     async def get_object(self, id_):
         stmt = select(self._object_class).where(self._object_class.id == id_)
         async with self._sqlalchemy_session() as session:
-            results = await session.execute(stmt)
-            object_ = results.scalars().first()
+            result = await session.execute(stmt)
+            object_ = result.scalar()
             if object_:
                 return object_
             else:
