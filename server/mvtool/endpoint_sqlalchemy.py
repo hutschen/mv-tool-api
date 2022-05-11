@@ -26,9 +26,9 @@ class SQLAlchemyEndpointHandler(EndpointHandler):
         return await super().list_objects(**kwargs)
 
     async def get_object(self, id_):
-        stmt = select(self._object_class).where(self._object_class.id == id_)
+        statement = select(self._object_class).where(self._object_class.id == id_)
         async with self._sqlalchemy_session() as session:
-            result = await session.execute(stmt)
+            result = await session.execute(statement)
             object_ = result.scalar()
             if object_:
                 return object_
