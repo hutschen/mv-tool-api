@@ -22,8 +22,14 @@ class SQLAlchemyEndpointHandler(EndpointHandler):
         self._sqlalchemy_session = sqlalchemy_session
         self._object_class = self._object_schema.Meta.model
 
-    async def list_objects(self, **kwargs):
-        return await super().list_objects(**kwargs)
+    async def list_objects(self, page, page_size):
+        statement = select(self._object_class
+            ).order_by(self._object_class.id
+            ).limit(page_size
+            ).offset((page - 1) * page_size)
+        async with self._sqlalchemy_session() as session:
+            result = await session.execute(statement)
+            return result.scalars().all()
 
     async def get_object(self, id_):
         statement = select(self._object_class).where(self._object_class.id == id_)

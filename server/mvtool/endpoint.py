@@ -17,6 +17,7 @@ import tornado
 from tornado.web import RequestHandler, HTTPError
 from tornado.escape import json_decode
 from marshmallow import Schema, fields
+from marshmallow.validate import Range
 from marshmallow.exceptions import ValidationError
 
 
@@ -37,8 +38,8 @@ class DeleteOperationArgsSchema(Schema):
 
 
 class ListOperationArgsSchema(Schema):
-    page = fields.Integer(missing=1)
-    page_size = fields.Integer(missing=None)
+    page = fields.Integer(missing=1, validate=Range(min=1))
+    page_size = fields.Integer(missing=100, validate=Range(min=1))
 
 
 class EndpointHandler(RequestHandler):
@@ -100,7 +101,7 @@ class EndpointHandler(RequestHandler):
                 validation_error_messages.update(error.messages)
             else:
                 objects = await self.list_objects(**kwargs)
-                self.finish(self._objects_schema.dump(objects))
+                self.finish(dict(objects=self._objects_schema.dump(objects)))
                 return
             
         elif 'POST' == self.request.method:
