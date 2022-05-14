@@ -42,16 +42,29 @@ class ListOperationArgsSchema(Schema):
     page_size = fields.Integer(missing=100, validate=Range(min=1))
 
 
+class EndpointContext(object):
+    def __init__(self, handler):
+        self._handler: EndpointHandler = handler
+    
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exception_type, exception_value, traceback):
+        pass
+
+
 class Endpoint(object):
-    def __init__(self, endpoint_handler):
-        self._endpoint_handler = endpoint_handler
+    CONTEXT_CLASS = EndpointContext
 
-    async def prepare(self):
+    def __init__(self, context):
+        self.context: EndpointContext = context
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exception_type, exception_value, traceback):
         pass
-
-    async def on_finish(self):
-        pass
-
+    
     async def list_(self, **kwargs):
         raise HTTPError(404, 'Operation not implemented.')
 
@@ -68,31 +81,35 @@ class Endpoint(object):
         raise HTTPError(404, 'Operation not implemented.')
 
 
+class SQLAlchemyEndpointContext(EndpointContext):
+    def __init__(self, handler, sqlalchemy_sessionmaker):
+        super().__init__(handler)
+        self.sqlalchemy_session = sqlalchemy_sessionmaker()
+
+    async def __aenter__(self):
+        self.sqlalchemy_session = \
+                await self.sqlalchemy_session.__aenter__()
+        return self
+
+    async def __aexit__(self, exception_type, exception_value, traceback):
+        await self.sqlalchemy_session.__aexit__(
+            exception_type, exception_value, traceback)
+
+
 class SQLAlchemyEndpoint(Endpoint):
-    def __init__(self, endpoint_handler, sqlalchemy_sessionmaker):
-        super().__init__(endpoint_handler)
-        self._sqlalchemy_sessionmaker = sqlalchemy_sessionmaker
-
-    async def prepare(self):
-        if not hasattr(self._endpoint_handler, '_sqlalchemy_session'):            
-            self._endpoint_handler._sqlalchemy_session = \
-                await self._sqlalchemy_sessionmaker()
-        self._sqlalchemy_session = self._endpoint_handler._sqlalchemy_session
-
-    async def on_finish(self):
-        await self._sqlalchemy_session.close()
+    CONTEXT_CLASS = SQLAlchemyEndpointContext
 
     async def list_(self, page, page_size):
         statement = select(self._object_class
             ).order_by(self._object_class.id
             ).limit(page_size
             ).offset((page - 1) * page_size)
-        result = await self._sqlalchemy_session.execute(statement)
+        result = await self.context.sqlalchemy_session.execute(statement)
         return result.scalars().all()
 
     async def get(self, id_):
         statement = select(self._object_class).where(self._object_class.id == id_)
-        result = await self._sqlalchemy_session.execute(statement)
+        result = await self.context.sqlalchemy_session.execute(statement)
         object_ = result.scalar_one_or_none()
         if object_:
             return object_
@@ -102,20 +119,20 @@ class SQLAlchemyEndpoint(Endpoint):
 
     async def create(self, object_):
         object_.id = None
-        async with self._sqlalchemy_session.begin_nested() as session:
-            session.add(object_)
+        async with self.context.sqlalchemy_session.begin_nested():
+            self.context.sqlalchemy_session.add(object_)
             return object_
 
     async def update(self, updated_object, id_):
-        async with self._sqlalchemy_session.begin_nested() as session:
+        async with self.context.sqlalchemy_session.begin_nested():
             object_ = await self.get(id_)
             updated_object.id = id_
-            return await session.merge(updated_object)
+            return await self.context.sqlalchemy_session.merge(updated_object)
 
     async def delete(self, id_):
-        async with self._sqlalchemy_session.begin_nested() as session:
+        async with self.context.sqlalchemy_session.begin_nested():
             object_ = await self.get(id_)
-            session.delete(object_)
+            self.context.sqlalchemy_session.delete(object_)
 
 
 class EndpointHandler(RequestHandler):
@@ -126,6 +143,7 @@ class EndpointHandler(RequestHandler):
             delete_operation_args_schema=DeleteOperationArgsSchema,
             list_operation_args_schema=ListOperationArgsSchema,
             endpoint_class=Endpoint, **kwargs):
+
         self._object_schema = object_schema()
         self._objects_schema = object_schema(many=True)
         self._create_operation_args_schema = create_operation_args_schema()
@@ -133,7 +151,9 @@ class EndpointHandler(RequestHandler):
         self._update_operation_args_schema = update_operation_args_schema()
         self._delete_operation_args_schema = delete_operation_args_schema()
         self._list_operation_args_schema = list_operation_args_schema()
-        self._endpoint = endpoint_class(self, **kwargs)
+        
+        context = endpoint_class.CONTEXT_CLASS(self, **kwargs)
+        self._endpoint = endpoint_class(context)
 
     async def prepare(self):
         # collect and decode path and query arguments
@@ -145,9 +165,6 @@ class EndpointHandler(RequestHandler):
         # decode body data
         body = json_decode(self.request.body) if self.request.body else dict()
 
-        # call prepare on endpoint
-        await self._endpoint.prepare()
-        
         validation_error_messages = set()
         if 'GET' == self.request.method:
             # try to get a single object
@@ -156,7 +173,8 @@ class EndpointHandler(RequestHandler):
             except ValidationError as error:
                 validation_error_messages.update(error.messages)
             else:
-                object_ = await self._endpoint.get(**kwargs)
+                async with self._endpoint.context:
+                    object_ = await self._endpoint.get(**kwargs)
                 self.finish(self._object_schema.dump(object_))
                 return
 
@@ -166,7 +184,8 @@ class EndpointHandler(RequestHandler):
             except ValidationError as error:
                 validation_error_messages.update(error.messages)
             else:
-                objects = await self._endpoint.list_(**kwargs)
+                async with self._endpoint.context:
+                    objects = await self._endpoint.list_(**kwargs)
                 self.finish(dict(objects=self._objects_schema.dump(objects)))
                 return
             
@@ -178,7 +197,8 @@ class EndpointHandler(RequestHandler):
             except ValidationError as error:
                 validation_error_messages.update(error.messages)
             else:
-                object_ = await self._endpoint.create(object_, **kwargs)
+                async with self._endpoint.context:
+                    object_ = await self._endpoint.create(object_, **kwargs)
                 self.set_status(201)
                 self.finish(self._object_schema.dump(object_))
                 return
@@ -191,7 +211,8 @@ class EndpointHandler(RequestHandler):
             except ValidationError as error:
                 validation_error_messages.update(error.messages)
             else:
-                object_ = await self._endpoint.update(object_, **kwargs)
+                async with self._endpoint.context:
+                    object_ = await self._endpoint.update(object_, **kwargs)
                 self.finish(self._object_schema.dump(object_))
                 return
 
@@ -202,7 +223,8 @@ class EndpointHandler(RequestHandler):
             except ValidationError as error:
                 validation_error_messages.update(error.messages)
             else:
-                await self._endpoint.delete(**kwargs)
+                async with self._endpoint.context:
+                    await self._endpoint.delete(**kwargs)
                 self.finish()
                 return
 
