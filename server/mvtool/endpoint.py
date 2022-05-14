@@ -21,23 +21,23 @@ from marshmallow.validate import Range
 from marshmallow.exceptions import ValidationError
 
 
-class CreateOperationArgsSchema(Schema):
+class CreateArgsSchema(Schema):
     pass
 
 
-class GetOperationArgsSchema(Schema):
+class GetArgsSchema(Schema):
     id_ = fields.Integer(data_key='id', required=True)
 
 
-class UpdateOperationArgsSchema(Schema):
+class UpdateArgsSchema(Schema):
     id_ = fields.Integer(data_key='id', required=True)
 
 
-class DeleteOperationArgsSchema(Schema):
+class DeleteArgsSchema(Schema):
     id_ = fields.Integer(data_key='id', required=True)
 
 
-class ListOperationArgsSchema(Schema):
+class ListArgsSchema(Schema):
     page = fields.Integer(missing=1, validate=Range(min=1))
     page_size = fields.Integer(missing=100, validate=Range(min=1))
 
@@ -55,6 +55,12 @@ class EndpointContext(object):
 
 class Endpoint(object):
     CONTEXT_CLASS = EndpointContext
+    LIST_ARGS_SCHEMA = ListArgsSchema
+    GET_ARGS_SCHEMA = GetArgsSchema
+    CREATE_ARGS_SCHEMA = CreateArgsSchema
+    UPDATE_ARGS_SCHEMA = UpdateArgsSchema
+    DELETE_ARGS_SCHEMA = DeleteArgsSchema
+    OBJECT_SCHEMA = None
 
     def __init__(self, context):
         self.context: EndpointContext = context
@@ -99,6 +105,10 @@ class SQLAlchemyEndpointContext(EndpointContext):
 class SQLAlchemyEndpoint(Endpoint):
     CONTEXT_CLASS = SQLAlchemyEndpointContext
 
+    def __init__(self, context):
+        super().__init__(context)
+        self._object_class = self.OBJECT_SCHEMA.Meta.model
+
     async def list_(self, page, page_size):
         statement = select(self._object_class
             ).order_by(self._object_class.id
@@ -132,101 +142,91 @@ class SQLAlchemyEndpoint(Endpoint):
     async def delete(self, id_):
         async with self.context.sqlalchemy_session.begin_nested():
             object_ = await self.get(id_)
-            self.context.sqlalchemy_session.delete(object_)
+            await self.context.sqlalchemy_session.delete(object_)
 
 
 class EndpointHandler(RequestHandler):
-    def initialize(self, object_schema,
-            create_operation_args_schema=CreateOperationArgsSchema,
-            get_operation_args_schema=GetOperationArgsSchema,
-            update_operation_args_schema=UpdateOperationArgsSchema,
-            delete_operation_args_schema=DeleteOperationArgsSchema,
-            list_operation_args_schema=ListOperationArgsSchema,
-            endpoint_class=Endpoint, **kwargs):
+    def initialize(self, endpoint_class=Endpoint, **kwargs):
 
-        self._object_schema = object_schema()
-        self._objects_schema = object_schema(many=True)
-        self._create_operation_args_schema = create_operation_args_schema()
-        self._get_operation_args_schema = get_operation_args_schema()
-        self._update_operation_args_schema = update_operation_args_schema()
-        self._delete_operation_args_schema = delete_operation_args_schema()
-        self._list_operation_args_schema = list_operation_args_schema()
-        
         context = endpoint_class.CONTEXT_CLASS(self, **kwargs)
         self._endpoint = endpoint_class(context)
 
     async def prepare(self):
         # collect and decode path and query arguments
-        arguments = dict()
+        self._arguments = dict()
         for key, value in (self.path_kwargs | self.request.arguments).items():
             value = value[0] if isinstance(value, list) else value
-            arguments[key] = self.decode_argument(value)
+            self._arguments[key] = self.decode_argument(value)
 
         # decode body data
-        body = json_decode(self.request.body) if self.request.body else dict()
+        self._body = json_decode(self.request.body) if self.request.body else dict()
 
+    async def get(self, **kwargs):
+        # try to get a single object
         validation_error_messages = set()
-        if 'GET' == self.request.method:
-            # try to get a single object
-            try:
-                kwargs = self._get_operation_args_schema.load(arguments)
-            except ValidationError as error:
-                validation_error_messages.update(error.messages)
-            else:
-                async with self._endpoint.context:
-                    object_ = await self._endpoint.get(**kwargs)
-                self.finish(self._object_schema.dump(object_))
-                return
+        try:
+            kwargs = self._endpoint.GET_ARGS_SCHEMA().load(self._arguments)
+        except ValidationError as error:
+            validation_error_messages.update(error.messages)
+        else:
+            async with self._endpoint.context:
+                object_ = await self._endpoint.get(**kwargs)
+            self.finish(self._endpoint.OBJECT_SCHEMA().dump(object_))
+            return
 
-            # try to get a list of objects
-            try:
-                kwargs = self._list_operation_args_schema.load(arguments)
-            except ValidationError as error:
-                validation_error_messages.update(error.messages)
-            else:
-                async with self._endpoint.context:
-                    objects = await self._endpoint.list_(**kwargs)
-                self.finish(dict(objects=self._objects_schema.dump(objects)))
-                return
-            
-        elif 'POST' == self.request.method:
-            # try to create an object
-            try:
-                kwargs = self._create_operation_args_schema.load(arguments)
-                object_ = self._object_schema.load(body)
-            except ValidationError as error:
-                validation_error_messages.update(error.messages)
-            else:
-                async with self._endpoint.context:
-                    object_ = await self._endpoint.create(object_, **kwargs)
-                self.set_status(201)
-                self.finish(self._object_schema.dump(object_))
-                return
-
-        elif 'PUT' == self.request.method:
-            # try to update an object
-            try:
-                kwargs = self._update_operation_args_schema.load(arguments)
-                object_ = self._object_schema.load(body)
-            except ValidationError as error:
-                validation_error_messages.update(error.messages)
-            else:
-                async with self._endpoint.context:
-                    object_ = await self._endpoint.update(object_, **kwargs)
-                self.finish(self._object_schema.dump(object_))
-                return
-
-        elif 'DELETE' == self.request.method:
-            # try to delete an object
-            try:
-                kwargs = self._delete_operation_args_schema.load(arguments)
-            except ValidationError as error:
-                validation_error_messages.update(error.messages)
-            else:
-                async with self._endpoint.context:
-                    await self._endpoint.delete(**kwargs)
-                self.finish()
-                return
-
-        raise HTTPError(400, 'Validation of argument or body failed: %s' 
+        # try to get a list of objects
+        try:
+            kwargs = self._endpoint.LIST_ARGS_SCHEMA().load(self._arguments)
+        except ValidationError as error:
+            validation_error_messages.update(error.messages)
+        else:
+            async with self._endpoint.context:
+                objects = await self._endpoint.list_(**kwargs)
+            self.finish(
+                dict(objects=self._endpoint.OBJECT_SCHEMA(many=True).dump(objects)))
+            return
+        
+        raise HTTPError(400, 'Validation of arguments failed: %s' 
             % str(validation_error_messages))
+
+    async def post(self, **kwargs):
+        # try to create an object
+        try:
+            kwargs = self._endpoint.CREATE_ARGS_SCHEMA().load(self._arguments)
+            object_ = self._endpoint.OBJECT_SCHEMA().load(self._body)
+        except ValidationError as error:
+            raise HTTPError(
+                400, 'Validation of arguments or body failed: %s' % str(error.messages))
+        else:
+            async with self._endpoint.context:
+                object_ = await self._endpoint.create(object_, **kwargs)
+            self.set_status(201)
+            self.finish(self._endpoint.OBJECT_SCHEMA().dump(object_))
+            return
+
+    async def put(self, **kwargs):
+        # try to update an object
+        try:
+            kwargs = self._endpoint.UPDATE_ARGS_SCHEMA().load(self._arguments)
+            object_ = self._endpoint.OBJECT_SCHEMA().load(self._body)
+        except ValidationError as error:
+            raise HTTPError(
+                400, 'Validation of arguments or body failed: %s' % str(error.messages))
+        else:
+            async with self._endpoint.context:
+                object_ = await self._endpoint.update(object_, **kwargs)
+            self.finish(self._endpoint.OBJECT_SCHEMA().dump(object_))
+            return
+
+    async def delete(self, **kwargs):
+        # try to delete an object
+        try:
+            kwargs = self._endpoint.DELETE_ARGS_SCHEMA().load(self._arguments)
+        except ValidationError as error:
+            raise HTTPError(400, 'Validation of arguments failed: %s' 
+                % str(error.messages))
+        else:
+            async with self._endpoint.context:
+                await self._endpoint.delete(**kwargs)
+            self.finish()
+            return

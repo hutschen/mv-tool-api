@@ -46,7 +46,7 @@ class RequirementSchema(SQLAlchemyAutoSchema):
 
 
 class RequirementsEndpoint(SQLAlchemyEndpoint):
-    pass
+    OBJECT_SCHEMA = RequirementSchema
 
 
 class App(object):
@@ -68,12 +68,10 @@ class App(object):
         tornado_config = self._config['tornado']
         tornado_app = tornado.web.Application([
             (r"/", EndpointHandler, dict(
-                object_schema=RequirementSchema,
                 endpoint_class=RequirementsEndpoint,
                 sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
             )),
             (r"/(?P<id>[0-9]+)", EndpointHandler, dict(
-                object_schema=RequirementSchema,
                 endpoint_class=RequirementsEndpoint,
                 sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
             )),
