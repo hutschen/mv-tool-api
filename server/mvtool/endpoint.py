@@ -136,7 +136,7 @@ class EndpointHandler(RequestHandler):
             except ValidationError as error:
                 validation_error_messages.update(error.messages)
             else:
-                await self.delete_object(object_, **kwargs)
+                await self.delete_object(**kwargs)
                 self.finish()
                 return
 

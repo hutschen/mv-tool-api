@@ -57,5 +57,9 @@ class SQLAlchemyEndpointHandler(EndpointHandler):
             await session.commit()
         return object_
 
-    async def delete_object(self, **kwargs):
-        return await super().delete_object(**kwargs)
+    async def delete_object(self, id_):
+        print('DELETE OBJECT WITH ID %d' % id_)
+        async with self._sqlalchemy_session() as session:
+            object_ = await self.get_object(id_)
+            session.delete(object_)
+            await session.commit()
