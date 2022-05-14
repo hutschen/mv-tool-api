@@ -22,7 +22,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema, auto_field
-from .endpoint import EndpointHandler, SQLAlchemyEndpoint
+from .utils.endpoint import EndpointHandler, SQLAlchemyEndpoint
 
 Base = declarative_base()
 
