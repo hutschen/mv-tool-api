@@ -42,10 +42,11 @@ class SQLAlchemyEndpointHandler(EndpointHandler):
             raise HTTPError(404, '%s with id %d not found.' % (
             self._object_class.__name__, id_))
 
-    async def create_object(self, object_, **kwargs):
+    async def create_object(self, object_):
+        object_.id = None
         async with self._sqlalchemy_session() as session:
-            async with session.begin():
-                session.add(object_)
+            session.add(object_)
+            await session.commit()
         return object_
 
     async def update_object(self, object_, **kwargs):
