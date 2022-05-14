@@ -14,7 +14,6 @@
 # GNU AGPL V3 for more details.
 
 import signal
-import asyncio
 import tornado.web
 import tornado.ioloop
 import sqlalchemy as sa
@@ -23,7 +22,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema, auto_field
-from .endpoint_sqlalchemy import SQLAlchemyEndpointHandler
+from .endpoint import EndpointHandler, SQLAlchemyEndpoint
 
 Base = declarative_base()
 
@@ -46,8 +45,9 @@ class RequirementSchema(SQLAlchemyAutoSchema):
     description = auto_field()
 
 
-class RequirementsHandler(SQLAlchemyEndpointHandler):
+class RequirementsEndpoint(SQLAlchemyEndpoint):
     pass
+
 
 class App(object):
     def __init__(self):
@@ -56,7 +56,7 @@ class App(object):
         # connect to database
         self._sqlalchemy_engine = create_async_engine(
             'sqlite+aiosqlite:///:memory:', echo=True)
-        self._sqlalchemy_session = sessionmaker(
+        self._sqlalchemy_sessionmaker = sessionmaker(
             self._sqlalchemy_engine, expire_on_commit=False, class_=AsyncSession)
 
     async def initialize_database(self):
@@ -67,10 +67,16 @@ class App(object):
     def serve(self):
         tornado_config = self._config['tornado']
         tornado_app = tornado.web.Application([
-            (r"/", RequirementsHandler, 
-                dict(sqlalchemy_session=self._sqlalchemy_session, object_schema=RequirementSchema)),
-            (r"/(?P<id>[0-9]+)", RequirementsHandler, 
-                dict(sqlalchemy_session=self._sqlalchemy_session, object_schema=RequirementSchema)),
+            (r"/", EndpointHandler, dict(
+                object_schema=RequirementSchema,
+                endpoint_class=RequirementsEndpoint,
+                sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
+            )),
+            (r"/(?P<id>[0-9]+)", EndpointHandler, dict(
+                object_schema=RequirementSchema,
+                endpoint_class=RequirementsEndpoint,
+                sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
+            )),
         ], debug=tornado_config['debug'])
         tornado_app.listen(tornado_config['port'])
 
