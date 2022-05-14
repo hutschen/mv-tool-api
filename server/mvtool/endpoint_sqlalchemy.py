@@ -49,8 +49,13 @@ class SQLAlchemyEndpointHandler(EndpointHandler):
             await session.commit()
         return object_
 
-    async def update_object(self, object_, **kwargs):
-        return await super().update_object(object_, **kwargs)
+    async def update_object(self, updated_object, id_):
+        async with self._sqlalchemy_session() as session:
+            object_ = await self.get_object(id_)
+            updated_object.id = id_
+            object_ = await session.merge(updated_object)
+            await session.commit()
+        return object_
 
     async def delete_object(self, **kwargs):
         return await super().delete_object(**kwargs)
