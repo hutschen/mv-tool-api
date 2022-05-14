@@ -16,37 +16,12 @@
 import signal
 import tornado.web
 import tornado.ioloop
-import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from marshmallow_sqlalchemy import SQLAlchemyAutoSchema, auto_field
-from .utils.endpoint import EndpointHandler, SQLAlchemyEndpoint
-
-Base = declarative_base()
-
-
-class Requirement(Base):
-    __tablename__ = 'requirements'
-    id = sa.Column(sa.Integer, primary_key=True)
-    name = sa.Column(sa.String)
-    description = sa.Column(sa.String)
-
-
-class RequirementSchema(SQLAlchemyAutoSchema):
-    class Meta:
-        model = Requirement
-        load_instance = True
-        transient = True
-
-    id = auto_field()
-    name = auto_field()
-    description = auto_field()
-
-
-class RequirementsEndpoint(SQLAlchemyEndpoint):
-    OBJECT_SCHEMA = RequirementSchema
+from .utils.endpoint import EndpointHandler
+from .models import Base
+from .endpoints import RequirementsEndpoint
 
 
 class App(object):
