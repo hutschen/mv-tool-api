@@ -15,6 +15,7 @@
 
 from tornado.web import RequestHandler, HTTPError
 from tornado.escape import json_decode
+from sqlalchemy.future import select
 from marshmallow import Schema, fields
 from marshmallow.validate import Range
 from marshmallow.exceptions import ValidationError
@@ -65,6 +66,56 @@ class Endpoint(object):
 
     async def delete(self, **kwargs):
         raise HTTPError(404, 'Operation not implemented.')
+
+
+class SQLAlchemyEndpoint(Endpoint):
+    def __init__(self, endpoint_handler, sqlalchemy_sessionmaker):
+        super().__init__(endpoint_handler)
+        self._sqlalchemy_sessionmaker = sqlalchemy_sessionmaker
+
+    async def prepare(self):
+        if not hasattr(self._endpoint_handler, '_sqlalchemy_session'):            
+            self._endpoint_handler._sqlalchemy_session = \
+                await self._sqlalchemy_sessionmaker()
+        self._sqlalchemy_session = self._endpoint_handler._sqlalchemy_session
+
+    async def on_finish(self):
+        await self._sqlalchemy_session.close()
+
+    async def list_(self, page, page_size):
+        statement = select(self._object_class
+            ).order_by(self._object_class.id
+            ).limit(page_size
+            ).offset((page - 1) * page_size)
+        result = await self._sqlalchemy_session.execute(statement)
+        return result.scalars().all()
+
+    async def get(self, id_):
+        statement = select(self._object_class).where(self._object_class.id == id_)
+        result = await self._sqlalchemy_session.execute(statement)
+        object_ = result.scalar_one_or_none()
+        if object_:
+            return object_
+        else:
+            raise HTTPError(404, '%s with id %d not found.' % (
+            self._object_class.__name__, id_))
+
+    async def create(self, object_):
+        object_.id = None
+        async with self._sqlalchemy_session.begin_nested() as session:
+            session.add(object_)
+            return object_
+
+    async def update(self, updated_object, id_):
+        async with self._sqlalchemy_session.begin_nested() as session:
+            object_ = await self.get(id_)
+            updated_object.id = id_
+            return await session.merge(updated_object)
+
+    async def delete(self, id_):
+        async with self._sqlalchemy_session.begin_nested() as session:
+            object_ = await self.get(id_)
+            session.delete(object_)
 
 
 class EndpointHandler(RequestHandler):
