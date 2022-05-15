@@ -24,5 +24,5 @@ class RequirementSchema(SQLAlchemyAutoSchema):
         transient = True
 
     id = auto_field()
-    name = auto_field()
+    summary = auto_field()
     description = auto_field()

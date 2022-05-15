@@ -20,8 +20,42 @@ from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
 
 
+class JiraIssue(Base):
+    __tablename__ = 'jira_issues'
+    id = Column(Integer, primary_key=True)
+
+
+class JiraProject(Base):
+    __tablename__ = 'jira_projects'
+    id = Column(Integer, primary_key=True)
+
+
+class Document(Base):
+    __tablename__ = 'documents'
+    id = Column(Integer, primary_key=True)
+
+
+class Measure(Base):
+    __tablename__ = 'measures'
+    id = Column(Integer, primary_key=True)
+    summary = Column(String)
+    documents = None
+    ticket = None
+
+
 class Requirement(Base):
     __tablename__ = 'requirements'
     id = Column(Integer, primary_key=True)
-    name = Column(String)
+    reference = Column(String)
+    summary = Column(String)
     description = Column(String)
+    target = Column(String)
+    compliance = Column(String)
+    statement_of_compliance = Column(String)
+    measures = None
+
+
+class Project(Base):
+    __tablename__ = 'projects'
+    id = Column(Integer, primary_key=True)
+    requirements = True
