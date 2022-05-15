@@ -10,6 +10,7 @@ pyyaml = "*"
 marshmallow = "*"
 marshmallow-sqlalchemy = "*"
 apispec = "*"
+jira = "*"
 
 [dev-packages]
 sphinx = "*"
