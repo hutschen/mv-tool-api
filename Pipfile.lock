@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "cc2ab12e9595a613dec155c9b10fe3599b377b0fca6b8d7e0d21b0a5a3c26aa7"
+            "sha256": "7d4419184ff55264511f52f3e3a339d866454880777ffa7ce9d496f3585c9d39"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -17,6 +17,9 @@
     },
     "default": {
         "apispec": {
+            "extras": [
+                "marshmallow"
+            ],
             "hashes": [
                 "sha256:6ea6542e1ebffe9fd95ba01ef3f51351eac6c200a974562c7473059b9cd20aa7",
                 "sha256:f5f0d6b452c3e4a0e0922dce8815fac89dc4dbc758acef21fb9e01584d6602a5"

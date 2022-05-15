@@ -9,7 +9,7 @@ sqlalchemy = {extras = ["asyncio"], version = "*"}
 pyyaml = "*"
 marshmallow = "*"
 marshmallow-sqlalchemy = "*"
-apispec = "*"
+apispec = {extras = ["marshmallow"], version = "*"}
 jira = "*"
 
 [dev-packages]
