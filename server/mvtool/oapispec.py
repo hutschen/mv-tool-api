@@ -12,3 +12,11 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
+
+from swagger_ui_bundle import swagger_ui_path
+from tornado.web import RequestHandler, StaticFileHandler
+
+
+class SwaggerUIHandler(StaticFileHandler):
+    def initialize(self):
+        return super().initialize(swagger_ui_path, default_filename=None)

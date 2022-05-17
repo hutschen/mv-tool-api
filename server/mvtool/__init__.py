@@ -22,6 +22,7 @@ from sqlalchemy.orm import sessionmaker
 from .utils.endpoint import EndpointHandler
 from .models import Base
 from .endpoints import RequirementsEndpoint
+from .oapispec import SwaggerUIHandler
 
 
 class App(object):
@@ -50,6 +51,7 @@ class App(object):
                 endpoint_class=RequirementsEndpoint,
                 sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
             )),
+            (r"/ui/(.*)", SwaggerUIHandler),
         ], debug=tornado_config['debug'])
         tornado_app.listen(tornado_config['port'])
 
