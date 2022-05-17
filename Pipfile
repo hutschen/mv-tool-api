@@ -12,6 +12,7 @@ marshmallow-sqlalchemy = "*"
 apispec = {extras = ["marshmallow"], version = "*"}
 jira = "*"
 swagger-ui-bundle = "*"
+jinja2 = "*"
 
 [dev-packages]
 sphinx = "*"
