@@ -43,6 +43,18 @@ openapi_spec.path(
                 'description': 'Return the requirements.',
                 'content': {'application/json': {'schema': RequirementSchema}}}
             }
+        ),
+        post=dict(
+            description='Create requirement.',
+            parameters=[{'in': 'query', 'schema': endpoint.CreateArgsSchema}],
+            requestBody=dict(
+                required=True,
+                content={'application/json': {'schema': RequirementSchema}}
+            ),
+            responses={201: {
+                'description': 'Return the requirement.',
+                'content': {'application/json': {'schema': RequirementSchema}}}
+            }
         )
     )
 )
@@ -52,6 +64,14 @@ openapi_spec.path(
         get=dict(
             description='Get a requirement.',
             parameters=[ {'in': 'path', 'schema': endpoint.GetArgsSchema}],
+            responses={200: {
+                'description': 'Return the requirement.',
+                'content': {'application/json': {'schema': RequirementSchema}}}
+            }
+        ),
+        put=dict(
+            description='Update a requirement',
+            parameters=[ {'in': 'path', 'schema': endpoint.UpdateArgsSchema}],
             responses={200: {
                 'description': 'Return the requirement.',
                 'content': {'application/json': {'schema': RequirementSchema}}}

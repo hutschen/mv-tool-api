@@ -47,7 +47,11 @@ class App(object):
 
         tornado_config = self._config['tornado']
         tornado_app = tornado.web.Application([
-            (r"/requirements/(?P<id>[0-9]+)?", EndpointHandler, dict(
+            (r"/requirements/", EndpointHandler, dict(
+                endpoint_class=RequirementsEndpoint,
+                sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
+            )),
+            (r"/requirements/(?P<id>[0-9]+)", EndpointHandler, dict(
                 endpoint_class=RequirementsEndpoint,
                 sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
             )),
