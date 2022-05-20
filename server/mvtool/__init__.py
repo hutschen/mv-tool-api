@@ -14,6 +14,7 @@
 # GNU AGPL V3 for more details.
 
 import signal
+from tempfile import TemporaryDirectory
 import tornado.web
 import tornado.ioloop
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,7 +23,7 @@ from sqlalchemy.orm import sessionmaker
 from .utils.endpoint import EndpointHandler
 from .models import Base
 from .endpoints import RequirementsEndpoint
-from .oapispec import SwaggerUIHandler
+from .oapispec import prepare_swagger_ui_dir, openapi_spec
 
 
 class App(object):
@@ -41,17 +42,19 @@ class App(object):
             await conn.run_sync(Base.metadata.create_all)
 
     def serve(self):
+        self._swagger_ui_tempdir = TemporaryDirectory()
+        prepare_swagger_ui_dir(self._swagger_ui_tempdir.name, openapi_spec)
+
         tornado_config = self._config['tornado']
         tornado_app = tornado.web.Application([
-            (r"/", EndpointHandler, dict(
+            (r"/requirements/(?P<id>[0-9]+)?", EndpointHandler, dict(
                 endpoint_class=RequirementsEndpoint,
                 sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
             )),
-            (r"/(?P<id>[0-9]+)", EndpointHandler, dict(
-                endpoint_class=RequirementsEndpoint,
-                sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
+            (r"/api/(.*)", tornado.web.StaticFileHandler, dict(
+               path=self._swagger_ui_tempdir.name,
+               default_filename='index.html' 
             )),
-            (r"/ui/(.*)", SwaggerUIHandler),
         ], debug=tornado_config['debug'])
         tornado_app.listen(tornado_config['port'])
 
@@ -65,3 +68,4 @@ class App(object):
 
     def stop_serving(self):
         tornado.ioloop.IOLoop.current().stop()
+        self._swagger_ui_tempdir.cleanup()

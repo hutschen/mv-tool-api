@@ -13,7 +13,6 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from urllib import response
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from mvtool.schemas import RequirementSchema
