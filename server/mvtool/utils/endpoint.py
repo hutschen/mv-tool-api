@@ -55,11 +55,11 @@ class EndpointContext(object):
 
 class Endpoint(object):
     CONTEXT_CLASS = EndpointContext
-    LIST_ARGS_SCHEMA = ListParamsSchema
-    GET_ARGS_SCHEMA = GetParamsSchema
-    CREATE_ARGS_SCHEMA = CreateParamsSchema
-    UPDATE_ARGS_SCHEMA = UpdateParamsSchema
-    DELETE_ARGS_SCHEMA = DeleteParamsSchema
+    LIST_PARAMS_SCHEMA = ListParamsSchema
+    GET_PARAMS_SCHEMA = GetParamsSchema
+    CREATE_PARAMS_SCHEMA = CreateParamsSchema
+    UPDATE_PARAMS_SCHEMA = UpdateParamsSchema
+    DELETE_PARAMS_SCHEMA = DeleteParamsSchema
     OBJECT_SCHEMA = None
 
     def __init__(self, context):
@@ -165,7 +165,7 @@ class EndpointHandler(RequestHandler):
         # try to get a single object
         validation_error_messages = set()
         try:
-            kwargs = self._endpoint.GET_ARGS_SCHEMA().load(self._arguments)
+            kwargs = self._endpoint.GET_PARAMS_SCHEMA().load(self._arguments)
         except ValidationError as error:
             validation_error_messages.update(error.messages)
         else:
@@ -176,7 +176,7 @@ class EndpointHandler(RequestHandler):
 
         # try to get a list of objects
         try:
-            kwargs = self._endpoint.LIST_ARGS_SCHEMA().load(self._arguments)
+            kwargs = self._endpoint.LIST_PARAMS_SCHEMA().load(self._arguments)
         except ValidationError as error:
             validation_error_messages.update(error.messages)
         else:
@@ -192,7 +192,7 @@ class EndpointHandler(RequestHandler):
     async def post(self, **kwargs):
         # try to create an object
         try:
-            kwargs = self._endpoint.CREATE_ARGS_SCHEMA().load(self._arguments)
+            kwargs = self._endpoint.CREATE_PARAMS_SCHEMA().load(self._arguments)
             object_ = self._endpoint.OBJECT_SCHEMA().load(self._body)
         except ValidationError as error:
             raise HTTPError(
@@ -207,7 +207,7 @@ class EndpointHandler(RequestHandler):
     async def put(self, **kwargs):
         # try to update an object
         try:
-            kwargs = self._endpoint.UPDATE_ARGS_SCHEMA().load(self._arguments)
+            kwargs = self._endpoint.UPDATE_PARAMS_SCHEMA().load(self._arguments)
             object_ = self._endpoint.OBJECT_SCHEMA().load(self._body)
         except ValidationError as error:
             raise HTTPError(
@@ -221,7 +221,7 @@ class EndpointHandler(RequestHandler):
     async def delete(self, **kwargs):
         # try to delete an object
         try:
-            kwargs = self._endpoint.DELETE_ARGS_SCHEMA().load(self._arguments)
+            kwargs = self._endpoint.DELETE_PARAMS_SCHEMA().load(self._arguments)
         except ValidationError as error:
             raise HTTPError(400, 'Validation of arguments failed: %s' 
                 % str(error.messages))
