@@ -21,9 +21,64 @@ import jinja2
 from apispec import APISpec
 from swagger_ui_bundle import swagger_ui_path
 from apispec.ext.marshmallow import MarshmallowPlugin
-import tornado
-from .schemas import RequirementSchema
-from .utils import endpoint
+from .endpoints import RequirementsEndpoint
+
+
+def specify_list_operation(endpoint):
+    return dict(
+        description='List or filter existing resources.',
+        parameters=[ {'in': 'query', 'schema': endpoint.LIST_PARAMS_SCHEMA}],
+        responses={200: {
+            'description': 'Return the resources.',
+            'content': {'application/json': {'schema': endpoint.OBJECT_SCHEMA}}}
+        }
+    )
+
+def specify_create_operation(endpoint):
+    return dict(
+        description='Create a new resource.',
+        parameters=[{'in': 'query', 'schema': endpoint.CREATE_PARAMS_SCHEMA}],
+        requestBody=dict(
+            required=True,
+            content={'application/json': {'schema': endpoint.OBJECT_SCHEMA}}
+        ),
+        responses={201: {
+            'description': 'Return the resource.',
+            'content': {'application/json': {'schema': endpoint.OBJECT_SCHEMA}}}
+        }
+    )
+
+def specify_get_operation(endpoint):
+    return dict(
+        description='Get a resource.',
+        parameters=[ {'in': 'path', 'schema': endpoint.GET_PARAMS_SCHEMA}],
+        responses={200: {
+            'description': 'Return the resource.',
+            'content': {'application/json': {'schema': endpoint.OBJECT_SCHEMA}}}
+        }
+    )
+
+def specify_update_operation(endpoint):
+    return dict(
+        description='Update a resource.',
+        parameters=[ {'in': 'path', 'schema': endpoint.UPDATE_PARAMS_SCHEMA}],
+        requestBody=dict(
+            required=True,
+            content={'application/json': {'schema': endpoint.OBJECT_SCHEMA}}
+        ),
+        responses={200: {
+            'description': 'Return the updated resource.',
+            'content': {'application/json': {'schema': endpoint.OBJECT_SCHEMA}}}
+        }
+    )
+
+def specify_delete_operation(endpoint):
+    return dict(
+        description='Delete a resource.',
+        parameters=[{'in': 'path', 'schema': endpoint.DELETE_PARAMS_SCHEMA}],
+        responses={200: {'description': 'Resource deleted.'}}
+    )
+
 
 openapi_spec = APISpec(
     title='MV-Tool',
@@ -32,53 +87,15 @@ openapi_spec = APISpec(
     info=dict(description='API of MV-Tool'),
     plugins=[MarshmallowPlugin()]
 )
-# spec.components.schema("Requirement", schema=RequirementSchema)
-openapi_spec.path(
-    '/requirements/',
-    operations=dict(
-        get=dict(
-            description='Get requirements.',
-            parameters=[ {'in': 'query', 'schema': endpoint.ListParamsSchema}],
-            responses={200: {
-                'description': 'Return the requirements.',
-                'content': {'application/json': {'schema': RequirementSchema}}}
-            }
-        ),
-        post=dict(
-            description='Create requirement.',
-            parameters=[{'in': 'query', 'schema': endpoint.CreateParamsSchema}],
-            requestBody=dict(
-                required=True,
-                content={'application/json': {'schema': RequirementSchema}}
-            ),
-            responses={201: {
-                'description': 'Return the requirement.',
-                'content': {'application/json': {'schema': RequirementSchema}}}
-            }
-        )
-    )
-)
-openapi_spec.path(
-    '/requirements/{id}',
-    operations=dict(
-        get=dict(
-            description='Get a requirement.',
-            parameters=[ {'in': 'path', 'schema': endpoint.GetParamsSchema}],
-            responses={200: {
-                'description': 'Return the requirement.',
-                'content': {'application/json': {'schema': RequirementSchema}}}
-            }
-        ),
-        put=dict(
-            description='Update a requirement',
-            parameters=[ {'in': 'path', 'schema': endpoint.UpdateParamsSchema}],
-            responses={200: {
-                'description': 'Return the requirement.',
-                'content': {'application/json': {'schema': RequirementSchema}}}
-            }
-        )
-    ),
-)
+openapi_spec.path('/requirements/', operations=dict(
+    get=specify_list_operation(RequirementsEndpoint),
+    post=specify_create_operation(RequirementsEndpoint),
+))
+openapi_spec.path('/requirements/{id}', operations=dict(
+    get=specify_get_operation(RequirementsEndpoint),
+    put=specify_update_operation(RequirementsEndpoint),
+    delete=specify_delete_operation(RequirementsEndpoint),
+))
 
 
 def prepare_swagger_ui_dir(dirpath, oapi_spec, oapi_filename='openapi.json'):
@@ -94,4 +111,4 @@ def prepare_swagger_ui_dir(dirpath, oapi_spec, oapi_filename='openapi.json'):
     j2_template_loader = jinja2.FileSystemLoader(searchpath=dirpath)
     j2_environment = jinja2.Environment(loader=j2_template_loader)
     j2_environment.get_template('index.j2'
-    ).stream(openapi_spec_url=oapi_filename).dump(index_html_filepath)
+    ).stream(openapi_spec_url=oapi_filename).dump(index_html_filepath)    
