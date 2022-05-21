@@ -15,6 +15,7 @@
 
 import os, shutil, json, jinja2
 from swagger_ui_bundle import swagger_ui_path
+from marshmallow import Schema, fields
 
 
 def prepare_swagger_ui_dir(dirpath, oapi_spec, oapi_filename='openapi.json'):
@@ -36,12 +37,16 @@ def prepare_swagger_ui_dir(dirpath, oapi_spec, oapi_filename='openapi.json'):
 class EndpointOpenAPIMixin(object):
     @classmethod
     def specify_list(cls):
+        results_schema = Schema.from_dict(dict(
+            objects=fields.List(fields.Nested(cls.OBJECT_SCHEMA))
+        ))
+
         return dict(
             description='List or filter existing resources.',
             parameters=[ {'in': 'query', 'schema': cls.LIST_PARAMS_SCHEMA}],
             responses={200: {
                 'description': 'Return the resources.',
-                'content': {'application/json': {'schema': cls.OBJECT_SCHEMA}}}
+                'content': {'application/json': {'schema': results_schema}}}
             }
         )
 
