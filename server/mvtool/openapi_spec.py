@@ -25,6 +25,22 @@ openapi_spec = APISpec(
     info=dict(description='API of MV-Tool'),
     plugins=[MarshmallowPlugin()]
 )
+endpoints.JiraInstancesEndpoint.ALLOW_OPERATIONS = set()
+openapi_spec.path('/jira-instances/', operations=dict(
+    get=endpoints.JiraInstancesEndpoint.specify_list(),
+))
+openapi_spec.path('/jira-instances/{id}', operations=dict(
+    get=endpoints.JiraInstancesEndpoint.specify_get(),
+))
+openapi_spec.path('/documents/', operations=dict(
+    get=endpoints.DocumentsEndpoint.specify_list(),
+    post=endpoints.DocumentsEndpoint.specify_create()
+))
+openapi_spec.path('/documents/{id}', operations=dict(
+    get=endpoints.DocumentsEndpoint.specify_get(),
+    put=endpoints.DocumentsEndpoint.specify_update(),
+    delete=endpoints.DocumentsEndpoint.specify_delete(),
+))
 openapi_spec.path('/requirements/', operations=dict(
     # get=specify_list_operation(RequirementsEndpoint),
     get=endpoints.RequirementsEndpoint.specify_list(),
