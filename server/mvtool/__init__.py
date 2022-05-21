@@ -21,9 +21,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from .utils.endpoint import EndpointHandler
+from .utils.openapi import prepare_swagger_ui_dir
 from .models import Base
 from .endpoints import RequirementsEndpoint
-from .oapispec import prepare_swagger_ui_dir, openapi_spec
+from .openapi_spec import openapi_spec
 
 
 class App(object):

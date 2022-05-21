@@ -14,8 +14,9 @@
 # GNU AGPL V3 for more details.
 
 from .utils.endpoint import SQLAlchemyEndpoint
+from .utils.openapi import EndpointOpenAPIMixin
 from . import schemas
 
 
-class RequirementsEndpoint(SQLAlchemyEndpoint):
+class RequirementsEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
     OBJECT_SCHEMA = schemas.RequirementSchema
