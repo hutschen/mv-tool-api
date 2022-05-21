@@ -61,6 +61,7 @@ class Endpoint(object):
     UPDATE_PARAMS_SCHEMA = UpdateParamsSchema
     DELETE_PARAMS_SCHEMA = DeleteParamsSchema
     OBJECT_SCHEMA = None
+    ALLOW_OPERATIONS = {'list', 'create', 'get', 'update', 'delete'}
 
     def __init__(self, context):
         self.context: EndpointContext = context
@@ -151,6 +152,14 @@ class EndpointHandler(RequestHandler):
         context = endpoint_class.CONTEXT_CLASS(self, **kwargs)
         self._endpoint = endpoint_class(context)
 
+    def _raise_http_error_if_operation_not_allowed(self, status_code, operation_name):
+        print(self._endpoint.ALLOW_OPERATIONS)
+        if operation_name not in self._endpoint.ALLOW_OPERATIONS:
+            endpoint_name = self._endpoint.__class__.__name__
+            raise HTTPError(
+                status_code, 
+                f'{operation_name} operation on {endpoint_name} not allowed')
+
     async def prepare(self):
         # collect and decode path and query arguments
         self._arguments = dict()
@@ -169,6 +178,7 @@ class EndpointHandler(RequestHandler):
         except ValidationError as error:
             validation_error_messages.update(error.messages)
         else:
+            self._raise_http_error_if_operation_not_allowed(400, 'get')
             async with self._endpoint.context:
                 object_ = await self._endpoint.get(**kwargs)
             self.finish(self._endpoint.OBJECT_SCHEMA().dump(object_))
@@ -180,6 +190,7 @@ class EndpointHandler(RequestHandler):
         except ValidationError as error:
             validation_error_messages.update(error.messages)
         else:
+            self._raise_http_error_if_operation_not_allowed(400, 'list')
             async with self._endpoint.context:
                 objects = await self._endpoint.list_(**kwargs)
             self.finish(
@@ -198,6 +209,7 @@ class EndpointHandler(RequestHandler):
             raise HTTPError(
                 400, 'Validation of arguments or body failed: %s' % str(error.messages))
         else:
+            self._raise_http_error_if_operation_not_allowed(400, 'create')
             async with self._endpoint.context:
                 object_ = await self._endpoint.create(object_, **kwargs)
             self.set_status(201)
@@ -213,6 +225,7 @@ class EndpointHandler(RequestHandler):
             raise HTTPError(
                 400, 'Validation of arguments or body failed: %s' % str(error.messages))
         else:
+            self._raise_http_error_if_operation_not_allowed(400, 'update')
             async with self._endpoint.context:
                 object_ = await self._endpoint.update(object_, **kwargs)
             self.finish(self._endpoint.OBJECT_SCHEMA().dump(object_))
@@ -226,6 +239,7 @@ class EndpointHandler(RequestHandler):
             raise HTTPError(400, 'Validation of arguments failed: %s' 
                 % str(error.messages))
         else:
+            self._raise_http_error_if_operation_not_allowed(400, 'delete')
             async with self._endpoint.context:
                 await self._endpoint.delete(**kwargs)
             self.finish()
