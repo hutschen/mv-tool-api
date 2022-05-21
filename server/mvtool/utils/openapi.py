@@ -37,6 +37,7 @@ def prepare_swagger_ui_dir(dirpath, oapi_spec, oapi_filename='openapi.json'):
 class EndpointOpenAPIMixin(object):
     @classmethod
     def specify_list(cls):
+        cls.ALLOW_OPERATIONS.add('list')
         results_schema = Schema.from_dict(dict(
             objects=fields.List(fields.Nested(cls.OBJECT_SCHEMA))
         ))
@@ -52,6 +53,7 @@ class EndpointOpenAPIMixin(object):
 
     @classmethod
     def specify_create(cls):
+        cls.ALLOW_OPERATIONS.add('create')
         return dict(
             description='Create a new resource.',
             parameters=[{'in': 'query', 'schema': cls.CREATE_PARAMS_SCHEMA}],
@@ -67,6 +69,7 @@ class EndpointOpenAPIMixin(object):
 
     @classmethod
     def specify_get(cls):
+        cls.ALLOW_OPERATIONS.add('get')
         return dict(
             description='Get a resource.',
             parameters=[ {'in': 'path', 'schema': cls.GET_PARAMS_SCHEMA}],
@@ -78,6 +81,7 @@ class EndpointOpenAPIMixin(object):
 
     @classmethod
     def specify_update(cls):
+        cls.ALLOW_OPERATIONS.add('update')
         return dict(
             description='Update a resource.',
             parameters=[ {'in': 'path', 'schema': cls.UPDATE_PARAMS_SCHEMA}],
@@ -93,6 +97,7 @@ class EndpointOpenAPIMixin(object):
 
     @classmethod
     def specify_delete(cls):
+        cls.ALLOW_OPERATIONS.add('delete')
         return dict(
             description='Delete a resource.',
             parameters=[{'in': 'path', 'schema': cls.DELETE_PARAMS_SCHEMA}],
