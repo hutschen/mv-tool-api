@@ -26,12 +26,10 @@ class DocumentsEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
 
 class JiraInstancesEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
     OBJECT_SCHEMA = schemas.JiraInstanceSchema
-    HIDE_OPERATIONS = ['create', 'update', 'delete']
 
 
 class JiraProjectsEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
     OBJECT_SCHEMA = schemas.JiraProjectSchema
-    HIDE_OPERATIONS = ['create', 'update', 'delete']
 
     async def create(self, object_):
         raise HTTPError(404, 'operation not implemented')
