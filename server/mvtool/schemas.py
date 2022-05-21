@@ -13,8 +13,62 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
+from statistics import mode
+from marshmallow import missing
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema, auto_field
 from . import models
+
+
+class DocumentSchema(SQLAlchemyAutoSchema):
+    class Meta:
+        model = models.Document
+        load_instance = True
+        transient = True
+
+
+class JiraInstanceSchema(SQLAlchemyAutoSchema):
+    class Meta:
+        model = models.JiraInstance
+        load_instance = True
+        transient = True
+
+
+class JiraProjectSchema(SQLAlchemyAutoSchema):
+    class Meta:
+        model = models.JiraProject
+        load_instance = True
+        transient = True
+
+    jira_instance_id = auto_field(required=True)
+
+
+class JiraIssueSchema(SQLAlchemyAutoSchema):
+    class Meta:
+        model = models.JiraIssue
+        load_instance = True
+        transient = True
+
+    jira_project_id = auto_field(required=True)
+
+
+class TaskSchema(SQLAlchemyAutoSchema):
+    class Meta:
+        model = models.Task
+        load_instance = True
+        transient = True
+
+    jira_issue_id = auto_field(missing=None)
+    measure_id = auto_field(required=True)
+    document_id = auto_field(missing=None)
+
+
+class MeasureSchema(SQLAlchemyAutoSchema):
+    class Meta:
+        model = models.Measure
+        load_instance = True
+        transient = True
+
+    requirement_id = auto_field(required=True)
 
 
 class RequirementSchema(SQLAlchemyAutoSchema):
@@ -23,6 +77,13 @@ class RequirementSchema(SQLAlchemyAutoSchema):
         load_instance = True
         transient = True
 
-    id = auto_field()
-    summary = auto_field()
-    description = auto_field()
+    project_id = auto_field(required=True)
+
+
+class ProjectSchema(SQLAlchemyAutoSchema):
+    class Meta:
+        model = models.Project
+        load_instance = True
+        transient = True
+
+    jira_project_id = auto_field()
