@@ -13,35 +13,53 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from pyparsing import StringEnd
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 
 
 Base = declarative_base()
 
-class User(Base):
-    __tablename__ = 'users'
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    email = Column(String)
-    password_hash = Column(String)
-    jira_api_token = Column(String)
-
-
-class JiraIssue(Base):
-    __tablename__ = 'jira_issues'
-    id = Column(Integer, primary_key=True)
-
-
-class JiraProject(Base):
-    __tablename__ = 'jira_projects'
-    id = Column(Integer, primary_key=True)
-
 
 class Document(Base):
     __tablename__ = 'documents'
     id = Column(Integer, primary_key=True)
+    reference = Column(String)
+    title = Column(String)
+    description = Column(String)
+
+
+class JiraInstance(Base):
+    id = Column(Integer, primary_key=True)
+    url = Column(String) # jira server url
+
+
+class JiraProject(Base):
+    id = Column(Integer, primary_key=True)
+    key = Column(String)
+    jira_instance_id = Column(Integer) # Foreign key
+    jira_instance = None
+
+
+class JiraIssue(Base):
+    id = Column(Integer, primary_key=True)
+    key = Column(String)
+    summary = Column(String)
+    description = Column(String)
+    jira_project_id = Column(Integer) # Foreign key
+    jira_project = None
+
+
+class Task(Base):
+    id = Column(Integer, primary_key=True)
+    summary = Column(String)
+    description = Column(String)
+    completed = Column(Boolean) # will be manually changed when review is passed
+    jira_issue_id = Column(Integer) # Foreign key
+    jira_issue = None
+    measure_id = Column(Integer) # Foreign key
+    measure = None
+    document_id = Column(Integer) # Forein key, optional
+    document = None
 
 
 class Measure(Base):
@@ -49,7 +67,8 @@ class Measure(Base):
     id = Column(Integer, primary_key=True)
     summary = Column(String)
     documents = None
-    ticket = None
+    requirement_id = Column(Integer) # Foreign key
+    requirement = None
 
 
 class Requirement(Base):
@@ -59,12 +78,14 @@ class Requirement(Base):
     summary = Column(String)
     description = Column(String)
     target = Column(String)
-    compliance = Column(String)
-    statement_of_compliance = Column(String)
-    measures = None
+    compliance_status = Column(String) # C, PC, NC, NA
+    compliance_comment = Column(String)
 
 
 class Project(Base):
     __tablename__ = 'projects'
     id = Column(Integer, primary_key=True)
-    requirements = True
+    name = Column(String)
+    description = Column(String)
+    jira_project_id = Column(Integer) # Foreign key
+    jira_project = None
