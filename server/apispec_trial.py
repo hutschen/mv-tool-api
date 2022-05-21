@@ -31,7 +31,7 @@ spec.path(
     operations=dict(
         get=dict(
             description='Get requirements.',
-            parameters=[ {'in': 'query', 'schema': endpoint.ListArgsSchema}],
+            parameters=[ {'in': 'query', 'schema': endpoint.ListParamsSchema}],
             responses={200: {
                 'description': 'Return the requirements.',
                 'content': {'application/json': {'schema': RequirementSchema}}}
@@ -44,7 +44,7 @@ spec.path(
     operations=dict(
         get=dict(
             description='Get a requirement.',
-            parameters=[ {'in': 'path', 'schema': endpoint.GetArgsSchema}],
+            parameters=[ {'in': 'path', 'schema': endpoint.GetParamsSchema}],
             responses={200: {
                 'description': 'Return the requirement.',
                 'content': {'application/json': {'schema': RequirementSchema}}}

@@ -21,23 +21,23 @@ from marshmallow.validate import Range
 from marshmallow.exceptions import ValidationError
 
 
-class CreateArgsSchema(Schema):
+class CreateParamsSchema(Schema):
     pass
 
 
-class GetArgsSchema(Schema):
+class GetParamsSchema(Schema):
     id_ = fields.Integer(data_key='id', required=True)
 
 
-class UpdateArgsSchema(Schema):
+class UpdateParamsSchema(Schema):
     id_ = fields.Integer(data_key='id', required=True)
 
 
-class DeleteArgsSchema(Schema):
+class DeleteParamsSchema(Schema):
     id_ = fields.Integer(data_key='id', required=True)
 
 
-class ListArgsSchema(Schema):
+class ListParamsSchema(Schema):
     page = fields.Integer(missing=1, validate=Range(min=1))
     page_size = fields.Integer(missing=100, validate=Range(min=1))
 
@@ -55,11 +55,11 @@ class EndpointContext(object):
 
 class Endpoint(object):
     CONTEXT_CLASS = EndpointContext
-    LIST_ARGS_SCHEMA = ListArgsSchema
-    GET_ARGS_SCHEMA = GetArgsSchema
-    CREATE_ARGS_SCHEMA = CreateArgsSchema
-    UPDATE_ARGS_SCHEMA = UpdateArgsSchema
-    DELETE_ARGS_SCHEMA = DeleteArgsSchema
+    LIST_ARGS_SCHEMA = ListParamsSchema
+    GET_ARGS_SCHEMA = GetParamsSchema
+    CREATE_ARGS_SCHEMA = CreateParamsSchema
+    UPDATE_ARGS_SCHEMA = UpdateParamsSchema
+    DELETE_ARGS_SCHEMA = DeleteParamsSchema
     OBJECT_SCHEMA = None
 
     def __init__(self, context):
