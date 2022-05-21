@@ -14,7 +14,7 @@
 # GNU AGPL V3 for more details.
 
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 
 
@@ -40,7 +40,9 @@ class JiraProject(Base):
     id = Column(Integer, primary_key=True)
     key = Column(String)
     jira_instance_id = Column(Integer, ForeignKey('jira_instances.id'))
-    jira_instance = None
+    jira_instance = relationship(
+        'JiraInstance', 
+        backref=backref('jira_projects', cascade='all, delete, delete-orphan'))
 
 
 class JiraIssue(Base):
@@ -50,7 +52,9 @@ class JiraIssue(Base):
     summary = Column(String)
     description = Column(String)
     jira_project_id = Column(Integer, ForeignKey('jira_projects.id'))
-    jira_project = None
+    jira_project = relationship(
+        'JiraProject', 
+        backref=backref('jira_issues', cascade='all, delete, delete-orphan'))
 
 
 class Task(Base):
@@ -60,20 +64,23 @@ class Task(Base):
     description = Column(String)
     completed = Column(Boolean) # will be manually changed when review is passed
     jira_issue_id = Column(Integer, ForeignKey('jira_issues.id'))
-    jira_issue = None
+    jira_issue = relationship('JiraIssue', backref=backref('tasks'))
     measure_id = Column(Integer, ForeignKey('measures.id'))
-    measure = None
+    measure = relationship(
+        'Measure', 
+        backref=backref('tasks', cascade='all, delete, delete-orphan'))
     document_id = Column(Integer, ForeignKey('documents.id'))
-    document = None
+    document = relationship('Document', backref=backref('tasks'))
 
 
 class Measure(Base):
     __tablename__ = 'measures'
     id = Column(Integer, primary_key=True)
     summary = Column(String)
-    documents = None
     requirement_id = Column(Integer, ForeignKey('requirements.id'))
-    requirement = None
+    requirement = relationship(
+        'Requirement', 
+        backref=backref('measures', cascade='all, delete, delete-orphan'))
 
 
 class Requirement(Base):
@@ -85,6 +92,10 @@ class Requirement(Base):
     target = Column(String)
     compliance_status = Column(String) # C, PC, NC, NA
     compliance_comment = Column(String)
+    project_id = Column(Integer, ForeignKey('projects.id'))
+    project = relationship(
+        'Project', 
+        backref=backref('requirements', cascade='all, delete, delete-orphan'))
 
 
 class Project(Base):
@@ -93,4 +104,6 @@ class Project(Base):
     name = Column(String)
     description = Column(String)
     jira_project_id = Column(Integer, ForeignKey('jira_projects.id'))
-    jira_project = None
+    jira_project = relationship(
+        'JiraProject',
+        backref=backref('project', uselist=False))
