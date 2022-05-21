@@ -25,6 +25,8 @@ class DocumentSchema(SQLAlchemyAutoSchema):
         load_instance = True
         transient = True
 
+    project_id = auto_field(required=True)
+
 
 class JiraInstanceSchema(SQLAlchemyAutoSchema):
     class Meta:

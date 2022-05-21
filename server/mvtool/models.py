@@ -27,6 +27,10 @@ class Document(Base):
     reference = Column(String)
     title = Column(String)
     description = Column(String)
+    project_id = Column(Integer, ForeignKey('projects.id'))
+    project = relationship(
+        'Project', 
+        backref=backref('documents', cascade='all, delete, delete-orphan'))
 
 
 class JiraInstance(Base):
