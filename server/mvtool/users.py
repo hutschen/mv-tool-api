@@ -13,8 +13,11 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
+import jira
 from tornado.web import HTTPError
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields, post_load
+from marshmallow.validate import URL
+from jira import JIRA
 from .utils.endpoint import Endpoint, EndpointContext
 from .utils.openapi import EndpointOpenAPIMixin
 
@@ -27,19 +30,20 @@ class JiraUser(object):
 
 
 class JiraUserSchema(Schema):
-    class Meta:
-        model = JiraUser
-        load_instance = True
-
-    jira_instance_url = fields.Str()
+    jira_instance_url = fields.Str(validate=URL(schemes=('http', 'https')))
     username = fields.Str()
     password = fields.Str()
+
+    @post_load
+    def make_jira_user(self, data, **kwargs):
+        return JiraUser(**data)
 
 
 class JiraUserSessionEndpointContext(EndpointContext):
     def __init__(self, handler, cookie_required=True):
         super().__init__(handler)
         self.jira_user = None
+        self.jira = None
         self._cookie_required = cookie_required
 
     def _get_jira_user_from_cookie(self):
@@ -55,8 +59,16 @@ class JiraUserSessionEndpointContext(EndpointContext):
         json_str = JiraUserSchema().dumps(jira_user)
         self._handler.set_secure_cookie('ju', json_str)
 
+    def set_jira_user(self, jira_user):
+        if not jira_user:
+            return
+        self.jira = JIRA(
+            jira_user.jira_instance_url, 
+            basic_auth=(jira_user.username, jira_user.password))
+        self.jira_user = jira_user
+
     async def __aenter__(self):
-        self.jira_user = self._get_jira_user_from_cookie()
+        self.set_jira_user(self._get_jira_user_from_cookie())
         return self
 
     async def __aexit__(self, exception_type, exception_value, traceback):
@@ -71,6 +83,6 @@ class JiraUserSessionEndpoint(Endpoint, EndpointOpenAPIMixin):
     async def create(self, jira_user):
         ''' Authenticate user and create the user session.
         '''
-        print(jira_user)
-        self.context.jira_user = jira_user
+        self.context.set_jira_user(jira_user)
+        # it has to be tested if the jira user is successfully logged in.
         return jira_user
