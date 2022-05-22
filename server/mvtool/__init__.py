@@ -21,6 +21,7 @@ import tornado.ioloop
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
+from .utils import generate_cookie_secret
 from .utils.endpoint import EndpointHandler
 from .utils.openapi import prepare_swagger_ui_dir
 from .models import Base
@@ -69,7 +70,10 @@ class App(object):
                path=self._swagger_ui_tempdir.name,
                default_filename='index.html' 
             )),
-        ], debug=tornado_config['debug'])
+        ], 
+            cookie_secret=generate_cookie_secret(), 
+            debug=tornado_config['debug']
+        )
         tornado_app.listen(tornado_config['port'])
 
         signal_handler = \

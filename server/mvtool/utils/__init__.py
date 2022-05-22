@@ -12,3 +12,12 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
+
+import random, string
+
+def generate_cookie_secret(bit=256):
+    length = (bit // 8)
+    length += 1 if bit % 8 else 0
+
+    return ''.join(
+        random.choices(string.ascii_letters + string.digits, k=length))
