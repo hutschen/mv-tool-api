@@ -31,21 +31,9 @@ class JiraInstancesEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
 class JiraProjectsEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
     OBJECT_SCHEMA = schemas.JiraProjectSchema
 
-    async def create(self, object_):
-        raise HTTPError(404, 'operation not implemented')
-
-    async def update(self, updated_object, id_):
-        raise HTTPError(404, 'operation not implemented')
-
-    async def delete(self, id_):
-        raise HTTPError(404, 'operation not implemented')
-
 
 class JiraIssuesEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
     OBJECT_SCHEMA = schemas.JiraIssueSchema
-
-    async def delete(self, id_):
-        raise HTTPError(404, 'operation not implemented')
 
 
 class TasksEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
