@@ -15,7 +15,7 @@
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
-from . import endpoints
+from . import endpoints, users
 
 
 openapi_spec = APISpec(
@@ -25,6 +25,12 @@ openapi_spec = APISpec(
     info=dict(description='API of MV-Tool'),
     plugins=[MarshmallowPlugin()]
 )
+
+# Users
+users.JiraUserSessionEndpoint.ALLOW_OPERATIONS = set()
+openapi_spec.path('/jira-users/', operations=dict(
+    post=users.JiraUserSessionEndpoint.specify_create(tags=['jira-users'])
+))
 
 # Documents
 endpoints.DocumentsEndpoint.ALLOW_OPERATIONS = set()

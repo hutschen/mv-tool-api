@@ -25,7 +25,7 @@ from .utils import generate_cookie_secret
 from .utils.endpoint import EndpointHandler
 from .utils.openapi import prepare_swagger_ui_dir
 from .models import Base
-from . import endpoints
+from . import endpoints, users
 from .openapi_spec import openapi_spec
 
 
@@ -50,6 +50,11 @@ class App(object):
 
         tornado_config = self._config['tornado']
         tornado_app = tornado.web.Application([
+            (r'/jira-users/', EndpointHandler, dict(
+                endpoint_class=users.JiraUserSessionEndpoint,
+                sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker,
+                cookie_required=False
+            )),
             (r'/jira-instances/', EndpointHandler, dict(
                 endpoint_class=endpoints.JiraInstancesEndpoint,
                 sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
