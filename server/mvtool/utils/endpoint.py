@@ -148,7 +148,6 @@ class SQLAlchemyEndpoint(Endpoint):
 
 class EndpointHandler(RequestHandler):
     def initialize(self, endpoint_class=Endpoint, **kwargs):
-
         context = endpoint_class.CONTEXT_CLASS(self, **kwargs)
         self._endpoint = endpoint_class(context)
 
