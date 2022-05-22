@@ -25,13 +25,9 @@ openapi_spec = APISpec(
     info=dict(description='API of MV-Tool'),
     plugins=[MarshmallowPlugin()]
 )
-endpoints.JiraInstancesEndpoint.ALLOW_OPERATIONS = set()
-openapi_spec.path('/jira-instances/', operations=dict(
-    get=endpoints.JiraInstancesEndpoint.specify_list(),
-))
-openapi_spec.path('/jira-instances/{id}', operations=dict(
-    get=endpoints.JiraInstancesEndpoint.specify_get(),
-))
+
+# Documents
+endpoints.DocumentsEndpoint.ALLOW_OPERATIONS = set()
 openapi_spec.path('/documents/', operations=dict(
     get=endpoints.DocumentsEndpoint.specify_list(),
     post=endpoints.DocumentsEndpoint.specify_create()
@@ -41,6 +37,62 @@ openapi_spec.path('/documents/{id}', operations=dict(
     put=endpoints.DocumentsEndpoint.specify_update(),
     delete=endpoints.DocumentsEndpoint.specify_delete(),
 ))
+
+# JIRA instances
+endpoints.JiraInstancesEndpoint.ALLOW_OPERATIONS = set()
+openapi_spec.path('/jira-instances/', operations=dict(
+    get=endpoints.JiraInstancesEndpoint.specify_list(),
+))
+openapi_spec.path('/jira-instances/{id}', operations=dict(
+    get=endpoints.JiraInstancesEndpoint.specify_get(),
+))
+
+# JIRA projects
+endpoints.JiraProjectsEndpoint.ALLOW_OPERATIONS = set()
+openapi_spec.path('/jira-projects/', operations=dict(
+    get=endpoints.JiraProjectsEndpoint.specify_list(),
+))
+openapi_spec.path('/jira-projects/{id}', operations=dict(
+    get=endpoints.JiraProjectsEndpoint.specify_get(),
+))
+
+# JIRA issues
+endpoints.JiraIssuesEndpoint.ALLOW_OPERATIONS = set()
+openapi_spec.path('/jira-issues/', operations=dict(
+    get=endpoints.JiraIssuesEndpoint.specify_list(),
+    post=endpoints.JiraIssuesEndpoint.specify_create()
+))
+openapi_spec.path('/jira-issues/{id}', operations=dict(
+    get=endpoints.JiraIssuesEndpoint.specify_get(),
+    put=endpoints.JiraIssuesEndpoint.specify_update(),
+))
+
+# Tasks
+endpoints.TasksEndpoint.ALLOW_OPERATIONS = set()
+openapi_spec.path('/tasks/', operations=dict(
+    get=endpoints.TasksEndpoint.specify_list(),
+    post=endpoints.TasksEndpoint.specify_create()
+))
+openapi_spec.path('/tasks/{id}', operations=dict(
+    get=endpoints.TasksEndpoint.specify_get(),
+    put=endpoints.TasksEndpoint.specify_update(),
+    delete=endpoints.TasksEndpoint.specify_delete(),
+))
+
+# Measures
+endpoints.MeasuresEndpoint.ALLOW_OPERATIONS = set()
+openapi_spec.path('/measures/', operations=dict(
+    get=endpoints.MeasuresEndpoint.specify_list(),
+    post=endpoints.MeasuresEndpoint.specify_create()
+))
+openapi_spec.path('/measures/{id}', operations=dict(
+    get=endpoints.MeasuresEndpoint.specify_get(),
+    put=endpoints.MeasuresEndpoint.specify_update(),
+    delete=endpoints.MeasuresEndpoint.specify_delete(),
+))
+
+# Requirements
+endpoints.RequirementsEndpoint.ALLOW_OPERATIONS = set()
 openapi_spec.path('/requirements/', operations=dict(
     # get=specify_list_operation(RequirementsEndpoint),
     get=endpoints.RequirementsEndpoint.specify_list(),
