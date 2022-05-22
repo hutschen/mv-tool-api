@@ -152,7 +152,6 @@ class EndpointHandler(RequestHandler):
         self._endpoint = endpoint_class(context)
 
     def _raise_http_error_if_operation_not_allowed(self, status_code, operation_name):
-        print(self._endpoint.ALLOW_OPERATIONS)
         if operation_name not in self._endpoint.ALLOW_OPERATIONS:
             endpoint_name = self._endpoint.__class__.__name__
             raise HTTPError(
