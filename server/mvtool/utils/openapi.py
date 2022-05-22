@@ -36,14 +36,17 @@ def prepare_swagger_ui_dir(dirpath, oapi_spec, oapi_filename='openapi.json'):
 
 class EndpointOpenAPIMixin(object):
     @classmethod
-    def specify_list(cls):
+    def specify_list(cls, tags=None):
+        tags = [] if not tags else list(tags)
         cls.ALLOW_OPERATIONS.add('list')
+
         results_schema = Schema.from_dict(dict(
             objects=fields.List(fields.Nested(cls.OBJECT_SCHEMA))
         ))
 
         return dict(
-            description='List or filter existing resources.',
+            summary='List existing resources',
+            tags=tags,
             parameters=[ {'in': 'query', 'schema': cls.LIST_PARAMS_SCHEMA}],
             responses={200: {
                 'description': 'Return the resources.',
@@ -52,10 +55,13 @@ class EndpointOpenAPIMixin(object):
         )
 
     @classmethod
-    def specify_create(cls):
+    def specify_create(cls, tags=None):
+        tags = [] if not tags else list(tags)
         cls.ALLOW_OPERATIONS.add('create')
+
         return dict(
-            description='Create a new resource.',
+            summary='Create a new resource.',
+            tags=tags,
             parameters=[{'in': 'query', 'schema': cls.CREATE_PARAMS_SCHEMA}],
             requestBody=dict(
                 required=True,
@@ -68,10 +74,13 @@ class EndpointOpenAPIMixin(object):
         )
 
     @classmethod
-    def specify_get(cls):
+    def specify_get(cls, tags=None):
+        tags = [] if not tags else list(tags)
         cls.ALLOW_OPERATIONS.add('get')
+
         return dict(
-            description='Get a resource.',
+            summary='Get a resource',
+            tags=tags,
             parameters=[ {'in': 'path', 'schema': cls.GET_PARAMS_SCHEMA}],
             responses={200: {
                 'description': 'Return the resource.',
@@ -80,10 +89,13 @@ class EndpointOpenAPIMixin(object):
         )
 
     @classmethod
-    def specify_update(cls):
+    def specify_update(cls, tags=None):
+        tags = [] if not tags else list(tags)
         cls.ALLOW_OPERATIONS.add('update')
+
         return dict(
-            description='Update a resource.',
+            summary='Update a resource',
+            tags=tags,
             parameters=[ {'in': 'path', 'schema': cls.UPDATE_PARAMS_SCHEMA}],
             requestBody=dict(
                 required=True,
@@ -96,10 +108,13 @@ class EndpointOpenAPIMixin(object):
         )
 
     @classmethod
-    def specify_delete(cls):
+    def specify_delete(cls, tags=None):
+        tags = [] if not tags else list(tags)
         cls.ALLOW_OPERATIONS.add('delete')
+
         return dict(
-            description='Delete a resource.',
+            summary='Delete a resource',
+            tags=tags,
             parameters=[{'in': 'path', 'schema': cls.DELETE_PARAMS_SCHEMA}],
             responses={200: {'description': 'Resource deleted.'}}
         )
