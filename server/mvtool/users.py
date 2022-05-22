@@ -15,7 +15,7 @@
 
 from tornado.web import HTTPError
 from marshmallow import Schema, fields
-from .utils.endpoint import Endpoint, SQLAlchemyEndpointContext
+from .utils.endpoint import Endpoint, EndpointContext
 from .utils.openapi import EndpointOpenAPIMixin
 
 
@@ -36,9 +36,9 @@ class JiraUserSchema(Schema):
     password = fields.Str()
 
 
-class JiraUserSessionEndpointContext(SQLAlchemyEndpointContext):
-    def __init__(self, handler, sqlalchemy_sessionmaker, cookie_required=True):
-        super().__init__(handler, sqlalchemy_sessionmaker)
+class JiraUserSessionEndpointContext(EndpointContext):
+    def __init__(self, handler, cookie_required=True):
+        super().__init__(handler)
         self.jira_user = None
         self._cookie_required = cookie_required
 
@@ -56,14 +56,12 @@ class JiraUserSessionEndpointContext(SQLAlchemyEndpointContext):
         self._handler.set_secure_cookie('ju', json_str)
 
     async def __aenter__(self):
-        # try load JIRA user from tornado session
         self.jira_user = self._get_jira_user_from_cookie()
-        return await super().__aenter__()
+        return self
 
     async def __aexit__(self, exception_type, exception_value, traceback):
         if self.jira_user:
             self._store_jira_user_in_cookie(self.jira_user)
-        return await super().__aexit__(exception_type, exception_value, traceback)
 
 
 class JiraUserSessionEndpoint(Endpoint, EndpointOpenAPIMixin):

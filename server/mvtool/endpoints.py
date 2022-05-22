@@ -13,9 +13,24 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from .utils.endpoint import SQLAlchemyEndpoint
+from .utils.endpoint import SQLAlchemyEndpoint, SQLAlchemyEndpointContext
 from .utils.openapi import EndpointOpenAPIMixin
+from .users import JiraUserSessionEndpointContext
 from . import schemas
+
+
+class MixedEndpointContext(SQLAlchemyEndpointContext, JiraUserSessionEndpointContext):
+    def __init__(self, handler, sqlalchemy_sessionmaker, **kwargs):
+        super(MixedEndpointContext, self).__init__(handler, sqlalchemy_sessionmaker, **kwargs)
+
+    async def __aenter__(self):
+        await SQLAlchemyEndpointContext.__aenter__(self)
+        await JiraUserSessionEndpointContext.__aenter__(self)
+        return self
+
+    async def __aexit__(self, exception_type, exception_value, traceback):
+        await SQLAlchemyEndpointContext.__aexit__(self, exception_type, exception_value, traceback)
+        await JiraUserSessionEndpointContext.__aexit__(self, exception_type, exception_value, traceback)
 
 
 class DocumentsEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
@@ -23,6 +38,7 @@ class DocumentsEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
 
 
 class JiraInstancesEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
+    CONTEXT_CLASS = MixedEndpointContext
     OBJECT_SCHEMA = schemas.JiraInstanceSchema
 
 

@@ -90,7 +90,7 @@ class Endpoint(object):
 
 class SQLAlchemyEndpointContext(EndpointContext):
     def __init__(self, handler, sqlalchemy_sessionmaker):
-        super().__init__(handler)
+        super(SQLAlchemyEndpointContext, self).__init__(handler)
         self.sqlalchemy_session = sqlalchemy_sessionmaker()
 
     async def __aenter__(self):
@@ -107,7 +107,7 @@ class SQLAlchemyEndpoint(Endpoint):
     CONTEXT_CLASS = SQLAlchemyEndpointContext
 
     def __init__(self, context):
-        super().__init__(context)
+        super(SQLAlchemyEndpoint, self).__init__(context)
         self._object_class = self.OBJECT_SCHEMA.Meta.model
 
     async def list_(self, page, page_size):

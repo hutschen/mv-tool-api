@@ -52,7 +52,6 @@ class App(object):
         tornado_app = tornado.web.Application([
             (r'/jira-users/', EndpointHandler, dict(
                 endpoint_class=users.JiraUserSessionEndpoint,
-                sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker,
                 cookie_required=False
             )),
             (r'/jira-instances/', EndpointHandler, dict(
