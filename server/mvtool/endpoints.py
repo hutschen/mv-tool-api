@@ -13,8 +13,6 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from requests import delete
-from tornado.web import HTTPError
 from .utils.endpoint import SQLAlchemyEndpoint
 from .utils.openapi import EndpointOpenAPIMixin
 from . import schemas
