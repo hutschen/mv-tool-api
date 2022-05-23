@@ -29,7 +29,7 @@ openapi_spec = APISpec(
 # Users
 users.JiraUserSessionEndpoint.ALLOW_OPERATIONS = set()
 openapi_spec.path('/jira-users/', operations=dict(
-    post=users.JiraUserSessionEndpoint.specify_create(tags=['jira-users'])
+    put=users.JiraUserSessionEndpoint.specify_update(tags=['jira-users'])
 ))
 
 # Documents

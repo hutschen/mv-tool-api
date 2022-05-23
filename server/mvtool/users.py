@@ -13,11 +13,12 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-import jira
 from tornado.web import HTTPError
+from tornado.ioloop import IOLoop
 from marshmallow import Schema, fields, post_load
 from marshmallow.validate import URL
 from jira import JIRA
+from jira.exceptions import JIRAError
 from .utils.endpoint import Endpoint, EndpointContext
 from .utils.openapi import EndpointOpenAPIMixin
 
@@ -50,7 +51,7 @@ class JiraUserSessionEndpointContext(EndpointContext):
         json_str = self._handler.get_secure_cookie('ju')
         if not json_str:
             if self._cookie_required:
-                raise HTTPError(403, 'can not get jira user data cookie')
+                raise HTTPError(401, 'can not get jira user data cookie')
             else:
                 return
         return JiraUserSchema().loads(json_str)
@@ -78,11 +79,19 @@ class JiraUserSessionEndpointContext(EndpointContext):
 
 class JiraUserSessionEndpoint(Endpoint, EndpointOpenAPIMixin):
     CONTEXT_CLASS = JiraUserSessionEndpointContext
+    UPDATE_PARAMS_SCHEMA = Schema.from_dict(dict())
+    DELETE_PARAMS_SCHEMA = Schema.from_dict(dict())
     OBJECT_SCHEMA = JiraUserSchema
 
-    async def create(self, jira_user):
-        ''' Authenticate user and create the user session.
+    async def update(self, jira_user):
+        ''' Authenticate user and update the user session.
         '''
         self.context.set_jira_user(jira_user)
+        try: 
+            myself = await IOLoop.current().run_in_executor(
+                None, self.context.jira.myself)
+        except JIRAError as error:
+            self.context.jira_user = None
+            raise HTTPError(401, f'JIRAError: {error.text}')
         # it has to be tested if the jira user is successfully logged in.
         return jira_user
