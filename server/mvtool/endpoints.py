@@ -15,22 +15,22 @@
 
 from .utils.endpoint import SQLAlchemyEndpoint, SQLAlchemyEndpointContext
 from .utils.openapi import EndpointOpenAPIMixin
-from .users import JiraUserSessionEndpointContext
+from .utils.auth import JiraEndpointContext
 from . import schemas
 
 
-class MixedEndpointContext(SQLAlchemyEndpointContext, JiraUserSessionEndpointContext):
+class MixedEndpointContext(SQLAlchemyEndpointContext, JiraEndpointContext):
     def __init__(self, handler, sqlalchemy_sessionmaker, **kwargs):
         super(MixedEndpointContext, self).__init__(handler, sqlalchemy_sessionmaker, **kwargs)
 
     async def __aenter__(self):
         await SQLAlchemyEndpointContext.__aenter__(self)
-        await JiraUserSessionEndpointContext.__aenter__(self)
+        await JiraEndpointContext.__aenter__(self)
         return self
 
     async def __aexit__(self, exception_type, exception_value, traceback):
         await SQLAlchemyEndpointContext.__aexit__(self, exception_type, exception_value, traceback)
-        await JiraUserSessionEndpointContext.__aexit__(self, exception_type, exception_value, traceback)
+        await JiraEndpointContext.__aexit__(self, exception_type, exception_value, traceback)
 
 
 class DocumentsEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
