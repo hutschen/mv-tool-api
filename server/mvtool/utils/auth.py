@@ -68,13 +68,13 @@ class JiraAuthEndpoint(Endpoint, EndpointOpenAPIMixin):
 
     async def update(self, jira_credentials):
         # verify authentication data
-        jira = JIRA(
+        jira_ = JIRA(
             jira_credentials.jira_instance_url,
             basic_auth=(jira_credentials.username, jira_credentials.password))
         try: 
-            await IOLoop.current().run_in_executor(None, self.context.jira.myself)
+            await IOLoop.current().run_in_executor(None, jira_.myself)
         except JIRAError as error:
-            self.context.jira_user = None
+            await self.delete()
             raise HTTPError(401, f'JIRAError: {error.text}')
 
         # set cookie
@@ -82,4 +82,5 @@ class JiraAuthEndpoint(Endpoint, EndpointOpenAPIMixin):
         self.context._handler.set_secure_cookie('jc', json_str)
 
     async def delete(self):
-        self.context._handler.clear_cookie('jc')
+        if self.context._handler.get_secure_cookie('jc'):
+            self.context._handler.clear_cookie('jc')
