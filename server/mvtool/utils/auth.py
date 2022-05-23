@@ -12,3 +12,74 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
+
+from tornado.web import HTTPError
+from tornado.ioloop import IOLoop
+from marshmallow import Schema, fields, post_load
+from marshmallow.validate import URL
+from jira import JIRA
+from jira.exceptions import JIRAError
+from .endpoint import Endpoint, EndpointContext
+from .openapi import EndpointOpenAPIMixin
+
+
+class JiraCredentials(object):
+    def __init__(self, jira_instance_url, username, password):
+        self.jira_instance_url = jira_instance_url
+        self.username = username
+        self.password = password
+
+    @post_load
+    def make_jira_credentials(self, data, **kwargs):
+        return JiraCredentials(**data)
+
+
+class JiraCredentialsSchema(Schema):
+    jira_instance_url = fields.Str(validate=URL(schemes=('http', 'https')))
+    username = fields.Str()
+    password = fields.Str()
+
+    @post_load
+    def make_jira_user(self, data, **kwargs):
+        return JiraCredentials(**data)
+
+
+class JiraEndpointContext(EndpointContext):
+    def __init__(self, handler):
+        super().__init__(handler)
+        self.jira = None
+
+    async def __aenter__(self):
+        cookie_value = self._handler.get_secure_cookie('jc')
+        if cookie_value is None:
+            raise HTTPError(401, 'JIRA authentication cookie was not set')
+
+        jira_credentials = JiraCredentialsSchema().loads(cookie_value)
+        self.jira = JIRA(
+            jira_credentials.jira_instance_url,
+            basic_auth=(jira_credentials.username, jira_credentials.password))
+        return self
+
+
+class JiraAuthEndpoint(Endpoint, EndpointOpenAPIMixin):
+    UPDATE_PARAMS_SCHEMA = Schema.from_dict(dict())
+    DELETE_PARAMS_SCHEMA = Schema.from_dict(dict())
+    OBJECT_SCHEMA = JiraCredentialsSchema
+
+    async def update(self, jira_credentials):
+        # verify authentication data
+        jira = JIRA(
+            jira_credentials.jira_instance_url,
+            basic_auth=(jira_credentials.username, jira_credentials.password))
+        try: 
+            await IOLoop.current().run_in_executor(None, self.context.jira.myself)
+        except JIRAError as error:
+            self.context.jira_user = None
+            raise HTTPError(401, f'JIRAError: {error.text}')
+
+        # set cookie
+        json_str = JiraCredentialsSchema().dumps(jira_credentials)
+        self.context._handler.set_secure_cookie('jc', json_str)
+
+    async def delete(self):
+        self.context._handler.clear_cookie('jc')
