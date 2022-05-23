@@ -73,7 +73,9 @@ class JiraUserSessionEndpointContext(EndpointContext):
         return self
 
     async def __aexit__(self, exception_type, exception_value, traceback):
-        if self.jira_user:
+        if self.jira_user is None:
+            self._handler.clear_cookie('ju')
+        else:
             self._store_jira_user_in_cookie(self.jira_user)
 
 
