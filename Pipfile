@@ -13,6 +13,7 @@ apispec = {extras = ["marshmallow"], version = "*"}
 jira = "*"
 swagger-ui-bundle = "*"
 jinja2 = "*"
+cryptography = "*"
 
 [dev-packages]
 sphinx = "*"
