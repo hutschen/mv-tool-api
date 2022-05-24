@@ -16,15 +16,15 @@
 from os import urandom
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from tornado.ioloop import IOLoop
-from tornado.web import RequestHandler
 
 
 def encrypt(message, key, encoding='utf-8'):
     plaintext = message.encode(encoding)
+    plaintext += b' ' * (16 - len(plaintext) % 16)
     initialization_vector = urandom(16)
     cipher = Cipher(algorithms.AES(key), modes.CBC(initialization_vector))
     encryptor = cipher.encryptor()
-    ciphertext = encryptor.update(plaintext)
+    ciphertext = encryptor.update(plaintext) + encryptor.finalize()
     return initialization_vector + ciphertext
 
 
@@ -37,7 +37,7 @@ def decrypt(message, key, encoding='utf-8'):
     return plaintext.decode(encoding)
 
 
-class SecretCookieMixin(RequestHandler):
+class SecretCookieMixin(object):
     ''' Mixin for classes derived from tornado.web.RequestHandler
     '''
     async def set_secret_cookie(self, name, value, *args, **kwargs):
@@ -50,4 +50,6 @@ class SecretCookieMixin(RequestHandler):
         self.require_setting("cookie_secret", "secret cookies")
         key = self.application.settings["cookie_secret"]
         ciphertext = self.get_secure_cookie(name, *args, **kwargs)
-        return await IOLoop.current().run_in_executor(None, decrypt, ciphertext, key)
+        if ciphertext is not None:
+            return await IOLoop.current().run_in_executor(
+                None, decrypt, ciphertext, key)
