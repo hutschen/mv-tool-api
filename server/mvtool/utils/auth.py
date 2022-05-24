@@ -50,7 +50,7 @@ class JiraEndpointContext(EndpointContext):
         self.jira = None
 
     async def __aenter__(self):
-        cookie_value = self._handler.get_secure_cookie('jc')
+        cookie_value = await self._handler.get_secret_cookie('jc')
         if cookie_value is None:
             raise HTTPError(401, 'JIRA authentication cookie was not set')
 
@@ -79,8 +79,8 @@ class JiraAuthEndpoint(Endpoint, EndpointOpenAPIMixin):
 
         # set cookie
         json_str = JiraCredentialsSchema().dumps(jira_credentials)
-        self.context._handler.set_secure_cookie('jc', json_str)
+        await self.context._handler.set_secret_cookie('jc', json_str)
 
     async def delete(self):
-        if self.context._handler.get_secure_cookie('jc'):
+        if await self.context._handler.get_secret_cookie('jc'):
             self.context._handler.clear_cookie('jc')

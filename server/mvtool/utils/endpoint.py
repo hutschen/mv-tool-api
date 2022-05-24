@@ -19,6 +19,7 @@ from sqlalchemy.future import select
 from marshmallow import Schema, fields
 from marshmallow.validate import Range
 from marshmallow.exceptions import ValidationError
+from .crypto import SecretCookieMixin
 
 
 class CreateParamsSchema(Schema):
@@ -146,7 +147,7 @@ class SQLAlchemyEndpoint(Endpoint):
             await self.context.sqlalchemy_session.delete(object_)
 
 
-class EndpointHandler(RequestHandler):
+class EndpointHandler(RequestHandler, SecretCookieMixin):
     def initialize(self, endpoint_class=Endpoint, **kwargs):
         context = endpoint_class.CONTEXT_CLASS(self, **kwargs)
         self._endpoint = endpoint_class(context)
