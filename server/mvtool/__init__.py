@@ -14,14 +14,13 @@
 # GNU AGPL V3 for more details.
 
 import signal
+from os import urandom
 from tempfile import TemporaryDirectory
-import sqlalchemy
 import tornado.web
 import tornado.ioloop
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
-from .utils import generate_cookie_secret
 from .utils.endpoint import EndpointHandler
 from .utils.openapi import prepare_swagger_ui_dir
 from .utils.auth import JiraAuthEndpoint
@@ -75,7 +74,7 @@ class App(object):
                default_filename='index.html' 
             )),
         ], 
-            cookie_secret=generate_cookie_secret(), 
+            cookie_secret=urandom(32),
             debug=tornado_config['debug']
         )
         tornado_app.listen(tornado_config['port'])
