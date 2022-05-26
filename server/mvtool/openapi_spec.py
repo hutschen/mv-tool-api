@@ -33,18 +33,6 @@ openapi_spec.path('/user/', operations=dict(
     delete=endpoints.JiraUserEndpoint.specify_delete(tags=['user'])
 ))
 
-# Documents
-endpoints.DocumentsEndpoint.ALLOW_OPERATIONS = set()
-openapi_spec.path('/documents/', operations=dict(
-    get=endpoints.DocumentsEndpoint.specify_list(tags=['documents']),
-    post=endpoints.DocumentsEndpoint.specify_create(tags=['documents'])
-))
-openapi_spec.path('/documents/{id}', operations=dict(
-    get=endpoints.DocumentsEndpoint.specify_get(tags=['documents']),
-    put=endpoints.DocumentsEndpoint.specify_update(tags=['documents']),
-    delete=endpoints.DocumentsEndpoint.specify_delete(tags=['documents']),
-))
-
 # JIRA instances
 endpoints.JiraInstancesEndpoint.ALLOW_OPERATIONS = set()
 openapi_spec.path('/jira-instances/', operations=dict(
@@ -72,6 +60,18 @@ openapi_spec.path('/jira-issues/', operations=dict(
 openapi_spec.path('/jira-issues/{id}', operations=dict(
     get=endpoints.JiraIssuesEndpoint.specify_get(tags=['jira-issues']),
     put=endpoints.JiraIssuesEndpoint.specify_update(tags=['jira-issues']),
+))
+
+# Documents
+endpoints.DocumentsEndpoint.ALLOW_OPERATIONS = set()
+openapi_spec.path('/documents/', operations=dict(
+    get=endpoints.DocumentsEndpoint.specify_list(tags=['documents']),
+    post=endpoints.DocumentsEndpoint.specify_create(tags=['documents'])
+))
+openapi_spec.path('/documents/{id}', operations=dict(
+    get=endpoints.DocumentsEndpoint.specify_get(tags=['documents']),
+    put=endpoints.DocumentsEndpoint.specify_update(tags=['documents']),
+    delete=endpoints.DocumentsEndpoint.specify_delete(tags=['documents']),
 ))
 
 # Tasks
