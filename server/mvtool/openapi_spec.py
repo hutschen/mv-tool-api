@@ -38,17 +38,16 @@ endpoints.JiraInstancesEndpoint.ALLOW_OPERATIONS = set()
 openapi_spec.path('/jira-instances/', operations=dict(
     get=endpoints.JiraInstancesEndpoint.specify_list(tags=['jira-instances']),
 ))
-openapi_spec.path('/jira-instances/{id}', operations=dict(
-    get=endpoints.JiraInstancesEndpoint.specify_get(tags=['jira-instances']),
-))
 
 # JIRA projects
 endpoints.JiraProjectsEndpoint.ALLOW_OPERATIONS = set()
-openapi_spec.path('/jira-projects/', operations=dict(
+openapi_spec.path('/jira-user/jira-projects/', operations=dict(
     get=endpoints.JiraProjectsEndpoint.specify_list(tags=['jira-projects']),
 ))
-openapi_spec.path('/jira-projects/{id}', operations=dict(
-    get=endpoints.JiraProjectsEndpoint.specify_get(tags=['jira-projects']),
+
+# Projects
+openapi_spec.path('/jira-instances/{jira_instance_id}/projects/', operations=dict(
+    get=endpoints.JiraInstancesEndpoint.specify_get(tags=['jira-instances']),
 ))
 
 # JIRA issues
