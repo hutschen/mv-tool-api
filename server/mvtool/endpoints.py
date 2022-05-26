@@ -54,7 +54,8 @@ class JiraUserEndpoint(Endpoint, EndpointOpenAPIMixin):
         await self.jira_auth_endpoint.update(jira_credentials, verify_credentials=False)
 
         # set display name and email
-        print(jira_user_data)
+        jira_user.display_name = jira_user_data['displayName']
+        jira_user.email_address = jira_user_data['emailAddress']
 
         # get or create JIRA instance
         jira_user.jira_instance = await self.jira_instances_endpoint.get_by_url(

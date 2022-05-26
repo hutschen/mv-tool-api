@@ -34,9 +34,11 @@ class Document(Base):
 
 
 class JiraUser(object):
-    def __init__(self, username, password, jira_instance):
+    def __init__(self, username, password, jira_instance, display_name=None, email_address=None):
         self.username = username
         self.password = password
+        self.display_name = display_name
+        self.email_address = email_address
         self.jira_instance = jira_instance
 
 

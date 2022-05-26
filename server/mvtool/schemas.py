@@ -36,9 +36,11 @@ class JiraInstanceSchema(SQLAlchemyAutoSchema):
 
 
 class JiraUserSchema(Schema):
-    username = fields.Str()
-    password = fields.Str(load_only=True)
-    jira_instance = fields.Nested(JiraInstanceSchema)
+    username = fields.Str(required=True)
+    password = fields.Str(load_only=True, required=True)
+    display_name = fields.Str(dump_only=True)
+    email_address = fields.Str(dump_only=True)
+    jira_instance = fields.Nested(JiraInstanceSchema, required=True)
 
     @post_load
     def make_jira_user(self, data, **kwargs):
