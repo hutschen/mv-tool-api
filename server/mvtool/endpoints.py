@@ -34,6 +34,7 @@ class MixedEndpointContext(SQLAlchemyEndpointContext, JiraEndpointContext):
 
 
 class DocumentsEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
+    CONTEXT_CLASS = MixedEndpointContext
     OBJECT_SCHEMA = schemas.DocumentSchema
 
 
@@ -43,24 +44,30 @@ class JiraInstancesEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
 
 
 class JiraProjectsEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
+    CONTEXT_CLASS = MixedEndpointContext
     OBJECT_SCHEMA = schemas.JiraProjectSchema
 
 
 class JiraIssuesEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
+    CONTEXT_CLASS = MixedEndpointContext
     OBJECT_SCHEMA = schemas.JiraIssueSchema
 
 
 class TasksEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
+    CONTEXT_CLASS = MixedEndpointContext
     OBJECT_SCHEMA = schemas.TaskSchema
 
 
 class MeasuresEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
+    CONTEXT_CLASS = MixedEndpointContext
     OBJECT_SCHEMA = schemas.MeasureSchema
 
 
 class RequirementsEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
+    CONTEXT_CLASS = MixedEndpointContext
     OBJECT_SCHEMA = schemas.RequirementSchema
 
 
 class ProjectsEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
+    CONTEXT_CLASS = MixedEndpointContext
     OBJECT_SCHEMA = schemas.ProjectSchema
