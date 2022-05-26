@@ -26,11 +26,11 @@ openapi_spec = APISpec(
     plugins=[MarshmallowPlugin()]
 )
 
-# Users
+# JIRA Users
 endpoints.JiraUserEndpoint.ALLOW_OPERATIONS = set()
-openapi_spec.path('/user/', operations=dict(
-    put=endpoints.JiraUserEndpoint.specify_update(tags=['user']),
-    delete=endpoints.JiraUserEndpoint.specify_delete(tags=['user'])
+openapi_spec.path('/jira-user/', operations=dict(
+    put=endpoints.JiraUserEndpoint.specify_update(tags=['jira-user']),
+    delete=endpoints.JiraUserEndpoint.specify_delete(tags=['jira-user'])
 ))
 
 # JIRA instances

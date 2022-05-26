@@ -49,7 +49,7 @@ class App(object):
 
         tornado_config = self._config['tornado']
         tornado_app = tornado.web.Application([
-            (r'/user/', EndpointHandler, dict(
+            (r'/jira-user/', EndpointHandler, dict(
                 endpoint_class=endpoints.JiraUserEndpoint,
                 sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
             )),
