@@ -29,9 +29,14 @@ class JiraCredentials(object):
         self.username = username
         self.password = password
 
-    @post_load
-    def make_jira_credentials(self, data, **kwargs):
-        return JiraCredentials(**data)
+    async def get_jira_myself(self):
+        jira_ = JIRA(
+            self.jira_instance_url,
+            basic_auth=(self.username, self.password))
+        try: 
+            return await IOLoop.current().run_in_executor(None, jira_.myself)
+        except JIRAError as error:
+            raise http_errors.Unauthorized(f'JIRAError: {error.text}')
 
 
 class JiraCredentialsSchema(Schema):
@@ -40,7 +45,7 @@ class JiraCredentialsSchema(Schema):
     password = fields.Str()
 
     @post_load
-    def make_jira_user(self, data, **kwargs):
+    def make_jira_credentials(self, data, **kwargs):
         return JiraCredentials(**data)
 
 
@@ -70,18 +75,9 @@ class JiraAuthEndpoint(Endpoint, EndpointOpenAPIMixin):
     DELETE_PARAMS_SCHEMA = Schema.from_dict(dict())
     OBJECT_SCHEMA = JiraCredentialsExPasswordSchema
 
-    async def get_jira_myself(self, jira_credentials):
-        jira_ = JIRA(
-            jira_credentials.jira_instance_url,
-            basic_auth=(jira_credentials.username, jira_credentials.password))
-        try: 
-            return await IOLoop.current().run_in_executor(None, jira_.myself)
-        except JIRAError as error:
-            raise http_errors.Unauthorized(f'JIRAError: {error.text}')
-
     async def update(self, jira_credentials, verify_credentials=True):
         if verify_credentials:
-            self.get_jira_myself(jira_credentials)
+            await jira_credentials.get_jira_myself()
 
         # set cookie
         json_str = JiraCredentialsSchema().dumps(jira_credentials)
