@@ -70,16 +70,18 @@ class JiraAuthEndpoint(Endpoint, EndpointOpenAPIMixin):
     DELETE_PARAMS_SCHEMA = Schema.from_dict(dict())
     OBJECT_SCHEMA = JiraCredentialsExPasswordSchema
 
-    async def update(self, jira_credentials):
-        # verify authentication data
+    async def get_jira_myself(self, jira_credentials):
         jira_ = JIRA(
             jira_credentials.jira_instance_url,
             basic_auth=(jira_credentials.username, jira_credentials.password))
         try: 
-            await IOLoop.current().run_in_executor(None, jira_.myself)
+            return await IOLoop.current().run_in_executor(None, jira_.myself)
         except JIRAError as error:
-            await self.delete()
             raise http_errors.Unauthorized(f'JIRAError: {error.text}')
+
+    async def update(self, jira_credentials, verify_credentials=True):
+        if verify_credentials:
+            self.get_jira_myself(jira_credentials)
 
         # set cookie
         json_str = JiraCredentialsSchema().dumps(jira_credentials)
