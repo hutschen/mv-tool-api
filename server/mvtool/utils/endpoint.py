@@ -13,13 +13,14 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from tornado.web import RequestHandler, HTTPError
+from tornado.web import RequestHandler
 from tornado.escape import json_decode
 from sqlalchemy.future import select
 from marshmallow import Schema, fields
 from marshmallow.validate import Range
 from marshmallow.exceptions import ValidationError
 from .crypto import SecretCookieMixin
+from . import http_errors
 
 
 class CreateParamsSchema(Schema):
@@ -74,19 +75,19 @@ class Endpoint(object):
         pass
     
     async def list_(self, **kwargs):
-        raise HTTPError(404, 'Operation not implemented.')
+        raise http_errors.MethodNotAllowed('Operation not implemented.')
 
     async def get(self, **kwargs):
-        raise HTTPError(404, 'Operation not implemented.')
+        raise http_errors.MethodNotAllowed('Operation not implemented.')
 
     async def create(self, object_, **kwargs):
-        raise HTTPError(404, 'Operation not implemented.')
+        raise http_errors.MethodNotAllowed('Operation not implemented.')
 
     async def update(self, object_, **kwargs):
-        raise HTTPError(404, 'Operation not implemented.')
+        raise http_errors.MethodNotAllowed('Operation not implemented.')
 
     async def delete(self, **kwargs):
-        raise HTTPError(404, 'Operation not implemented.')
+        raise http_errors.MethodNotAllowed('Operation not implemented.')
 
 
 class SQLAlchemyEndpointContext(EndpointContext):
@@ -126,7 +127,7 @@ class SQLAlchemyEndpoint(Endpoint):
         if object_:
             return object_
         else:
-            raise HTTPError(404, '%s with id %d not found.' % (
+            raise http_errors.NotFound('%s with id %d not found.' % (
             self._object_class.__name__, id_))
 
     async def create(self, object_):
@@ -152,11 +153,10 @@ class EndpointHandler(RequestHandler, SecretCookieMixin):
         context = endpoint_class.CONTEXT_CLASS(self, **kwargs)
         self._endpoint = endpoint_class(context)
 
-    def _raise_http_error_if_operation_not_allowed(self, status_code, operation_name):
+    def _raise_http_error_if_operation_not_allowed(self, operation_name):
         if operation_name not in self._endpoint.ALLOW_OPERATIONS:
             endpoint_name = self._endpoint.__class__.__name__
-            raise HTTPError(
-                status_code, 
+            raise http_errors.MethodNotAllowed(
                 f'{operation_name} operation on {endpoint_name} not allowed')
 
     async def prepare(self):
@@ -177,7 +177,7 @@ class EndpointHandler(RequestHandler, SecretCookieMixin):
         except ValidationError as error:
             validation_error_messages.update(error.messages)
         else:
-            self._raise_http_error_if_operation_not_allowed(400, 'get')
+            self._raise_http_error_if_operation_not_allowed('get')
             async with self._endpoint.context:
                 object_ = await self._endpoint.get(**kwargs)
             self.finish(self._endpoint.OBJECT_SCHEMA().dump(object_))
@@ -189,14 +189,14 @@ class EndpointHandler(RequestHandler, SecretCookieMixin):
         except ValidationError as error:
             validation_error_messages.update(error.messages)
         else:
-            self._raise_http_error_if_operation_not_allowed(400, 'list')
+            self._raise_http_error_if_operation_not_allowed('list')
             async with self._endpoint.context:
                 objects = await self._endpoint.list_(**kwargs)
             self.finish(
                 dict(objects=self._endpoint.OBJECT_SCHEMA(many=True).dump(objects)))
             return
         
-        raise HTTPError(400, 'Validation of arguments failed: %s' 
+        raise http_errors.BadRequest('Validation of arguments failed: %s' 
             % str(validation_error_messages))
 
     async def post(self, **kwargs):
@@ -205,10 +205,10 @@ class EndpointHandler(RequestHandler, SecretCookieMixin):
             kwargs = self._endpoint.CREATE_PARAMS_SCHEMA().load(self._arguments)
             object_ = self._endpoint.OBJECT_SCHEMA().load(self._body)
         except ValidationError as error:
-            raise HTTPError(
-                400, 'Validation of arguments or body failed: %s' % str(error.messages))
+            raise http_errors.BadRequest(
+                'Validation of arguments or body failed: %s' % str(error.messages))
         else:
-            self._raise_http_error_if_operation_not_allowed(400, 'create')
+            self._raise_http_error_if_operation_not_allowed('create')
             async with self._endpoint.context:
                 object_ = await self._endpoint.create(object_, **kwargs)
             self.set_status(201)
@@ -221,10 +221,10 @@ class EndpointHandler(RequestHandler, SecretCookieMixin):
             kwargs = self._endpoint.UPDATE_PARAMS_SCHEMA().load(self._arguments)
             object_ = self._endpoint.OBJECT_SCHEMA().load(self._body)
         except ValidationError as error:
-            raise HTTPError(
-                400, 'Validation of arguments or body failed: %s' % str(error.messages))
+            raise http_errors.BadRequest(
+                'Validation of arguments or body failed: %s' % str(error.messages))
         else:
-            self._raise_http_error_if_operation_not_allowed(400, 'update')
+            self._raise_http_error_if_operation_not_allowed('update')
             async with self._endpoint.context:
                 object_ = await self._endpoint.update(object_, **kwargs)
             self.finish(self._endpoint.OBJECT_SCHEMA().dump(object_))
@@ -235,10 +235,10 @@ class EndpointHandler(RequestHandler, SecretCookieMixin):
         try:
             kwargs = self._endpoint.DELETE_PARAMS_SCHEMA().load(self._arguments)
         except ValidationError as error:
-            raise HTTPError(400, 'Validation of arguments failed: %s' 
+            raise http_errors.BadRequest('Validation of arguments failed: %s' 
                 % str(error.messages))
         else:
-            self._raise_http_error_if_operation_not_allowed(400, 'delete')
+            self._raise_http_error_if_operation_not_allowed('delete')
             async with self._endpoint.context:
                 await self._endpoint.delete(**kwargs)
             self.finish()
