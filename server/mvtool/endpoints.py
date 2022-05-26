@@ -13,6 +13,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
+from tornado.ioloop import IOLoop
 from marshmallow import Schema
 from sqlalchemy.future import select
 from .utils.endpoint import Endpoint, SQLAlchemyEndpoint, SQLAlchemyEndpointContext
@@ -93,7 +94,30 @@ class JiraInstancesEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
 
 class JiraProjectsEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
     CONTEXT_CLASS = MixedEndpointContext
+    LIST_PARAMS_SCHEMA = Schema.from_dict(dict())
     OBJECT_SCHEMA = schemas.JiraProjectSchema
+
+    async def iter_projects_from_jira(self):
+        async with self.context.sqlalchemy_session.begin_nested():
+            jira_instance = await self.context.get_jira_instance()
+            for project in await IOLoop.current().run_in_executor(
+                    None, self.context.jira.projects):
+
+                # try to get jira project
+                statement = select(self._object_class
+                    ).where(self._object_class.key == project.key
+                    ).where(self._object_class.jira_instance_id == jira_instance.id)
+                result = await self.context.sqlalchemy_session.execute(statement)
+                jira_project = result.scalar_one_or_none()
+                if jira_project:
+                    yield jira_project
+                else:
+                    yield await self.create(models.JiraProject(
+                        key=project.key, name=project.name, 
+                        jira_instance=jira_instance))
+
+    async def list_(self):
+        return [jp async for jp in self.iter_projects_from_jira()]
 
 
 class JiraIssuesEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):

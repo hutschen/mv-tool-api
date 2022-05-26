@@ -52,6 +52,7 @@ class JiraProject(Base):
     __tablename__ = 'jira_projects'
     id = Column(Integer, primary_key=True)
     key = Column(String)
+    name = Column(String)
     jira_instance_id = Column(Integer, ForeignKey('jira_instances.id'))
     jira_instance = relationship(
         'JiraInstance', 
