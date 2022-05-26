@@ -13,7 +13,6 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from tornado.web import HTTPError
 from tornado.ioloop import IOLoop
 from marshmallow import Schema, fields, post_load
 from marshmallow.validate import URL
@@ -21,6 +20,7 @@ from jira import JIRA
 from jira.exceptions import JIRAError
 from .endpoint import Endpoint, EndpointContext
 from .openapi import EndpointOpenAPIMixin
+from . import http_errors
 
 
 class JiraCredentials(object):
@@ -56,7 +56,7 @@ class JiraEndpointContext(EndpointContext):
     async def __aenter__(self):
         cookie_value = await self._handler.get_secret_cookie('jc')
         if cookie_value is None:
-            raise HTTPError(401, 'JIRA authentication cookie was not set')
+            raise http_errors.Unauthorized('JIRA authentication cookie was not set')
 
         jira_credentials = JiraCredentialsSchema().loads(cookie_value)
         self.jira = JIRA(
@@ -79,7 +79,7 @@ class JiraAuthEndpoint(Endpoint, EndpointOpenAPIMixin):
             await IOLoop.current().run_in_executor(None, jira_.myself)
         except JIRAError as error:
             await self.delete()
-            raise HTTPError(401, f'JIRAError: {error.text}')
+            raise http_errors.Unauthorized(f'JIRAError: {error.text}')
 
         # set cookie
         json_str = JiraCredentialsSchema().dumps(jira_credentials)
