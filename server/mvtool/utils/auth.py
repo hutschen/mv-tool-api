@@ -56,6 +56,7 @@ class JiraCredentialsExPasswordSchema(JiraCredentials):
 class JiraEndpointContext(EndpointContext):
     def __init__(self, handler):
         super().__init__(handler)
+        self.jira_credentials = None
         self.jira = None
 
     async def __aenter__(self):
@@ -63,10 +64,12 @@ class JiraEndpointContext(EndpointContext):
         if cookie_value is None:
             raise http_errors.Unauthorized('JIRA authentication cookie was not set')
 
-        jira_credentials = JiraCredentialsSchema().loads(cookie_value)
+        self.jira_credentials = JiraCredentialsSchema().loads(cookie_value)
         self.jira = JIRA(
-            jira_credentials.jira_instance_url,
-            basic_auth=(jira_credentials.username, jira_credentials.password))
+            self.jira_credentials.jira_instance_url,
+            basic_auth=(
+                self.jira_credentials.username, 
+                self.jira_credentials.password))
         return self
 
 

@@ -34,6 +34,10 @@ class MixedEndpointContext(SQLAlchemyEndpointContext, auth.JiraEndpointContext):
         await SQLAlchemyEndpointContext.__aexit__(self, exception_type, exception_value, traceback)
         await auth.JiraEndpointContext.__aexit__(self, exception_type, exception_value, traceback)
 
+    async def get_jira_instance(self):
+        return await JiraInstancesEndpoint(self).get_by_url(
+            self.jira_credentials.jira_instance_url)
+
 
 class JiraUserEndpoint(Endpoint, EndpointOpenAPIMixin):
     UPDATE_PARAMS_SCHEMA = Schema.from_dict(dict())
