@@ -15,7 +15,6 @@
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
-from .utils.auth import JiraAuthEndpoint
 from . import endpoints
 
 
@@ -28,10 +27,10 @@ openapi_spec = APISpec(
 )
 
 # Users
-JiraAuthEndpoint.ALLOW_OPERATIONS = set()
-openapi_spec.path('/auth/', operations=dict(
-    put=JiraAuthEndpoint.specify_update(tags=['auth']),
-    delete=JiraAuthEndpoint.specify_delete(tags=['auth'])
+endpoints.JiraUserEndpoint.ALLOW_OPERATIONS = set()
+openapi_spec.path('/user/', operations=dict(
+    put=endpoints.JiraUserEndpoint.specify_update(tags=['user']),
+    delete=endpoints.JiraUserEndpoint.specify_delete(tags=['user'])
 ))
 
 # Documents

@@ -23,7 +23,6 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from .utils.endpoint import EndpointHandler
 from .utils.openapi import prepare_swagger_ui_dir
-from .utils.auth import JiraAuthEndpoint
 from .models import Base
 from . import endpoints
 from .openapi_spec import openapi_spec
@@ -50,8 +49,9 @@ class App(object):
 
         tornado_config = self._config['tornado']
         tornado_app = tornado.web.Application([
-            (r'/auth/', EndpointHandler, dict(
-                endpoint_class=JiraAuthEndpoint
+            (r'/user/', EndpointHandler, dict(
+                endpoint_class=endpoints.JiraUserEndpoint,
+                sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
             )),
             (r'/jira-instances/', EndpointHandler, dict(
                 endpoint_class=endpoints.JiraInstancesEndpoint,

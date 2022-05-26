@@ -13,6 +13,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
+from marshmallow import Schema
 from sqlalchemy.future import select
 from .utils.endpoint import Endpoint, SQLAlchemyEndpoint, SQLAlchemyEndpointContext
 from .utils.openapi import EndpointOpenAPIMixin
@@ -35,7 +36,10 @@ class MixedEndpointContext(SQLAlchemyEndpointContext, auth.JiraEndpointContext):
 
 
 class JiraUserEndpoint(Endpoint, EndpointOpenAPIMixin):
+    UPDATE_PARAMS_SCHEMA = Schema.from_dict(dict())
+    DELETE_PARAMS_SCHEMA = Schema.from_dict(dict())
     OBJECT_SCHEMA = schemas.JiraUserSchema
+    CONTEXT_CLASS = SQLAlchemyEndpointContext
 
     def __init__(self, context):
         super().__init__(context)
@@ -46,18 +50,20 @@ class JiraUserEndpoint(Endpoint, EndpointOpenAPIMixin):
         # get JIRA user data and authenticate
         jira_credentials = auth.JiraCredentials(
             jira_user.jira_instance.url, jira_user.username, jira_user.password)
-        jira_user_data = await jira_credentials.get_jira_myself(jira_credentials)
+        jira_user_data = await jira_credentials.get_jira_myself()
         await self.jira_auth_endpoint.update(jira_credentials, verify_credentials=False)
 
         # set display name and email
         print(jira_user_data)
 
         # get or create JIRA instance
-        jira_user.jira_instance = self.jira_instances_endpoint.get_by_url(
+        jira_user.jira_instance = await self.jira_instances_endpoint.get_by_url(
             jira_credentials.jira_instance_url, auto_create=True)
         
         return jira_user
 
+    async def delete(self):
+        return await self.jira_auth_endpoint.delete()
 
 
 class JiraInstancesEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
