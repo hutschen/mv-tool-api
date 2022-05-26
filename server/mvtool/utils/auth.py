@@ -44,6 +44,10 @@ class JiraCredentialsSchema(Schema):
         return JiraCredentials(**data)
 
 
+class JiraCredentialsExPasswordSchema(JiraCredentials):
+    password = fields.Str(load_only=True)
+
+
 class JiraEndpointContext(EndpointContext):
     def __init__(self, handler):
         super().__init__(handler)
@@ -64,7 +68,7 @@ class JiraEndpointContext(EndpointContext):
 class JiraAuthEndpoint(Endpoint, EndpointOpenAPIMixin):
     UPDATE_PARAMS_SCHEMA = Schema.from_dict(dict())
     DELETE_PARAMS_SCHEMA = Schema.from_dict(dict())
-    OBJECT_SCHEMA = JiraCredentialsSchema
+    OBJECT_SCHEMA = JiraCredentialsExPasswordSchema
 
     async def update(self, jira_credentials):
         # verify authentication data
@@ -80,6 +84,7 @@ class JiraAuthEndpoint(Endpoint, EndpointOpenAPIMixin):
         # set cookie
         json_str = JiraCredentialsSchema().dumps(jira_credentials)
         await self.context._handler.set_secret_cookie('jc', json_str)
+        return jira_credentials
 
     async def delete(self):
         if await self.context._handler.get_secret_cookie('jc'):
