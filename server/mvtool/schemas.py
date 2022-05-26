@@ -14,7 +14,7 @@
 # GNU AGPL V3 for more details.
 
 from statistics import mode
-from marshmallow import missing
+from marshmallow import missing, Schema, fields, post_load
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema, auto_field
 from . import models
 
@@ -33,6 +33,16 @@ class JiraInstanceSchema(SQLAlchemyAutoSchema):
         model = models.JiraInstance
         load_instance = True
         transient = True
+
+
+class JiraUserSchema(Schema):
+    username = fields.Str()
+    password = fields.Str(load_only=True)
+    jira_instance = fields.Nested(JiraInstanceSchema)
+
+    @post_load
+    def make_jira_user(self, data, **kwargs):
+        return models.JiraUser(**data)
 
 
 class JiraProjectSchema(SQLAlchemyAutoSchema):

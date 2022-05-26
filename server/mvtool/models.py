@@ -33,6 +33,13 @@ class Document(Base):
         backref=backref('documents', cascade='all, delete, delete-orphan'))
 
 
+class JiraUser(object):
+    def __init__(self, username, password, jira_instance):
+        self.username = username
+        self.password = password
+        self.jira_instance = jira_instance
+
+
 class JiraInstance(Base):
     __tablename__ = 'jira_instances'
     id = Column(Integer, primary_key=True)

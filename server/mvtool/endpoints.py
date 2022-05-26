@@ -35,6 +35,8 @@ class MixedEndpointContext(SQLAlchemyEndpointContext, auth.JiraEndpointContext):
 
 
 class JiraUserEndpoint(Endpoint, EndpointOpenAPIMixin):
+    OBJECT_SCHEMA = schemas.JiraUserSchema
+
     def __init__(self, context):
         super().__init__(context)
         self.jira_auth_endpoint = auth.JiraAuthEndpoint(context)
@@ -44,7 +46,7 @@ class JiraUserEndpoint(Endpoint, EndpointOpenAPIMixin):
         # get JIRA user data and authenticate
         jira_credentials = auth.JiraCredentials(
             jira_user.jira_instance.url, jira_user.username, jira_user.password)
-        jira_user_data = await self.jira_auth_endpoint.get_jira_myself(jira_credentials)
+        jira_user_data = await jira_credentials.get_jira_myself(jira_credentials)
         await self.jira_auth_endpoint.update(jira_credentials, verify_credentials=False)
 
         # set display name and email
