@@ -14,7 +14,7 @@
 # GNU AGPL V3 for more details.
 
 from statistics import mode
-from marshmallow import missing, Schema, fields, post_load
+from marshmallow import missing, Schema, fields, post_load, validate
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema, auto_field
 from . import models
 
@@ -92,6 +92,8 @@ class RequirementSchema(SQLAlchemyAutoSchema):
         transient = True
 
     project_id = auto_field(required=True)
+    compliance_status = auto_field(
+        validate=validate.OneOf(['C', 'PC', 'NC', 'NA']))
 
 
 class ProjectSchema(SQLAlchemyAutoSchema):
