@@ -137,6 +137,16 @@ class ProjectsEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
             result = await self.context.sqlalchemy_session.execute(statement)
             return result.scalars().all()
 
+    async def create(self, project):
+        async with self.context.sqlalchemy_session.begin_nested():
+            project.jira_project = await self.jira_projects.get(project.jira_project_id)
+            return await super().create(project)
+
+    async def update(self, project, id_):
+        async with self.context.sqlalchemy_session.begin_nested():
+            project.jira_project = await self.jira_projects.get(project.jira_project_id)
+            return await super().update(project, id_)
+
 
 class JiraIssuesEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
     CONTEXT_CLASS = MixedEndpointContext

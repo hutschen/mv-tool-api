@@ -15,6 +15,7 @@
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+from requests import delete
 from . import endpoints
 
 
@@ -48,6 +49,12 @@ openapi_spec.path('/jira-user/jira-projects/', operations=dict(
 # Projects
 openapi_spec.path('/jira-user/projects/', operations=dict(
     get=endpoints.ProjectsEndpoint.specify_list(tags=['projects']),
+    post=endpoints.ProjectsEndpoint.specify_create(tags=['projects'])
+))
+openapi_spec.path('/jira-user/projects/{id}', operations=dict(
+    get=endpoints.ProjectsEndpoint.specify_get(tags=['projects']),
+    put=endpoints.ProjectsEndpoint.specify_update(tags=['projects']),
+    delete=endpoints.ProjectsEndpoint.specify_delete(tags=['projects'])
 ))
 
 # JIRA issues

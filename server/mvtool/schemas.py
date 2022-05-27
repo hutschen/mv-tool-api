@@ -100,4 +100,4 @@ class ProjectSchema(SQLAlchemyAutoSchema):
         load_instance = True
         transient = True
 
-    jira_project_id = auto_field()
+    jira_project_id = auto_field(required=True)
