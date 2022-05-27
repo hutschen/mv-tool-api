@@ -77,11 +77,11 @@ class App(object):
                 endpoint_class=endpoints.ProjectsEndpoint,
                 sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
             )),
-            (r'/requirements/', EndpointHandler, dict(
+            (r'/jira-user/requirements/', EndpointHandler, dict(
                 endpoint_class=endpoints.RequirementsEndpoint,
                 sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
             )),
-            (r'/requirements/(?P<id>[0-9]+)', EndpointHandler, dict(
+            (r'/jira-user/requirements/(?P<id>[0-9]+)', EndpointHandler, dict(
                 endpoint_class=endpoints.RequirementsEndpoint,
                 sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
             )),

@@ -16,7 +16,7 @@
 from tornado.ioloop import IOLoop
 from marshmallow import Schema, fields
 from sqlalchemy.future import select
-from .utils.endpoint import Endpoint, SQLAlchemyEndpoint, SQLAlchemyEndpointContext
+from .utils.endpoint import Endpoint, SQLAlchemyEndpoint, SQLAlchemyEndpointContext, ListParamsSchema
 from .utils.openapi import EndpointOpenAPIMixin
 from .utils import http_errors, auth
 from . import models, schemas
@@ -148,6 +148,25 @@ class ProjectsEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
             return await super().update(project, id_)
 
 
+class RequirementsListParamsSchema(ListParamsSchema):
+    project_id = fields.Integer(required=True)
+    
+
+class RequirementsEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
+    CONTEXT_CLASS = MixedEndpointContext
+    LIST_PARAMS_SCHEMA = RequirementsListParamsSchema
+    OBJECT_SCHEMA = schemas.RequirementSchema
+
+    async def list_(self, page, page_size, project_id):
+        statement = select(self._object_class
+            ).order_by(self._object_class.id
+            ).where(self._object_class.project_id == project_id
+            ).limit(page_size
+            ).offset((page -1) * page_size)
+        result = await self.context.sqlalchemy_session.execute(statement)
+        return result.scalars().all()
+
+
 class JiraIssuesEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
     CONTEXT_CLASS = MixedEndpointContext
     OBJECT_SCHEMA = schemas.JiraIssueSchema
@@ -166,8 +185,3 @@ class TasksEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
 class MeasuresEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
     CONTEXT_CLASS = MixedEndpointContext
     OBJECT_SCHEMA = schemas.MeasureSchema
-
-
-class RequirementsEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
-    CONTEXT_CLASS = MixedEndpointContext
-    OBJECT_SCHEMA = schemas.RequirementSchema
