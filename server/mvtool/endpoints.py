@@ -14,7 +14,7 @@
 # GNU AGPL V3 for more details.
 
 from tornado.ioloop import IOLoop
-from marshmallow import Schema
+from marshmallow import Schema, fields
 from sqlalchemy.future import select
 from .utils.endpoint import Endpoint, SQLAlchemyEndpoint, SQLAlchemyEndpointContext
 from .utils.openapi import EndpointOpenAPIMixin
@@ -75,7 +75,6 @@ class JiraUserEndpoint(Endpoint, EndpointOpenAPIMixin):
 class JiraInstancesEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
     OBJECT_SCHEMA = schemas.JiraInstanceSchema
 
-
     async def get_by_url(self, url, auto_create=False):
         async with self.context.sqlalchemy_session.begin_nested():
             statement = select(self._object_class
@@ -120,6 +119,25 @@ class JiraProjectsEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
         return [jp async for jp in self.iter_projects_from_jira()]
 
 
+class ProjectsEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
+    CONTEXT_CLASS = MixedEndpointContext
+    LIST_PARAMS_SCHEMA = Schema.from_dict(dict())
+    OBJECT_SCHEMA = schemas.ProjectSchema
+
+    def __init__(self, context):
+        super().__init__(context)
+        self.jira_projects = JiraProjectsEndpoint(context)
+
+    async def list_(self):
+        async with self.context.sqlalchemy_session.begin_nested():
+            jira_project_ids = [
+                jp.id async for jp in self.jira_projects.iter_projects_from_jira()]
+            statement = select(self._object_class).order_by(self._object_class.id
+            ).filter(self._object_class.jira_project_id.in_(jira_project_ids))
+            result = await self.context.sqlalchemy_session.execute(statement)
+            return result.scalars().all()
+
+
 class JiraIssuesEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
     CONTEXT_CLASS = MixedEndpointContext
     OBJECT_SCHEMA = schemas.JiraIssueSchema
@@ -143,8 +161,3 @@ class MeasuresEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
 class RequirementsEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
     CONTEXT_CLASS = MixedEndpointContext
     OBJECT_SCHEMA = schemas.RequirementSchema
-
-
-class ProjectsEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
-    CONTEXT_CLASS = MixedEndpointContext
-    OBJECT_SCHEMA = schemas.ProjectSchema

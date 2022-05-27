@@ -46,8 +46,8 @@ openapi_spec.path('/jira-user/jira-projects/', operations=dict(
 ))
 
 # Projects
-openapi_spec.path('/jira-instances/{jira_instance_id}/projects/', operations=dict(
-    get=endpoints.JiraInstancesEndpoint.specify_get(tags=['jira-instances']),
+openapi_spec.path('/jira-user/projects/', operations=dict(
+    get=endpoints.ProjectsEndpoint.specify_list(tags=['projects']),
 ))
 
 # JIRA issues
