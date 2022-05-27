@@ -157,6 +157,10 @@ class RequirementsEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
     LIST_PARAMS_SCHEMA = RequirementsListParamsSchema
     OBJECT_SCHEMA = schemas.RequirementSchema
 
+    def __init__(self, context):
+        super().__init__(context)
+        self.projects = ProjectsEndpoint(context)
+
     async def list_(self, page, page_size, project_id):
         statement = select(self._object_class
             ).order_by(self._object_class.id
@@ -165,6 +169,16 @@ class RequirementsEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
             ).offset((page -1) * page_size)
         result = await self.context.sqlalchemy_session.execute(statement)
         return result.scalars().all()
+
+    async def create(self, requirement):
+        async with self.context.sqlalchemy_session.begin_nested():
+            requirement.project = await self.projects.get(requirement.project_id)
+            return await super().create(requirement)
+
+    async def update(self, requirement, id_):
+        async with self.context.sqlalchemy_session.begin_nested():
+            requirement.project = await self.projects.get(requirement.project_id)
+            return await super().update(requirement, id_)
 
 
 class JiraIssuesEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
