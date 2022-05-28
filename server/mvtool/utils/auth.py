@@ -29,12 +29,15 @@ class JiraCredentials(object):
         self.username = username
         self.password = password
 
-    async def get_jira_myself(self):
-        jira_ = JIRA(
+    @property
+    def jira(self):
+        return JIRA(
             self.jira_instance_url,
             basic_auth=(self.username, self.password))
+
+    async def get_jira_myself(self):
         try: 
-            return await IOLoop.current().run_in_executor(None, jira_.myself)
+            return await IOLoop.current().run_in_executor(None, self.jira.myself)
         except JIRAError as error:
             raise http_errors.Unauthorized(f'JIRAError: {error.text}')
 
@@ -65,11 +68,7 @@ class JiraEndpointContext(EndpointContext):
             raise http_errors.Unauthorized('JIRA authentication cookie was not set')
 
         self.jira_credentials = JiraCredentialsSchema().loads(cookie_value)
-        self.jira = JIRA(
-            self.jira_credentials.jira_instance_url,
-            basic_auth=(
-                self.jira_credentials.username, 
-                self.jira_credentials.password))
+        self.jira = self.jira_credentials.jira
         return self
 
 
