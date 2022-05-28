@@ -181,6 +181,38 @@ class RequirementsEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
             return await super().update(requirement, id_)
 
 
+class MeasuresListParamsSchema(ListParamsSchema):
+    requirement_id = fields.Integer(required=True)
+
+
+class MeasuresEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
+    CONTEXT_CLASS = MixedEndpointContext
+    OBJECT_SCHEMA = schemas.MeasureSchema
+
+    def __init__(self, context):
+        super().__init__(context)
+        self.requirements = RequirementsEndpoint(context)
+
+    async def list_(self, page, page_size, requirement_id):
+        statement = select(self._object_class
+            ).order_by(self._object_class.id
+            ).where(self._object_class.requirement_id == requirement_id
+            ).limit(page_size
+            ).offset((page -1) * page_size)
+        result = await self.context.sqlalchemy_session.execute(statement)
+        return result.scalars().all()
+
+    async def create(self, measure):
+        async with self.context.sqlalchemy_session.begin_nested():
+            measure.requirement = await self.requirements.get(measure.requirement_id)
+            return await super().create(measure)
+
+    async def update(self, measure, id_):
+        async with self.context.sqlalchemy_session.begin_nested():
+            measure.requirement = await self.projects.get(measure.requirement_id)
+            return await super().update(measure, id_)
+
+
 class JiraIssuesEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
     CONTEXT_CLASS = MixedEndpointContext
     OBJECT_SCHEMA = schemas.JiraIssueSchema
@@ -194,8 +226,3 @@ class DocumentsEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
 class TasksEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
     CONTEXT_CLASS = MixedEndpointContext
     OBJECT_SCHEMA = schemas.TaskSchema
-
-
-class MeasuresEndpoint(SQLAlchemyEndpoint, EndpointOpenAPIMixin):
-    CONTEXT_CLASS = MixedEndpointContext
-    OBJECT_SCHEMA = schemas.MeasureSchema

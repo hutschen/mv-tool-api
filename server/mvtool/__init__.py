@@ -85,6 +85,14 @@ class App(object):
                 endpoint_class=endpoints.RequirementsEndpoint,
                 sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
             )),
+            (r'/jira-user/measures/', EndpointHandler, dict(
+                endpoint_class=endpoints.MeasuresEndpoint,
+                sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
+            )),
+            (r'/jira-user/measures/(?P<id>[0-9]+)', EndpointHandler, dict(
+                endpoint_class=endpoints.MeasuresEndpoint,
+                sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
+            )),
             (r'/api/(.*)', tornado.web.StaticFileHandler, dict(
                path=self._swagger_ui_tempdir.name,
                default_filename='index.html' 

@@ -69,6 +69,18 @@ openapi_spec.path('/jira-user/requirements/{id}', operations=dict(
     delete=endpoints.RequirementsEndpoint.specify_delete(tags=['requirements']),
 ))
 
+# Measures
+endpoints.MeasuresEndpoint.ALLOW_OPERATIONS = set()
+openapi_spec.path('/measures/', operations=dict(
+    get=endpoints.MeasuresEndpoint.specify_list(tags=['measures']),
+    post=endpoints.MeasuresEndpoint.specify_create(tags=['measures'])
+))
+openapi_spec.path('/measures/{id}', operations=dict(
+    get=endpoints.MeasuresEndpoint.specify_get(tags=['measures']),
+    put=endpoints.MeasuresEndpoint.specify_update(tags=['measures']),
+    delete=endpoints.MeasuresEndpoint.specify_delete(tags=['measures']),
+))
+
 # JIRA issues
 endpoints.JiraIssuesEndpoint.ALLOW_OPERATIONS = set()
 openapi_spec.path('/jira-issues/', operations=dict(
@@ -102,16 +114,4 @@ openapi_spec.path('/tasks/{id}', operations=dict(
     get=endpoints.TasksEndpoint.specify_get(tags=['taks']),
     put=endpoints.TasksEndpoint.specify_update(tags=['taks']),
     delete=endpoints.TasksEndpoint.specify_delete(tags=['taks']),
-))
-
-# Measures
-endpoints.MeasuresEndpoint.ALLOW_OPERATIONS = set()
-openapi_spec.path('/measures/', operations=dict(
-    get=endpoints.MeasuresEndpoint.specify_list(tags=['measures']),
-    post=endpoints.MeasuresEndpoint.specify_create(tags=['measures'])
-))
-openapi_spec.path('/measures/{id}', operations=dict(
-    get=endpoints.MeasuresEndpoint.specify_get(tags=['measures']),
-    put=endpoints.MeasuresEndpoint.specify_update(tags=['measures']),
-    delete=endpoints.MeasuresEndpoint.specify_delete(tags=['measures']),
 ))
