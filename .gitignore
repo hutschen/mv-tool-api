@@ -1,3 +1,3 @@
 *.pyc
 __pycache__
-server/config.yml
+server/tests/config.yml
