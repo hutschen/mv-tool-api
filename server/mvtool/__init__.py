@@ -46,12 +46,11 @@ class App(object):
         self.database = SQLAlchemyDatabase(
             'sqlite+aiosqlite:///:memory:', echo=True)
 
-    def serve(self):
         self._swagger_ui_tempdir = TemporaryDirectory()
         prepare_swagger_ui_dir(self._swagger_ui_tempdir.name, openapi_spec)
 
         tornado_config = self._config['tornado']
-        tornado_app = tornado.web.Application([
+        self.tornado_app = tornado.web.Application([
             (r'/jira-user/', EndpointHandler, dict(
                 endpoint_class=endpoints.JiraUserEndpoint,
                 sqlalchemy_sessionmaker=self.database.sessionmaker
@@ -104,7 +103,10 @@ class App(object):
             cookie_secret=urandom(32),
             debug=tornado_config['debug']
         )
-        tornado_app.listen(tornado_config['port'])
+
+    def serve(self):
+        tornado_config = self._config['tornado']
+        self.tornado_app.listen(tornado_config['port'])
 
         signal_handler = \
             lambda signal, frame: tornado.ioloop.IOLoop.current(
