@@ -28,20 +28,23 @@ from . import endpoints
 from .openapi_spec import openapi_spec
 
 
+class SQLAlchemyDatabase(object):
+    def __init__(self, *args, **kwargs):
+        self.engine = create_async_engine(*args, **kwargs)
+        self.sessionmaker = sessionmaker(
+            self.engine, expire_on_commit=False, class_=AsyncSession)
+
+    async def reset(self):
+        async with self.engine.begin() as connection:
+            await connection.run_sync(Base.metadata.drop_all)
+            await connection.run_sync(Base.metadata.create_all)
+
+
 class App(object):
     def __init__(self):
         self._config = dict(tornado=dict(debug=True, port=8888))
-        
-        # connect to database
-        self._sqlalchemy_engine = create_async_engine(
+        self.database = SQLAlchemyDatabase(
             'sqlite+aiosqlite:///:memory:', echo=True)
-        self._sqlalchemy_sessionmaker = sessionmaker(
-            self._sqlalchemy_engine, expire_on_commit=False, class_=AsyncSession)
-
-    async def initialize_database(self):
-        async with self._sqlalchemy_engine.begin() as conn:
-            await conn.run_sync(Base.metadata.drop_all)
-            await conn.run_sync(Base.metadata.create_all)
 
     def serve(self):
         self._swagger_ui_tempdir = TemporaryDirectory()
@@ -51,47 +54,47 @@ class App(object):
         tornado_app = tornado.web.Application([
             (r'/jira-user/', EndpointHandler, dict(
                 endpoint_class=endpoints.JiraUserEndpoint,
-                sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
+                sqlalchemy_sessionmaker=self.database.sessionmaker
             )),
             (r'/jira-instances/', EndpointHandler, dict(
                 endpoint_class=endpoints.JiraInstancesEndpoint,
-                sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
+                sqlalchemy_sessionmaker=self.database.sessionmaker
             )),
             (r'/jira-instances/(?P<id>[0-9]+)', EndpointHandler, dict(
                 endpoint_class=endpoints.JiraInstancesEndpoint,
-                sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
+                sqlalchemy_sessionmaker=self.database.sessionmaker
             )),
             (r'/jira-user/jira-projects/', EndpointHandler, dict(
                 endpoint_class=endpoints.JiraProjectsEndpoint,
-                sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
+                sqlalchemy_sessionmaker=self.database.sessionmaker
             )),
             (r'/jira-user/jira-projects/(?P<id>[0-9]+)', EndpointHandler, dict(
                 endpoint_class=endpoints.JiraProjectsEndpoint,
-                sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
+                sqlalchemy_sessionmaker=self.database.sessionmaker
             )),
             (r'/jira-user/projects/', EndpointHandler, dict(
                 endpoint_class=endpoints.ProjectsEndpoint,
-                sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
+                sqlalchemy_sessionmaker=self.database.sessionmaker
             )),
             (r'/jira-user/projects/(?P<id>[0-9]+)', EndpointHandler, dict(
                 endpoint_class=endpoints.ProjectsEndpoint,
-                sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
+                sqlalchemy_sessionmaker=self.database.sessionmaker
             )),
             (r'/jira-user/requirements/', EndpointHandler, dict(
                 endpoint_class=endpoints.RequirementsEndpoint,
-                sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
+                sqlalchemy_sessionmaker=self.database.sessionmaker
             )),
             (r'/jira-user/requirements/(?P<id>[0-9]+)', EndpointHandler, dict(
                 endpoint_class=endpoints.RequirementsEndpoint,
-                sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
+                sqlalchemy_sessionmaker=self.database.sessionmaker
             )),
             (r'/jira-user/measures/', EndpointHandler, dict(
                 endpoint_class=endpoints.MeasuresEndpoint,
-                sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
+                sqlalchemy_sessionmaker=self.database.sessionmaker
             )),
             (r'/jira-user/measures/(?P<id>[0-9]+)', EndpointHandler, dict(
                 endpoint_class=endpoints.MeasuresEndpoint,
-                sqlalchemy_sessionmaker=self._sqlalchemy_sessionmaker
+                sqlalchemy_sessionmaker=self.database.sessionmaker
             )),
             (r'/api/(.*)', tornado.web.StaticFileHandler, dict(
                path=self._swagger_ui_tempdir.name,
@@ -108,7 +111,7 @@ class App(object):
                 ).add_callback_from_signal(self.stop_serving)
         signal.signal(signal.SIGTERM, signal_handler)
         signal.signal(signal.SIGINT, signal_handler)
-        tornado.ioloop.IOLoop.current().run_sync(self.initialize_database)
+        tornado.ioloop.IOLoop.current().run_sync(self.database.reset)
         tornado.ioloop.IOLoop.current().start()
 
     def stop_serving(self):
