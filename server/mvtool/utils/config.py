@@ -16,9 +16,7 @@
 import yaml
 
 
-class Config(dict):
-    def __init__(self, config_filename, config_schema):
-        with open(config_filename, 'r') as config_file:
-            config = yaml.safe_load(config_file)
-        config = config_schema().load(config)
-        self.update(config)
+def load_config(config_filename, config_schema):
+    with open(config_filename, 'r') as config_file:
+        config_data = yaml.safe_load(config_file)
+    return config_schema().load(config_data)
