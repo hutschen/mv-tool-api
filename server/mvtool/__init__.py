@@ -100,7 +100,10 @@ class App(object):
                default_filename='index.html' 
             )),
         ], 
-            cookie_secret=self.config.tornado.cookie_secret,
+            cookie_secret=(
+                bytes(self.config.tornado.cookie_secret, 'utf-8') if 
+                self.config.tornado.cookie_secret else urandom(32)
+            ),
             debug=self.config.tornado.debug
         )
 

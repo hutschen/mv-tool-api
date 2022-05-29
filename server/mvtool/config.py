@@ -39,7 +39,7 @@ class ConfigMorselSchema(Schema):
 class TornadoConfigSchema(ConfigMorselSchema):
     port = fields.Integer(missing=8888)
     debug = fields.Boolean(missing=False)
-    cookie_secret = fields.String(missing=urandom(32))
+    cookie_secret = fields.String(missing=None)
 
 
 class SQLAlchemyConfigSchema(ConfigMorselSchema):
