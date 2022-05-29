@@ -14,6 +14,7 @@
 # GNU AGPL V3 for more details.
 
 import json
+from urllib import response
 import yaml
 from tornado.ioloop import IOLoop
 from tornado.testing import AsyncHTTPTestCase
@@ -43,7 +44,12 @@ class TestJiraUser(AsyncHTTPTestCase):
             password=jira_credentials.password,
             jira_instance=dict(url=jira_credentials.jira_instance_url)
         )))
-        print(response.headers)
+        self.assertEqual(response.code, 200)
+
+    def test_list_jira_projects(self):
+        cookie = {'Cookie': response.headers['Set-Cookie']}
+        response = self.fetch('/jira-user/jira-projects/', method='GET', headers=cookie)
+        print(response.body)
         self.assertEqual(response.code, 200)
 
     def test_sign_out(self):
