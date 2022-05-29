@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from .utils.endpoint import EndpointHandler
 from .utils.openapi import prepare_swagger_ui_dir
+from .config import load_config
 from .models import Base
 from . import endpoints
 from .openapi_spec import openapi_spec
@@ -41,15 +42,14 @@ class SQLAlchemyDatabase(object):
 
 
 class App(object):
-    def __init__(self):
-        self._config = dict(tornado=dict(debug=True, port=8888))
+    def __init__(self, config_filename=None):
+        self.config = load_config(config_filename)
         self.database = SQLAlchemyDatabase(
-            'sqlite+aiosqlite:///:memory:', echo=True)
+            self.config.sqlalchemy.url, echo=self.config.sqlalchemy.echo)
 
         self._swagger_ui_tempdir = TemporaryDirectory()
         prepare_swagger_ui_dir(self._swagger_ui_tempdir.name, openapi_spec)
 
-        tornado_config = self._config['tornado']
         self.tornado_app = tornado.web.Application([
             (r'/jira-user/', EndpointHandler, dict(
                 endpoint_class=endpoints.JiraUserEndpoint,
@@ -100,13 +100,12 @@ class App(object):
                default_filename='index.html' 
             )),
         ], 
-            cookie_secret=urandom(32),
-            debug=tornado_config['debug']
+            cookie_secret=self.config.tornado.cookie_secret,
+            debug=self.config.tornado.debug
         )
 
     def serve(self):
-        tornado_config = self._config['tornado']
-        self.tornado_app.listen(tornado_config['port'])
+        self.tornado_app.listen(self.config.tornado.port)
 
         signal_handler = \
             lambda signal, frame: tornado.ioloop.IOLoop.current(
