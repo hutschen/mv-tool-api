@@ -28,20 +28,20 @@ openapi_spec = APISpec(
 )
 
 # JIRA Users
-endpoints.JiraUserEndpoint.ALLOW_OPERATIONS = set()
+endpoints.JiraUserEndpoint.EXPOSE_OPERATIONS = set()
 openapi_spec.path('/jira-user/', operations=dict(
     put=endpoints.JiraUserEndpoint.specify_update(tags=['jira-user']),
     delete=endpoints.JiraUserEndpoint.specify_delete(tags=['jira-user'])
 ))
 
 # JIRA instances
-endpoints.JiraInstancesEndpoint.ALLOW_OPERATIONS = set()
+endpoints.JiraInstancesEndpoint.EXPOSE_OPERATIONS = set()
 openapi_spec.path('/jira-instances/', operations=dict(
     get=endpoints.JiraInstancesEndpoint.specify_list(tags=['jira-instances']),
 ))
 
 # JIRA projects
-endpoints.JiraProjectsEndpoint.ALLOW_OPERATIONS = set()
+endpoints.JiraProjectsEndpoint.EXPOSE_OPERATIONS = set()
 openapi_spec.path('/jira-user/jira-projects/', operations=dict(
     get=endpoints.JiraProjectsEndpoint.specify_list(tags=['jira-projects']),
 ))
@@ -58,7 +58,7 @@ openapi_spec.path('/jira-user/projects/{id}', operations=dict(
 ))
 
 # Requirements
-endpoints.RequirementsEndpoint.ALLOW_OPERATIONS = set()
+endpoints.RequirementsEndpoint.EXPOSE_OPERATIONS = set()
 openapi_spec.path('/jira-user/requirements/', operations=dict(
     get=endpoints.RequirementsEndpoint.specify_list(tags=['requirements']),
     post=endpoints.RequirementsEndpoint.specify_create(tags=['requirements']),
@@ -70,7 +70,7 @@ openapi_spec.path('/jira-user/requirements/{id}', operations=dict(
 ))
 
 # Measures
-endpoints.MeasuresEndpoint.ALLOW_OPERATIONS = set()
+endpoints.MeasuresEndpoint.EXPOSE_OPERATIONS = set()
 openapi_spec.path('/measures/', operations=dict(
     get=endpoints.MeasuresEndpoint.specify_list(tags=['measures']),
     post=endpoints.MeasuresEndpoint.specify_create(tags=['measures'])
@@ -82,7 +82,7 @@ openapi_spec.path('/measures/{id}', operations=dict(
 ))
 
 # JIRA issues
-endpoints.JiraIssuesEndpoint.ALLOW_OPERATIONS = set()
+endpoints.JiraIssuesEndpoint.EXPOSE_OPERATIONS = set()
 openapi_spec.path('/jira-issues/', operations=dict(
     get=endpoints.JiraIssuesEndpoint.specify_list(tags=['jira-issues']),
     post=endpoints.JiraIssuesEndpoint.specify_create(tags=['jira-issues'])
@@ -93,7 +93,7 @@ openapi_spec.path('/jira-issues/{id}', operations=dict(
 ))
 
 # Documents
-endpoints.DocumentsEndpoint.ALLOW_OPERATIONS = set()
+endpoints.DocumentsEndpoint.EXPOSE_OPERATIONS = set()
 openapi_spec.path('/documents/', operations=dict(
     get=endpoints.DocumentsEndpoint.specify_list(tags=['documents']),
     post=endpoints.DocumentsEndpoint.specify_create(tags=['documents'])
@@ -105,7 +105,7 @@ openapi_spec.path('/documents/{id}', operations=dict(
 ))
 
 # Tasks
-endpoints.TasksEndpoint.ALLOW_OPERATIONS = set()
+endpoints.TasksEndpoint.EXPOSE_OPERATIONS = set()
 openapi_spec.path('/tasks/', operations=dict(
     get=endpoints.TasksEndpoint.specify_list(tags=['taks']),
     post=endpoints.TasksEndpoint.specify_create(tags=['taks'])

@@ -38,7 +38,7 @@ class EndpointOpenAPIMixin(object):
     @classmethod
     def specify_list(cls, tags=None):
         tags = [] if not tags else list(tags)
-        cls.ALLOW_OPERATIONS.add('list')
+        cls.EXPOSE_OPERATIONS.add('list')
 
         results_schema = Schema.from_dict(dict(
             objects=fields.List(fields.Nested(cls.OBJECT_SCHEMA))
@@ -57,7 +57,7 @@ class EndpointOpenAPIMixin(object):
     @classmethod
     def specify_create(cls, tags=None):
         tags = [] if not tags else list(tags)
-        cls.ALLOW_OPERATIONS.add('create')
+        cls.EXPOSE_OPERATIONS.add('create')
 
         return dict(
             summary='Create a new resource.',
@@ -76,7 +76,7 @@ class EndpointOpenAPIMixin(object):
     @classmethod
     def specify_get(cls, tags=None):
         tags = [] if not tags else list(tags)
-        cls.ALLOW_OPERATIONS.add('get')
+        cls.EXPOSE_OPERATIONS.add('get')
 
         return dict(
             summary='Get a resource',
@@ -91,7 +91,7 @@ class EndpointOpenAPIMixin(object):
     @classmethod
     def specify_update(cls, tags=None):
         tags = [] if not tags else list(tags)
-        cls.ALLOW_OPERATIONS.add('update')
+        cls.EXPOSE_OPERATIONS.add('update')
 
         return dict(
             summary='Update a resource',
@@ -110,7 +110,7 @@ class EndpointOpenAPIMixin(object):
     @classmethod
     def specify_delete(cls, tags=None):
         tags = [] if not tags else list(tags)
-        cls.ALLOW_OPERATIONS.add('delete')
+        cls.EXPOSE_OPERATIONS.add('delete')
 
         return dict(
             summary='Delete a resource',

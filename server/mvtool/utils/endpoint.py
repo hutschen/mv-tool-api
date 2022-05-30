@@ -63,7 +63,7 @@ class Endpoint(object):
     UPDATE_PARAMS_SCHEMA = UpdateParamsSchema
     DELETE_PARAMS_SCHEMA = DeleteParamsSchema
     OBJECT_SCHEMA = None
-    ALLOW_OPERATIONS = {'list', 'create', 'get', 'update', 'delete'}
+    EXPOSE_OPERATIONS = {'list', 'create', 'get', 'update', 'delete'}
 
     def __init__(self, context):
         self.context: EndpointContext = context
@@ -154,7 +154,7 @@ class EndpointHandler(RequestHandler, SecretCookieMixin):
         self._endpoint = endpoint_class(context)
 
     def _raise_http_error_if_operation_not_allowed(self, operation_name):
-        if operation_name not in self._endpoint.ALLOW_OPERATIONS:
+        if operation_name not in self._endpoint.EXPOSE_OPERATIONS:
             endpoint_name = self._endpoint.__class__.__name__
             raise http_errors.MethodNotAllowed(
                 f'{operation_name} operation on {endpoint_name} not allowed')
