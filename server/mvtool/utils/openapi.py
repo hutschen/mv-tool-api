@@ -14,24 +14,33 @@
 # GNU AGPL V3 for more details.
 
 import os, shutil, json, jinja2
+from tempfile import TemporaryDirectory
 from swagger_ui_bundle import swagger_ui_path
 from marshmallow import Schema, fields
 
 
-def prepare_swagger_ui_dir(dirpath, oapi_spec, oapi_filename='openapi.json'):
-    index_html_filepath = os.path.join(dirpath, 'index.html')
-    oapi_filepath = os.path.join(dirpath, oapi_filename)
-    shutil.copytree(swagger_ui_path, dirpath, dirs_exist_ok=True)
+class SwaggerUIDir(TemporaryDirectory):
 
-    # generate OpenAPI specifiction
-    with open(oapi_filepath, 'w', encoding='utf-8') as oapi_fileobj:
-        json.dump(oapi_spec.to_dict(), oapi_fileobj, indent=2)
+    @classmethod
+    def prepare_swagger_ui_dir(cls, dirpath, oapi_spec, oapi_filename='openapi.json'):
+        index_html_filepath = os.path.join(dirpath, 'index.html')
+        oapi_filepath = os.path.join(dirpath, oapi_filename)
+        shutil.copytree(swagger_ui_path, dirpath, dirs_exist_ok=True)
 
-    # generate index.html
-    j2_template_loader = jinja2.FileSystemLoader(searchpath=dirpath)
-    j2_environment = jinja2.Environment(loader=j2_template_loader)
-    j2_environment.get_template('index.j2'
-    ).stream(openapi_spec_url=oapi_filename).dump(index_html_filepath)
+        # generate OpenAPI specification
+        with open(oapi_filepath, 'w', encoding='utf-8') as oapi_fileobj:
+            json.dump(oapi_spec.to_dict(), oapi_fileobj, indent=2)
+
+        # generate index.html
+        j2_template_loader = jinja2.FileSystemLoader(searchpath=dirpath)
+        j2_environment = jinja2.Environment(loader=j2_template_loader)
+        j2_environment.get_template('index.j2'
+        ).stream(openapi_spec_url=oapi_filename).dump(index_html_filepath)
+
+
+    def __init__(self, oapi_spec, *args, **kwargs):
+        TemporaryDirectory.__init__(self, *args, **kwargs)
+        self.prepare_swagger_ui_dir(self.name, oapi_spec)
 
 
 class EndpointOpenAPIMixin(object):

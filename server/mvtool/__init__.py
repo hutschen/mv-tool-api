@@ -15,14 +15,13 @@
 
 import signal
 from os import urandom
-from tempfile import TemporaryDirectory
 import tornado.web
 import tornado.ioloop
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from .utils.endpoint import EndpointHandler
-from .utils.openapi import prepare_swagger_ui_dir
+from .utils.openapi import SwaggerUIDir
 from .config import load_config
 from .models import Base
 from . import endpoints
@@ -46,9 +45,7 @@ class App(object):
         self.config = load_config(config_filename)
         self.database = SQLAlchemyDatabase(
             self.config.sqlalchemy.url, echo=self.config.sqlalchemy.echo)
-
-        self._swagger_ui_tempdir = TemporaryDirectory()
-        prepare_swagger_ui_dir(self._swagger_ui_tempdir.name, openapi_spec)
+        self.swagger_ui_dir = SwaggerUIDir(openapi_spec)
 
         self.tornado_app = tornado.web.Application([
             (r'/jira-user/', EndpointHandler, dict(
@@ -96,7 +93,7 @@ class App(object):
                 sqlalchemy_sessionmaker=self.database.sessionmaker
             )),
             (r'/api/(.*)', tornado.web.StaticFileHandler, dict(
-               path=self._swagger_ui_tempdir.name,
+               path=self.swagger_ui_dir.name,
                default_filename='index.html' 
             )),
         ], 
@@ -112,12 +109,12 @@ class App(object):
 
         signal_handler = \
             lambda signal, frame: tornado.ioloop.IOLoop.current(
-                ).add_callback_from_signal(self.stop_serving)
+                ).add_callback_from_signal(self.stop)
         signal.signal(signal.SIGTERM, signal_handler)
         signal.signal(signal.SIGINT, signal_handler)
         tornado.ioloop.IOLoop.current().run_sync(self.database.reset)
         tornado.ioloop.IOLoop.current().start()
 
-    def stop_serving(self):
+    def stop(self):
         tornado.ioloop.IOLoop.current().stop()
-        self._swagger_ui_tempdir.cleanup()
+        self.swagger_ui_dir.cleanup()
