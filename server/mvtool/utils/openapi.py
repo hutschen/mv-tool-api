@@ -49,9 +49,10 @@ class EndpointOpenAPIMixin(object):
         tags = [] if not tags else list(tags)
         cls.EXPOSE_OPERATIONS.add('list')
 
-        results_schema = Schema.from_dict(dict(
-            objects=fields.List(fields.Nested(cls.OBJECT_SCHEMA))
-        ))
+        results_schema = Schema.from_dict(
+            dict(objects=fields.List(fields.Nested(cls.OBJECT_SCHEMA))),
+            name=cls.OBJECT_SCHEMA.__name__.replace('Schema', '') + 'Page'
+        )
 
         return dict(
             summary='List existing resources',
