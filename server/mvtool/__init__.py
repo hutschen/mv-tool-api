@@ -40,7 +40,7 @@ class SQLAlchemyDatabase(object):
             await connection.run_sync(Base.metadata.create_all)
 
 
-class App(object):
+class MVTool(object):
     def __init__(self, config_filename=None):
         self.config = load_config(config_filename)
         self._ioloop = tornado.ioloop.IOLoop

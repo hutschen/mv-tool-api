@@ -15,30 +15,28 @@
 
 import json
 from tornado.testing import AsyncHTTPTestCase
-from mvtool.config import load_config
-from mvtool import App
+from mvtool import MVTool
 
 class BaseTestCase(AsyncHTTPTestCase):
     def setUp(self):
-        self.__app = App('tests/config.yml')
-        self.__app._prepare()
+        self.mvtool = MVTool('tests/config.yml')
+        self.mvtool._prepare()
         super().setUp()
         
     def tearDown(self):
         super().tearDown()
-        self.__app._cleanup()
+        self.mvtool._cleanup()
 
     def get_app(self):
-        return self.__app.tornado_app
+        return self.mvtool.tornado_app
 
 
 class TestJiraUser(BaseTestCase):
     def test_sign_in(self):
-        config = load_config('tests/config.yml')
         body_data = dict(
-            username=config.testing.jira_credentials.username,
-            password=config.testing.jira_credentials.password,
-            jira_instance=dict(url=config.testing.jira_credentials.jira_instance_url))
+            username=self.mvtool.config.testing.jira_credentials.username,
+            password=self.mvtool.config.testing.jira_credentials.password,
+            jira_instance=dict(url=self.mvtool.config.testing.jira_credentials.jira_instance_url))
         response = self.fetch(
             '/jira-user/', method='PUT', body=json.dumps(body_data))
         self.assertEqual(response.code, 200)

@@ -14,8 +14,8 @@
 # GNU AGPL V3 for more details.
 
 
-from mvtool import App
+from mvtool import MVTool
 
 if __name__ == "__main__":
-    app = App()
+    app = MVTool()
     app.serve()
