@@ -93,15 +93,15 @@ class Endpoint(object):
 class SQLAlchemyEndpointContext(EndpointContext):
     def __init__(self, handler, sqlalchemy_sessionmaker):
         super(SQLAlchemyEndpointContext, self).__init__(handler)
-        self.sqlalchemy_session = sqlalchemy_sessionmaker()
+        self._sqlalchemy_sessionmaker = sqlalchemy_sessionmaker()
 
     async def __aenter__(self):
         self.sqlalchemy_session = \
-                await self.sqlalchemy_session.__aenter__()
+                await self._sqlalchemy_sessionmaker.__aenter__()
         return self
 
     async def __aexit__(self, exception_type, exception_value, traceback):
-        await self.sqlalchemy_session.__aexit__(
+        await self._sqlalchemy_sessionmaker.__aexit__(
             exception_type, exception_value, traceback)
 
 
