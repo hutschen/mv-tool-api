@@ -14,18 +14,25 @@
 # GNU AGPL V3 for more details.
 
 import json
-from tornado.ioloop import IOLoop
 from tornado.testing import AsyncHTTPTestCase
 from mvtool.config import load_config
 from mvtool import App
 
+class BaseTestCase(AsyncHTTPTestCase):
+    def setUp(self):
+        self.__app = App('tests/config.yml')
+        self.__app._prepare()
+        super().setUp()
+        
+    def tearDown(self):
+        super().tearDown()
+        self.__app._cleanup()
 
-class TestJiraUser(AsyncHTTPTestCase):
     def get_app(self):
-        app = App('tests/config.yml')
-        IOLoop.current().run_sync(app.database.reset)
-        return app.tornado_app
+        return self.__app.tornado_app
 
+
+class TestJiraUser(BaseTestCase):
     def test_sign_in(self):
         config = load_config('tests/config.yml')
         body_data = dict(

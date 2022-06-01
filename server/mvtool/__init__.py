@@ -43,8 +43,13 @@ class SQLAlchemyDatabase(object):
 class App(object):
     def __init__(self, config_filename=None):
         self.config = load_config(config_filename)
+        self._ioloop = tornado.ioloop.IOLoop
+
+    def _prepare(self):
         self.database = SQLAlchemyDatabase(
             self.config.sqlalchemy.url, echo=self.config.sqlalchemy.echo)
+        self._ioloop.current().run_sync(self.database.reset)
+        
         self.swagger_ui_dir = SwaggerUIDir(openapi_spec)
 
         self.tornado_app = tornado.web.Application([
@@ -105,16 +110,18 @@ class App(object):
         )
 
     def serve(self):
+        self._prepare()
         self.tornado_app.listen(self.config.tornado.port)
-
         signal_handler = \
-            lambda signal, frame: tornado.ioloop.IOLoop.current(
+            lambda signal, frame: self._ioloop.current(
                 ).add_callback_from_signal(self.stop)
         signal.signal(signal.SIGTERM, signal_handler)
         signal.signal(signal.SIGINT, signal_handler)
-        tornado.ioloop.IOLoop.current().run_sync(self.database.reset)
-        tornado.ioloop.IOLoop.current().start()
+        self._ioloop.current().start()
+
+    def _cleanup(self):
+        self.swagger_ui_dir.cleanup()
 
     def stop(self):
-        tornado.ioloop.IOLoop.current().stop()
-        self.swagger_ui_dir.cleanup()
+        self._ioloop.current().stop()
+        self._cleanup()
