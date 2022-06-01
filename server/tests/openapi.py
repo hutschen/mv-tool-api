@@ -32,7 +32,7 @@ class BaseTestCase(AsyncHTTPTestCase):
 
 
 class TestJiraUser(BaseTestCase):
-    def test_sign_in(self):
+    def test_sign_in_success(self):
         body_data = dict(
             username=self.mvtool.config.testing.jira_credentials.username,
             password=self.mvtool.config.testing.jira_credentials.password,
@@ -40,6 +40,15 @@ class TestJiraUser(BaseTestCase):
         response = self.fetch(
             '/jira-user/', method='PUT', body=json.dumps(body_data))
         self.assertEqual(response.code, 200)
+
+    def test_sign_in_fail(self):
+        body_data = dict(
+            username='user',
+            password='password',
+            jira_instance=dict(url=self.mvtool.config.testing.jira_credentials.jira_instance_url))
+        response = self.fetch(
+            '/jira-user/', method='PUT', body=json.dumps(body_data))
+        self.assertEqual(response.code, 401)
 
     # def test_list_jira_projects(self):
     #     cookie = {'Cookie': response.headers['Set-Cookie']}
