@@ -4,20 +4,9 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-tornado = "*"
-sqlalchemy = {extras = ["asyncio"], version = "*"}
-pyyaml = "*"
-marshmallow = "*"
-marshmallow-sqlalchemy = "*"
-apispec = {extras = ["marshmallow"], version = "*"}
-jira = "*"
-swagger-ui-bundle = "*"
-jinja2 = "*"
-cryptography = "*"
+fastapi = {extras = ["all"], version = "*"}
 
 [dev-packages]
-sphinx = "*"
-aiosqlite = "*"
 
 [requires]
-python_version = "3.9"
+python_version = "3.10"
