@@ -13,8 +13,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-import uvicorn
+from fastapi import FastAPI
 
 
-if __name__ == '__main__':
-    uvicorn.run('mvtool:app', reload=True)
+app = FastAPI(title='MV-Tool')
