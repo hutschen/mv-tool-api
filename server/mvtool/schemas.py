@@ -13,9 +13,10 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from fastapi import FastAPI
-from .routers import jira_projects
+from pydantic import BaseModel
 
+class JiraProject(BaseModel):
+    id: int
+    key: str
+    name: str
 
-app = FastAPI(title='MV-Tool')
-app.include_router(jira_projects.router)

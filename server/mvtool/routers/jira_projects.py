@@ -13,9 +13,11 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from fastapi import FastAPI
-from .routers import jira_projects
+from fastapi import Depends, HTTPException, APIRouter
+from .. import schemas
 
+router = APIRouter(prefix='/api/jira-projects')
 
-app = FastAPI(title='MV-Tool')
-app.include_router(jira_projects.router)
+@router.get('/', response_model=list[schemas.JiraProject])
+def get_jira_projects() -> list:
+    return list()
