@@ -15,7 +15,11 @@
 
 from fastapi import FastAPI
 from .routers import jira_projects
-
+from . import database
 
 app = FastAPI(title='MV-Tool')
 app.include_router(jira_projects.router)
+
+@app.on_event('startup')
+def on_startup():
+    database.create_all()

@@ -11,14 +11,24 @@
 # the program is provided in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU AGPL V3 for more details.
+# GNU AGPL V3 for more details.  
 
-from sqlmodel import SQLModel, Field
+from sqlmodel import create_engine, Session, SQLModel
+from sqlmodel.pool import StaticPool
 
-class JiraProjectInput(SQLModel):
-    key: str
-    name: str
+engine = create_engine(
+    'sqlite://',
+    connect_args={'check_same_thread': False},  # Needed for SQLite
+    echo=False,  # Do not log generated SQL
+    poolclass=StaticPool
+)
 
-class JiraProject(JiraProjectInput, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+def get_session():
+    with Session(engine) as session:
+        yield session
 
+def create_all():
+    SQLModel.metadata.create_all(engine)
+
+def drop_all():
+    SQLModel.metadata.drop_all(engine)
