@@ -15,12 +15,10 @@
 
 from jira import JIRA
 from pydantic import BaseModel
-from fastapi import Depends, APIRouter, HTTPException
-from sqlmodel import Session, select
-from ..database import get_session
+from fastapi import Depends, APIRouter
 from ..auth import get_jira
 
-router = APIRouter(prefix='/api/jira')
+router = APIRouter()
 
 
 class JiraProject(BaseModel, orm_mode=True):
