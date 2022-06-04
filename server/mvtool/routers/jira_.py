@@ -46,21 +46,20 @@ class JiraIssue(JiraIssueInput, orm_mode=True):
 
 @cbv(router)
 class JiraProjectsView:
+    kwargs = dict(tags=['jira-project'])
+
     def __init__(self, jira: JIRA = Depends(get_jira)):
         self.jira = jira
 
-    @router.get(
-        '/projects', response_model=list[JiraProject], tags=['jira-project'])
-    def list_jira_projects(self):
-        for project in self.jira.projects():
-            yield JiraProject.from_orm(project)
+    @router.get('/projects', response_model=list[JiraProject], **kwargs)
+    def list_projects(self):
+        for jira_project in self.jira.projects():
+            yield JiraProject.from_orm(jira_project)
 
-    @router.get(
-        '/projects/{project_id}', response_model=JiraProject, 
-        tags=['jira-project'])
-    def get_jira_project(self, project_id: str):
-        project = self.jira.project(project_id)
-        return JiraProject.from_orm(project)
+    @router.get('/projects/{project_id}', response_model=JiraProject, **kwargs)
+    def get_project(self, project_id: str):
+        jira_project = self.jira.project(project_id)
+        return JiraProject.from_orm(jira_project)
 
 
 @cbv(router)
