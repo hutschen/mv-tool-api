@@ -18,6 +18,8 @@ from fastapi import APIRouter, Depends
 from fastapi_utils.cbv import cbv
 from ..database import CRUDMixin, get_session
 
+router = APIRouter()
+
 
 class ProjectInput(SQLModel):
     name: str
@@ -27,8 +29,6 @@ class ProjectInput(SQLModel):
 
 class Project(ProjectInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
-
-router = APIRouter()
 
 @cbv(router)
 class ProjectsView(CRUDMixin[Project]):
