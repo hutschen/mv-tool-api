@@ -25,9 +25,26 @@ router = APIRouter(prefix='/api/jira-projects')
 @router.get('/', response_model=list[JiraProject])
 def get_jira_projects(
         session: Session = Depends(get_session),
-        jira: JIRA = Depends(get_jira)) -> list:
-    query = select(JiraProject)
-    return session.exec(query).all()
+        jira: JIRA = Depends(get_jira)):
+    for p in jira.projects():
+        jira_project = JiraProject.from_orm(p)
+        session.merge(jira_project)
+        yield jira_project
+    session.commit()
+
+@router.get('/{id}', response_model=JiraProject)
+def get_jira_project(
+        id: int, session: Session = Depends(get_session),
+        jira: JIRA = Depends(get_jira)) -> JiraProject:
+    p = jira.project(id)
+    print('PROJECT:', p)
+    
+    jira_project = session.get(JiraProject, id)
+    if jira_project:
+        return jira_project
+    else:
+        raise HTTPException(404, f'No JIRA project with id={id}')
+
 
 @router.post('/', status_code=201, response_model=JiraProject)
 def create_jira_project(
@@ -38,14 +55,6 @@ def create_jira_project(
     session.commit()
     session.refresh(jira_project)
     return jira_project
-
-@router.get('/{id}', response_model=JiraProject)
-def get_jira_project(id: int, session: Session = Depends(get_session)) -> JiraProject:
-    jira_project = session.get(JiraProject, id)
-    if jira_project:
-        return jira_project
-    else:
-        raise HTTPException(404, f'No JIRA project with id={id}')
 
 @router.put('/{id}', response_model=JiraProject)
 def update_jira_project(
