@@ -13,7 +13,9 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.  
 
-from sqlmodel import create_engine, Session, SQLModel
+from http.client import HTTPException
+from typing import TypeVar, Generic
+from sqlmodel import create_engine, Session, SQLModel, select
 from sqlmodel.pool import StaticPool
 
 engine = create_engine(
@@ -32,3 +34,36 @@ def create_all():
 
 def drop_all():
     SQLModel.metadata.drop_all(engine)
+
+
+T = TypeVar('T', bound=SQLModel)
+class CRUDMixin(Generic[T]):
+    def _get_all_from_db(self, sqlmodel_) -> list[T]:
+        query = select(sqlmodel_)
+        return self.session.exec(query).all()
+
+    def _create_in_db(self, item: T) -> T:
+        self.session.add(item)
+        self.session.commit()
+        self.session.refresh(item)
+        return item
+
+    def _get_from_db(self, sqlmodel_, id: int) -> T:
+        item = self.session.get(sqlmodel_, id)
+        if item:
+            return item
+        else:
+            item_name = item.__class__.__name__
+            raise HTTPException(404, f'No {item_name} with id={id}.')
+
+    def _update_in_db(self, sqlmodel_, id: int, item_update: T) -> T:
+        item = self._get_from_db(sqlmodel_, id)
+        item_update.id = item.id
+        self.session.merge(item_update)
+        self.session.commit()
+        return item
+
+    def _delete_in_db(self, sqlmodel_, id: int) -> None:
+        item = self._get_from_db(sqlmodel_, id)
+        self.session.delete(item)
+        self.session.commit()
