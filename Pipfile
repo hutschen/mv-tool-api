@@ -9,6 +9,7 @@ pydantic = "*"
 sqlmodel = "*"
 jira = "*"
 pyyaml = "*"
+fastapi-utils = "*"
 
 [dev-packages]
 
