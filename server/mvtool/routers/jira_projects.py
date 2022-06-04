@@ -13,15 +13,19 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
+from jira import JIRA
 from fastapi import Depends, APIRouter, HTTPException
 from sqlmodel import Session, select
 from ..database import get_session
+from ..auth import get_jira
 from ..schemas import JiraProject, JiraProjectInput
 
 router = APIRouter(prefix='/api/jira-projects')
 
 @router.get('/', response_model=list[JiraProject])
-def get_jira_projects(session: Session = Depends(get_session)) -> list:
+def get_jira_projects(
+        session: Session = Depends(get_session),
+        jira: JIRA = Depends(get_jira)) -> list:
     query = select(JiraProject)
     return session.exec(query).all()
 
