@@ -16,6 +16,7 @@
 from jira import JIRA
 from pydantic import BaseModel
 from fastapi import Depends, APIRouter
+from fastapi_utils.cbv import cbv
 from ..auth import get_jira
 
 router = APIRouter()
@@ -41,16 +42,24 @@ class JiraIssue(JiraIssueInput, orm_mode=True):
     id: str
 
 
-@router.get('/projects', response_model=list[JiraProject])
-def get_jira_projects(jira: JIRA = Depends(get_jira)):
-    for p in jira.projects():
-        yield JiraProject.from_orm(p)
+@cbv(router)
+class JiraProjectsView:
+    def __init__(self, jira: JIRA = Depends(get_jira)):
+        self.jira = jira
 
-@router.get('/projects/{project_id}', response_model=JiraProject)
-def get_jira_project(
-        project_id: str, jira: JIRA = Depends(get_jira)):
-    p = jira.project(project_id)
-    return JiraProject.from_orm(p)
+    @router.get(
+        '/projects', response_model=list[JiraProject], tags=['jira-project'])
+    def list_jira_projects(self):
+        for project in self.jira.projects():
+            yield JiraProject.from_orm(project)
+
+    @router.get(
+        '/projects/{project_id}', response_model=JiraProject, 
+        tags=['jira-project'])
+    def get_jira_project(self, project_id: int):
+        project = self.jira.project(project_id)
+        return JiraProject.from_orm(project)
+
 
 @router.get(
     '/projects/{project_id}/issuetypes', response_model=list[JiraIssueType])

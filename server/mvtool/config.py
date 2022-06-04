@@ -17,13 +17,16 @@ from fastapi import Depends
 import yaml
 from pydantic import BaseModel, AnyHttpUrl
 
+CONFIG_FILENAME = 'config.yml'
+
+
 class Config(BaseModel):
     jira_server_url: AnyHttpUrl
 
 
-def load_config(config_filename: str = 'config.yml'):
-    if config_filename:
-        with open(config_filename, 'r') as config_file:
+def load_config():
+    if CONFIG_FILENAME:
+        with open(CONFIG_FILENAME, 'r') as config_file:
             config_data = yaml.safe_load(config_file)
     else:
         config_data = dict()
