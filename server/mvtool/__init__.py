@@ -14,11 +14,12 @@
 # GNU AGPL V3 for more details.
 
 from fastapi import FastAPI
-from .routers import jira_
+from .routers import jira_, projects
 from . import database
 
 app = FastAPI(title='MV-Tool')
 app.include_router(jira_.router)
+app.include_router(projects.project_router, prefix='/api/projects')
 
 @app.on_event('startup')
 def on_startup():
