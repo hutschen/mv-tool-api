@@ -29,7 +29,17 @@ class JiraProject(BaseModel, orm_mode=True):
     name: str
 
 
-class JiraIssue(BaseModel, orm_mode=True):
+class JiraIssueType(BaseModel, orm_mode=True):
+    id: str
+    name: str
+
+
+class JiraIssueInput(BaseModel):
+    summary: str
+    description: str | None = None
+
+
+class JiraIssue(JiraIssueInput, orm_mode=True):
     id: str
 
 
@@ -38,7 +48,32 @@ def get_jira_projects(jira: JIRA = Depends(get_jira)):
     for p in jira.projects():
         yield JiraProject.from_orm(p)
 
-@router.get('/projects/{id}', response_model=JiraProject)
-def get_jira_project(id: str, jira: JIRA = Depends(get_jira)) -> JiraProject:
-    p = jira.project(id)
+@router.get('/projects/{project_id}', response_model=JiraProject)
+def get_jira_project(
+        project_id: str, jira: JIRA = Depends(get_jira)):
+    p = jira.project(project_id)
     return JiraProject.from_orm(p)
+
+@router.get(
+    '/projects/{project_id}/issuetypes', response_model=list[JiraIssueType])
+def get_issue_types(project_id: str, jira: JIRA = Depends(get_jira)):
+    for it in jira.project(project_id).issueTypes:
+        yield JiraIssueType.from_orm(it)
+
+@router.post(
+    '/projects/{project_id}/issues', status_code=201, response_model=dict)
+def create_jira_issue(
+        jira_issue_input: JiraIssueInput,
+        project_id: str, issue_type_id: str, jira: JIRA = Depends(get_jira)):
+    jira_issue_data = jira_issue_input.dict()
+    jira_issue_data['project'] = dict(id=project_id)
+    jira_issue_data['issuetype'] = dict(id=issue_type_id)
+    i = jira.create_issue(jira_issue_data)
+    return i.raw
+    # print(i.raw)
+    #jira_issue = JiraIssue(id=i.id, summary=i.summary, description=i.description)
+    #return JiraIssue.from_orm(i)
+
+@router.get('/issues/{issue_id}', response_model=JiraIssue)
+def get_jira_issue(issue_id: str, jira: JIRA = Depends(get_jira)):
+    pass
