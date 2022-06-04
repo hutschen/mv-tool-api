@@ -56,16 +56,23 @@ class JiraProjectsView:
     @router.get(
         '/projects/{project_id}', response_model=JiraProject, 
         tags=['jira-project'])
-    def get_jira_project(self, project_id: int):
+    def get_jira_project(self, project_id: str):
         project = self.jira.project(project_id)
         return JiraProject.from_orm(project)
 
 
-@router.get(
-    '/projects/{project_id}/issuetypes', response_model=list[JiraIssueType])
-def get_issue_types(project_id: str, jira: JIRA = Depends(get_jira)):
-    for it in jira.project(project_id).issueTypes:
-        yield JiraIssueType.from_orm(it)
+@cbv(router)
+class JiraIssueTypesView:
+    def __init__(self, jira: JIRA = Depends(get_jira)):
+        self.jira = jira
+
+    @router.get(
+        '/projects/{project_id}/issuetypes', 
+        response_model=list[JiraIssueType], tags=['jira-issue-type'])
+    def list_issue_types(self, project_id: str):
+        for issue_type in self.jira.project(project_id).issueTypes:
+            yield JiraIssueType.from_orm(issue_type)
+
 
 @router.post(
     '/projects/{project_id}/issues', status_code=201, response_model=dict)
