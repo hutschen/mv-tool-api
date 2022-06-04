@@ -25,7 +25,7 @@ def get_jira_projects(session: Session = Depends(get_session)) -> list:
     query = select(JiraProject)
     return session.exec(query).all()
 
-@router.post('/', response_model=JiraProject)
+@router.post('/', status_code=201, response_model=JiraProject)
 def create_jira_project(
         jira_project_input: JiraProjectInput, 
         session: Session = Depends(get_session)) -> JiraProject:
@@ -54,5 +54,9 @@ def update_jira_project(
     session.commit()
     return jira_project
 
-def delete_jira_project(id: int, session: Session) -> JiraProject:
-    pass
+@router.delete('/{id}', status_code=204)
+def delete_jira_project(
+        id: int, session: Session = Depends(get_session)) -> None:
+    jira_project = get_jira_project(id, session)
+    session.delete(jira_project)
+    session.commit()
