@@ -8,6 +8,7 @@ fastapi = {extras = ["all"], version = "*"}
 pydantic = "*"
 sqlmodel = "*"
 jira = "*"
+pyyaml = "*"
 
 [dev-packages]
 
