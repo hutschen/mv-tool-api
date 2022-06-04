@@ -32,31 +32,30 @@ class Project(ProjectInput, table=True):
 
 @cbv(router)
 class ProjectsView(CRUDMixin[Project]):
+    kwargs = dict(tags=['project'])
+
     def __init__(self, session: Session = Depends(get_session)):
         self.session = session
 
-    @router.get('/', response_model=list[Project], tags=['project'])
+    @router.get('/', response_model=list[Project], **kwargs)
     def list_projects(self) -> list[Project]:
         return self._get_all_from_db(Project)
 
-    @router.post(
-        '/', status_code=201, response_model=Project, tags=['project'])
+    @router.post('/', status_code=201, response_model=Project, **kwargs)
     def create_project(self, new_project: ProjectInput) -> Project:
         new_project = Project.from_orm(new_project)
         return self._create_in_db(new_project)
 
-    @router.get(
-        '/{project_id}', response_model=Project, tags=['project'])
+    @router.get('/{project_id}', response_model=Project, **kwargs)
     def get_project(self, project_id: int) -> Project:
         return self._get_from_db(Project, project_id)
     
-    @router.put(
-        '/{project_id}', response_model=Project, tags=['project'])
+    @router.put('/{project_id}', response_model=Project, **kwargs)
     def update_project(
             self, project_id: int, project_update: ProjectInput) -> Project:
         project_update = Project.from_orm(project_update)  
         return self._update_in_db(project_update)
 
-    @router.delete('/{project_id}', status_code=204)
+    @router.delete('/{project_id}', status_code=204, **kwargs)
     def delete_project(self, project_id: int):
         return self._delete_in_db(Project, project_id)
