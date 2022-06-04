@@ -56,8 +56,8 @@ class CRUDMixin(Generic[T]):
             item_name = item.__class__.__name__
             raise HTTPException(404, f'No {item_name} with id={id}.')
 
-    def _update_in_db(self, sqlmodel_, id: int, item_update: T) -> T:
-        item = self._get_from_db(sqlmodel_, id)
+    def _update_in_db(self, id: int, item_update: T) -> T:
+        item = self._get_from_db(item_update.__class__, id)
         item_update.id = item.id
         self.session.merge(item_update)
         self.session.commit()
