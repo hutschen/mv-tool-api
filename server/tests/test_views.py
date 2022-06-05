@@ -59,6 +59,7 @@ def test_list_issues():
     assert type(response_body) == list
     assert 0 < len(response_body),\
         'Please create at least one issue in your JIRA project.'
+    return response_body
 
 def test_create_issue():
     project_id = test_list_projects().pop()['id']
@@ -72,4 +73,8 @@ def test_create_issue():
     assert response.status_code == 201
 
 def test_get_issue():
-    pass
+    issue_id = test_list_issues().pop()['id']
+    response = client.get(f'/api/jira/issues/{issue_id}', auth=credentials)
+    response_body = response.json()
+    assert response.status_code == 200
+    assert type(response_body) == dict
