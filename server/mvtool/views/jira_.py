@@ -90,6 +90,8 @@ class JiraIssueTypesView:
 
 @cbv(router)
 class JiraIssueView:
+    kwargs = dict(tags=['jira-issues'])
+
     def __init__(self, jira: JIRA = Depends(get_jira)):
         self.jira = jira
 
@@ -108,7 +110,8 @@ class JiraIssueView:
         )
 
     @router.get(
-        '/projects/{project_id}/issues', response_model=list[JiraIssue])
+        '/projects/{project_id}/issues', response_model=list[JiraIssue],
+        **kwargs)
     def list_issues(
             self, project_id: str, offset: conint(ge=0) = 0, 
             size: conint(ge=0) | None = None) -> list[JiraIssue]:
@@ -117,9 +120,10 @@ class JiraIssueView:
         return [self._convert_to_jira_issue(i) for i in issues]
 
     @router.post(
-        '/projects/{project_id}/issues', status_code=201, response_model=JiraIssue, 
-        tags=['jira-issues'])
-    def create_issue(self, project_id: str, new_issue: JiraIssueInput) -> JiraIssue:
+        '/projects/{project_id}/issues', status_code=201, 
+        response_model=JiraIssue, **kwargs)
+    def create_issue(
+            self, project_id: str, new_issue: JiraIssueInput) -> JiraIssue:
         jira_issue = self.jira.create_issue(dict(
             summary=new_issue.summary,
             description=new_issue.description,
@@ -128,7 +132,7 @@ class JiraIssueView:
         ))
         return self._convert_to_jira_issue(jira_issue)
 
-    @router.get('/issues/{issue_id}', response_model=JiraIssue)
+    @router.get('/issues/{issue_id}', response_model=JiraIssue, **kwargs)
     def get_issue(self, issue_id: str):
         jira_issue = self.jira.issue(id=issue_id)
         return self._convert_to_jira_issue(jira_issue)
