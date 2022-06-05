@@ -14,13 +14,13 @@
 # GNU AGPL V3 for more details.
 
 from jira import JIRA
-from sqlmodel import SQLModel, Session, Field
+from sqlmodel import Relationship, SQLModel, Session, Field
 from fastapi import APIRouter, Depends
 from fastapi_utils.cbv import cbv
 
 from ..auth import get_jira
-from .jira_ import JiraProjectsView
 from ..database import CRUDMixin, get_session
+from .jira_ import JiraProjectsView
 
 router = APIRouter()
 
@@ -33,6 +33,7 @@ class ProjectInput(SQLModel):
 
 class Project(ProjectInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
+    requirements: list[SQLModel] = Relationship(back_populates='project')
 
 
 @cbv(router)
@@ -46,7 +47,7 @@ class ProjectsView(CRUDMixin[Project]):
 
     @router.get('/', response_model=list[Project], **kwargs)
     def list_projects(self) -> list[Project]:
-        return self._get_all_from_db(Project)
+        return self._read_all_from_db(Project)
 
     @router.post('/', status_code=201, response_model=Project, **kwargs)
     def create_project(self, new_project: ProjectInput) -> Project:
@@ -56,7 +57,7 @@ class ProjectsView(CRUDMixin[Project]):
 
     @router.get('/{project_id}', response_model=Project, **kwargs)
     def get_project(self, project_id: int) -> Project:
-        return self._get_from_db(Project, project_id)
+        return self._read_from_db(Project, project_id)
     
     @router.put('/{project_id}', response_model=Project, **kwargs)
     def update_project(
