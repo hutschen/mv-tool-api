@@ -71,8 +71,13 @@ class RequirementsView(CRUDMixin[Requirement]):
     def get_requirement(self, requirement_id: int) -> Requirement:
         return self._read_from_db(Requirement, requirement_id)
 
-    @router.put('/{requirement_id}')
-    def update_requirement(self, 
-            requirement_id: int, requirement_update: RequirementInput):
+    @router.put('/{requirement_id}', response_model=Requirement, **kwargs)
+    def update_requirement(
+            self, requirement_id: int, 
+            requirement_update: RequirementInput) -> Requirement:
         requirement_update = Requirement.from_orm(requirement_update)
         return self._update_in_db(requirement_update)
+
+    @router.delete('/{requirement_id}', status_code=204, **kwargs)
+    def delete_requirement(self, requirement_id: int) -> None:
+        return self._delete_in_db(Requirement, requirement_id)
