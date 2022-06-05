@@ -13,7 +13,8 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from jira import JIRA
+from jira import JIRA, Issue
+import jira
 from pydantic import BaseModel
 from fastapi import Depends, APIRouter
 from fastapi_utils.cbv import cbv
@@ -33,15 +34,22 @@ class JiraIssueType(BaseModel, orm_mode=True):
     name: str
 
 
+class JiraIssueStatus(BaseModel):
+    name: str
+    color_name: str
+
+
 class JiraIssueInput(BaseModel):
     summary: str
     description: str | None = None
-    issue_type_id: str
-    project_id: str
+    issuetype_id: str
 
 
 class JiraIssue(JiraIssueInput, orm_mode=True):
     id: str
+    key: str
+    project_id: str
+    status: JiraIssueStatus
 
 
 @cbv(router)
@@ -87,19 +95,27 @@ class JiraIssueView:
         self.jira = jira
 
     @router.post(
-        '/issues', status_code=201, response_model=JiraIssue, 
+        '/projects/{project_id}/issues', status_code=201, response_model=JiraIssue, 
         tags=['jira-issues'])
-    def create_issue(self, new_issue: JiraIssueInput) -> JiraIssue:
+    def create_issue(self, project_id: str, new_issue: JiraIssueInput) -> JiraIssue:
         issue_data = new_issue.dict()
-        issue_data['project'] = dict(id=new_issue.project_id)
-        issue_data['issuetype'] = dict(id=new_issue.issue_type_id)
-        del issue_data['project_id']
-        del issue_data['issue_type_id']
+        issue_data['project'] = dict(id=project_id)
+        issue_data['issuetype'] = dict(id=new_issue.issuetype_id)
+        del issue_data['issuetype_id']
         jira_issue = self.jira.create_issue(issue_data)
 
-        new_issue = JiraIssue.from_orm(new_issue)
-        new_issue.id = jira_issue.id
-        return new_issue
+        return JiraIssue(
+            id=jira_issue.id,
+            key=jira_issue.key,
+            summary=jira_issue.fields.summary,
+            description=jira_issue.fields.description,
+            issuetype_id=jira_issue.fields.issuetype.id,
+            project_id=jira_issue.fields.project.id,
+            status=JiraIssueStatus(
+                name=jira_issue.fields.status.name,
+                color_name=jira_issue.fields.status.statusCategory.colorName
+            )
+        )
 
     @router.get('/issues/{issue_id}', response_model=JiraIssue)
     def get_issue(self, issue_id: str):

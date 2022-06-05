@@ -21,6 +21,8 @@ from pydantic import BaseModel, AnyHttpUrl
 
 class Config(BaseModel):
     jira_server_url: AnyHttpUrl
+    username: str | None = None
+    password: str | None = None
 
 
 def get_config_filename():
