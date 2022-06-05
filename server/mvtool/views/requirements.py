@@ -61,3 +61,7 @@ class RequirementsView(CRUDMixin[Requirement]):
         new_requirement.project = self.projects.get_project(
             new_requirement.project_id)
         return self._create_in_db(new_requirement)
+
+    @router.get('/{requirement_id}', response_model=Requirement, **kwargs)
+    def get_requirement(self, requirement_id: int) -> Requirement:
+        return self._read_from_db(Requirement, requirement_id)
