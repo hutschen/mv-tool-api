@@ -13,7 +13,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.  
 
-from typing import TypeVar, Generic
+from typing import TypeVar, Generic, get_args, get_origin
 from fastapi import Depends, HTTPException
 from sqlmodel import create_engine, Session, SQLModel, select
 from sqlmodel.pool import StaticPool
@@ -39,8 +39,13 @@ def drop_all():
 T = TypeVar('T', bound=SQLModel)
 
 class CRUDMixin(Generic[T]):
-    def _read_all_from_db(self, sqlmodel_) -> list[T]:
+    def _read_all_from_db(self, sqlmodel_: SQLModel, **filters) -> list[T]:
         query = select(sqlmodel_)
+
+        for key, value in filters.items():
+            if value is not None:
+                query = query.where(sqlmodel_.__dict__[key] == value)
+
         return self.session.exec(query).all()
 
     def _create_in_db(self, item: T) -> T:
@@ -49,7 +54,7 @@ class CRUDMixin(Generic[T]):
         self.session.refresh(item)
         return item
 
-    def _read_from_db(self, sqlmodel_, id: int) -> T:
+    def _read_from_db(self, sqlmodel_: SQLModel, id: int) -> T:
         item = self.session.get(sqlmodel_, id)
         if item:
             return item
@@ -64,7 +69,7 @@ class CRUDMixin(Generic[T]):
         self.session.commit()
         return item
 
-    def _delete_in_db(self, sqlmodel_, id: int) -> None:
+    def _delete_in_db(self, sqlmodel_: SQLModel, id: int) -> None:
         item = self._read_from_db(sqlmodel_, id)
         self.session.delete(item)
         self.session.commit()
