@@ -32,11 +32,11 @@ class RequirementInput(SQLModel):
     target_object: str | None
     compliance_status: str | None
     compliance_comment: str | None
-    project_id: int = Field(foreign_key='project.id')
 
 
 class Requirement(RequirementInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
+    project_id: int = Field(foreign_key='project.id')
     project: Project = Relationship(back_populates='requirements')
 
 
@@ -50,18 +50,29 @@ class RequirementsView(CRUDMixin[Requirement]):
         self.session = session
         self.projects = ProjectsView(session, jira)
 
-    @router.get('/', response_model=list[Requirement], **kwargs)
+    @router.get(
+        '/projects/{project_id}/requirements', 
+        response_model=list[Requirement], **kwargs)
     def list_requirements(self, project_id: int) -> list[Requirement]:
         return self._read_all_from_db(Requirement, project_id=project_id)
 
-    @router.post('/', status_code=201, response_model=Requirement, **kwargs)
+    @router.post(
+        '/projects/{project_id}/requirements', status_code=201, 
+        response_model=Requirement, **kwargs)
     def create_requirement(
-            self, new_requirement: RequirementInput) -> Requirement:
+            self, project_id: int, 
+            new_requirement: RequirementInput) -> Requirement:
         new_requirement = Requirement.from_orm(new_requirement)
-        new_requirement.project = self.projects.get_project(
-            new_requirement.project_id)
+        new_requirement.project = self.projects.get_project(project_id)
         return self._create_in_db(new_requirement)
 
-    @router.get('/{requirement_id}', response_model=Requirement, **kwargs)
+    @router.get(
+        '/requirements/{requirement_id}', response_model=Requirement, **kwargs)
     def get_requirement(self, requirement_id: int) -> Requirement:
         return self._read_from_db(Requirement, requirement_id)
+
+    @router.put('/{requirement_id}')
+    def update_requirement(self, 
+            requirement_id: int, requirement_update: RequirementInput):
+        requirement_update = Requirement.from_orm(requirement_update)
+        return self._update_in_db(requirement_update)
