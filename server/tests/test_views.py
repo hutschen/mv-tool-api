@@ -50,6 +50,16 @@ def test_get_issuetypes():
         'Please create a least the "Task" issue type in your JIRA project.'
     return response_body
 
+def test_list_issues():
+    project_id = test_list_projects().pop()['id']
+    response = client.get(
+        f'/api/jira/projects/{project_id}/issues', auth=credentials)
+    response_body = response.json()
+    assert response.status_code == 200
+    assert type(response_body) == list
+    assert 0 < len(response_body),\
+        'Please create at least one issue in your JIRA project.'
+
 def test_create_issue():
     project_id = test_list_projects().pop()['id']
     issuetype_id = [
@@ -62,7 +72,4 @@ def test_create_issue():
     assert response.status_code == 201
 
 def test_get_issue():
-    project_id = test_list_projects().pop()['id']
-    response = client.get(
-        f'/api/jira/projects/{project_id}/issues', auth=credentials)
-    assert response.status_code == 200
+    pass

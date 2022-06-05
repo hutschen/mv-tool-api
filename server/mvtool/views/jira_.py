@@ -14,8 +14,7 @@
 # GNU AGPL V3 for more details.
 
 from jira import JIRA, Issue
-import jira
-from pydantic import BaseModel
+from pydantic import BaseModel, conint
 from fastapi import Depends, APIRouter
 from fastapi_utils.cbv import cbv
 from ..auth import get_jira
@@ -94,7 +93,7 @@ class JiraIssueView:
     def __init__(self, jira: JIRA = Depends(get_jira)):
         self.jira = jira
 
-    def _convert_jira_issue(self, jira_issue) -> JiraIssue:
+    def _convert_to_jira_issue(self, jira_issue: Issue) -> JiraIssue:
         return JiraIssue(
             id=jira_issue.id,
             key=jira_issue.key,
@@ -108,6 +107,15 @@ class JiraIssueView:
             )
         )
 
+    @router.get(
+        '/projects/{project_id}/issues', response_model=list[JiraIssue])
+    def list_issues(
+            self, project_id: str, offset: conint(ge=0) = 0, 
+            size: conint(ge=0) | None = None) -> list[JiraIssue]:
+        issues = self.jira.search_issues(
+            f'project = {project_id}', startAt=offset, maxResults=size)
+        return [self._convert_to_jira_issue(i) for i in issues]
+
     @router.post(
         '/projects/{project_id}/issues', status_code=201, response_model=JiraIssue, 
         tags=['jira-issues'])
@@ -118,9 +126,9 @@ class JiraIssueView:
             project=dict(id=project_id),
             issuetype=dict(id=new_issue.issuetype_id)
         ))
-        return self._convert_jira_issue(jira_issue)
+        return self._convert_to_jira_issue(jira_issue)
 
     @router.get('/issues/{issue_id}', response_model=JiraIssue)
     def get_issue(self, issue_id: str):
         jira_issue = self.jira.issue(id=issue_id)
-        return self._convert_jira_issue(jira_issue)
+        return self._convert_to_jira_issue(jira_issue)
