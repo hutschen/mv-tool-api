@@ -98,22 +98,22 @@ class JiraIssueView:
         '/projects/{project_id}/issues', status_code=201, response_model=JiraIssue, 
         tags=['jira-issues'])
     def create_issue(self, project_id: str, new_issue: JiraIssueInput) -> JiraIssue:
-        issue_data = new_issue.dict()
-        issue_data['project'] = dict(id=project_id)
-        issue_data['issuetype'] = dict(id=new_issue.issuetype_id)
-        del issue_data['issuetype_id']
-        jira_issue = self.jira.create_issue(issue_data)
-
+        issue = self.jira.create_issue(dict(
+            summary=new_issue.summary,
+            description=new_issue.description,
+            project=dict(id=project_id),
+            issuetype=dict(id=new_issue.issuetype_id)
+        ))
         return JiraIssue(
-            id=jira_issue.id,
-            key=jira_issue.key,
-            summary=jira_issue.fields.summary,
-            description=jira_issue.fields.description,
-            issuetype_id=jira_issue.fields.issuetype.id,
-            project_id=jira_issue.fields.project.id,
+            id=issue.id,
+            key=issue.key,
+            summary=issue.fields.summary,
+            description=issue.fields.description,
+            issuetype_id=issue.fields.issuetype.id,
+            project_id=issue.fields.project.id,
             status=JiraIssueStatus(
-                name=jira_issue.fields.status.name,
-                color_name=jira_issue.fields.status.statusCategory.colorName
+                name=issue.fields.status.name,
+                color_name=issue.fields.status.statusCategory.colorName
             )
         )
 

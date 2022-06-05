@@ -60,4 +60,3 @@ def test_create_issue():
             issuetype_id=issuetype_id
         ), auth=credentials)
     assert response.status_code == 201
-    
