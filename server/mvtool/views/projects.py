@@ -13,9 +13,13 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
+from jira import JIRA
 from sqlmodel import SQLModel, Session, Field
 from fastapi import APIRouter, Depends
 from fastapi_utils.cbv import cbv
+
+from ..auth import get_jira
+from .jira_ import JiraProjectsView
 from ..database import CRUDMixin, get_session
 
 router = APIRouter()
@@ -30,12 +34,15 @@ class ProjectInput(SQLModel):
 class Project(ProjectInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
 
+
 @cbv(router)
 class ProjectsView(CRUDMixin[Project]):
     kwargs = dict(tags=['project'])
 
-    def __init__(self, session: Session = Depends(get_session)):
+    def __init__(self, 
+            session: Session = Depends(get_session), jira: JIRA = Depends(get_jira)):
         self.session = session
+        self.jira_projects = JiraProjectsView(jira)
 
     @router.get('/', response_model=list[Project], **kwargs)
     def list_projects(self) -> list[Project]:
@@ -44,6 +51,7 @@ class ProjectsView(CRUDMixin[Project]):
     @router.post('/', status_code=201, response_model=Project, **kwargs)
     def create_project(self, new_project: ProjectInput) -> Project:
         new_project = Project.from_orm(new_project)
+        self.jira_projects.check_project_id(new_project.jira_project_id)
         return self._create_in_db(new_project)
 
     @router.get('/{project_id}', response_model=Project, **kwargs)
@@ -53,7 +61,12 @@ class ProjectsView(CRUDMixin[Project]):
     @router.put('/{project_id}', response_model=Project, **kwargs)
     def update_project(
             self, project_id: int, project_update: ProjectInput) -> Project:
-        project_update = Project.from_orm(project_update)  
+        project_update = Project.from_orm(project_update)
+        project_current = self.get_project(project_id)
+
+        if project_update.jira_project_id != project_current.jira_project_id:
+            self.jira_projects.check_project_id(project_update.jira_project_id)
+        
         return self._update_in_db(project_update)
 
     @router.delete('/{project_id}', status_code=204, **kwargs)

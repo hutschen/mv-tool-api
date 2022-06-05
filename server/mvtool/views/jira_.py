@@ -61,6 +61,12 @@ class JiraProjectsView:
         jira_project = self.jira.project(project_id)
         return JiraProject.from_orm(jira_project)
 
+    def check_project_id(self, project_id: str | None) -> None:
+        ''' Raises an Exception if project ID is not existing or not None.
+        '''
+        if project_id is not None:
+            self.get_project(project_id)
+        
 
 @cbv(router)
 class JiraIssueTypesView:
