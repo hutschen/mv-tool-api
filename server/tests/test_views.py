@@ -60,3 +60,9 @@ def test_create_issue():
             issuetype_id=issuetype_id
         ), auth=credentials)
     assert response.status_code == 201
+
+def test_get_issue():
+    project_id = test_list_projects().pop()['id']
+    response = client.get(
+        f'/api/jira/projects/{project_id}/issues', auth=credentials)
+    assert response.status_code == 200
