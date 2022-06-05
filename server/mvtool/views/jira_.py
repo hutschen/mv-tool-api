@@ -122,4 +122,5 @@ class JiraIssueView:
 
     @router.get('/issues/{issue_id}', response_model=JiraIssue)
     def get_issue(self, issue_id: str):
-        pass
+        jira_issue = self.jira.issue(id=issue_id)
+        return self._convert_jira_issue(jira_issue)
