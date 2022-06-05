@@ -13,20 +13,24 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from fastapi import Depends
 import yaml
+import pathlib
+from fastapi import Depends
 from pydantic import BaseModel, AnyHttpUrl
-
-CONFIG_FILENAME = 'config.yml'
 
 
 class Config(BaseModel):
     jira_server_url: AnyHttpUrl
 
 
-def load_config():
-    if CONFIG_FILENAME:
-        with open(CONFIG_FILENAME, 'r') as config_file:
+def get_config_filename():
+    return pathlib.Path.joinpath(
+        pathlib.Path(__file__).parent, '../config.yml').resolve()
+
+
+def load_config(config_filename = Depends(get_config_filename)):
+    if config_filename:
+        with open(config_filename, 'r') as config_file:
             config_data = yaml.safe_load(config_file)
     else:
         config_data = dict()
