@@ -14,30 +14,16 @@
 # GNU AGPL V3 for more details.
 
 from jira import JIRA
-from sqlmodel import Relationship, SQLModel, Field, Session, select
+from sqlmodel import Session
 from fastapi import APIRouter, Depends
 from fastapi_utils.cbv import cbv
 
 from ..auth import get_jira
 from ..database import CRUDMixin, get_session
-from .projects import Project, ProjectsView
+from .projects import ProjectsView
+from ..models import RequirementInput, Requirement, Project
 
 router = APIRouter()
-
-
-class RequirementInput(SQLModel):
-    reference: str | None
-    summary: str
-    description: str | None
-    target_object: str | None
-    compliance_status: str | None
-    compliance_comment: str | None
-
-
-class Requirement(RequirementInput, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    project_id: int | None = Field(default=None, foreign_key='project.id')
-    project: Project | None = Relationship() #back_populates='requirements')
 
 
 @cbv(router)

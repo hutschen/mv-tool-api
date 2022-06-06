@@ -45,6 +45,21 @@ class JiraIssue(JiraIssueInput):
     status: JiraIssueStatus
 
 
+class RequirementInput(SQLModel):
+    reference: str | None
+    summary: str
+    description: str | None
+    target_object: str | None
+    compliance_status: str | None
+    compliance_comment: str | None
+
+
+class Requirement(RequirementInput, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    project_id: int | None = Field(default=None, foreign_key='project.id')
+    project: 'Project | None' = Relationship(back_populates='requirements')
+
+
 class ProjectInput(SQLModel):
     name: str
     description: str | None = None
@@ -53,4 +68,4 @@ class ProjectInput(SQLModel):
 
 class Project(ProjectInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    requirements: list[SQLModel] = Relationship(back_populates='project')
+    requirements: list[Requirement] = Relationship(back_populates='project')
