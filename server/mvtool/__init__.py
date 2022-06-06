@@ -20,9 +20,10 @@ from . import database
 
 app = FastAPI(title='MV-Tool')
 app.include_router(jira_.router, prefix='/api/jira')
-app.include_router(projects.router, prefix='/api/projects')
+app.include_router(projects.router, prefix='/api')
 app.include_router(requirements.router, prefix='/api')
 
 @app.on_event('startup')
 def on_startup():
     database.create_all()
+    return
