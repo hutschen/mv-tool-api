@@ -13,7 +13,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Relationship
 
 
 class JiraProject(SQLModel):
@@ -43,3 +43,14 @@ class JiraIssue(JiraIssueInput):
     key: str
     project_id: str
     status: JiraIssueStatus
+
+
+class ProjectInput(SQLModel):
+    name: str
+    description: str | None = None
+    jira_project_id: str | None = None
+
+
+class Project(ProjectInput, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    requirements: list[SQLModel] = Relationship(back_populates='project')

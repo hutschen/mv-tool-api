@@ -21,19 +21,9 @@ from fastapi_utils.cbv import cbv
 from ..auth import get_jira
 from ..database import CRUDMixin, get_session
 from .jira_ import JiraProjectsView
+from ..models import ProjectInput, Project
 
 router = APIRouter()
-
-
-class ProjectInput(SQLModel):
-    name: str
-    description: str | None = None
-    jira_project_id: str | None = None
-
-
-class Project(ProjectInput, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    requirements: list[SQLModel] = Relationship(back_populates='project')
 
 
 @cbv(router)
