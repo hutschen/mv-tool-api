@@ -36,8 +36,8 @@ class RequirementInput(SQLModel):
 
 class Requirement(RequirementInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    project_id: int = Field(foreign_key='project.id')
-    project: Project = Relationship(back_populates='requirements')
+    project_id: int | None = Field(default=None, foreign_key='project.id')
+    project: Project | None = Relationship() #back_populates='requirements')
 
 
 @cbv(router)
@@ -61,10 +61,14 @@ class RequirementsView(CRUDMixin[Requirement]):
         response_model=Requirement, **kwargs)
     def create_requirement(
             self, project_id: int, 
-            new_requirement: RequirementInput) -> Requirement:
-        new_requirement = Requirement.from_orm(new_requirement)
-        new_requirement.project = self.projects.get_project(project_id)
-        return self._create_in_db(new_requirement)
+            requirement: RequirementInput) -> Requirement:
+        project = self.projects.get_project(project_id)
+        requirement = Requirement(**requirement.dict())
+        self._create_in_db(requirement)
+        requirement.project = project
+        self.session.commit()
+        self.session.refresh(requirement)
+        return requirement
 
     @router.get(
         '/requirements/{requirement_id}', response_model=Requirement, **kwargs)
