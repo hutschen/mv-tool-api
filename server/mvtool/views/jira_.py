@@ -14,41 +14,14 @@
 # GNU AGPL V3 for more details.
 
 from jira import JIRA, Issue
-from pydantic import BaseModel, conint
+from pydantic import conint
 from fastapi import Depends, APIRouter
 from fastapi_utils.cbv import cbv
 from ..auth import get_jira
+from ..models import (JiraProject, JiraIssueType, JiraIssueStatus, 
+    JiraIssueInput, JiraIssue)
 
 router = APIRouter()
-
-
-class JiraProject(BaseModel, orm_mode=True):
-    id: str
-    key: str
-    name: str
-
-
-class JiraIssueType(BaseModel, orm_mode=True):
-    id: str
-    name: str
-
-
-class JiraIssueStatus(BaseModel):
-    name: str
-    color_name: str
-
-
-class JiraIssueInput(BaseModel):
-    summary: str
-    description: str | None = None
-    issuetype_id: str
-
-
-class JiraIssue(JiraIssueInput, orm_mode=True):
-    id: str
-    key: str
-    project_id: str
-    status: JiraIssueStatus
 
 
 @cbv(router)

@@ -15,10 +15,31 @@
 
 from sqlmodel import SQLModel, Field
 
-class JiraProjectInput(SQLModel):
+
+class JiraProject(SQLModel):
+    id: str
     key: str
     name: str
 
-class JiraProject(JiraProjectInput, table=True):
-    id: int | None = Field(default=None, primary_key=True)
 
+class JiraIssueType(SQLModel):
+    id: str
+    name: str
+
+
+class JiraIssueStatus(SQLModel):
+    name: str
+    color_name: str
+
+
+class JiraIssueInput(SQLModel):
+    summary: str
+    description: str | None = None
+    issuetype_id: str
+
+
+class JiraIssue(JiraIssueInput):
+    id: str
+    key: str
+    project_id: str
+    status: JiraIssueStatus
