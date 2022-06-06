@@ -150,3 +150,17 @@ def test_update_project(client, credentials, project):
 def test_delete_project(client, credentials, project_id):
     response = client.delete(f'/api/projects/{project_id}', auth=credentials)
     assert response.status_code == 204
+
+def test_list_requirements(client, credentials, project_id):
+    response = client.get(
+        f'/api/projects/{project_id}/requirements', auth=credentials)
+    assert response.status_code == 200
+    assert type(response.json()) == list
+
+def test_create_requirement(client, credentials, project_id):
+    response = client.post(f'/api/projects/{project_id}/requirements', json=dict(
+            summary='A sample requirement'), auth=credentials)
+    assert response.status_code == 201
+    requirement = response.json()
+    assert type(requirement) == dict
+    assert requirement['project_id'] == project_id
