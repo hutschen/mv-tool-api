@@ -13,19 +13,19 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from urllib import response
+import pytest
 from fastapi import Depends
 from fastapi.testclient import TestClient
-from pytest import fixture, fail
 from mvtool import app, on_startup
 from mvtool.config import load_config, get_config_filename
 
-@fixture
+
+@pytest.fixture
 def client():
     with TestClient(app) as client:
         yield client
 
-@fixture
+@pytest.fixture
 def credentials():
     config = load_config(get_config_filename())
     return (config.username, config.password)
@@ -38,7 +38,7 @@ def test_list_jira_projects(client, credentials):
     assert 0 < len(response_body), 'Please create at least one project in JIRA.'
     return response_body
 
-@fixture
+@pytest.fixture
 def jira_project_id(client, credentials):
     return test_list_jira_projects(client, credentials).pop()['id']
 
@@ -69,7 +69,7 @@ def test_list_jira_issues(client, credentials, jira_project_id):
         'Please create at least one issue in your JIRA project.'
     return response_body
 
-@fixture
+@pytest.fixture
 def jira_issuetype_id(client, credentials, jira_project_id):
     issuetypes = test_get_jira_issuetypes(client, credentials, jira_project_id)
     return [it for it in issuetypes if it['name'] == 'Task'].pop()['id']
@@ -82,7 +82,7 @@ def test_create_jira_issue(client, credentials, jira_project_id, jira_issuetype_
         ), auth=credentials)
     assert response.status_code == 201
 
-@fixture
+@pytest.fixture
 def jira_issue_id(client, credentials, jira_project_id):
     return test_list_jira_issues(client, credentials, jira_project_id).pop()['id']
 
@@ -120,12 +120,12 @@ def test_create_project_invalid_jira_project_id(client, credentials):
             jira_project_id='INVALID'), auth=credentials)
     assert response.status_code == 404
 
-@fixture
+@pytest.fixture
 def project(client, credentials, jira_project_id):
     return test_create_project_valid_jira_project_id(
         client, credentials, jira_project_id)
 
-@fixture
+@pytest.fixture
 def project_id(project):
     return project['id']
 
@@ -157,6 +157,7 @@ def test_list_requirements(client, credentials, project_id):
     assert response.status_code == 200
     assert type(response.json()) == list
 
+@pytest.mark.skip('WIP')
 def test_create_requirement(client, credentials, project_id):
     response = client.post(f'/api/projects/{project_id}/requirements', json=dict(
             summary='A sample requirement'), auth=credentials)
