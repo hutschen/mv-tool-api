@@ -44,7 +44,6 @@ class JiraIssue(JiraIssueInput):
     project_id: str
     status: JiraIssueStatus
 
-
 class RequirementInput(SQLModel):
     reference: str | None
     summary: str
@@ -57,8 +56,7 @@ class RequirementInput(SQLModel):
 class Requirement(RequirementInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
     project_id: int | None = Field(default=None, foreign_key='project.id')
-    project: 'Project | None' = Relationship(back_populates='requirements')
-
+    project: 'Project' = Relationship(back_populates='requirements')
 
 class ProjectInput(SQLModel):
     name: str

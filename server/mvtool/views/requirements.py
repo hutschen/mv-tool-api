@@ -49,11 +49,9 @@ class RequirementsView(CRUDMixin[Requirement]):
             self, project_id: int, 
             requirement: RequirementInput) -> Requirement:
         project = self.projects.get_project(project_id)
-        requirement = Requirement(**requirement.dict())
-        self._create_in_db(requirement)
+        requirement = Requirement.from_orm(requirement)
         requirement.project = project
-        self.session.commit()
-        self.session.refresh(requirement)
+        requirement = self._create_in_db(requirement)
         return requirement
 
     @router.get(
