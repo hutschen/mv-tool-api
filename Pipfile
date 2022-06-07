@@ -6,10 +6,11 @@ name = "pypi"
 [packages]
 fastapi = {extras = ["all"], version = "*"}
 pydantic = "*"
-sqlmodel = "*"
 jira = "*"
 pyyaml = "*"
 fastapi-utils = "*"
+sqlalchemy = "==1.4.35"
+sqlmodel = "==0.0.6"
 
 [dev-packages]
 pytest = "*"
