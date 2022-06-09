@@ -13,6 +13,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
+from urllib import response
 import pytest
 from fastapi import Depends
 from fastapi.testclient import TestClient
@@ -164,3 +165,18 @@ def test_create_requirement(client, credentials, project_id):
     requirement = response.json()
     assert type(requirement) == dict
     assert requirement['project_id'] == project_id
+    return requirement
+
+@pytest.fixture
+def requirement(client, credentials, project_id):
+    return test_create_requirement(client, credentials, project_id)
+
+@pytest.fixture
+def requirement_id(requirement):
+    return requirement['id']
+
+def test_get_requirement(client, credentials, requirement_id):
+    response = client.get(
+        f'/api/requirements/{requirement_id}', auth=credentials)
+    assert response.status_code == 200
+    assert type(response.json()) == dict
