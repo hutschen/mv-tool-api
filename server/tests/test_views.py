@@ -157,7 +157,6 @@ def test_list_requirements(client, credentials, project_id):
     assert response.status_code == 200
     assert type(response.json()) == list
 
-# @pytest.mark.skip('WIP')
 def test_create_requirement(client, credentials, project_id):
     response = client.post(f'/api/projects/{project_id}/requirements', json=dict(
             summary='A sample requirement'), auth=credentials)
