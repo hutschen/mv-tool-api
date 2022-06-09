@@ -136,7 +136,7 @@ def test_get_project(client, credentials, project_id):
     assert type(response.json()) == dict
 
 def test_update_project(client, credentials, project):
-    orig_project = dict(project)
+    orig_project = dict(project) # create a copy
     project_id = project['id']
     project['name'] = 'An updated project'
     project['jira_project_id'] = None
@@ -180,3 +180,16 @@ def test_get_requirement(client, credentials, requirement_id):
         f'/api/requirements/{requirement_id}', auth=credentials)
     assert response.status_code == 200
     assert type(response.json()) == dict
+
+def test_update_requirement(client, credentials, requirement):
+    orig_requirement = dict(requirement) # create a copy
+    requirement_id = requirement['id']
+    requirement['summary'] = 'An updated summary'
+
+    response = client.put(
+        f'/api/requirements/{requirement_id}', json=requirement, 
+        auth=credentials)
+    updated_requirement = response.json()
+    assert response.status_code == 200
+    assert updated_requirement['summary'] != orig_requirement['summary']
+    assert updated_requirement['project_id'] == orig_requirement['project_id']
