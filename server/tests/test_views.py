@@ -193,3 +193,8 @@ def test_update_requirement(client, credentials, requirement):
     assert response.status_code == 200
     assert updated_requirement['summary'] != orig_requirement['summary']
     assert updated_requirement['project_id'] == orig_requirement['project_id']
+
+def test_delete_requirement(client, credentials, requirement_id):
+    response = client.delete(
+        f'/api/requirements/{requirement_id}', auth=credentials)
+    assert response.status_code == 204
