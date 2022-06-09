@@ -198,3 +198,41 @@ def test_delete_requirement(client, credentials, requirement_id):
     response = client.delete(
         f'/api/requirements/{requirement_id}', auth=credentials)
     assert response.status_code == 204
+
+@pytest.mark.skip('WIP')
+def test_list_measures(client, credentials, requirement_id):
+    response = client.get(
+        f'/api/requirements/{requirement_id}/measures', auth=credentials)
+    assert response.status_code == 200
+    assert type(response.json()) == list
+
+@pytest.mark.skip('WIP')
+def test_create_measure(client, credentials, requirement_id):
+    measure = dict()
+    response = client.get(
+        f'/api/requirements/{requirement_id}/measures', 
+        json=measure, auth=credentials)
+    assert response.status_code == 201
+    measure = response.json()
+    assert type(measure) == dict
+    return measure
+
+@pytest.fixture
+def measure(client, credentials, requirement_id):
+    return test_create_measure(client, credentials, requirement_id)
+
+@pytest.fixture
+def measure_id(measure):
+    return measure['id']
+
+@pytest.mark.skip('WIP')
+def test_get_measure(client, credentials, measure_id):
+    pass
+
+@pytest.mark.skip('WIP')
+def test_update_measure():
+    pass
+
+@pytest.mark.skip('WIP')
+def test_delete_measure():
+    pass
