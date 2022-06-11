@@ -63,3 +63,7 @@ class MeasuresView(CRUDOperations[Measure]):
         measure_update = Measure.from_orm(
             measure_update, update=dict(requirement_id=measure.requirement_id))
         return self.update_in_db(measure_id, measure_update)
+
+    @router.delete('/measures/{measure_id}', status_code=204, **kwargs)
+    def delete_measure(self, measure_id: int) -> None:
+        return self.delete_in_db(measure_id)

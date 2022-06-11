@@ -235,6 +235,8 @@ def test_update_measure(client, credentials, measure, measure_id):
     assert response.status_code == 200
     assert response.json() == measure
 
-@pytest.mark.skip('WIP')
-def test_delete_measure():
-    pass
+def test_delete_measure(client, credentials, measure_id):
+    response = client.delete(f'/api/measures/{measure_id}', auth=credentials)
+    assert response.status_code == 204
+    response = client.get(f'/api/measures/{measure_id}', auth=credentials)
+    assert response.status_code == 404
