@@ -58,6 +58,8 @@ class Task(TaskInput, table=True):
     jira_issue_id: str | None = None
     measure_id: int | None = Field(default=None, foreign_key='measure.id')
     measure: 'Measure' = Relationship(back_populates='tasks')
+    document_id: int | None = Field(default=None, foreign_key='document.id')
+    document: 'Document' = Relationship(back_populates='tasks')
 
 
 class MeasureInput(SQLModel):
@@ -98,6 +100,7 @@ class Document(DocumentInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
     project_id: int | None = Field(default=None, foreign_key='project.id')
     project: 'Project' = Relationship(back_populates='documents')
+    tasks: list[Task] = Relationship(back_populates='document')
 
 
 class ProjectInput(SQLModel):
