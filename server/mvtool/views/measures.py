@@ -54,3 +54,12 @@ class MeasuresView(CRUDOperations[Measure]):
         '/measures/{measure_id}', response_model=Measure, **kwargs)
     def get_measure(self, measure_id: int):
         return self.read_from_db(measure_id)
+
+    @router.put(
+        '/measures/{measure_id}', response_model=Measure, **kwargs)
+    def update_measure(
+            self, measure_id: int, measure_update: MeasureInput) -> Measure:
+        measure = self.read_from_db(measure_id)
+        measure_update = Measure.from_orm(
+            measure_update, update=dict(requirement_id=measure.requirement_id))
+        return self.update_in_db(measure_id, measure_update)

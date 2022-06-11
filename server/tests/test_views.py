@@ -223,15 +223,17 @@ def measure(client, credentials, requirement_id):
 def measure_id(measure):
     return measure['id']
 
-def test_get_measure(client, credentials, measure):
-    measure_id = measure['id']
+def test_get_measure(client, credentials, measure, measure_id):
     response = client.get(f'/api/measures/{measure_id}', auth=credentials)
     assert response.status_code == 200
     assert response.json() == measure
 
-@pytest.mark.skip('WIP')
-def test_update_measure():
-    pass
+def test_update_measure(client, credentials, measure, measure_id):
+    measure['summary'] = 'An updated measure'
+    response = client.put(
+        f'/api/measures/{measure_id}', json=measure, auth=credentials)
+    assert response.status_code == 200
+    assert response.json() == measure
 
 @pytest.mark.skip('WIP')
 def test_delete_measure():
