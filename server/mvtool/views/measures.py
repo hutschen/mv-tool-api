@@ -17,7 +17,6 @@ from jira import JIRA
 from sqlmodel import Session
 from fastapi import APIRouter, Depends
 from fastapi_utils.cbv import cbv
-
 from ..auth import get_jira
 from ..database import CRUDOperations, get_session
 from .requirements import RequirementsView
@@ -50,3 +49,8 @@ class MeasuresView(CRUDOperations[Measure]):
         measure = Measure.from_orm(measure)
         measure.requirement = self.requirements.get_requirement(requirement_id)
         return self.create_in_db(measure)
+
+    @router.get(
+        '/measures/{measure_id}', response_model=Measure, **kwargs)
+    def get_measure(self, measure_id: int):
+        return self.read_from_db(measure_id)
