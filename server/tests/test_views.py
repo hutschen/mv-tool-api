@@ -13,6 +13,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
+from urllib import response
 import pytest
 from fastapi.testclient import TestClient
 from mvtool import app
@@ -149,6 +150,47 @@ def test_update_project(client, credentials, project):
 def test_delete_project(client, credentials, project_id):
     response = client.delete(f'/api/projects/{project_id}', auth=credentials)
     assert response.status_code == 204
+
+def test_list_documents(client, credentials, project_id):
+    response = client.get(
+        f'/api/projects/{project_id}/documents', auth=credentials)
+    assert response.status_code == 200
+    assert type(response.json()) == list
+
+def test_create_document(client, credentials, project_id):
+    response = client.post(
+        f'/api/projects/{project_id}/documents', 
+        json=dict(title='A new document'), auth=credentials)
+    assert response.status_code == 201
+    document = response.json()
+    assert type(document) == dict
+    return document
+
+@pytest.fixture
+def document(client, credentials, project_id):
+    return test_create_document(client, credentials, project_id)
+
+@pytest.fixture
+def document_id(document):
+    return document['id']
+
+def test_get_document(client, credentials, document, document_id):
+    response = client.get(f'/api/documents/{document_id}', auth=credentials)
+    assert response.status_code == 200
+    assert response.json() == document
+
+def test_update_document(client, credentials, document, document_id):
+    document['title'] = 'An updated document'
+    response = client.put(
+        f'/api/documents/{document_id}', json=document, auth=credentials)
+    assert response.status_code == 200
+    assert response.json() == document
+
+def test_delete_document(client, credentials, document_id):
+    response = client.delete(f'/api/documents/{document_id}', auth=credentials)
+    assert response.status_code == 204
+    response = client.get(f'/api/documents/{document_id}', auth=credentials)
+    assert response.status_code == 404
 
 def test_list_requirements(client, credentials, project_id):
     response = client.get(
