@@ -199,19 +199,17 @@ def test_delete_requirement(client, credentials, requirement_id):
         f'/api/requirements/{requirement_id}', auth=credentials)
     assert response.status_code == 204
 
-@pytest.mark.skip('WIP')
 def test_list_measures(client, credentials, requirement_id):
     response = client.get(
         f'/api/requirements/{requirement_id}/measures', auth=credentials)
     assert response.status_code == 200
     assert type(response.json()) == list
 
-@pytest.mark.skip('WIP')
+# @pytest.mark.skip('WIP')
 def test_create_measure(client, credentials, requirement_id):
-    measure = dict()
-    response = client.get(
+    response = client.post(
         f'/api/requirements/{requirement_id}/measures', 
-        json=measure, auth=credentials)
+        json=dict(summary='A test measure'), auth=credentials)
     assert response.status_code == 201
     measure = response.json()
     assert type(measure) == dict
