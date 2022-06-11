@@ -13,7 +13,6 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from sqlalchemy import table
 from sqlmodel import SQLModel, Field, Relationship
 
 
@@ -46,15 +45,29 @@ class JiraIssue(JiraIssueInput):
     status: JiraIssueStatus
 
 
+class TaskInput(SQLModel):
+    summary: str
+    description: str | None = None
+    completed: bool = False
+
+
+class Task(TaskInput, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    jira_issue_id: str | None = None
+    measure_id: int | None = Field(default=None, foreign_key='measure.id')
+    measure: 'Measure' = Relationship(back_populates='tasks')
+
+
 class MeasureInput(SQLModel):
     summary: str
-    description: str | None
+    description: str | None = None
     
 
 class Measure(MeasureInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
     requirement_id: int | None = Field(default=None, foreign_key='requirement.id')
     requirement : 'Requirement' = Relationship(back_populates='measures')  
+    tasks: list[Task] = Relationship(back_populates='measure')
 
 
 class RequirementInput(SQLModel):

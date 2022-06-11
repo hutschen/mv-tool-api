@@ -13,11 +13,9 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from urllib import response
 import pytest
-from fastapi import Depends
 from fastapi.testclient import TestClient
-from mvtool import app, on_startup
+from mvtool import app
 from mvtool.config import load_config, get_config_filename
 
 
