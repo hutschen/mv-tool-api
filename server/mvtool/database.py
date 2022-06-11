@@ -38,38 +38,43 @@ def drop_all():
 
 T = TypeVar('T', bound=SQLModel)
 
-class CRUDMixin(Generic[T]):
-    def _read_all_from_db(self, sqlmodel_: SQLModel, **filters) -> list[T]:
-        query = select(sqlmodel_)
+
+class CRUDOperations(Generic[T]):
+    def __init__(self, session: Session, sqlmodel_: SQLModel):
+        self.session = session
+        self.sqlmodel = sqlmodel_
+
+    def read_all_from_db(self, **filters) -> list[T]:
+        query = select(self.sqlmodel)
 
         for key, value in filters.items():
             if value is not None:
-                query = query.where(sqlmodel_.__dict__[key] == value)
+                query = query.where(self.sqlmodel.__dict__[key] == value)
 
         return self.session.exec(query).all()
 
-    def _create_in_db(self, item: T) -> T:
+    def create_in_db(self, item: T) -> T:
         self.session.add(item)
         self.session.commit()
         self.session.refresh(item)
         return item
 
-    def _read_from_db(self, sqlmodel_: SQLModel, id: int) -> T:
-        item = self.session.get(sqlmodel_, id)
+    def read_from_db(self, id: int) -> T:
+        item = self.session.get(self.sqlmodel, id)
         if item:
             return item
         else:
             item_name = item.__class__.__name__
             raise HTTPException(404, f'No {item_name} with id={id}.')
 
-    def _update_in_db(self, id: int, item_update: T) -> T:
-        item = self._read_from_db(item_update.__class__, id)
+    def update_in_db(self, id: int, item_update: T) -> T:
+        item = self.read_from_db(id)
         item_update.id = item.id
         self.session.merge(item_update)
         self.session.commit()
         return item
 
-    def _delete_in_db(self, sqlmodel_: SQLModel, id: int) -> None:
-        item = self._read_from_db(sqlmodel_, id)
+    def delete_in_db(self, id: int) -> None:
+        item = self.read_from_db(id)
         self.session.delete(item)
         self.session.commit()
