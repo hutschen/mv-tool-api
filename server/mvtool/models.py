@@ -13,6 +13,8 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
+from pydoc import Doc
+from sqlalchemy import table
 from sqlmodel import SQLModel, Field, Relationship
 
 
@@ -86,6 +88,18 @@ class Requirement(RequirementInput, table=True):
     measures: list[Measure] = Relationship(back_populates='requirement')
 
 
+class DocumentInput(SQLModel):
+    reference: str | None = None
+    title: str
+    description: str | None = None
+
+
+class Document(DocumentInput, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    project_id: int | None = Field(default=None, foreign_key='project.id')
+    project: 'Project' = Relationship(back_populates='documents')
+
+
 class ProjectInput(SQLModel):
     name: str
     description: str | None = None
@@ -95,3 +109,4 @@ class ProjectInput(SQLModel):
 class Project(ProjectInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
     requirements: list[Requirement] = Relationship(back_populates='project')
+    documents: list[Document] = Relationship(back_populates='project')
