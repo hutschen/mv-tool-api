@@ -21,7 +21,7 @@ from fastapi_utils.cbv import cbv
 from ..auth import get_jira
 from ..database import CRUDOperations, get_session
 from .projects import ProjectsView
-from ..models import RequirementInput, Requirement, Project
+from ..models import RequirementInput, Requirement
 
 router = APIRouter()
 
