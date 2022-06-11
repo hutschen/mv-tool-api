@@ -30,8 +30,8 @@ router = APIRouter()
 class RequirementsView(CRUDOperations[Requirement]):
     kwargs = dict(tags=['requirement'])
 
-    def __init__(self, 
-            session: Session = Depends(get_session),
+    def __init__(
+            self, session: Session = Depends(get_session),
             jira: JIRA = Depends(get_jira)):
         super().__init__(session, Requirement)
         self.projects = ProjectsView(session, jira)
