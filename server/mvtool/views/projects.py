@@ -42,7 +42,7 @@ class ProjectsView(CRUDOperations[Project]):
     @router.post('/projects', status_code=201, response_model=Project, **kwargs)
     def create_project(self, new_project: ProjectInput) -> Project:
         new_project = Project.from_orm(new_project)
-        self.jira_projects.check_project_id(new_project.jira_project_id)
+        self.jira_projects.check_jira_project_id(new_project.jira_project_id)
         return self.create_in_db(new_project)
 
     @router.get('/projects/{project_id}', response_model=Project, **kwargs)
@@ -56,7 +56,7 @@ class ProjectsView(CRUDOperations[Project]):
         project_current = self.get_project(project_id)
 
         if project_update.jira_project_id != project_current.jira_project_id:
-            self.jira_projects.check_project_id(project_update.jira_project_id)
+            self.jira_projects.check_jira_project_id(project_update.jira_project_id)
         
         return self.update_in_db(project_id, project_update)
 

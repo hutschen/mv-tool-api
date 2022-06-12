@@ -23,103 +23,100 @@ from ..models import (JiraProject, JiraIssueType, JiraIssueStatus,
 
 router = APIRouter()
 
+class JiraBaseView:
+    def __init__(self, jira: JIRA = Depends(get_jira)):
+        self.jira = jira
+
+
 @cbv(router)
-class JiraUserView:
+class JiraUserView(JiraBaseView):
     kwargs = dict(tags=['jira-user'])
 
-    def __init__(self, jira: JIRA = Depends(get_jira)):
-        self.jira = jira
-
     @router.get('/user', response_model=JiraUser, **kwargs)
-    def get_user(self):
-        jira_user = self.jira.myself()
+    def get_jira_user(self):
+        myself_data = self.jira.myself()
         return JiraUser(
-            display_name=jira_user['displayName'],
-            email_address=jira_user['emailAddress'])
+            display_name=myself_data['displayName'],
+            email_address=myself_data['emailAddress'])
 
 
 @cbv(router)
-class JiraProjectsView:
+class JiraProjectsView(JiraBaseView):
     kwargs = dict(tags=['jira-project'])
 
-    def __init__(self, jira: JIRA = Depends(get_jira)):
-        self.jira = jira
-
     @router.get('/projects', response_model=list[JiraProject], **kwargs)
-    def list_projects(self):
-        for jira_project in self.jira.projects():
-            yield JiraProject.from_orm(jira_project)
+    def list_jira_projects(self):
+        for jira_project_data in self.jira.projects():
+            yield JiraProject.from_orm(jira_project_data)
 
-    @router.get('/projects/{project_id}', response_model=JiraProject, **kwargs)
-    def get_project(self, project_id: str):
-        jira_project = self.jira.project(project_id)
-        return JiraProject.from_orm(jira_project)
+    @router.get(
+        '/projects/{jira_project_id}', response_model=JiraProject, **kwargs)
+    def get_jira_project(self, jira_project_id: str):
+        jira_project_data = self.jira.project(jira_project_id)
+        return JiraProject.from_orm(jira_project_data)
 
-    def check_project_id(self, project_id: str | None) -> None:
+    def check_jira_project_id(self, jira_project_id: str | None) -> None:
         ''' Raises an Exception if project ID is not existing or not None.
         '''
-        if project_id is not None:
-            self.get_project(project_id)
+        if jira_project_id is not None:
+            self.get_jira_project(jira_project_id)
         
 
 @cbv(router)
-class JiraIssueTypesView:
-    def __init__(self, jira: JIRA = Depends(get_jira)):
-        self.jira = jira
+class JiraIssueTypesView(JiraBaseView):
+    kwargs = dict(tags=['jira-issue-type'])
 
     @router.get(
-        '/projects/{project_id}/issuetypes', 
-        response_model=list[JiraIssueType], tags=['jira-issue-type'])
-    def list_issue_types(self, project_id: str):
-        for issue_type in self.jira.project(project_id).issueTypes:
-            yield JiraIssueType.from_orm(issue_type)
+        '/projects/{jira_project_id}/issuetypes',
+        response_model=list[JiraIssueType], **kwargs)
+    def list_jira_issue_types(self, jira_project_id: str):
+        for issue_type_data in self.jira.project(jira_project_id).issueTypes:
+            yield JiraIssueType.from_orm(issue_type_data)
 
 
 @cbv(router)
-class JiraIssueView:
+class JiraIssueView(JiraBaseView):
     kwargs = dict(tags=['jira-issues'])
 
-    def __init__(self, jira: JIRA = Depends(get_jira)):
-        self.jira = jira
-
-    def _convert_to_jira_issue(self, jira_issue: Issue) -> JiraIssue:
+    def _convert_to_jira_issue(self, jira_issue_data: Issue) -> JiraIssue:
         return JiraIssue(
-            id=jira_issue.id,
-            key=jira_issue.key,
-            summary=jira_issue.fields.summary,
-            description=jira_issue.fields.description,
-            issuetype_id=jira_issue.fields.issuetype.id,
-            project_id=jira_issue.fields.project.id,
+            id=jira_issue_data.id,
+            key=jira_issue_data.key,
+            summary=jira_issue_data.fields.summary,
+            description=jira_issue_data.fields.description,
+            issuetype_id=jira_issue_data.fields.issuetype.id,
+            project_id=jira_issue_data.fields.project.id,
             status=JiraIssueStatus(
-                name=jira_issue.fields.status.name,
-                color_name=jira_issue.fields.status.statusCategory.colorName
+                name=jira_issue_data.fields.status.name,
+                color_name=jira_issue_data.fields.status.statusCategory.colorName
             )
         )
 
     @router.get(
-        '/projects/{project_id}/issues', response_model=list[JiraIssue],
+        '/projects/{jira_project_id}/issues', response_model=list[JiraIssue],
         **kwargs)
-    def list_issues(
-            self, project_id: str, offset: conint(ge=0) = 0, 
+    def list_jira_issues(
+            self, jira_project_id: str, offset: conint(ge=0) = 0, 
             size: conint(ge=0) | None = None) -> list[JiraIssue]:
-        issues = self.jira.search_issues(
-            f'project = {project_id}', startAt=offset, maxResults=size)
-        return [self._convert_to_jira_issue(i) for i in issues]
+        jira_issues_data = self.jira.search_issues(
+            f'project = {jira_project_id}', startAt=offset, maxResults=size)
+        return [self._convert_to_jira_issue(d) for d in jira_issues_data]
 
     @router.post(
-        '/projects/{project_id}/issues', status_code=201, 
+        '/projects/{jira_project_id}/issues', status_code=201, 
         response_model=JiraIssue, **kwargs)
-    def create_issue(
-            self, project_id: str, new_issue: JiraIssueInput) -> JiraIssue:
-        jira_issue = self.jira.create_issue(dict(
-            summary=new_issue.summary,
-            description=new_issue.description,
-            project=dict(id=project_id),
-            issuetype=dict(id=new_issue.issuetype_id)
+    def create_jira_issue(
+            self, jira_project_id: str, 
+            jira_issue: JiraIssueInput) -> JiraIssue:
+        jira_issue_data = self.jira.create_issue(dict(
+            summary=jira_issue.summary,
+            description=jira_issue.description,
+            project=dict(id=jira_project_id),
+            issuetype=dict(id=jira_issue.issuetype_id)
         ))
-        return self._convert_to_jira_issue(jira_issue)
+        return self._convert_to_jira_issue(jira_issue_data)
 
-    @router.get('/issues/{issue_id}', response_model=JiraIssue, **kwargs)
-    def get_issue(self, issue_id: str):
-        jira_issue = self.jira.issue(id=issue_id)
-        return self._convert_to_jira_issue(jira_issue)
+    @router.get('/issues/{jira_issue_id}', response_model=JiraIssue, **kwargs)
+    def get_jira_issue(self, jira_issue_id: str):
+        jira_issue_data = self.jira.issue(id=jira_issue_id)
+        return self._convert_to_jira_issue(jira_issue_data)
