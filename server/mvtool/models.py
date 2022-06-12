@@ -18,6 +18,11 @@ from sqlalchemy import table
 from sqlmodel import SQLModel, Field, Relationship
 
 
+class JiraUser(SQLModel):
+    display_name: str
+    email_address: str
+
+
 class JiraProject(SQLModel):
     id: str
     key: str

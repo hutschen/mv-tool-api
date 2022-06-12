@@ -19,9 +19,23 @@ from fastapi import Depends, APIRouter
 from fastapi_utils.cbv import cbv
 from ..auth import get_jira
 from ..models import (JiraProject, JiraIssueType, JiraIssueStatus, 
-    JiraIssueInput, JiraIssue)
+    JiraIssueInput, JiraIssue, JiraUser)
 
 router = APIRouter()
+
+@cbv(router)
+class JiraUserView:
+    kwargs = dict(tags=['jira-user'])
+
+    def __init__(self, jira: JIRA = Depends(get_jira)):
+        self.jira = jira
+
+    @router.get('/user', response_model=JiraUser, **kwargs)
+    def get_user(self):
+        jira_user = self.jira.myself()
+        return JiraUser(
+            display_name=jira_user['displayName'],
+            email_address=jira_user['emailAddress'])
 
 
 @cbv(router)

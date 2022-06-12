@@ -30,6 +30,11 @@ def credentials():
     config = load_config(get_config_filename())
     return (config.username, config.password)
 
+def test_get_user(client, credentials):
+    response = client.get('/api/jira/user', auth=credentials)
+    assert response.status_code == 200
+    assert type(response.json()) == dict
+
 def test_list_jira_projects(client, credentials):
     response = client.get('/api/jira/projects', auth=credentials)
     response_body = response.json()
