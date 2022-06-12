@@ -20,13 +20,13 @@ from .views import jira_, projects, requirements, measures, documents, tasks
 from . import database
 
 app = FastAPI(title='MV-Tool')
-app.mount('/', StaticFiles(directory='htdocs', html=True))
 app.include_router(jira_.router, prefix='/api/jira')
 app.include_router(projects.router, prefix='/api')
 app.include_router(requirements.router, prefix='/api')
 app.include_router(measures.router, prefix='/api')
 app.include_router(documents.router, prefix='/api')
 app.include_router(tasks.router, prefix='/api')
+app.mount('/', StaticFiles(directory='htdocs', html=True))
 
 @app.on_event('startup')
 def on_startup():
