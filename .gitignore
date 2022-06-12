@@ -1,5 +1,6 @@
 *.pyc
 __pycache__
 .pytest_cache
+server/htdocs/*.html
 server/config.yml
 server/tests/config.yml
