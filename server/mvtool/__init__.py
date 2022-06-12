@@ -14,7 +14,7 @@
 # GNU AGPL V3 for more details.
 
 from fastapi import FastAPI
-from .views import jira_, projects, requirements, measures, documents
+from .views import jira_, projects, requirements, measures, documents, tasks
 from . import database
 
 app = FastAPI(title='MV-Tool')
@@ -23,6 +23,7 @@ app.include_router(projects.router, prefix='/api')
 app.include_router(requirements.router, prefix='/api')
 app.include_router(measures.router, prefix='/api')
 app.include_router(documents.router, prefix='/api')
+app.include_router(tasks.router, prefix='/api')
 
 @app.on_event('startup')
 def on_startup():
