@@ -15,6 +15,7 @@
 
 import pathlib
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from .views import jira_, projects, requirements, measures, documents, tasks
 from . import database
@@ -27,6 +28,13 @@ app.include_router(measures.router, prefix='/api')
 app.include_router(documents.router, prefix='/api')
 app.include_router(tasks.router, prefix='/api')
 app.mount('/', StaticFiles(directory='htdocs', html=True))
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['http://localhost:8000', 'http://localhost:4200'],
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*'],
+)
 
 @app.on_event('startup')
 def on_startup():
