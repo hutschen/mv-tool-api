@@ -13,7 +13,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from jira import JIRA, Issue
+from jira import JIRA, Issue, JIRAError
 from pydantic import conint
 from fastapi import Depends, APIRouter
 from fastapi_utils.cbv import cbv
@@ -51,7 +51,7 @@ class JiraProjectsView(JiraBaseView):
 
     @router.get(
         '/projects/{jira_project_id}', response_model=JiraProject, **kwargs)
-    def get_jira_project(self, jira_project_id: str):
+    def get_jira_project(self, jira_project_id: str) -> JiraProject:
         jira_project_data = self.jira.project(jira_project_id)
         return JiraProject.from_orm(jira_project_data)
 
@@ -60,6 +60,20 @@ class JiraProjectsView(JiraBaseView):
         '''
         if jira_project_id is not None:
             self.get_jira_project(jira_project_id)
+
+    def try_to_get_jira_project(
+            self, jira_project_id: str) -> JiraProject | None:
+        ''' Returns JIRA project if it exists. If not, None is returned.
+
+            None can mean that the project does not exist or the logged in JIRA 
+            user has no access rights for the project.
+        '''
+        if jira_project_id is not None:
+            try:
+                return self.get_jira_project(jira_project_id)
+            except JIRAError as error:
+                if error.status_code != 404:
+                    raise error
         
 
 @cbv(router)
