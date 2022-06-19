@@ -119,6 +119,12 @@ class Project(ProjectInput, table=True):
     requirements: list[Requirement] = Relationship(back_populates='project')
     documents: list[Document] = Relationship(back_populates='project')
 
+
+class DocumentOutput(DocumentInput):
+    id: int
+    project: Project
+
+
 class ProjectOutput(ProjectInput):
     id: int
     jira_project: JiraProject | None = None

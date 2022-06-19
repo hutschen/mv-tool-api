@@ -21,7 +21,7 @@ from fastapi_utils.cbv import cbv
 from ..auth import get_jira
 from ..database import CRUDOperations, get_session
 from .projects import ProjectsView
-from ..models import DocumentInput, Document
+from ..models import DocumentInput, Document, DocumentOutput
 
 router = APIRouter()
 
@@ -38,24 +38,24 @@ class DocumentsView(CRUDOperations[Document]):
 
     @router.get(
         '/projects/{project_id}/documents',
-        response_model=list[Document], **kwargs)
+        response_model=list[DocumentOutput], **kwargs)
     def list_documents(self, project_id: int) -> list[Document]:
         return self.read_all_from_db(project_id=project_id)
 
     @router.post(
         '/projects/{project_id}/documents', status_code=201,
-        response_model=Document, **kwargs)
+        response_model=DocumentOutput, **kwargs)
     def create_document(
             self, project_id: int, document: DocumentInput) -> Document:
         document = Document.from_orm(document)
         document.project = self.projects.get_project(project_id)
         return self.create_in_db(document)
 
-    @router.get('/documents/{document_id}', response_model=Document, **kwargs)
+    @router.get('/documents/{document_id}', response_model=DocumentOutput, **kwargs)
     def get_document(self, document_id: int) -> Document:
         return self.read_from_db(document_id)
 
-    @router.put('/documents/{document_id}', response_model=Document, **kwargs)
+    @router.put('/documents/{document_id}', response_model=DocumentOutput, **kwargs)
     def update_document(
             self, document_id: int, document_update: DocumentInput) -> Document:
         document = self.read_from_db(document_id)
