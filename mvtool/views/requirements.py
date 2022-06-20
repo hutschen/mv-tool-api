@@ -21,7 +21,7 @@ from fastapi_utils.cbv import cbv
 from ..auth import get_jira
 from ..database import CRUDOperations, get_session
 from .projects import ProjectsView
-from ..models import RequirementInput, Requirement
+from ..models import RequirementInput, Requirement, RequirementOutput
 
 router = APIRouter()
 
@@ -38,13 +38,13 @@ class RequirementsView(CRUDOperations[Requirement]):
 
     @router.get(
         '/projects/{project_id}/requirements', 
-        response_model=list[Requirement], **kwargs)
+        response_model=list[RequirementOutput], **kwargs)
     def list_requirements(self, project_id: int) -> list[Requirement]:
         return self.read_all_from_db(project_id=project_id)
 
     @router.post(
         '/projects/{project_id}/requirements', status_code=201, 
-        response_model=Requirement, **kwargs)
+        response_model=RequirementOutput, **kwargs)
     def create_requirement(
             self, project_id: int, 
             requirement: RequirementInput) -> Requirement:
@@ -53,12 +53,12 @@ class RequirementsView(CRUDOperations[Requirement]):
         return self.create_in_db(requirement)
 
     @router.get(
-        '/requirements/{requirement_id}', response_model=Requirement, **kwargs)
+        '/requirements/{requirement_id}', response_model=RequirementOutput, **kwargs)
     def get_requirement(self, requirement_id: int) -> Requirement:
         return self.read_from_db(requirement_id)
 
     @router.put(
-        '/requirements/{requirement_id}', response_model=Requirement, **kwargs)
+        '/requirements/{requirement_id}', response_model=RequirementOutput, **kwargs)
     def update_requirement(
             self, requirement_id: int, 
             requirement_update: RequirementInput) -> Requirement:

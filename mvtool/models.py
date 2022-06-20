@@ -125,6 +125,11 @@ class DocumentOutput(DocumentInput):
     project: Project
 
 
+class RequirementOutput(RequirementInput):
+    id: int
+    project: Project
+
+
 class ProjectOutput(ProjectInput):
     id: int
     jira_project: JiraProject | None = None

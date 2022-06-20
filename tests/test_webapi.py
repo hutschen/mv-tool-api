@@ -209,12 +209,15 @@ def test_create_requirement(client, credentials, project_id):
     assert response.status_code == 201
     requirement = response.json()
     assert type(requirement) == dict
-    assert requirement['project_id'] == project_id
+    assert requirement['project']['id'] == project_id
     return requirement
 
 @pytest.fixture
 def requirement(client, credentials, project_id):
-    return test_create_requirement(client, credentials, project_id)
+    requirement = test_create_requirement(client, credentials, project_id)
+    requirement['project_id'] = requirement['project']['id']
+    del requirement['project']
+    return requirement
 
 @pytest.fixture
 def requirement_id(requirement):
@@ -237,7 +240,7 @@ def test_update_requirement(client, credentials, requirement):
     updated_requirement = response.json()
     assert response.status_code == 200
     assert updated_requirement['summary'] != orig_requirement['summary']
-    assert updated_requirement['project_id'] == orig_requirement['project_id']
+    assert updated_requirement['project']['id'] == orig_requirement['project_id']
 
 def test_delete_requirement(client, credentials, requirement_id):
     response = client.delete(
