@@ -20,7 +20,7 @@ from fastapi_utils.cbv import cbv
 from ..auth import get_jira
 from ..database import CRUDOperations, get_session
 from .requirements import RequirementsView
-from ..models import MeasureInput, Measure
+from ..models import MeasureInput, Measure, MeasureOutput
 
 router = APIRouter()
 
@@ -37,13 +37,13 @@ class MeasuresView(CRUDOperations[Measure]):
 
     @router.get(
         '/requirements/{requirement_id}/measures', 
-        response_model=list[Measure], **kwargs)
+        response_model=list[MeasureOutput], **kwargs)
     def list_measures(self, requirement_id: int) -> list[Measure]:
         return self.read_all_from_db(requirement_id=requirement_id)
 
     @router.post(
         '/requirements/{requirement_id}/measures', status_code=201,
-        response_model=Measure, **kwargs)
+        response_model=MeasureOutput, **kwargs)
     def create_measure(
             self, requirement_id: int, measure: MeasureInput) -> Measure:
         measure = Measure.from_orm(measure)
@@ -51,12 +51,12 @@ class MeasuresView(CRUDOperations[Measure]):
         return self.create_in_db(measure)
 
     @router.get(
-        '/measures/{measure_id}', response_model=Measure, **kwargs)
+        '/measures/{measure_id}', response_model=MeasureOutput, **kwargs)
     def get_measure(self, measure_id: int):
         return self.read_from_db(measure_id)
 
     @router.put(
-        '/measures/{measure_id}', response_model=Measure, **kwargs)
+        '/measures/{measure_id}', response_model=MeasureOutput, **kwargs)
     def update_measure(
             self, measure_id: int, measure_update: MeasureInput) -> Measure:
         measure = self.read_from_db(measure_id)

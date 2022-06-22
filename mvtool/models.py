@@ -120,6 +120,11 @@ class Project(ProjectInput, table=True):
     documents: list[Document] = Relationship(back_populates='project')
 
 
+class ProjectOutput(ProjectInput):
+    id: int
+    jira_project: JiraProject | None = None
+
+
 class DocumentOutput(DocumentInput):
     id: int
     project: Project
@@ -130,6 +135,6 @@ class RequirementOutput(RequirementInput):
     project: Project
 
 
-class ProjectOutput(ProjectInput):
+class MeasureOutput(MeasureInput):
     id: int
-    jira_project: JiraProject | None = None
+    requirement: RequirementOutput
