@@ -75,7 +75,13 @@ class TasksView(CRUDOperations[Task]):
         self.jira_issues.check_jira_issue_id(task.jira_issue_id)
         return self.create_in_db(task)
 
-    @router.get('/tasks/{task_id}', response_model=Task, **kwargs)
+    @router.get('/tasks/{task_id}', response_model=TaskOutput, **kwargs)
+    def _get_task(self, task_id: int) -> TaskOutput:
+        task = TaskOutput.from_orm(self.get_task(task_id))
+        task.jira_issue = self.jira_issues.try_to_get_jira_issue(
+            task.jira_issue_id)
+        return task
+    
     def get_task(self, task_id: int) -> Task:
         return self.read_from_db(task_id)
 
