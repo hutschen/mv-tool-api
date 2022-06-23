@@ -13,8 +13,6 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from pydoc import Doc
-from sqlalchemy import table
 from sqlmodel import SQLModel, Field, Relationship
 
 
