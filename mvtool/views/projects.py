@@ -55,16 +55,11 @@ class ProjectsView(CRUDOperations[Project]):
 
     @router.post(
         '/projects', status_code=201, response_model=ProjectOutput, **kwargs)
-    def _create_project(self, new_project: ProjectInput) -> ProjectOutput:
-        new_project = Project.from_orm(new_project)
-        if new_project.jira_project_id is not None:
-            jira_project = self.jira_projects.get_jira_project(
-                new_project.jira_project_id)
-        else:
-            jira_project = None
-        new_project = ProjectOutput.from_orm(self.create_in_db(new_project))
-        new_project.jira_project = jira_project
-        return new_project
+    def _create_project(self, project: ProjectInput) -> ProjectOutput:
+        project = ProjectOutput.from_orm(self.create_project(project))
+        project.jira_project = self.jira_projects.try_to_get_jira_project(
+            project.jira_project_id)
+        return project
 
     def create_project(self, new_project: ProjectInput) -> Project:
         new_project = Project.from_orm(new_project)
