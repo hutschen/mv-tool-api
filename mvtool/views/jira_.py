@@ -89,7 +89,7 @@ class JiraIssueTypesView(JiraBaseView):
 
 
 @cbv(router)
-class JiraIssueView(JiraBaseView):
+class JiraIssuesView(JiraBaseView):
     kwargs = dict(tags=['jira-issues'])
 
     def _convert_to_jira_issue(self, jira_issue_data: Issue) -> JiraIssue:
