@@ -73,6 +73,7 @@ class TasksView(CRUDOperations[Task]):
         task = Task.from_orm(task)
         task.measure = self.measures.get_measure(measure_id)
         self.jira_issues.check_jira_issue_id(task.jira_issue_id)
+        self.documents.check_document_id(task.document_id)
         return self.create_in_db(task)
 
     @router.get('/tasks/{task_id}', response_model=TaskOutput, **kwargs)
@@ -94,8 +95,8 @@ class TasksView(CRUDOperations[Task]):
     def update_task(self, task_id: int, task_update: TaskInput) -> Task:
         task_current = self.read_from_db(task_id)
         task_update = Task.from_orm(task_update, update=dict(
-            measure_id=task_current.measure_id,
-            document_id=task_current.document_id))
+            measure_id=task_current.measure_id))
+        self.documents.check_document_id(task_update.document_id)
         if task_update.jira_issue_id != task_current.jira_issue_id:
             self.jira_issues.check_jira_issue_id(task_update.jira_issue_id)
         return self.update_in_db(task_id, task_update)

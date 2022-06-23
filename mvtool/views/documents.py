@@ -55,6 +55,12 @@ class DocumentsView(CRUDOperations[Document]):
     def get_document(self, document_id: int) -> Document:
         return self.read_from_db(document_id)
 
+    def check_document_id(self, document_id: int | None) -> None:
+        ''' Raises an Exception if document ID is not existing or not None.
+        '''
+        if document_id is not None:
+            self.get_document(document_id)
+
     @router.put('/documents/{document_id}', response_model=DocumentOutput, **kwargs)
     def update_document(
             self, document_id: int, document_update: DocumentInput) -> Document:

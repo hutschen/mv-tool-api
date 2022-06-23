@@ -55,6 +55,7 @@ class TaskInput(SQLModel):
     description: str | None = None
     completed: bool = False
     jira_issue_id: str | None = None
+    document_id: int | None = None
 
 
 class Task(TaskInput, table=True):
@@ -138,8 +139,11 @@ class MeasureOutput(MeasureInput):
     requirement: RequirementOutput
 
 
-class TaskOutput(TaskInput):
+class TaskOutput(SQLModel):
     id: int
+    summary: str
+    description: str | None = None
+    completed: bool = False
     jira_issue_id: str | None
     jira_issue: JiraIssue | None
     measure: MeasureOutput
