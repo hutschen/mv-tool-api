@@ -54,11 +54,11 @@ class TaskInput(SQLModel):
     summary: str
     description: str | None = None
     completed: bool = False
+    jira_issue_id: str | None = None
 
 
 class Task(TaskInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    jira_issue_id: str | None = None
     measure_id: int | None = Field(default=None, foreign_key='measure.id')
     measure: 'Measure' = Relationship(back_populates='tasks')
     document_id: int | None = Field(default=None, foreign_key='document.id')
