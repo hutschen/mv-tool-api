@@ -134,3 +134,23 @@ class JiraIssuesView(JiraBaseView):
     def get_jira_issue(self, jira_issue_id: str):
         jira_issue_data = self.jira.issue(id=jira_issue_id)
         return self._convert_to_jira_issue(jira_issue_data)
+
+    def check_jira_issue_id(self, jira_issue_id: str | None) -> None:
+        ''' Raises an Exception if issue ID is not existing or not None.
+        '''
+        if jira_issue_id is not None:
+            self.get_jira_issue(jira_issue_id)
+
+    def try_to_get_jira_issue(
+            self, jira_issue_id: str) -> JiraIssue | None:
+        ''' Returns JIRA issue if it exists. If not, None is returned.
+
+            None can mean that the issue does not exist or the logged in JIRA 
+            user has no access rights for the issue.
+        '''
+        if jira_issue_id is not None:
+            try:
+                return self.get_jira_issue(jira_issue_id)
+            except JIRAError as error:
+                if error.status_code != 404:
+                    raise error

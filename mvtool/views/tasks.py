@@ -61,11 +61,18 @@ class TasksView(CRUDOperations[Task]):
         return self.read_all_from_db(measure_id=measure_id)
 
     @router.post(
-        '/measures/{measure_id}/tasks', status_code=201, response_model=Task, 
-        **kwargs)
+        '/measures/{measure_id}/tasks', status_code=201,
+        response_model=TaskOutput, **kwargs)
+    def _create_task(self, measure_id: int, task: TaskInput) -> TaskOutput:
+        task = TaskOutput.from_orm(self.create_task(measure_id, task))
+        task.jira_issue = self.jira_issues.try_to_get_jira_issue(
+            task.jira_issue_id)
+        return task
+
     def create_task(self, measure_id: int, task: TaskInput) -> Task:
         task = Task.from_orm(task)
         task.measure = self.measures.get_measure(measure_id)
+        self.jira_issues.check_jira_issue_id(task.jira_issue_id)
         return self.create_in_db(task)
 
     @router.get('/tasks/{task_id}', response_model=Task, **kwargs)
