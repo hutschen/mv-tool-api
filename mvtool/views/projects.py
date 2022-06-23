@@ -83,21 +83,10 @@ class ProjectsView(CRUDOperations[Project]):
     def _update_project(
             self, project_id: int, 
             project_update: ProjectInput) -> ProjectOutput:
-        project_update = Project.from_orm(project_update)
-        project_current = self.get_project(project_id)
-
-        if project_update.jira_project_id is None:
-            jira_project = None
-        elif project_update.jira_project_id != project_current.jira_project_id:
-            jira_project = self.jira_projects.get_jira_project(
-                project_update.jira_project_id)
-        else:
-            jira_project = self.jira_projects.try_to_get_jira_project(
-                project_update.jira_project_id)
-        
         project = ProjectOutput.from_orm(
-            self.update_in_db(project_id, project_update))
-        project.jira_project = jira_project
+            self.update_project(project_id, project_update))
+        project.jira_project = self.jira_projects.try_to_get_jira_project(
+            project.jira_project_id)
         return project
 
     def update_project(
