@@ -13,14 +13,18 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
+from typing import Iterator
 from jira import JIRA
 from sqlmodel import Session
 from fastapi import APIRouter, Depends
 from fastapi_utils.cbv import cbv
+
+from .documents import DocumentsView
+from .jira_ import JiraIssuesView
 from ..auth import get_jira
 from ..database import CRUDOperations, get_session
 from .measures import MeasuresView
-from ..models import TaskInput, Task
+from ..models import TaskInput, Task, TaskOutput
 
 router = APIRouter()
 
@@ -33,10 +37,26 @@ class TasksView(CRUDOperations[Task]):
             self, session: Session = Depends(get_session),
             jira: JIRA = Depends(get_jira)):
         super().__init__(session, Task)
+        self.jira_issues = JiraIssuesView(jira)
         self.measures = MeasuresView(session, jira)
+        self.documents = DocumentsView(session, jira)
 
     @router.get(
-        '/measures/{measure_id}/tasks', response_model=list[Task], **kwargs)
+        '/measures/{measure_id}/tasks', response_model=list[TaskOutput], **kwargs)
+    def _list_tasks(self, measure_id: int) -> Iterator[TaskOutput]:
+        jira_project_id = self.measures.get_measure(
+            measure_id).requirement.project.jira_project_id
+        jira_issues_map = {
+            ji.id:ji for ji in 
+            self.jira_issues.list_jira_issues(jira_project_id)}
+        for task in self.list_tasks(measure_id):
+            task = TaskOutput.from_orm(task)
+            try:
+                task.jira_issue = jira_issues_map[task.jira_issue_id]
+            except KeyError:
+                pass
+            yield task
+    
     def list_tasks(self, measure_id: int) -> list[Task]:
         return self.read_all_from_db(measure_id=measure_id)
 
