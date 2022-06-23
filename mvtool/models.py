@@ -136,3 +136,11 @@ class RequirementOutput(RequirementInput):
 class MeasureOutput(MeasureInput):
     id: int
     requirement: RequirementOutput
+
+
+class TaskOutput(TaskInput):
+    id: int
+    jira_issue_id: str | None
+    jira_issue: JiraIssue | None
+    measure: MeasureOutput
+    document: DocumentOutput | None
