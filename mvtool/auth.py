@@ -14,19 +14,23 @@
 # GNU AGPL V3 for more details.
 
 from jira import JIRA, JIRAError
+from cachetools import cached, TTLCache
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from .config import Config, load_config
 
 http_basic = HTTPBasic()
 
+@cached(cache=TTLCache(maxsize=1024, ttl=5*60))
+def _get_jira(jira_server_url, username, password):
+    return JIRA(jira_server_url, basic_auth=(username, password))
+
 def get_jira(
         credentials: HTTPBasicCredentials = Depends(http_basic),
         config: Config = Depends(load_config)) -> JIRA:
     try:
-        yield JIRA(
-            config.jira_server_url, 
-            basic_auth=(credentials.username, credentials.password))
+        yield _get_jira(
+            config.jira_server_url, credentials.username, credentials.password)
     except JIRAError as error:
         detail = None
         if error.text:
