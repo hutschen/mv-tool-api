@@ -16,7 +16,7 @@
 from typing import Iterator
 from jira import JIRA
 from sqlmodel import Session
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from fastapi_utils.cbv import cbv
 
 from .documents import DocumentsView
@@ -102,6 +102,6 @@ class TasksView(CRUDOperations[Task]):
         return self.update_in_db(task_id, task_update)
 
     @router.delete(
-        '/tasks/{task_id}', status_code=204, response_model=None, **kwargs)
+        '/tasks/{task_id}', status_code=204, response_class=Response, **kwargs)
     def delete_task(self, task_id: int):
         return self.delete_in_db(task_id)

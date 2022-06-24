@@ -15,7 +15,7 @@
 
 from jira import JIRA
 from sqlmodel import Session
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from fastapi_utils.cbv import cbv
 
 from ..auth import get_jira
@@ -68,6 +68,7 @@ class RequirementsView(CRUDOperations[Requirement]):
         return self.update_in_db(requirement_id, requirement_update)
 
     @router.delete(
-        '/requirements/{requirement_id}', status_code=204, **kwargs)
+        '/requirements/{requirement_id}', status_code=204, 
+        response_class=Response, **kwargs)
     def delete_requirement(self, requirement_id: int) -> None:
         return self.delete_in_db(requirement_id)

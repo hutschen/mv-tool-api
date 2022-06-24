@@ -15,7 +15,7 @@
 
 from jira import JIRA
 from sqlmodel import Session
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from fastapi_utils.cbv import cbv
 
 from ..auth import get_jira
@@ -69,6 +69,8 @@ class DocumentsView(CRUDOperations[Document]):
             document_update, update=dict(project_id=document.project_id))
         return self.update_in_db(document_id, document_update)
 
-    @router.delete('/documents/{document_id}', status_code=204, **kwargs)
+    @router.delete(
+        '/documents/{document_id}', status_code=204, response_class=Response, 
+        **kwargs)
     def delete_document(self, document_id: int) -> None:
         return self.delete_in_db(document_id)

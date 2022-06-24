@@ -15,7 +15,7 @@
 
 from jira import JIRA
 from sqlmodel import Session
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from fastapi_utils.cbv import cbv
 from ..auth import get_jira
 from ..database import CRUDOperations, get_session
@@ -64,6 +64,8 @@ class MeasuresView(CRUDOperations[Measure]):
             measure_update, update=dict(requirement_id=measure.requirement_id))
         return self.update_in_db(measure_id, measure_update)
 
-    @router.delete('/measures/{measure_id}', status_code=204, **kwargs)
+    @router.delete(
+        '/measures/{measure_id}', status_code=204, response_class=Response,
+        **kwargs)
     def delete_measure(self, measure_id: int) -> None:
         return self.delete_in_db(measure_id)

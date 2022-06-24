@@ -17,7 +17,7 @@ from typing import Iterator
 from jira import JIRA, JIRAError
 import jira
 from sqlmodel import Session
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from fastapi_utils.cbv import cbv
 
 from ..auth import get_jira
@@ -98,6 +98,8 @@ class ProjectsView(CRUDOperations[Project]):
                 project_update.jira_project_id)
         return self.update_in_db(project_id, project_update)
 
-    @router.delete('/projects/{project_id}', status_code=204, **kwargs)
+    @router.delete(
+        '/projects/{project_id}', status_code=204, response_class=Response, 
+        **kwargs)
     def delete_project(self, project_id: int):
         return self.delete_in_db(project_id)
