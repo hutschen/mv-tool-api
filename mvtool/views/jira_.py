@@ -13,7 +13,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from jira import JIRA, Issue, JIRAError
+from jira import JIRA, Issue, Project, JIRAError
 from pydantic import conint
 from fastapi import Depends, APIRouter
 from fastapi_utils.cbv import cbv
@@ -26,6 +26,11 @@ router = APIRouter()
 class JiraBaseView:
     def __init__(self, jira: JIRA = Depends(get_jira)):
         self.jira = jira
+
+    def _get_jira_item_url(self, item_key: str) -> str:
+        ''' Generates URL for JIRA project or issue.
+        '''
+        return f'{self.jira.server_url}/browse/{item_key}'
 
 
 @cbv(router)
@@ -44,16 +49,24 @@ class JiraUserView(JiraBaseView):
 class JiraProjectsView(JiraBaseView):
     kwargs = dict(tags=['jira-project'])
 
+    def _convert_to_jira_project(
+            self, jira_project_data: Project) -> JiraProject:
+        return JiraProject(
+            id=jira_project_data.id,
+            name=jira_project_data.name,
+            key=jira_project_data.key,
+            url=self._get_jira_item_url(jira_project_data.key))
+
     @router.get('/projects', response_model=list[JiraProject], **kwargs)
     def list_jira_projects(self):
         for jira_project_data in self.jira.projects():
-            yield JiraProject.from_orm(jira_project_data)
+            yield self._convert_to_jira_project(jira_project_data)
 
     @router.get(
         '/projects/{jira_project_id}', response_model=JiraProject, **kwargs)
     def get_jira_project(self, jira_project_id: str) -> JiraProject:
         jira_project_data = self.jira.project(jira_project_id)
-        return JiraProject.from_orm(jira_project_data)
+        return self._convert_to_jira_project(jira_project_data)
 
     def check_jira_project_id(self, jira_project_id: str | None) -> None:
         ''' Raises an Exception if project ID is not existing or not None.

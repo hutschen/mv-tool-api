@@ -25,6 +25,7 @@ class JiraProject(SQLModel):
     id: str
     key: str
     name: str
+    url: str
 
 
 class JiraIssueType(SQLModel):
