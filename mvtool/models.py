@@ -52,32 +52,20 @@ class JiraIssue(JiraIssueInput):
     status: JiraIssueStatus
 
 
-class TaskInput(SQLModel):
+class MeasureInput(SQLModel):
     summary: str
     description: str | None = None
     completed: bool = False
     jira_issue_id: str | None = None
     document_id: int | None = None
-
-
-class Task(TaskInput, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    measure_id: int | None = Field(default=None, foreign_key='measure.id')
-    measure: 'Measure' = Relationship(back_populates='tasks')
-    document_id: int | None = Field(default=None, foreign_key='document.id')
-    document: 'Document' = Relationship(back_populates='tasks')
-
-
-class MeasureInput(SQLModel):
-    summary: str
-    description: str | None = None
     
 
 class Measure(MeasureInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
     requirement_id: int | None = Field(default=None, foreign_key='requirement.id')
     requirement : 'Requirement' = Relationship(back_populates='measures')  
-    tasks: list[Task] = Relationship(back_populates='measure')
+    document_id: int | None = Field(default=None, foreign_key='document.id')
+    document: 'Document' = Relationship(back_populates='measures')
 
 
 class RequirementInput(SQLModel):
@@ -113,7 +101,7 @@ class Document(DocumentInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
     project_id: int | None = Field(default=None, foreign_key='project.id')
     project: 'Project' = Relationship(back_populates='documents')
-    tasks: list[Task] = Relationship(back_populates='document')
+    measures: list[Measure] = Relationship(back_populates='document')
 
 
 class ProjectInput(SQLModel):
@@ -143,17 +131,12 @@ class RequirementOutput(RequirementInput):
     project: Project
 
 
-class MeasureOutput(MeasureInput):
-    id: int
-    requirement: RequirementOutput
-
-
-class TaskOutput(SQLModel):
+class MeasureOutput(SQLModel):
     id: int
     summary: str
     description: str | None = None
     completed: bool = False
+    requirement: RequirementOutput
     jira_issue_id: str | None
     jira_issue: JiraIssue | None
-    measure: MeasureOutput
     document: DocumentOutput | None

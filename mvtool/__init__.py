@@ -16,7 +16,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from .views import jira_, projects, requirements, measures, documents, tasks
+from .views import jira_, projects, requirements, measures, documents
 from . import database
 
 app = FastAPI(title='MV-Tool')
@@ -25,7 +25,7 @@ app.include_router(projects.router, prefix='/api')
 app.include_router(requirements.router, prefix='/api')
 app.include_router(measures.router, prefix='/api')
 app.include_router(documents.router, prefix='/api')
-app.include_router(tasks.router, prefix='/api')
+# app.include_router(tasks.router, prefix='/api')
 app.mount('/', StaticFiles(directory='htdocs', html=True))
 app.add_middleware(
     CORSMiddleware,
