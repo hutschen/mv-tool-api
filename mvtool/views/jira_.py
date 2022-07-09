@@ -150,6 +150,9 @@ class JiraIssuesView(JiraBaseView):
         return self._convert_to_jira_issue(jira_issue_data)
 
     def get_jira_issues(self, *jira_issue_ids: tuple[str]) -> list[JiraIssue]:
+        if not jira_issue_ids:
+            return []
+
         jira_query = ' OR '.join(f'id = {id}' for id in jira_issue_ids)
         jira_issues_data = self.jira.search_issues(jira_query)
         return [self._convert_to_jira_issue(d) for d in jira_issues_data]
