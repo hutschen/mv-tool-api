@@ -37,6 +37,7 @@ class JiraIssueType(SQLModel):
 class JiraIssueStatus(SQLModel):
     name: str
     color_name: str
+    completed: bool
 
 
 class JiraIssueInput(SQLModel):
@@ -50,6 +51,7 @@ class JiraIssue(JiraIssueInput):
     key: str
     project_id: str
     status: JiraIssueStatus
+    url: str
 
 
 class MeasureInput(SQLModel):

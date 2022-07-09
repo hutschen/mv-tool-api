@@ -115,9 +115,10 @@ class JiraIssuesView(JiraBaseView):
             project_id=jira_issue_data.fields.project.id,
             status=JiraIssueStatus(
                 name=jira_issue_data.fields.status.name,
-                color_name=jira_issue_data.fields.status.statusCategory.colorName
-            )
-        )
+                color_name=jira_issue_data.fields.status.statusCategory.colorName,
+                completed=jira_issue_data.fields.status.statusCategory\
+                    .colorName.lower() == 'green'),
+            url = self._get_jira_item_url(jira_issue_data.key))
 
     @router.get(
         '/projects/{jira_project_id}/issues', response_model=list[JiraIssue],
