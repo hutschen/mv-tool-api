@@ -151,7 +151,7 @@ class JiraIssuesView(JiraBaseView):
         return self._convert_to_jira_issue(jira_issue_data)
 
     def get_jira_issues(self, 
-            *jira_issue_ids: tuple[str], offset: conint(ge=0) = 0, 
+            jira_issue_ids: tuple[str], offset: conint(ge=0) = 0, 
             size: conint(ge=0) | None = None) -> list[JiraIssue]:
         if not jira_issue_ids:
             return []

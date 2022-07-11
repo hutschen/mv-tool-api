@@ -47,7 +47,7 @@ class MeasuresView(CRUDOperations[Measure]):
     def _list_measures(self, requirement_id: int) -> Iterator[MeasureOutput]:
         measures = self.list_measures(requirement_id)
         jira_issue_ids = [m.jira_issue_id for m in measures if m.jira_issue_id]
-        jira_issues = self.jira_issues.get_jira_issues(*jira_issue_ids)
+        jira_issues = self.jira_issues.get_jira_issues(jira_issue_ids)
         jira_issue_map = {ji.id:ji for ji in jira_issues}
         for measure in measures:
             measure = MeasureOutput.from_orm(measure)
