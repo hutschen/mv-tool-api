@@ -5,6 +5,7 @@
 __pycache__
 .pytest_cache
 config.yml
+*.db
 
 # IDEs and editors
 .idea/
