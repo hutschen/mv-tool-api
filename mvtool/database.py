@@ -13,27 +13,32 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.  
 
-from typing import TypeVar, Generic, get_args, get_origin
+from typing import TypeVar, Generic
 from fastapi import Depends, HTTPException
 from sqlmodel import create_engine, Session, SQLModel, select
 from sqlmodel.pool import StaticPool
+from .config import load_config, get_config_filename
 
-engine = create_engine(
-    'sqlite://',
-    connect_args={'check_same_thread': False},  # Needed for SQLite
-    echo=False,  # Do not log generated SQL
-    poolclass=StaticPool
-)
+def get_engine():
+    config = load_config(get_config_filename())
+    return create_engine(
+        config.sqlite_url,
+        connect_args={'check_same_thread': False},  # Needed for SQLite
+        echo=config.sqlite_echo,
+        poolclass=StaticPool
+    )
+
+__engine = get_engine()
 
 def get_session():
-    with Session(engine) as session:
+    with Session(__engine) as session:
         yield session
 
 def create_all():
-    SQLModel.metadata.create_all(engine)
+    SQLModel.metadata.create_all(__engine)
 
 def drop_all():
-    SQLModel.metadata.drop_all(engine)
+    SQLModel.metadata.drop_all(__engine)
 
 
 T = TypeVar('T', bound=SQLModel)
