@@ -16,7 +16,8 @@
 import pytest
 from unittest.mock import Mock
 from jira import JIRAError
-from mvtool.views.jira_ import JiraBaseView, JiraProjectsView, JiraUserView
+from mvtool.models import JiraIssue, JiraIssueInput
+from mvtool.views.jira_ import JiraBaseView, JiraIssueTypesView, JiraIssuesView, JiraProjectsView, JiraUserView
 
 @pytest.fixture
 def jira_mock():
@@ -40,12 +41,21 @@ def test_get_jira_user(jira_mock, jira_user_mock):
     assert jira_user.email_address == jira_user_mock['emailAddress']
 
 @pytest.fixture
-def jira_project_mock():
+def jira_issue_type_mock():
+    class JiraIssueTypeMock:
+        def __init__(self):
+            self.id = '1'
+            self.name = 'name'
+    return JiraIssueTypeMock()
+
+@pytest.fixture
+def jira_project_mock(jira_issue_type_mock):
     class JiraProjectMock:
         def __init__(self):
             self.id = '1'
             self.name = 'name'
             self.key = 'key'
+            self.issueTypes = [jira_issue_type_mock]
     return JiraProjectMock()
 
 def test_list_jira_projects(jira_mock, jira_project_mock):
@@ -93,3 +103,109 @@ def test_try_to_get_jira_project_succeeds(jira_mock, jira_project_mock):
     assert result.id == jira_project_mock.id
     assert result.name == jira_project_mock.name
     assert result.key == jira_project_mock.key
+
+def test_list_jira_issue_types(
+        jira_mock, jira_project_mock, jira_issue_type_mock):
+    jira_mock.project.return_value = jira_project_mock
+    jira_issue_types = list(JiraIssueTypesView(jira_mock).list_jira_issue_types(
+        jira_project_mock.id))
+    assert jira_issue_types[0].name == jira_issue_type_mock.name
+    assert jira_issue_types[0].id == jira_issue_type_mock.id
+    jira_mock.project.assert_called_once_with(jira_project_mock.id)
+
+@pytest.fixture
+def jira_issue_mock(jira_project_mock, jira_issue_type_mock):
+    class JiraIssueStatusCategoryMock:
+        colorName = 'color'
+    
+    class JiraIssueStatusMock:
+        name = 'name'
+        statusCategory = JiraIssueStatusCategoryMock
+    
+    class JiraIssueFieldsMock:
+        summary = 'summary'
+        description = 'description'
+        project = jira_project_mock
+        issuetype = jira_issue_type_mock
+        status = JiraIssueStatusMock
+
+    class JiraIssueMock:
+        id = '1'
+        key = 'key'
+        fields = JiraIssueFieldsMock()
+    return JiraIssueMock
+
+def test_convert_to_jira_issue(jira_mock, jira_issue_mock):
+    jira_issue = JiraIssuesView(jira_mock)._convert_to_jira_issue(jira_issue_mock)
+    assert jira_issue.id == jira_issue_mock.id
+    assert jira_issue.key == jira_issue_mock.key
+    assert jira_issue.summary == jira_issue_mock.fields.summary
+    assert jira_issue.description == jira_issue_mock.fields.description
+    assert jira_issue.project_id == jira_issue_mock.fields.project.id
+    assert jira_issue.issuetype_id == jira_issue_mock.fields.issuetype.id
+    assert jira_issue.status.name == jira_issue_mock.fields.status.name
+    assert jira_issue.status.color_name == jira_issue_mock.fields.status.statusCategory.colorName
+
+
+def test_list_jira_issues(jira_mock, jira_project_mock, jira_issue_mock):
+    jira_mock.search_issues.return_value = [jira_issue_mock]
+    jira_issues = list(JiraIssuesView(jira_mock).list_jira_issues(jira_project_mock.id))
+    assert jira_issues[0].id == jira_issue_mock.id
+    assert isinstance(jira_issues[0], JiraIssue)
+
+@pytest.fixture
+def jira_issue_input(jira_issue_mock):
+    return JiraIssueInput(
+        summary=jira_issue_mock.fields.summary,
+        description=jira_issue_mock.fields.description,
+        issuetype_id=jira_issue_mock.fields.issuetype.id)
+
+def test_create_jira_issue(jira_mock, jira_project_mock, jira_issue_mock, jira_issue_input):
+    jira_mock.create_issue.return_value = jira_issue_mock
+    jira_issue = JiraIssuesView(jira_mock).create_jira_issue(
+        jira_project_mock.id, jira_issue_input)
+    assert jira_issue.id == jira_issue_mock.id
+    assert isinstance(jira_issue, JiraIssue)
+
+def test_get_jira_issue(jira_mock, jira_issue_mock):
+    jira_mock.issue.return_value = jira_issue_mock
+    jira_issue = JiraIssuesView(jira_mock).get_jira_issue(jira_issue_mock.id)
+    assert jira_issue.id == jira_issue_mock.id
+    assert isinstance(jira_issue, JiraIssue)
+
+def test_get_jira_issues_single_issue(jira_mock, jira_issue_mock):
+    jira_mock.search_issues.return_value = [jira_issue_mock]
+    jira_issues = JiraIssuesView(
+        jira_mock).get_jira_issues((jira_issue_mock.id,))
+    assert jira_issues[0].id == jira_issue_mock.id
+    assert isinstance(jira_issues[0], JiraIssue)
+    jira_mock.search_issues.assert_called_once_with(
+        'id = 1', validate_query=False, startAt=0, maxResults=None)
+
+def test_get_jira_issues_multiple_issues(jira_mock):
+    jira_mock.search_issues.return_value = []
+    jira_issues = JiraIssuesView(
+        jira_mock).get_jira_issues(('1', '2'))
+    assert jira_issues == []
+    jira_mock.search_issues.assert_called_once_with(
+        'id = 1 OR id = 2', validate_query=False, startAt=0, maxResults=None)
+
+def test_check_jira_issue_id_fails(jira_mock):
+    jira_mock.issue.side_effect = JIRAError('error')
+    with pytest.raises(JIRAError):
+        JiraIssuesView(jira_mock).check_jira_issue_id('1')
+
+def test_check_jira_issue_id_success(jira_mock, jira_issue_mock):
+    jira_mock.issue.return_value = jira_issue_mock
+    JiraIssuesView(jira_mock).check_jira_issue_id('1')
+    jira_mock.issue.assert_called_once_with(id='1')
+
+# skiped because it's not implemented yet
+@pytest.mark.skip
+def test_check_jira_issue_id_gets_none():
+    pass
+
+# skiped because it's not implemented yet
+@pytest.mark.skip
+def test_try_to_get_jira_issue():
+    pass
