@@ -13,7 +13,6 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from urllib import response
 import pytest
 from fastapi.testclient import TestClient
 from mvtool import app
