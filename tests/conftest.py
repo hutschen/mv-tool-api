@@ -15,9 +15,17 @@
 
 import pytest
 from unittest.mock import Mock
+from mvtool.config import Config
 
 @pytest.fixture
-def jira_mock():
+def config():
+    return Config(
+        sqlite_url='sqlite://',
+        sqlite_echo=False,
+        jira_server_url='http://jira-server-url',)
+
+@pytest.fixture
+def jira_mock(config):
     jira = Mock()
-    jira.server_url = 'https://...'
+    jira.server_url = config.jira_server_url
     return jira
