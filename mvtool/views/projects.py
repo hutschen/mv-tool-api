@@ -14,8 +14,7 @@
 # GNU AGPL V3 for more details.
 
 from typing import Iterator
-from jira import JIRA, JIRAError
-import jira
+from jira import JIRA
 from sqlmodel import Session
 from fastapi import APIRouter, Depends, Response
 from fastapi_utils.cbv import cbv
