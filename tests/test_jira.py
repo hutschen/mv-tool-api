@@ -14,16 +14,9 @@
 # GNU AGPL V3 for more details.
 
 import pytest
-from unittest.mock import Mock
 from jira import JIRAError
 from mvtool.models import JiraIssue, JiraIssueInput
 from mvtool.views.jira_ import JiraBaseView, JiraIssueTypesView, JiraIssuesView, JiraProjectsView, JiraUserView
-
-@pytest.fixture
-def jira_mock():
-    jira = Mock()
-    jira.server_url = 'https://...'
-    return jira
 
 def test_get_jira_item_url(jira_mock):
     item_key = 'key'
