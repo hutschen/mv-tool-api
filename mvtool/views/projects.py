@@ -14,32 +14,33 @@
 # GNU AGPL V3 for more details.
 
 from typing import Iterator
-from jira import JIRA
-from sqlmodel import Session
 from fastapi import APIRouter, Depends, Response
 from fastapi_utils.cbv import cbv
 
-from ..auth import get_jira
 from ..database import CRUDOperations, get_session
 from .jira_ import JiraProjectsView
 from ..models import ProjectInput, Project, ProjectOutput
 
 router = APIRouter()
 
+def get_projects_crud(session = Depends(get_session)) -> CRUDOperations[Project]:
+    return CRUDOperations[Project](session, Project)
+
 
 @cbv(router)
-class ProjectsView(CRUDOperations[Project]):
+class ProjectsView:
     kwargs = dict(tags=['project'])
 
     def __init__(self, 
-            session: Session = Depends(get_session), jira: JIRA = Depends(get_jira)):
-        super().__init__(session, Project)
-        self.jira_projects = JiraProjectsView(jira)
+            jira_projects = Depends(JiraProjectsView),
+            crud = Depends(get_projects_crud)):
+        self._jira_projects = jira_projects
+        self._crud = crud
 
     @router.get('/projects', response_model=list[ProjectOutput], **kwargs)
     def _list_projects(self) -> Iterator[ProjectOutput]:
         jira_projects_map = {
-            jp.id:jp for jp in self.jira_projects.list_jira_projects()}
+            jp.id:jp for jp in self._jira_projects.list_jira_projects()}
         for project in self.list_projects():
             project = ProjectOutput.from_orm(project)
             try:
@@ -50,32 +51,32 @@ class ProjectsView(CRUDOperations[Project]):
             yield project
 
     def list_projects(self) -> list[Project]:
-        return self.read_all_from_db()
+        return self._crud.read_all_from_db()
 
     @router.post(
         '/projects', status_code=201, response_model=ProjectOutput, **kwargs)
     def _create_project(self, project: ProjectInput) -> ProjectOutput:
         project = ProjectOutput.from_orm(self.create_project(project))
-        project.jira_project = self.jira_projects.try_to_get_jira_project(
+        project.jira_project = self._jira_projects.try_to_get_jira_project(
             project.jira_project_id)
         return project
 
     def create_project(self, new_project: ProjectInput) -> Project:
         new_project = Project.from_orm(new_project)
-        self.jira_projects.check_jira_project_id(new_project.jira_project_id)
-        return self.create_in_db(new_project)
+        self._jira_projects.check_jira_project_id(new_project.jira_project_id)
+        return self._crud.create_in_db(new_project)
 
     @router.get(
         '/projects/{project_id}', response_model=ProjectOutput, **kwargs)
     def _get_project(
             self, project_id: int) -> ProjectOutput:
         project = ProjectOutput.from_orm(self.get_project(project_id))
-        project.jira_project = self.jira_projects.try_to_get_jira_project(
+        project.jira_project = self._jira_projects.try_to_get_jira_project(
             project.jira_project_id)
         return project
 
     def get_project(self, project_id: int) -> Project:
-        return self.read_from_db(project_id)
+        return self._crud.read_from_db(project_id)
     
     @router.put(
         '/projects/{project_id}', response_model=ProjectOutput, **kwargs)
@@ -84,7 +85,7 @@ class ProjectsView(CRUDOperations[Project]):
             project_update: ProjectInput) -> ProjectOutput:
         project = ProjectOutput.from_orm(
             self.update_project(project_id, project_update))
-        project.jira_project = self.jira_projects.try_to_get_jira_project(
+        project.jira_project = self._jira_projects.try_to_get_jira_project(
             project.jira_project_id)
         return project
 
@@ -93,12 +94,12 @@ class ProjectsView(CRUDOperations[Project]):
         project_update = Project.from_orm(project_update)
         project_current = self.get_project(project_id)
         if project_update.jira_project_id != project_current.jira_project_id:
-            self.jira_projects.check_jira_project_id(
+            self._jira_projects.check_jira_project_id(
                 project_update.jira_project_id)
-        return self.update_in_db(project_id, project_update)
+        return self._crud.update_in_db(project_id, project_update)
 
     @router.delete(
         '/projects/{project_id}', status_code=204, response_class=Response, 
         **kwargs)
     def delete_project(self, project_id: int):
-        return self.delete_in_db(project_id)
+        return self._crud.delete_in_db(project_id)

@@ -14,32 +14,34 @@
 # GNU AGPL V3 for more details.
 
 from typing import Iterator
-from jira import JIRA
-from sqlmodel import Session
 from fastapi import APIRouter, Depends, Response
 from fastapi_utils.cbv import cbv
 from mvtool.views.documents import DocumentsView
 
 from mvtool.views.jira_ import JiraIssuesView
-from ..auth import get_jira
 from ..database import CRUDOperations, get_session
 from .requirements import RequirementsView
 from ..models import MeasureInput, Measure, MeasureOutput
 
 router = APIRouter()
 
+def get_measures_crud(session = Depends(get_session)) -> CRUDOperations[Measure]:
+    return CRUDOperations[Measure](session, Measure)
+
 
 @cbv(router)
-class MeasuresView(CRUDOperations[Measure]):
+class MeasuresView:
     kwargs = dict(tags=['measure'])
 
-    def __init__(
-            self, session: Session = Depends(get_session),
-            jira: JIRA = Depends(get_jira)):
-        super().__init__(session, Measure)
-        self.jira_issues = JiraIssuesView(jira)
-        self.requirements = RequirementsView(session, jira)
-        self.documents = DocumentsView(session, jira)
+    def __init__(self,
+            jira_issues = Depends(JiraIssuesView),
+            requirements = Depends(RequirementsView),
+            documents = Depends(DocumentsView),
+            crud = Depends(get_measures_crud)):
+        self._jira_issues = jira_issues
+        self._requirements = requirements
+        self._documents = documents
+        self._crud = crud
 
     @router.get(
         '/requirements/{requirement_id}/measures', 
@@ -47,7 +49,7 @@ class MeasuresView(CRUDOperations[Measure]):
     def _list_measures(self, requirement_id: int) -> Iterator[MeasureOutput]:
         measures = self.list_measures(requirement_id)
         jira_issue_ids = [m.jira_issue_id for m in measures if m.jira_issue_id]
-        jira_issues = self.jira_issues.get_jira_issues(jira_issue_ids)
+        jira_issues = self._jira_issues.get_jira_issues(jira_issue_ids)
         jira_issue_map = {ji.id:ji for ji in jira_issues}
         for measure in measures:
             measure = MeasureOutput.from_orm(measure)
@@ -58,7 +60,7 @@ class MeasuresView(CRUDOperations[Measure]):
             yield measure
 
     def list_measures(self, requirement_id: int) -> list[Measure]:
-        return self.read_all_from_db(requirement_id=requirement_id)
+        return self._crud.read_all_from_db(requirement_id=requirement_id)
 
     @router.post(
         '/requirements/{requirement_id}/measures', status_code=201,
@@ -67,28 +69,28 @@ class MeasuresView(CRUDOperations[Measure]):
             self, requirement_id: int, measure: MeasureInput) -> MeasureOutput:
         measure = MeasureOutput.from_orm(
             self.create_measure(requirement_id, measure))
-        measure.jira_issue = self.jira_issues.try_to_get_jira_issue(
+        measure.jira_issue = self._jira_issues.try_to_get_jira_issue(
             measure.jira_issue_id)
         return measure
 
     def create_measure(
             self, requirement_id: int, measure: MeasureInput) -> Measure:
         measure = Measure.from_orm(measure)
-        measure.requirement = self.requirements.get_requirement(requirement_id)
-        self.jira_issues.check_jira_issue_id(measure.jira_issue_id)
-        self.documents.check_document_id(measure.document_id)
-        return self.create_in_db(measure)
+        measure.requirement = self._requirements.get_requirement(requirement_id)
+        self._jira_issues.check_jira_issue_id(measure.jira_issue_id)
+        self._documents.check_document_id(measure.document_id)
+        return self._crud.create_in_db(measure)
 
     @router.get(
         '/measures/{measure_id}', response_model=MeasureOutput, **kwargs)
     def _get_measure(self, measure_id: int) -> MeasureOutput:
         measure = MeasureOutput.from_orm(self.get_measure(measure_id))
-        measure.jira_issue = self.jira_issues.try_to_get_jira_issue(
+        measure.jira_issue = self._jira_issues.try_to_get_jira_issue(
             measure.jira_issue_id)
         return measure
 
     def get_measure(self, measure_id: int):
-        return self.read_from_db(measure_id)
+        return self._crud.read_from_db(measure_id)
 
     @router.put(
         '/measures/{measure_id}', response_model=MeasureOutput, **kwargs)
@@ -96,22 +98,22 @@ class MeasuresView(CRUDOperations[Measure]):
             self, measure_id: int, measure: MeasureInput) -> MeasureOutput:
         measure = MeasureOutput.from_orm(
             self.update_measure(measure_id, measure))
-        measure.jira_issue = self.jira_issues.try_to_get_jira_issue(
+        measure.jira_issue = self._jira_issues.try_to_get_jira_issue(
             measure.jira_issue_id)
         return measure
 
     def update_measure(
             self, measure_id: int, measure_update: MeasureInput) -> Measure:
-        measure_current = self.read_from_db(measure_id)
+        measure_current = self._crud.read_from_db(measure_id)
         measure_update = Measure.from_orm(measure_update, update=dict(
             requirement_id=measure_current.requirement_id))
-        self.documents.check_document_id(measure_update.document_id)
+        self._documents.check_document_id(measure_update.document_id)
         if measure_update.jira_issue_id != measure_current.jira_issue_id:
-            self.jira_issues.check_jira_issue_id(measure_update.jira_issue_id)
-        return self.update_in_db(measure_id, measure_update)
+            self._jira_issues.check_jira_issue_id(measure_update.jira_issue_id)
+        return self._crud.update_in_db(measure_id, measure_update)
 
     @router.delete(
         '/measures/{measure_id}', status_code=204, response_class=Response,
         **kwargs)
     def delete_measure(self, measure_id: int) -> None:
-        return self.delete_in_db(measure_id)
+        return self._crud.delete_in_db(measure_id)
