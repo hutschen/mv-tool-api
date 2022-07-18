@@ -200,12 +200,23 @@ def test_check_jira_issue_id_success(jira_mock, jira_issue_mock):
     JiraIssuesView(jira_mock).check_jira_issue_id('1')
     jira_mock.issue.assert_called_once_with(id='1')
 
-# skiped because it's not implemented yet
-@pytest.mark.skip
-def test_check_jira_issue_id_gets_none():
-    pass
+def test_check_jira_issue_id_gets_none(jira_mock):
+    JiraIssuesView(jira_mock).check_jira_issue_id(None)
+    jira_mock.issue.assert_not_called()
 
-# skiped because it's not implemented yet
-@pytest.mark.skip
-def test_try_to_get_jira_issue():
-    pass
+def test_try_to_get_jira_issue_fails_not_found(jira_mock):
+    jira_mock.issue.side_effect = JIRAError('error', status_code=404)
+    result = JiraIssuesView(jira_mock).try_to_get_jira_issue('1')
+    assert result is None
+
+def test_try_to_get_jira_issue_fails_other_reason(jira_mock):
+    jira_mock.issue.side_effect = JIRAError('error', status_code=500)
+    with pytest.raises(JIRAError):
+        JiraIssuesView(jira_mock).try_to_get_jira_issue('1')
+
+def test_try_to_get_jira_issue_succeeds(jira_mock, jira_issue_mock):
+    jira_mock.issue.return_value = jira_issue_mock
+    result = JiraIssuesView(jira_mock).try_to_get_jira_issue(jira_issue_mock.id)
+    assert result.id == jira_issue_mock.id
+    assert isinstance(result, JiraIssue)
+    jira_mock.issue.assert_called_once_with(id=jira_issue_mock.id)
