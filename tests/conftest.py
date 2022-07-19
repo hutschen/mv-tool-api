@@ -29,3 +29,21 @@ def jira_mock(config):
     jira = Mock()
     jira.server_url = config.jira_server_url
     return jira
+
+@pytest.fixture
+def jira_issue_type_mock():
+    class JiraIssueTypeMock:
+        def __init__(self):
+            self.id = '1'
+            self.name = 'name'
+    return JiraIssueTypeMock()
+
+@pytest.fixture
+def jira_project_mock(jira_issue_type_mock):
+    class JiraProjectMock:
+        def __init__(self):
+            self.id = '1'
+            self.name = 'name'
+            self.key = 'key'
+            self.issueTypes = [jira_issue_type_mock]
+    return JiraProjectMock()

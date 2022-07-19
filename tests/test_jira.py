@@ -33,24 +33,6 @@ def test_get_jira_user(jira_mock, jira_user_mock):
     assert jira_user.display_name == jira_user_mock['displayName']
     assert jira_user.email_address == jira_user_mock['emailAddress']
 
-@pytest.fixture
-def jira_issue_type_mock():
-    class JiraIssueTypeMock:
-        def __init__(self):
-            self.id = '1'
-            self.name = 'name'
-    return JiraIssueTypeMock()
-
-@pytest.fixture
-def jira_project_mock(jira_issue_type_mock):
-    class JiraProjectMock:
-        def __init__(self):
-            self.id = '1'
-            self.name = 'name'
-            self.key = 'key'
-            self.issueTypes = [jira_issue_type_mock]
-    return JiraProjectMock()
-
 def test_list_jira_projects(jira_mock, jira_project_mock):
     jira_mock.projects.return_value = [jira_project_mock]
     jira_projects = list(JiraProjectsView(jira_mock).list_jira_projects())
