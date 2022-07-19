@@ -18,12 +18,9 @@ from fastapi_utils.cbv import cbv
 
 from ..database import CRUDOperations, get_session
 from .projects import ProjectsView
-from ..models import RequirementInput, Requirement, RequirementOutput
+from ..models import Project, RequirementInput, Requirement, RequirementOutput
 
 router = APIRouter()
-
-def get_requirements_crud(session = Depends(get_session)) -> CRUDOperations[Requirement]:
-    return CRUDOperations[Requirement](session, Requirement)
 
 
 @cbv(router)
@@ -31,8 +28,8 @@ class RequirementsView:
     kwargs = dict(tags=['requirement'])
 
     def __init__(self,
-            projects = Depends(ProjectsView),
-            crud = Depends(get_requirements_crud)):
+            projects: ProjectsView = Depends(ProjectsView),
+            crud: CRUDOperations[Requirement] = Depends(CRUDOperations)):
         self._projects = projects
         self._crud = crud
 
@@ -40,7 +37,7 @@ class RequirementsView:
         '/projects/{project_id}/requirements', 
         response_model=list[RequirementOutput], **kwargs)
     def list_requirements(self, project_id: int) -> list[Requirement]:
-        return self._crud.read_all_from_db(project_id=project_id)
+        return self._crud.read_all_from_db(Requirement, project_id=project_id)
 
     @router.post(
         '/projects/{project_id}/requirements', status_code=201, 
@@ -55,14 +52,14 @@ class RequirementsView:
     @router.get(
         '/requirements/{requirement_id}', response_model=RequirementOutput, **kwargs)
     def get_requirement(self, requirement_id: int) -> Requirement:
-        return self._crud.read_from_db(requirement_id)
+        return self._crud.read_from_db(Requirement, requirement_id)
 
     @router.put(
         '/requirements/{requirement_id}', response_model=RequirementOutput, **kwargs)
     def update_requirement(
             self, requirement_id: int, 
             requirement_update: RequirementInput) -> Requirement:
-        requirement = self._crud.read_from_db(requirement_id)
+        requirement = self._crud.read_from_db(Requirement, requirement_id)
         requirement_update = Requirement.from_orm(
             requirement_update, update=dict(project_id=requirement.project_id))
         return self._crud.update_in_db(requirement_id, requirement_update)
@@ -71,4 +68,4 @@ class RequirementsView:
         '/requirements/{requirement_id}', status_code=204, 
         response_class=Response, **kwargs)
     def delete_requirement(self, requirement_id: int) -> None:
-        return self._crud.delete_in_db(requirement_id)
+        return self._crud.delete_in_db(Requirement, requirement_id)

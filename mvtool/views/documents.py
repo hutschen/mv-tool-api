@@ -22,17 +22,13 @@ from ..models import DocumentInput, Document, DocumentOutput
 
 router = APIRouter()
 
-def get_documents_crud(session = Depends(get_session)) -> CRUDOperations[Document]:
-    return CRUDOperations[Document](session, Document)
-
-
 @cbv(router)
 class DocumentsView:
     kwargs = dict(tags=['document'])
 
     def __init__(self, 
-            projects = Depends(ProjectsView),
-            crud = Depends(get_documents_crud)):
+            projects: ProjectsView = Depends(ProjectsView),
+            crud: CRUDOperations[Document] = Depends(CRUDOperations)):
         self._projects = projects
         self._crud = crud
 
@@ -40,7 +36,7 @@ class DocumentsView:
         '/projects/{project_id}/documents',
         response_model=list[DocumentOutput], **kwargs)
     def list_documents(self, project_id: int) -> list[Document]:
-        return self._crud.read_all_from_db(project_id=project_id)
+        return self._crud.read_all_from_db(Document, project_id=project_id)
 
     @router.post(
         '/projects/{project_id}/documents', status_code=201,
@@ -53,7 +49,7 @@ class DocumentsView:
 
     @router.get('/documents/{document_id}', response_model=DocumentOutput, **kwargs)
     def get_document(self, document_id: int) -> Document:
-        return self._crud.read_from_db(document_id)
+        return self._crud.read_from_db(Document, document_id)
 
     def check_document_id(self, document_id: int | None) -> None:
         ''' Raises an Exception if document ID is not existing or not None.
@@ -64,7 +60,7 @@ class DocumentsView:
     @router.put('/documents/{document_id}', response_model=DocumentOutput, **kwargs)
     def update_document(
             self, document_id: int, document_update: DocumentInput) -> Document:
-        document = self._crud.read_from_db(document_id)
+        document = self._crud.read_from_db(Document, document_id)
         document_update = Document.from_orm(
             document_update, update=dict(project_id=document.project_id))
         return self._crud.update_in_db(document_id, document_update)
@@ -73,4 +69,4 @@ class DocumentsView:
         '/documents/{document_id}', status_code=204, response_class=Response, 
         **kwargs)
     def delete_document(self, document_id: int) -> None:
-        return self._crud.delete_in_db(document_id)
+        return self._crud.delete_in_db(Document, document_id)

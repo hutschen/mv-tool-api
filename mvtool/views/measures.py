@@ -25,19 +25,16 @@ from ..models import MeasureInput, Measure, MeasureOutput
 
 router = APIRouter()
 
-def get_measures_crud(session = Depends(get_session)) -> CRUDOperations[Measure]:
-    return CRUDOperations[Measure](session, Measure)
-
 
 @cbv(router)
 class MeasuresView:
     kwargs = dict(tags=['measure'])
 
     def __init__(self,
-            jira_issues = Depends(JiraIssuesView),
-            requirements = Depends(RequirementsView),
-            documents = Depends(DocumentsView),
-            crud = Depends(get_measures_crud)):
+            jira_issues: JiraIssuesView = Depends(JiraIssuesView),
+            requirements: RequirementsView = Depends(RequirementsView),
+            documents: DocumentsView = Depends(DocumentsView),
+            crud: CRUDOperations[Measure] = Depends(CRUDOperations)):
         self._jira_issues = jira_issues
         self._requirements = requirements
         self._documents = documents
@@ -60,7 +57,8 @@ class MeasuresView:
             yield measure
 
     def list_measures(self, requirement_id: int) -> list[Measure]:
-        return self._crud.read_all_from_db(requirement_id=requirement_id)
+        return self._crud.read_all_from_db(
+            Measure, requirement_id=requirement_id)
 
     @router.post(
         '/requirements/{requirement_id}/measures', status_code=201,
@@ -90,7 +88,7 @@ class MeasuresView:
         return measure
 
     def get_measure(self, measure_id: int):
-        return self._crud.read_from_db(measure_id)
+        return self._crud.read_from_db(Measure, measure_id)
 
     @router.put(
         '/measures/{measure_id}', response_model=MeasureOutput, **kwargs)
@@ -104,7 +102,7 @@ class MeasuresView:
 
     def update_measure(
             self, measure_id: int, measure_update: MeasureInput) -> Measure:
-        measure_current = self._crud.read_from_db(measure_id)
+        measure_current = self._crud.read_from_db(Measure, measure_id)
         measure_update = Measure.from_orm(measure_update, update=dict(
             requirement_id=measure_current.requirement_id))
         self._documents.check_document_id(measure_update.document_id)
@@ -116,4 +114,4 @@ class MeasuresView:
         '/measures/{measure_id}', status_code=204, response_class=Response,
         **kwargs)
     def delete_measure(self, measure_id: int) -> None:
-        return self._crud.delete_in_db(measure_id)
+        return self._crud.delete_in_db(Measure, measure_id)

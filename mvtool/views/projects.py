@@ -23,17 +23,14 @@ from ..models import ProjectInput, Project, ProjectOutput
 
 router = APIRouter()
 
-def get_projects_crud(session = Depends(get_session)) -> CRUDOperations[Project]:
-    return CRUDOperations[Project](session, Project)
-
 
 @cbv(router)
 class ProjectsView:
     kwargs = dict(tags=['project'])
 
     def __init__(self, 
-            jira_projects = Depends(JiraProjectsView),
-            crud = Depends(get_projects_crud)):
+            jira_projects: JiraProjectsView = Depends(JiraProjectsView),
+            crud: CRUDOperations[Project]  = Depends(CRUDOperations)):
         self._jira_projects = jira_projects
         self._crud = crud
 
@@ -51,7 +48,7 @@ class ProjectsView:
             yield project
 
     def list_projects(self) -> list[Project]:
-        return self._crud.read_all_from_db()
+        return self._crud.read_all_from_db(Project)
 
     @router.post(
         '/projects', status_code=201, response_model=ProjectOutput, **kwargs)
@@ -76,7 +73,7 @@ class ProjectsView:
         return project
 
     def get_project(self, project_id: int) -> Project:
-        return self._crud.read_from_db(project_id)
+        return self._crud.read_from_db(Project, project_id)
     
     @router.put(
         '/projects/{project_id}', response_model=ProjectOutput, **kwargs)
@@ -102,4 +99,4 @@ class ProjectsView:
         '/projects/{project_id}', status_code=204, response_class=Response, 
         **kwargs)
     def delete_project(self, project_id: int):
-        return self._crud.delete_in_db(project_id)
+        return self._crud.delete_in_db(Project, project_id)
