@@ -16,6 +16,7 @@
 import pytest
 from unittest.mock import Mock
 from mvtool.config import Config
+from mvtool.models import JiraIssueInput
 
 @pytest.fixture
 def config():
@@ -25,13 +26,17 @@ def config():
         jira_server_url='http://jira-server-url',)
 
 @pytest.fixture
-def jira_mock(config):
+def jira(config):
     jira = Mock()
     jira.server_url = config.jira_server_url
     return jira
 
 @pytest.fixture
-def jira_issue_type_mock():
+def jira_user():
+    return dict(displayName='name', emailAddress='email')
+
+@pytest.fixture
+def jira_issue_type():
     class JiraIssueTypeMock:
         def __init__(self):
             self.id = '1'
@@ -39,11 +44,40 @@ def jira_issue_type_mock():
     return JiraIssueTypeMock()
 
 @pytest.fixture
-def jira_project_mock(jira_issue_type_mock):
+def jira_project(jira_issue_type):
     class JiraProjectMock:
         def __init__(self):
             self.id = '1'
             self.name = 'name'
             self.key = 'key'
-            self.issueTypes = [jira_issue_type_mock]
+            self.issueTypes = [jira_issue_type]
     return JiraProjectMock()
+
+@pytest.fixture
+def jira_issue(jira_project, jira_issue_type):
+    class JiraIssueStatusCategoryMock:
+        colorName = 'color'
+    
+    class JiraIssueStatusMock:
+        name = 'name'
+        statusCategory = JiraIssueStatusCategoryMock
+    
+    class JiraIssueFieldsMock:
+        summary = 'summary'
+        description = 'description'
+        project = jira_project
+        issuetype = jira_issue_type
+        status = JiraIssueStatusMock
+
+    class JiraIssueMock:
+        id = '1'
+        key = 'key'
+        fields = JiraIssueFieldsMock()
+    return JiraIssueMock
+
+@pytest.fixture
+def jira_issue_input(jira_issue):
+    return JiraIssueInput(
+        summary=jira_issue.fields.summary,
+        description=jira_issue.fields.description,
+        issuetype_id=jira_issue.fields.issuetype.id)
