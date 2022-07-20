@@ -27,16 +27,19 @@ def config():
 
 @pytest.fixture
 def jira(config):
+    ''' Mocks JIRA API object. '''
     jira = Mock()
     jira.server_url = config.jira_server_url
     return jira
 
 @pytest.fixture
-def jira_user():
+def jira_user_data():
+    ''' Mocks response from JIRA API for user data. '''
     return dict(displayName='name', emailAddress='email')
 
 @pytest.fixture
-def jira_issue_type():
+def jira_issue_type_data():
+    ''' Mocks response data from JIRA API for issue type. '''
     class JiraIssueTypeMock:
         def __init__(self):
             self.id = '1'
@@ -44,17 +47,19 @@ def jira_issue_type():
     return JiraIssueTypeMock()
 
 @pytest.fixture
-def jira_project(jira_issue_type):
+def jira_project_data(jira_issue_type_data):
+    ''' Mocks response data from JIRA API for project. '''
     class JiraProjectMock:
         def __init__(self):
             self.id = '1'
             self.name = 'name'
             self.key = 'key'
-            self.issueTypes = [jira_issue_type]
+            self.issueTypes = [jira_issue_type_data]
     return JiraProjectMock()
 
 @pytest.fixture
-def jira_issue(jira_project, jira_issue_type):
+def jira_issue_data(jira_project_data, jira_issue_type_data):
+    ''' Mocks response data from JIRA API for issue. '''
     class JiraIssueStatusCategoryMock:
         colorName = 'color'
     
@@ -65,8 +70,8 @@ def jira_issue(jira_project, jira_issue_type):
     class JiraIssueFieldsMock:
         summary = 'summary'
         description = 'description'
-        project = jira_project
-        issuetype = jira_issue_type
+        project = jira_project_data
+        issuetype = jira_issue_type_data
         status = JiraIssueStatusMock
 
     class JiraIssueMock:
@@ -76,8 +81,9 @@ def jira_issue(jira_project, jira_issue_type):
     return JiraIssueMock
 
 @pytest.fixture
-def jira_issue_input(jira_issue):
+def jira_issue_input(jira_issue_data):
+    ''' Mocks input for creating or updating an JIRA issue. '''
     return JiraIssueInput(
-        summary=jira_issue.fields.summary,
-        description=jira_issue.fields.description,
-        issuetype_id=jira_issue.fields.issuetype.id)
+        summary=jira_issue_data.fields.summary,
+        description=jira_issue_data.fields.description,
+        issuetype_id=jira_issue_data.fields.issuetype.id)
