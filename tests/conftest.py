@@ -16,7 +16,7 @@
 import pytest
 from unittest.mock import Mock
 from mvtool.config import Config
-from mvtool.models import JiraIssueInput
+from mvtool.models import JiraIssueInput, ProjectInput, Project, ProjectOutput
 
 @pytest.fixture
 def config():
@@ -87,3 +87,24 @@ def jira_issue_input(jira_issue_data):
         summary=jira_issue_data.fields.summary,
         description=jira_issue_data.fields.description,
         issuetype_id=jira_issue_data.fields.issuetype.id)
+
+@pytest.fixture
+def jira_projects_view():
+    return Mock()
+
+@pytest.fixture
+def crud():
+    return Mock()
+
+@pytest.fixture
+def project_input():
+    return ProjectInput(
+        name='name', description='description', jira_project_id=None)
+
+@pytest.fixture
+def project(project_input):
+    return Project.from_orm(project_input, update=dict(id=1))
+
+@pytest.fixture
+def project_output(project):
+    return ProjectOutput.from_orm(project)
