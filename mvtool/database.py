@@ -79,7 +79,7 @@ class CRUDOperations(Generic[T]):
         self.session.commit()
         return item
 
-    def delete_in_db(self, sqlmodel: Type[T], id: int) -> None:
+    def delete_from_db(self, sqlmodel: Type[T], id: int) -> None:
         item = self.read_from_db(sqlmodel, id)
         self.session.delete(item)
         self.session.commit()

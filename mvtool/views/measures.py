@@ -114,4 +114,4 @@ class MeasuresView:
         '/measures/{measure_id}', status_code=204, response_class=Response,
         **kwargs)
     def delete_measure(self, measure_id: int) -> None:
-        return self._crud.delete_in_db(Measure, measure_id)
+        return self._crud.delete_from_db(Measure, measure_id)

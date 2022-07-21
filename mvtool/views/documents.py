@@ -69,4 +69,4 @@ class DocumentsView:
         '/documents/{document_id}', status_code=204, response_class=Response, 
         **kwargs)
     def delete_document(self, document_id: int) -> None:
-        return self._crud.delete_in_db(Document, document_id)
+        return self._crud.delete_from_db(Document, document_id)

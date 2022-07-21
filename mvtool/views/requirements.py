@@ -68,4 +68,4 @@ class RequirementsView:
         '/requirements/{requirement_id}', status_code=204, 
         response_class=Response, **kwargs)
     def delete_requirement(self, requirement_id: int) -> None:
-        return self._crud.delete_in_db(Requirement, requirement_id)
+        return self._crud.delete_from_db(Requirement, requirement_id)

@@ -91,10 +91,10 @@ def test_update_requirement(
 
 def test_delete_requirement(
         projects_view: ProjectsView, crud: CRUDOperations, requirement):
-    crud.delete_in_db.return_value = None
+    crud.delete_from_db.return_value = None
 
     sut = RequirementsView(projects_view, crud)
     result = sut.delete_requirement(requirement.id)
 
     assert result is None
-    crud.delete_in_db.assert_called_with(Requirement, requirement.id)
+    crud.delete_from_db.assert_called_with(Requirement, requirement.id)

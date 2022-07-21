@@ -99,4 +99,4 @@ class ProjectsView:
         '/projects/{project_id}', status_code=204, response_class=Response, 
         **kwargs)
     def delete_project(self, project_id: int):
-        return self._crud.delete_in_db(Project, project_id)
+        return self._crud.delete_from_db(Project, project_id)

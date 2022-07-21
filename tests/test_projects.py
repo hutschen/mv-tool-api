@@ -71,10 +71,10 @@ def test_update_project(jira_projects_view: JiraProjectsView, crud: CRUDOperatio
     jira_projects_view.check_jira_project_id.assert_called_once()
 
 def test_delete_project(jira_projects_view: JiraProjectsView, crud: CRUDOperations, project):
-    crud.delete_in_db.return_value = None
+    crud.delete_from_db.return_value = None
 
     sut = ProjectsView(jira_projects_view, crud)
     result = sut.delete_project(1)
 
     assert result is None
-    crud.delete_in_db.assert_called_once()
+    crud.delete_from_db.assert_called_once()
