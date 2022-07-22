@@ -16,7 +16,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from mvtool import app
-from mvtool.config import load_config, get_config_filename
+from mvtool.config import load_config
 
 
 @pytest.fixture
@@ -26,7 +26,7 @@ def client():
 
 @pytest.fixture
 def credentials():
-    config = load_config(get_config_filename())
+    config = load_config()
     return (config.username, config.password)
 
 def test_get_user(client, credentials):

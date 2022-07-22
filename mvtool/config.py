@@ -27,15 +27,10 @@ class Config(BaseModel):
     sqlite_echo: bool = False
 
 
-def get_config_filename():
-    return pathlib.Path.joinpath(
+def load_config():
+    config_filename = pathlib.Path.joinpath(
         pathlib.Path(__file__).parent, '../config.yml').resolve()
-
-
-def load_config(config_filename = Depends(get_config_filename)):
-    if config_filename:
-        with open(config_filename, 'r') as config_file:
-            config_data = yaml.safe_load(config_file)
-    else:
-        config_data = dict()
+    
+    with open(config_filename, 'r') as config_file:
+        config_data = yaml.safe_load(config_file)
     return Config.parse_obj(config_data)

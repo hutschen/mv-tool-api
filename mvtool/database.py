@@ -17,33 +17,38 @@ from typing import Type, TypeVar, Generic
 from fastapi import Depends, HTTPException
 from sqlmodel import create_engine, Session, SQLModel, select
 from sqlmodel.pool import StaticPool
-from .config import load_config, get_config_filename
+import logging
+from .config import Config
 
-def get_engine():
-    config = load_config(get_config_filename())
-    return create_engine(
-        config.sqlite_url,
-        connect_args={'check_same_thread': False},  # Needed for SQLite
-        echo=config.sqlite_echo,
-        poolclass=StaticPool
-    )
+class __State:
+    engine = None
 
-__engine = get_engine()
+def setup_engine(config: Config):
+    if __State.engine is None:
+        __State.engine = create_engine(
+            config.sqlite_url,
+            connect_args={'check_same_thread': False},  # Needed for SQLite
+            echo=config.sqlite_echo,
+            poolclass=StaticPool
+        )
+    return __State.engine
+
+def dispose_engine():
+    __State.engine.dispose()
+    __State.engine = None
 
 def get_session():
-    with Session(__engine) as session:
-        yield session
+    with Session(__State.engine) as session:
+        return session
 
 def create_all():
-    SQLModel.metadata.create_all(__engine)
+    SQLModel.metadata.create_all(__State.engine)
 
 def drop_all():
-    SQLModel.metadata.drop_all(__engine)
+    SQLModel.metadata.drop_all(__State.engine)
 
 
 T = TypeVar('T', bound=SQLModel)
-
-
 class CRUDOperations(Generic[T]):
     def __init__(self, session = Depends(get_session)):
         self.session = session

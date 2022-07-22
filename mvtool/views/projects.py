@@ -17,7 +17,7 @@ from typing import Iterator
 from fastapi import APIRouter, Depends, Response
 from fastapi_utils.cbv import cbv
 
-from ..database import CRUDOperations, get_session
+from ..database import CRUDOperations
 from .jira_ import JiraProjectsView
 from ..models import ProjectInput, Project, ProjectOutput
 
