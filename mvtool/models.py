@@ -125,12 +125,12 @@ class ProjectOutput(ProjectInput):
 
 class DocumentOutput(DocumentInput):
     id: int
-    project: Project
+    project: ProjectOutput
 
 
 class RequirementOutput(RequirementInput):
     id: int
-    project: Project
+    project: ProjectOutput
 
 
 class MeasureOutput(SQLModel):
