@@ -103,10 +103,10 @@ def test_list_jira_issues(jira, jira_project_data, jira_issue_data):
 def test_create_jira_issue(
         jira, jira_project_data, jira_issue_data, jira_issue_input):
     jira.create_issue.return_value = jira_issue_data
-    jira_issue_data = JiraIssuesView(jira).create_jira_issue(
+    result = JiraIssuesView(jira).create_jira_issue(
         jira_project_data.id, jira_issue_input)
-    assert isinstance(jira_issue_data, JiraIssue)
-    assert jira_issue_data.id == jira_issue_data.id
+    assert isinstance(result, JiraIssue)
+    assert result.id == jira_issue_data.id
 
 def test_get_jira_issue(jira, jira_issue_data):
     jira.issue.return_value = jira_issue_data

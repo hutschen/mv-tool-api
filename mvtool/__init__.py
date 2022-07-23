@@ -16,7 +16,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-import logging
 from .views import jira_, projects, requirements, measures, documents
 from . import database, config
 
@@ -35,8 +34,6 @@ app.add_middleware(
     allow_methods=['*'],
     allow_headers=['*'],
 )
-
-logging.root = logging.getLogger('gunicorn.error')
 
 @app.on_event('startup')
 def on_startup():

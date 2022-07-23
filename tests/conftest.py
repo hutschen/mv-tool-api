@@ -18,7 +18,7 @@ from unittest.mock import Mock
 from mvtool import database
 from mvtool.config import Config
 from mvtool.database import CRUDOperations
-from mvtool.models import JiraIssueInput, ProjectInput, Project, ProjectOutput
+from mvtool.models import DocumentInput, JiraIssueInput, MeasureInput, ProjectInput, Project, ProjectOutput, RequirementInput
 
 @pytest.fixture
 def config():
@@ -107,8 +107,7 @@ def crud(config):
 
 @pytest.fixture
 def project_input():
-    return ProjectInput(
-        name='name', description='description', jira_project_id=None)
+    return ProjectInput(name='name')
 
 @pytest.fixture
 def project(project_input):
@@ -117,3 +116,15 @@ def project(project_input):
 @pytest.fixture
 def project_output(project):
     return ProjectOutput.from_orm(project)
+
+@pytest.fixture()
+def document_input():
+    return DocumentInput(title='title')
+
+@pytest.fixture()
+def requirement_input():
+    return RequirementInput(summary='summary')
+
+@pytest.fixture()
+def measure_input():
+    return MeasureInput(summary='summary')
