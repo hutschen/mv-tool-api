@@ -19,7 +19,7 @@ from fastapi_utils.cbv import cbv
 from mvtool.views.documents import DocumentsView
 
 from mvtool.views.jira_ import JiraIssuesView
-from ..database import CRUDOperations, get_session
+from ..database import CRUDOperations
 from .requirements import RequirementsView
 from ..models import MeasureInput, Measure, MeasureOutput
 
