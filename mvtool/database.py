@@ -13,48 +13,52 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.  
 
-from typing import TypeVar, Generic
+from typing import Type, TypeVar, Generic
 from fastapi import Depends, HTTPException
 from sqlmodel import create_engine, Session, SQLModel, select
 from sqlmodel.pool import StaticPool
-from .config import load_config, get_config_filename
+import logging
+from .config import Config
 
-def get_engine():
-    config = load_config(get_config_filename())
-    return create_engine(
-        config.sqlite_url,
-        connect_args={'check_same_thread': False},  # Needed for SQLite
-        echo=config.sqlite_echo,
-        poolclass=StaticPool
-    )
+class __State:
+    engine = None
 
-__engine = get_engine()
+def setup_engine(config: Config):
+    if __State.engine is None:
+        __State.engine = create_engine(
+            config.sqlite_url,
+            connect_args={'check_same_thread': False},  # Needed for SQLite
+            echo=config.sqlite_echo,
+            poolclass=StaticPool
+        )
+    return __State.engine
+
+def dispose_engine():
+    __State.engine.dispose()
+    __State.engine = None
 
 def get_session():
-    with Session(__engine) as session:
-        yield session
+    with Session(__State.engine) as session:
+        return session
 
 def create_all():
-    SQLModel.metadata.create_all(__engine)
+    SQLModel.metadata.create_all(__State.engine)
 
 def drop_all():
-    SQLModel.metadata.drop_all(__engine)
+    SQLModel.metadata.drop_all(__State.engine)
 
 
 T = TypeVar('T', bound=SQLModel)
-
-
 class CRUDOperations(Generic[T]):
-    def __init__(self, session: Session, sqlmodel_: SQLModel):
+    def __init__(self, session = Depends(get_session)):
         self.session = session
-        self.sqlmodel = sqlmodel_
 
-    def read_all_from_db(self, **filters) -> list[T]:
-        query = select(self.sqlmodel)
+    def read_all_from_db(self, sqlmodel: Type[T], **filters) -> list[T]:
+        query = select(sqlmodel)
 
         for key, value in filters.items():
             if value is not None:
-                query = query.where(self.sqlmodel.__dict__[key] == value)
+                query = query.where(sqlmodel.__dict__[key] == value)
 
         return self.session.exec(query).all()
 
@@ -64,8 +68,8 @@ class CRUDOperations(Generic[T]):
         self.session.refresh(item)
         return item
 
-    def read_from_db(self, id: int) -> T:
-        item = self.session.get(self.sqlmodel, id)
+    def read_from_db(self, sqlmodel: Type[T], id: int) -> T:
+        item = self.session.get(sqlmodel, id)
         if item:
             return item
         else:
@@ -73,13 +77,14 @@ class CRUDOperations(Generic[T]):
             raise HTTPException(404, f'No {item_name} with id={id}.')
 
     def update_in_db(self, id: int, item_update: T) -> T:
-        item = self.read_from_db(id)
+        sqlmodel = item_update.__class__
+        item = self.read_from_db(sqlmodel, id)
         item_update.id = item.id
         self.session.merge(item_update)
         self.session.commit()
         return item
 
-    def delete_in_db(self, id: int) -> None:
-        item = self.read_from_db(id)
+    def delete_from_db(self, sqlmodel: Type[T], id: int) -> None:
+        item = self.read_from_db(sqlmodel, id)
         self.session.delete(item)
         self.session.commit()

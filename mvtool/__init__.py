@@ -17,7 +17,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from .views import jira_, projects, requirements, measures, documents
-from . import database
+from . import database, config
 
 app = FastAPI(title='MV-Tool')
 app.include_router(jira_.router, prefix='/api/jira')
@@ -37,5 +37,10 @@ app.add_middleware(
 
 @app.on_event('startup')
 def on_startup():
+    config_ = config.load_config()
+    database.setup_engine(config_)
     database.create_all()
-    return
+
+@app.on_event('shutdown')
+def on_shutdown():
+    database.dispose_engine()
