@@ -44,17 +44,20 @@ class MeasuresView:
         '/requirements/{requirement_id}/measures', 
         response_model=list[MeasureOutput], **kwargs)
     def _list_measures(self, requirement_id: int) -> Iterator[MeasureOutput]:
+        requirement_output = self._requirements._get_requirement(requirement_id)
         measures = self.list_measures(requirement_id)
         jira_issue_ids = [m.jira_issue_id for m in measures if m.jira_issue_id]
         jira_issues = self._jira_issues.get_jira_issues(jira_issue_ids)
         jira_issue_map = {ji.id:ji for ji in jira_issues}
         for measure in measures:
-            measure = MeasureOutput.from_orm(measure)
+            measure_output.requirement = requirement_output
+            measure_output = MeasureOutput.from_orm(measure)
             try:
-                measure.jira_issue = jira_issue_map[measure.jira_issue_id]
+                measure_output.jira_issue = \
+                    jira_issue_map[measure_output.jira_issue_id]
             except KeyError:
                 pass
-            yield measure
+            yield measure_output
 
     def list_measures(self, requirement_id: int) -> list[Measure]:
         return self._crud.read_all_from_db(
@@ -64,12 +67,14 @@ class MeasuresView:
         '/requirements/{requirement_id}/measures', status_code=201,
         response_model=MeasureOutput, **kwargs)
     def _create_measure(
-            self, requirement_id: int, measure: MeasureInput) -> MeasureOutput:
-        measure = MeasureOutput.from_orm(
-            self.create_measure(requirement_id, measure))
-        measure.jira_issue = self._jira_issues.try_to_get_jira_issue(
-            measure.jira_issue_id)
-        return measure
+            self, requirement_id: int, 
+            measure_input: MeasureInput) -> MeasureOutput:
+        measure_output = MeasureOutput.from_orm(
+            self.create_measure(requirement_id, measure_input))
+        measure_output.requirement = self._requirements._get_requirement(requirement_id)
+        measure_output.jira_issue = self._jira_issues.try_to_get_jira_issue(
+            measure_output.jira_issue_id)
+        return measure_output
 
     def create_measure(
             self, requirement_id: int, measure: MeasureInput) -> Measure:
@@ -82,10 +87,13 @@ class MeasuresView:
     @router.get(
         '/measures/{measure_id}', response_model=MeasureOutput, **kwargs)
     def _get_measure(self, measure_id: int) -> MeasureOutput:
-        measure = MeasureOutput.from_orm(self.get_measure(measure_id))
-        measure.jira_issue = self._jira_issues.try_to_get_jira_issue(
-            measure.jira_issue_id)
-        return measure
+        measure = self.get_measure(measure_id)
+        measure_output = MeasureOutput.from_orm(measure)
+        measure_output.requirement = self._requirements._get_requirement(
+            measure.requirement_id)
+        measure_output.jira_issue = self._jira_issues.try_to_get_jira_issue(
+            measure_output.jira_issue_id)
+        return measure_output
 
     def get_measure(self, measure_id: int):
         return self._crud.read_from_db(Measure, measure_id)
@@ -93,12 +101,14 @@ class MeasuresView:
     @router.put(
         '/measures/{measure_id}', response_model=MeasureOutput, **kwargs)
     def _update_measure(
-            self, measure_id: int, measure: MeasureInput) -> MeasureOutput:
-        measure = MeasureOutput.from_orm(
-            self.update_measure(measure_id, measure))
-        measure.jira_issue = self._jira_issues.try_to_get_jira_issue(
-            measure.jira_issue_id)
-        return measure
+            self, measure_id: int, measure_input: MeasureInput) -> MeasureOutput:
+        measure = self.update_measure(measure_id, measure_input)
+        measure_output = MeasureOutput.from_orm(measure)
+        measure_output.requirement = self._requirements._get_requirement(
+            measure.requirement_id)
+        measure_output.jira_issue = self._jira_issues.try_to_get_jira_issue(
+            measure_output.jira_issue_id)
+        return measure_output
 
     def update_measure(
             self, measure_id: int, measure_update: MeasureInput) -> Measure:
