@@ -19,18 +19,29 @@ from fastapi import Depends, HTTPException
 from fastapi.testclient import TestClient
 from mvtool import app
 from mvtool.auth import http_basic, get_jira
+from mvtool import database
 
 @pytest.fixture
-def client(config, jira):
+def client(jira, config):
     def get_jira_override(credentials = Depends(http_basic)):
         try:
             yield jira
         except JIRAError as error:
             raise HTTPException(error.status_code, error.text)
 
+    # remove event handlers to avoid side effects
+    app.router.on_startup = []
+    app.router.on_shutdown = []
+
     with TestClient(app) as client:
+        database.setup_engine(config)
+        database.create_all()
         app.dependency_overrides[get_jira] = get_jira_override
+
         yield client
+
+        database.drop_all()
+        database.dispose_engine()
 
 def test_get_user(client, jira, jira_user_data):
     jira.myself.return_value = jira_user_data

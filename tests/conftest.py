@@ -95,15 +95,8 @@ def jira_projects_view():
     return Mock()
 
 @pytest.fixture
-def crud(config):
-    database.setup_engine(config)
-    database.create_all()
-
-    crud = CRUDOperations(database.get_session())
-    yield Mock(crud)
-
-    database.drop_all()
-    database.dispose_engine()
+def crud():
+    return Mock()
 
 @pytest.fixture
 def project_input():
