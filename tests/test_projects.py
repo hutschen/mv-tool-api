@@ -22,12 +22,8 @@ from mvtool.views.jira_ import JiraProjectsView
 from mvtool.views.projects import ProjectsView
 
 @pytest.fixture
-def create_project(crud: CRUDOperations, project_input: ProjectInput):
-    jira_projects: JiraProjectsView = Mock()
-    jira_projects.check_jira_project_id.return_value = None
-
-    projects = ProjectsView(jira_projects, crud)
-    return projects.create_project(project_input)
+def create_project(projects_view: ProjectsView, project_input: ProjectInput):
+    return projects_view.create_project(project_input)
 
 def test_list_project_outputs(crud: CRUDOperations, create_project: Project):
     jira_projects: JiraProjectsView = Mock()
