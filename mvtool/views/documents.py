@@ -13,10 +13,11 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
+from typing import Iterator
 from fastapi import APIRouter, Depends, Response
 from fastapi_utils.cbv import cbv
 
-from ..database import CRUDOperations, get_session
+from ..database import CRUDOperations
 from .projects import ProjectsView
 from ..models import DocumentInput, Document, DocumentOutput
 
@@ -35,19 +36,38 @@ class DocumentsView:
     @router.get(
         '/projects/{project_id}/documents',
         response_model=list[DocumentOutput], **kwargs)
+    def _list_documents(self, project_id: int) -> Iterator[DocumentOutput]:
+        project_output = self._projects._get_project(project_id)
+        for document in self.list_documents(project_id):
+            yield DocumentOutput.from_orm(
+                document, update=dict(project=project_output))
+
     def list_documents(self, project_id: int) -> list[Document]:
         return self._crud.read_all_from_db(Document, project_id=project_id)
 
     @router.post(
         '/projects/{project_id}/documents', status_code=201,
         response_model=DocumentOutput, **kwargs)
+    def _create_document(
+            self, project_id: int, 
+            document_input: DocumentInput) -> DocumentOutput:
+        return DocumentOutput.from_orm(
+            self.create_document(project_id, document_input),
+            update=dict(project=self._projects._get_project(project_id)))
+
     def create_document(
             self, project_id: int, document: DocumentInput) -> Document:
         document = Document.from_orm(document)
         document.project = self._projects.get_project(project_id)
         return self._crud.create_in_db(document)
 
-    @router.get('/documents/{document_id}', response_model=DocumentOutput, **kwargs)
+    @router.get(
+        '/documents/{document_id}', response_model=DocumentOutput, **kwargs)
+    def _get_document(self, document_id: int) -> DocumentOutput:
+        document = self.get_document(document_id)
+        return DocumentOutput.from_orm(document, update=dict(
+            project=self._projects._get_project(document.project_id)))
+
     def get_document(self, document_id: int) -> Document:
         return self._crud.read_from_db(Document, document_id)
 
@@ -57,7 +77,15 @@ class DocumentsView:
         if document_id is not None:
             self.get_document(document_id)
 
-    @router.put('/documents/{document_id}', response_model=DocumentOutput, **kwargs)
+    @router.put(
+        '/documents/{document_id}', response_model=DocumentOutput, **kwargs)
+    def _update_document(
+            self, document_id: int, 
+            document_input: DocumentInput) -> DocumentOutput:
+        document = self.update_document(document_id, document_input)
+        return DocumentOutput.from_orm(document, update=dict(
+            project=self._projects._get_project(document.project_id)))
+
     def update_document(
             self, document_id: int, document_update: DocumentInput) -> Document:
         document = self._crud.read_from_db(Document, document_id)
