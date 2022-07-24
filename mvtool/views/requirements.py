@@ -69,10 +69,8 @@ class RequirementsView:
         response_model=RequirementOutput, **kwargs)
     def _get_requirement(self, requirement_id: int) -> RequirementOutput:
         requirement = self.get_requirement(requirement_id)
-        requirement_output = RequirementOutput.from_orm(requirement)
-        requirement_output.project = self._projects._get_project(
-            requirement.project_id)
-        return requirement_output
+        return RequirementOutput.from_orm(requirement, update=dict(
+            project=self._projects._get_project(requirement.project_id)))
 
     def get_requirement(self, requirement_id: int) -> Requirement:
         return self._crud.read_from_db(Requirement, requirement_id)

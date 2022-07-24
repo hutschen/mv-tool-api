@@ -41,6 +41,7 @@ def test_list_requirement_outputs(
     results = list(sut._list_requirements(project_output.id))
 
     assert isinstance(results[0], RequirementOutput)
+    assert isinstance(results[0].project, ProjectOutput)
     projects_view._get_project.assert_called_with(project_output.id)
 
 def test_create_requirement(
@@ -70,6 +71,7 @@ def test_create_requirement_output(
     result = sut._create_requirement(project_output.id, requirement_input)
 
     assert isinstance(result, RequirementOutput)
+    assert isinstance(result.project, ProjectOutput)
     projects_view._get_project.assert_called_with(project_output.id)
 
 def test_get_requirement(
@@ -81,6 +83,22 @@ def test_get_requirement(
 
     assert isinstance(result, Requirement)
     crud.read_from_db.assert_called_with(Requirement, requirement.id)
+
+def test_get_requirement_output(
+        projects_view: ProjectsView, crud: CRUDOperations, 
+        requirement: Requirement, project: Project, 
+        project_output: ProjectOutput):
+    requirement.project_id = project.id
+    crud.read_from_db.return_value = requirement
+    projects_view.get_project.return_value = project
+    projects_view._get_project.return_value = project_output
+
+    sut = RequirementsView(projects_view, crud)
+    result = sut._get_requirement(requirement.id)
+
+    assert isinstance(result, RequirementOutput)
+    assert isinstance(result.project, ProjectOutput)
+    projects_view._get_project.assert_called_with(project_output.id)
 
 def test_update_requirement(
         projects_view: ProjectsView, crud: CRUDOperations, requirement_input, requirement, project):
