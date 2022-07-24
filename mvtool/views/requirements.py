@@ -53,10 +53,9 @@ class RequirementsView:
     def _create_requirement(
             self, project_id: int, 
             requirement_input: RequirementInput) -> RequirementOutput:
-        requirement_output = RequirementOutput.from_orm(
-            self.create_requirement(project_id, requirement_input))
-        requirement_output.project = self._projects._get_project(project_id)
-        return requirement_output
+        return RequirementOutput.from_orm(
+            self.create_requirement(project_id, requirement_input),
+            update=dict(project=self._projects._get_project(project_id)))
 
     def create_requirement(
             self, project_id: int, 

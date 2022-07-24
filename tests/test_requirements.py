@@ -14,7 +14,7 @@
 # GNU AGPL V3 for more details.
 
 from mvtool.database import CRUDOperations
-from mvtool.models import Project, ProjectOutput, Requirement, RequirementOutput
+from mvtool.models import Project, ProjectOutput, Requirement, RequirementInput, RequirementOutput
 from mvtool.views.projects import ProjectsView
 from mvtool.views.requirements import RequirementsView
 
@@ -34,18 +34,19 @@ def test_list_requirements(
 def test_list_requirement_outputs(
         projects_view: ProjectsView, crud: CRUDOperations, 
         requirement: Requirement, project_output: ProjectOutput):
-    project_id = project_output.id
     crud.read_all_from_db.return_value = [requirement]
     projects_view._get_project.return_value = project_output
 
     sut = RequirementsView(projects_view, crud)
-    results = list(sut._list_requirements(project_id))
+    results = list(sut._list_requirements(project_output.id))
 
     assert isinstance(results[0], RequirementOutput)
-    projects_view._get_project.assert_called_with(project_id)
+    projects_view._get_project.assert_called_with(project_output.id)
 
 def test_create_requirement(
-        projects_view: ProjectsView, crud: CRUDOperations, requirement_input, requirement, project):
+        projects_view: ProjectsView, crud: CRUDOperations, 
+        requirement_input: RequirementInput, requirement: Requirement, 
+        project: Project):
     projects_view.get_project.return_value = project
     crud.create_in_db.return_value = requirement
 
@@ -55,6 +56,21 @@ def test_create_requirement(
     assert isinstance(result, Requirement)
     result = crud.create_in_db.call_args[0][0]
     assert result.project == project
+
+def test_create_requirement_output(
+        projects_view: ProjectsView, crud: CRUDOperations, 
+        requirement_input: RequirementInput, 
+        requirement: Requirement, project: Project, 
+        project_output: ProjectOutput):
+    projects_view.get_project.return_value = project
+    projects_view._get_project.return_value = project_output
+    crud.create_in_db.return_value = requirement
+
+    sut = RequirementsView(projects_view, crud)
+    result = sut._create_requirement(project_output.id, requirement_input)
+
+    assert isinstance(result, RequirementOutput)
+    projects_view._get_project.assert_called_with(project_output.id)
 
 def test_get_requirement(
         projects_view: ProjectsView, crud: CRUDOperations, requirement):
