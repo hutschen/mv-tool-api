@@ -71,6 +71,11 @@ class DocumentsView:
     def get_document(self, document_id: int) -> Document:
         return self._crud.read_from_db(Document, document_id)
 
+    def _try_to_get_document(self, document_id: int | None) -> DocumentOutput:
+        ''' Returns a DocumentOutput if document_id is not None. '''
+        if document_id is not None:
+            return self._get_document(document_id)
+
     def check_document_id(self, document_id: int | None) -> None:
         ''' Raises an Exception if document ID is not existing or not None.
         '''
