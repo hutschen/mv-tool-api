@@ -117,8 +117,9 @@ def requirement_input():
     return RequirementInput(summary='summary')
 
 @pytest.fixture
-def requirement(requirement_input):
-    return Requirement.from_orm(requirement_input, update=dict(id=1))
+def requirement(requirement_input, project):
+    return Requirement.from_orm(
+        requirement_input, update=dict(id=1, project_id=project.id))
 
 @pytest.fixture
 def requirement_output(requirement, project):

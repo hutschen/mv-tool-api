@@ -13,6 +13,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
+from unittest.mock import ANY
 from mvtool.database import CRUDOperations
 from mvtool.models import Project, ProjectOutput, Requirement, RequirementInput, RequirementOutput
 from mvtool.views.projects import ProjectsView
@@ -88,7 +89,6 @@ def test_get_requirement_output(
         projects_view: ProjectsView, crud: CRUDOperations, 
         requirement: Requirement, project: Project, 
         project_output: ProjectOutput):
-    requirement.project_id = project.id
     crud.read_from_db.return_value = requirement
     projects_view.get_project.return_value = project
     projects_view._get_project.return_value = project_output
@@ -101,22 +101,21 @@ def test_get_requirement_output(
     projects_view._get_project.assert_called_with(project_output.id)
 
 def test_update_requirement(
-        projects_view: ProjectsView, crud: CRUDOperations, requirement_input, requirement, project):
-    requirement.project_id = project.id
+        projects_view: ProjectsView, crud: CRUDOperations, 
+        requirement_input: RequirementInput, requirement: Requirement):
     crud.read_from_db.return_value = requirement
     crud.update_in_db.return_value = requirement
 
     sut = RequirementsView(projects_view, crud)
-    result = sut.update_requirement(project.id, requirement_input)
+    result = sut.update_requirement(requirement.project_id, requirement_input)
 
     assert isinstance(result, Requirement)
-    result = crud.update_in_db.call_args[0][1]
-    assert result.project_id == project.id
+    crud.update_in_db.assert_called_with(requirement.id, ANY)
 
 def test_update_requirement_output(
         projects_view: ProjectsView, crud: CRUDOperations, 
-        requirement_input, requirement, project, project_output):
-    requirement.project_id = project.id
+        requirement_input: RequirementInput, requirement: Requirement, 
+        project: Project, project_output: ProjectOutput):
     crud.read_from_db.return_value = requirement
     crud.update_in_db.return_value = requirement
     projects_view.get_project.return_value = project
