@@ -82,10 +82,8 @@ class RequirementsView:
             self, requirement_id: int,
             requirement_input: RequirementInput) -> RequirementOutput:
         requirement = self.update_requirement(requirement_id, requirement_input)
-        requirement_output = RequirementOutput.from_orm(requirement)
-        requirement_output.project = self._projects._get_project(
-            requirement.project_id)
-        return requirement_output
+        return RequirementOutput.from_orm(requirement, update=dict(
+            project=self._projects._get_project(requirement.project_id)))
 
     def update_requirement(
             self, requirement_id: int, 

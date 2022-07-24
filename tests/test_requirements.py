@@ -113,6 +113,22 @@ def test_update_requirement(
     result = crud.update_in_db.call_args[0][1]
     assert result.project_id == project.id
 
+def test_update_requirement_output(
+        projects_view: ProjectsView, crud: CRUDOperations, 
+        requirement_input, requirement, project, project_output):
+    requirement.project_id = project.id
+    crud.read_from_db.return_value = requirement
+    crud.update_in_db.return_value = requirement
+    projects_view.get_project.return_value = project
+    projects_view._get_project.return_value = project_output
+
+    sut = RequirementsView(projects_view, crud)
+    result = sut._update_requirement(requirement.id, requirement_input)
+
+    assert isinstance(result, RequirementOutput)
+    assert isinstance(result.project, ProjectOutput)
+    projects_view._get_project.assert_called_with(project_output.id)
+
 def test_delete_requirement(
         projects_view: ProjectsView, crud: CRUDOperations, requirement):
     crud.delete_from_db.return_value = None
