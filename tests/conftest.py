@@ -16,6 +16,7 @@
 import pytest
 from unittest.mock import Mock
 from mvtool.config import Config
+from mvtool import database
 from mvtool.models import Document, DocumentInput, JiraIssueInput, Measure, MeasureInput, ProjectInput, Project, ProjectOutput, Requirement, RequirementInput, RequirementOutput
 
 @pytest.fixture
@@ -97,8 +98,15 @@ def jira_issues_view():
     return Mock()
 
 @pytest.fixture
-def crud():
-    return Mock()
+def crud(config):
+    database.setup_engine(config)
+    database.create_all()
+
+    session = database.get_session()
+    yield Mock(wraps=database.CRUDOperations(session))
+
+    database.drop_all()
+    database.dispose_engine()
 
 @pytest.fixture
 def project_input():
