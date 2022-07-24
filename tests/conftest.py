@@ -15,10 +15,8 @@
 
 import pytest
 from unittest.mock import Mock
-from mvtool import database
 from mvtool.config import Config
-from mvtool.database import CRUDOperations
-from mvtool.models import DocumentInput, JiraIssueInput, MeasureInput, ProjectInput, Project, ProjectOutput, RequirementInput
+from mvtool.models import DocumentInput, JiraIssueInput, MeasureInput, ProjectInput, Project, ProjectOutput, Requirement, RequirementInput, RequirementOutput
 
 @pytest.fixture
 def config():
@@ -114,10 +112,24 @@ def project_output(project):
 def document_input():
     return DocumentInput(title='title')
 
-@pytest.fixture()
+@pytest.fixture
 def requirement_input():
     return RequirementInput(summary='summary')
+
+@pytest.fixture
+def requirement(requirement_input):
+    return Requirement.from_orm(requirement_input, update=dict(id=1))
+
+@pytest.fixture
+def requirement_output(requirement, project):
+    requirement.project_id = project.id
+    requirement.project = project
+    return RequirementOutput.from_orm(requirement)
 
 @pytest.fixture()
 def measure_input():
     return MeasureInput(summary='summary')
+
+@pytest.fixture
+def projects_view():
+    return Mock()

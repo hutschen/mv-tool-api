@@ -13,34 +13,10 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from unittest.mock import Mock
-import pytest
 from mvtool.database import CRUDOperations
-from mvtool.models import Requirement, RequirementInput, RequirementOutput
+from mvtool.models import Requirement
 from mvtool.views.projects import ProjectsView
 from mvtool.views.requirements import RequirementsView
-
-@pytest.fixture
-def projects_view():
-    return Mock()
-
-@pytest.fixture
-def crud():
-    return Mock()
-
-@pytest.fixture
-def requirement_input():
-    return RequirementInput(summary='summary')
-
-@pytest.fixture
-def requirement(requirement_input):
-    return Requirement.from_orm(requirement_input, update=dict(id=1))
-
-@pytest.fixture
-def requirement_output(requirement, project):
-    requirement.project_id = project.id
-    requirement.project = project
-    return RequirementOutput.from_orm(requirement)
 
 def test_list_requirements(
         projects_view: ProjectsView, crud: CRUDOperations, requirement):
