@@ -41,9 +41,8 @@ class RequirementsView:
             self, project_id: int) -> Iterator[RequirementOutput]:
         project_output = self._projects._get_project(project_id)
         for requirement in self.list_requirements(project_id):
-            requirement_output = RequirementOutput.from_orm(requirement)
-            requirement_output.project = project_output
-            yield requirement_output
+            yield RequirementOutput.from_orm(
+                requirement, update=dict(project=project_output))
 
     def list_requirements(self, project_id: int) -> list[Requirement]:
         return self._crud.read_all_from_db(Requirement, project_id=project_id)

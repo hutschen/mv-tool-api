@@ -14,12 +14,13 @@
 # GNU AGPL V3 for more details.
 
 from mvtool.database import CRUDOperations
-from mvtool.models import Requirement
+from mvtool.models import Project, ProjectOutput, Requirement, RequirementOutput
 from mvtool.views.projects import ProjectsView
 from mvtool.views.requirements import RequirementsView
 
 def test_list_requirements(
-        projects_view: ProjectsView, crud: CRUDOperations, requirement):
+        projects_view: ProjectsView, 
+        crud: CRUDOperations, requirement: Requirement):
     project_id = 1
     crud.read_all_from_db.return_value = [requirement]
 
@@ -29,6 +30,19 @@ def test_list_requirements(
     assert isinstance(results[0], Requirement)
     assert results[0].id == requirement.id
     crud.read_all_from_db.assert_called_with(Requirement, project_id=project_id)
+
+def test_list_requirement_outputs(
+        projects_view: ProjectsView, crud: CRUDOperations, 
+        requirement: Requirement, project_output: ProjectOutput):
+    project_id = project_output.id
+    crud.read_all_from_db.return_value = [requirement]
+    projects_view._get_project.return_value = project_output
+
+    sut = RequirementsView(projects_view, crud)
+    results = list(sut._list_requirements(project_id))
+
+    assert isinstance(results[0], RequirementOutput)
+    projects_view._get_project.assert_called_with(project_id)
 
 def test_create_requirement(
         projects_view: ProjectsView, crud: CRUDOperations, requirement_input, requirement, project):
