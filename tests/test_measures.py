@@ -125,3 +125,9 @@ def test_update_measure_output_invalid_id(
     with pytest.raises(HTTPException) as excinfo:
         measures_view._update_measure(-1, measure_input)
         assert excinfo.value.status_code == 404
+
+def test_delete_measure(measures_view: MeasuresView, create_measure: Measure):
+    measures_view.delete_measure(create_measure.id)
+    with pytest.raises(HTTPException) as excinfo:
+        measures_view.get_measure(create_measure.id)
+        assert excinfo.value.status_code == 404
