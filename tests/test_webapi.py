@@ -14,7 +14,7 @@
 # GNU AGPL V3 for more details.
 
 import pytest
-from jira import JIRAError
+from jira import JIRAError, Project
 from fastapi import Depends, HTTPException
 from fastapi.testclient import TestClient
 from mvtool import app
@@ -142,115 +142,92 @@ def create_project_response(client, project_input):
     return client.post(
         '/api/projects', json=project_input.dict(), auth=('u', 'p'))
 
-def test_get_project(client, create_project_response):
-    project_data = create_project_response.json()
-    project_id = project_data['id']
-
+def test_get_project(client, create_project: Project):
     response = client.get(
-        f'/api/projects/{project_id}', auth=('u', 'p'))
+        f'/api/projects/{create_project.id}', auth=('u', 'p'))
     assert response.status_code == 200
     assert type(response.json()) == dict
 
-def test_update_project(client, create_project_response):
-    project_data = create_project_response.json()
-    project_id = project_data['id']
-    project_name = project_data['name'] + ' (updated)'
+def test_update_project(client, create_project: Project):
+    orig_name = create_project.name
+    updated_name = create_project.name + ' (updated)'
 
     update_response = client.put(
-        f'/api/projects/{project_id}', json=dict(
-            name=project_name), auth=('u', 'p'))
+        f'/api/projects/{create_project.id}', json=dict(
+            name=updated_name), auth=('u', 'p'))
     assert update_response.status_code == 200
     updated_project = update_response.json()
-    assert updated_project['name'] != project_data['name']
-    assert updated_project['name'] == project_name
+    assert updated_project['name'] != orig_name
+    assert updated_project['name'] == updated_name
 
-def test_delete_project(client, create_project_response):
-    project_data = create_project_response.json()
-    project_id = project_data['id']
-
-    response = client.delete(f'/api/projects/{project_id}', auth=('u', 'p'))
+def test_delete_project(client, create_project: Project):
+    response = client.delete(
+        f'/api/projects/{create_project.id}', auth=('u', 'p'))
     assert response.status_code == 204
-    response = client.get(f'/api/projects/{project_id}', auth=('u', 'p'))
+    response = client.get(
+        f'/api/projects/{create_project.id}', auth=('u', 'p'))
     assert response.status_code == 404
 
-def test_list_documents(client, create_project_response):
-    project_data = create_project_response.json()
-    project_id = project_data['id']
-
+def test_list_documents(client, create_project: Project):
     response = client.get(
-        f'/api/projects/{project_id}/documents', auth=('u', 'p'))
+        f'/api/projects/{create_project.id}/documents', auth=('u', 'p'))
     assert response.status_code == 200
     assert type(response.json()) == list
 
-def test_create_document(client, create_project_response):
-    project_data = create_project_response.json()
-    project_id = project_data['id']
-
+def test_create_document(client, create_project: Project):
     response = client.post(
-        f'/api/projects/{project_id}/documents', 
+        f'/api/projects/{create_project.id}/documents', 
         json=dict(title='A new document'), auth=('u', 'p'))
     assert response.status_code == 201
     document = response.json()
     assert type(document) == dict
 
 @pytest.fixture
-def create_document_response(client, create_project_response, document_input):
-    project_data = create_project_response.json()
-    project_id = project_data['id']
+def create_document_response(client, create_project, document_input):
     return client.post(
-        f'/api/projects/{project_id}/documents', 
+        f'/api/projects/{create_project.id}/documents', 
         json=document_input.dict(), auth=('u', 'p'))
 
-def test_get_document(client, create_document_response):
-    document_data = create_document_response.json()
-    document_id = document_data['id']
-
-    response = client.get(f'/api/documents/{document_id}', auth=('u', 'p'))
+def test_get_document(client, create_document):
+    response = client.get(f'/api/documents/{create_document.id}', auth=('u', 'p'))
     assert response.status_code == 200
     document = response.json()
     assert type(document) == dict
 
-def test_update_document(client, create_document_response):
-    document_data = create_document_response.json()
-    document_id = document_data['id']
-    document_title = document_data['title'] + ' (updated)'
+def test_update_document(client, create_document):
+    orig_title = create_document.title
+    updated_title = orig_title + ' (updated)'
 
     response = client.put(
-        f'/api/documents/{document_id}', json=dict(
-            title=document_title), auth=('u', 'p'))
+        f'/api/documents/{create_document.id}', json=dict(
+            title=updated_title), auth=('u', 'p'))
     assert response.status_code == 200
     updated_document = response.json()
-    assert updated_document['title'] != document_data['title']
-    assert updated_document['title'] == document_title
+    assert updated_document['title'] != orig_title
+    assert updated_document['title'] == updated_title
 
-def test_delete_document(client, create_document_response):
-    document_data = create_document_response.json()
-    document_id = document_data['id']
-
-    response = client.delete(f'/api/documents/{document_id}', auth=('u', 'p'))
+def test_delete_document(client, create_document):
+    response = client.delete(
+        f'/api/documents/{create_document.id}', auth=('u', 'p'))
     assert response.status_code == 204
-    response = client.get(f'/api/documents/{document_id}', auth=('u', 'p'))
+    response = client.get(
+        f'/api/documents/{create_document.id}', auth=('u', 'p'))
     assert response.status_code == 404
 
-def test_list_requirements(client, create_project_response):
-    project_data = create_project_response.json()
-    project_id = project_data['id']
-
+def test_list_requirements(client, create_project: Project):
     response = client.get(
-        f'/api/projects/{project_id}/requirements', auth=('u', 'p'))
+        f'/api/projects/{create_project.id}/requirements', auth=('u', 'p'))
     assert response.status_code == 200
     assert type(response.json()) == list
 
-def test_create_requirement(client, create_project_response):
-    project_data = create_project_response.json()
-    project_id = project_data['id']
-
-    response = client.post(f'/api/projects/{project_id}/requirements', json=dict(
+def test_create_requirement(client, create_project: Project):
+    response = client.post(
+        f'/api/projects/{create_project.id}/requirements', json=dict(
             summary='A sample requirement'), auth=('u', 'p'))
     assert response.status_code == 201
     requirement = response.json()
     assert type(requirement) == dict
-    assert requirement['project']['id'] == project_id
+    assert requirement['project']['id'] == create_project.id
 
 @pytest.fixture
 def create_requirement_response(
@@ -261,99 +238,76 @@ def create_requirement_response(
         f'/api/projects/{project_id}/requirements', 
         json=requirement_input.dict(), auth=('u', 'p'))
 
-def test_get_requirement(client, create_requirement_response):
-    requirement_data = create_requirement_response.json()
-    requirement_id = requirement_data['id']
-
+def test_get_requirement(client, create_requirement):
     response = client.get(
-        f'/api/requirements/{requirement_id}', auth=('u', 'p'))
+        f'/api/requirements/{create_requirement.id}', auth=('u', 'p'))
     assert response.status_code == 200
     assert type(response.json()) == dict
 
-def test_update_requirement(client, create_requirement_response):
-    requirement_data = create_requirement_response.json()
-    requirement_id = requirement_data['id']
-    requirement_summary = requirement_data['summary'] + ' (updated)'
+def test_update_requirement(client, create_requirement):
+    orig_summary = create_requirement.summary
+    updated_summary = create_requirement.summary + ' (updated)'
 
     response = client.put(
-        f'/api/requirements/{requirement_id}', json=dict(
-            summary=requirement_summary), auth=('u', 'p'))
+        f'/api/requirements/{create_requirement.id}', json=dict(
+            summary=updated_summary), auth=('u', 'p'))
     assert response.status_code == 200
     updated_requirement = response.json()
-    assert updated_requirement['summary'] != requirement_data['summary']
-    assert updated_requirement['summary'] == requirement_summary
+    assert updated_requirement['summary'] != orig_summary
+    assert updated_requirement['summary'] == updated_summary
 
-def test_delete_requirement(client, create_requirement_response):
-    requirement_data = create_requirement_response.json()
-    requirement_id = requirement_data['id']
-
+def test_delete_requirement(client, create_requirement):
     response = client.delete(
-        f'/api/requirements/{requirement_id}', auth=('u', 'p'))
+        f'/api/requirements/{create_requirement.id}', auth=('u', 'p'))
     assert response.status_code == 204
     response = client.get(
-        f'/api/requirements/{requirement_id}', auth=('u', 'p'))
+        f'/api/requirements/{create_requirement.id}', auth=('u', 'p'))
     assert response.status_code == 404
 
-def test_list_measures(client, create_requirement_response):
-    requirement_data = create_requirement_response.json()
-    requirement_id = requirement_data['id']
-
+def test_list_measures(client, create_requirement):
     response = client.get(
-        f'/api/requirements/{requirement_id}/measures', auth=('u', 'p'))
+        f'/api/requirements/{create_requirement.id}/measures', auth=('u', 'p'))
     assert response.status_code == 200
     assert type(response.json()) == list
 
-def test_create_measure(client, create_requirement_response):
-    requirement_data = create_requirement_response.json()
-    requirement_id = requirement_data['id']
-
+def test_create_measure(client, create_requirement):
     response = client.post(
-        f'/api/requirements/{requirement_id}/measures', 
+        f'/api/requirements/{create_requirement.id}/measures', 
         json=dict(summary='A sample measure'), auth=('u', 'p'))
     assert response.status_code == 201
     measure = response.json()
     assert type(measure) == dict
-    assert measure['requirement']['id'] == requirement_id
+    assert measure['requirement']['id'] == create_requirement.id
 
 @pytest.fixture
 def create_measure_response(
-        client, create_requirement_response, measure_input):
-    requirement_data = create_requirement_response.json()
-    requirement_id = requirement_data['id']
+        client, create_requirement, measure_input):
     return client.post(
-        f'/api/requirements/{requirement_id}/measures', 
+        f'/api/requirements/{create_requirement.id}/measures', 
         json=measure_input.dict(), auth=('u', 'p'))
 
-def test_get_measure(client, create_measure_response):
-    measure_data = create_measure_response.json()
-    measure_id = measure_data['id']
-
+def test_get_measure(client, create_measure):
     response = client.get(
-        f'/api/measures/{measure_id}', auth=('u', 'p'))
+        f'/api/measures/{create_measure.id}', auth=('u', 'p'))
     assert response.status_code == 200
     assert type(response.json()) == dict
 
-
-def test_update_measure(client, create_measure_response):
-    measure_data = create_measure_response.json()
-    measure_id = measure_data['id']
-    measure_summary = measure_data['summary'] + ' (updated)'
+def test_update_measure(client, create_measure):
+    orig_summary = create_measure.summary
+    updated_summary = orig_summary + ' (updated)'
 
     response = client.put(
-        f'/api/measures/{measure_id}', json=dict(
-            summary=measure_summary), auth=('u', 'p'))
+        f'/api/measures/{create_measure.id}', json=dict(
+            summary=updated_summary), auth=('u', 'p'))
     assert response.status_code == 200
     updated_measure = response.json()
-    assert updated_measure['summary'] != measure_data['summary']
-    assert updated_measure['summary'] == measure_summary
+    assert updated_measure['summary'] != orig_summary
+    assert updated_measure['summary'] == updated_summary
 
-def test_delete_measure(client, create_measure_response):
-    measure_data = create_measure_response.json()
-    measure_id = measure_data['id']
-
+def test_delete_measure(client, create_measure):
     response = client.delete(
-        f'/api/measures/{measure_id}', auth=('u', 'p'))
+        f'/api/measures/{create_measure.id}', auth=('u', 'p'))
     assert response.status_code == 204
     response = client.get(
-        f'/api/measures/{measure_id}', auth=('u', 'p'))
+        f'/api/measures/{create_measure.id}', auth=('u', 'p'))
     assert response.status_code == 404
