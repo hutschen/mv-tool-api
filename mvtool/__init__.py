@@ -20,12 +20,11 @@ from .views import jira_, projects, requirements, measures, documents
 from . import database, config
 
 app = FastAPI(title='MV-Tool')
-app.include_router(jira_.router, prefix='/api/jira')
+app.include_router(jira_.router, prefix='/api')
 app.include_router(projects.router, prefix='/api')
 app.include_router(requirements.router, prefix='/api')
 app.include_router(measures.router, prefix='/api')
 app.include_router(documents.router, prefix='/api')
-# app.include_router(tasks.router, prefix='/api')
 app.mount('/', StaticFiles(directory='htdocs', html=True))
 app.add_middleware(
     CORSMiddleware,

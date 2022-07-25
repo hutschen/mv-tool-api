@@ -37,7 +37,7 @@ class JiraBaseView:
 class JiraUserView(JiraBaseView):
     kwargs = dict(tags=['jira-user'])
 
-    @router.get('/user', response_model=JiraUser, **kwargs)
+    @router.get('/jira-user', response_model=JiraUser, **kwargs)
     def get_jira_user(self):
         myself_data = self.jira.myself()
         return JiraUser(
@@ -57,13 +57,13 @@ class JiraProjectsView(JiraBaseView):
             key=jira_project_data.key,
             url=self._get_jira_item_url(jira_project_data.key))
 
-    @router.get('/projects', response_model=list[JiraProject], **kwargs)
+    @router.get('/jira-projects', response_model=list[JiraProject], **kwargs)
     def list_jira_projects(self):
         for jira_project_data in self.jira.projects():
             yield self._convert_to_jira_project(jira_project_data)
 
     @router.get(
-        '/projects/{jira_project_id}', response_model=JiraProject, **kwargs)
+        '/jira-projects/{jira_project_id}', response_model=JiraProject, **kwargs)
     def get_jira_project(self, jira_project_id: str) -> JiraProject:
         jira_project_data = self.jira.project(jira_project_id)
         return self._convert_to_jira_project(jira_project_data)
@@ -94,7 +94,7 @@ class JiraIssueTypesView(JiraBaseView):
     kwargs = dict(tags=['jira-issue-type'])
 
     @router.get(
-        '/projects/{jira_project_id}/issuetypes',
+        '/jira-projects/{jira_project_id}/jira-issuetypes',
         response_model=list[JiraIssueType], **kwargs)
     def list_jira_issue_types(self, jira_project_id: str):
         for issue_type_data in self.jira.project(jira_project_id).issueTypes:
@@ -121,7 +121,7 @@ class JiraIssuesView(JiraBaseView):
             url = self._get_jira_item_url(jira_issue_data.key))
 
     @router.get(
-        '/projects/{jira_project_id}/issues', response_model=list[JiraIssue],
+        '/jira-projects/{jira_project_id}/jira-issues', response_model=list[JiraIssue],
         **kwargs)
     def list_jira_issues(
             self, jira_project_id: str, offset: conint(ge=0) = 0, 
@@ -132,7 +132,7 @@ class JiraIssuesView(JiraBaseView):
         return [self._convert_to_jira_issue(d) for d in jira_issues_data]
 
     @router.post(
-        '/projects/{jira_project_id}/issues', status_code=201, 
+        '/jira-projects/{jira_project_id}/jira-issues', status_code=201, 
         response_model=JiraIssue, **kwargs)
     def create_jira_issue(
             self, jira_project_id: str, 
@@ -145,7 +145,7 @@ class JiraIssuesView(JiraBaseView):
         ))
         return self._convert_to_jira_issue(jira_issue_data)
 
-    @router.get('/issues/{jira_issue_id}', response_model=JiraIssue, **kwargs)
+    @router.get('/jira-issues/{jira_issue_id}', response_model=JiraIssue, **kwargs)
     def get_jira_issue(self, jira_issue_id: str):
         jira_issue_data = self.jira.issue(id=jira_issue_id)
         return self._convert_to_jira_issue(jira_issue_data)

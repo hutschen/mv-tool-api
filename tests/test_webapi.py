@@ -41,13 +41,13 @@ def client(jira, crud):
 
 def test_get_user(client, jira, jira_user_data):
     jira.myself.return_value = jira_user_data
-    response = client.get('/api/jira/user', auth=('u', 'p'))
+    response = client.get('/api/jira-user', auth=('u', 'p'))
     assert response.status_code == 200
     assert type(response.json()) == dict
 
 def test_list_jira_projects(client, jira, jira_project_data):
     jira.projects.return_value = [jira_project_data]
-    response = client.get('/api/jira/projects', auth=('u', 'p'))
+    response = client.get('/api/jira-projects', auth=('u', 'p'))
     response_body = response.json()
     assert response.status_code == 200
     assert type(response_body) == list
@@ -56,7 +56,7 @@ def test_list_jira_projects(client, jira, jira_project_data):
 def test_get_jira_project(client, jira, jira_project_data):
     jira.project.return_value = jira_project_data
     response = client.get(
-        f'/api/jira/projects/{jira_project_data.id}', auth=('u', 'p'))
+        f'/api/jira-projects/{jira_project_data.id}', auth=('u', 'p'))
     response_body = response.json()
     assert response.status_code == 200
     assert response_body['id'] == jira_project_data.id
@@ -65,7 +65,7 @@ def test_get_jira_issuetypes(
         client, jira, jira_project_data, jira_issue_type_data):
     jira.project.return_value = jira_project_data
     response = client.get(
-        f'/api/jira/projects/{jira_project_data.id}/issuetypes',
+        f'/api/jira-projects/{jira_project_data.id}/jira-issuetypes',
         auth=('u', 'p'))
     response_body = response.json()
     assert response.status_code == 200
@@ -76,7 +76,7 @@ def test_get_jira_issuetypes(
 def test_list_jira_issues(client, jira, jira_project_data, jira_issue_data):
     jira.search_issues.return_value = [jira_issue_data]
     response = client.get(
-        f'/api/jira/projects/{jira_project_data.id}/issues', auth=('u', 'p'))
+        f'/api/jira-projects/{jira_project_data.id}/jira-issues', auth=('u', 'p'))
     response_body = response.json()
     assert response.status_code == 200
     assert type(response_body) == list
@@ -87,7 +87,7 @@ def test_create_jira_issue(
         client, jira, jira_project_data, jira_issue_type_data, jira_issue_data):
     jira.create_issue.return_value = jira_issue_data
     response = client.post(
-        f'/api/jira/projects/{jira_project_data.id}/issues', json=dict(
+        f'/api/jira-projects/{jira_project_data.id}/jira-issues', json=dict(
             summary=jira_issue_data.fields.summary,
             issuetype_id=jira_issue_type_data.id
         ), auth=('u', 'p'))
@@ -98,7 +98,7 @@ def test_create_jira_issue(
 
 def test_get_jira_issue(client, jira, jira_issue_data):
     jira.issue.return_value = jira_issue_data
-    response = client.get(f'/api/jira/issues/{jira_issue_data.id}', auth=('u', 'p'))
+    response = client.get(f'/api/jira-issues/{jira_issue_data.id}', auth=('u', 'p'))
     assert response.status_code == 200
     response_body = response.json()
     assert type(response_body) == dict
