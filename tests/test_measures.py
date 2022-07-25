@@ -16,7 +16,7 @@
 from fastapi import HTTPException
 from jira import JIRAError
 import pytest
-from mvtool.models import Document, DocumentInput, Measure, MeasureInput, MeasureOutput, Requirement
+from mvtool.models import Document, DocumentInput, JiraIssueInput, Measure, MeasureInput, MeasureOutput, Requirement
 from mvtool.views.measures import MeasuresView
 
 
@@ -130,4 +130,43 @@ def test_delete_measure(measures_view: MeasuresView, create_measure: Measure):
     measures_view.delete_measure(create_measure.id)
     with pytest.raises(HTTPException) as excinfo:
         measures_view.get_measure(create_measure.id)
+        assert excinfo.value.status_code == 404
+
+def test_create_and_link_jira_issue(
+        measures_view: MeasuresView, create_measure: Measure, 
+        jira_issue_input: JiraIssueInput):
+    create_measure.jira_issue_id = None
+    jira_issue = measures_view.create_and_link_jira_issue(
+        create_measure.id, jira_issue_input)
+    assert create_measure.jira_issue_id == jira_issue.id
+
+def test_create_and_link_jira_issue_jira_issue_already_set(
+        measures_view: MeasuresView, create_measure: Measure, 
+        jira_issue_input: JiraIssueInput):
+    assert create_measure.jira_issue_id is not None
+    with pytest.raises(HTTPException) as excinfo:
+        measures_view.create_and_link_jira_issue(
+            create_measure.id, jira_issue_input)
+        assert excinfo.value.status_code == 400
+
+def test_create_and_link_jira_issue_jira_project_not_set(
+        measures_view: MeasuresView, create_measure: Measure, 
+        jira_issue_input: JiraIssueInput):
+    create_measure.requirement.project.jira_project_id = None
+    with pytest.raises(HTTPException) as excinfo:
+        measures_view.create_and_link_jira_issue(
+            create_measure.id, jira_issue_input)
+        assert excinfo.value.status_code == 400
+
+def test_unlink_jira_issue(
+        measures_view: MeasuresView, create_measure: Measure):
+    assert create_measure.jira_issue_id is not None
+    measures_view.unlink_jira_issue(create_measure.id)
+    assert create_measure.jira_issue_id is None
+
+def test_unlink_jira_issue_jira_issue_not_linked(
+        measures_view: MeasuresView, create_measure: Measure):
+    create_measure.jira_issue_id = None
+    with pytest.raises(HTTPException) as excinfo:
+        measures_view.unlink_jira_issue(create_measure.id)
         assert excinfo.value.status_code == 404

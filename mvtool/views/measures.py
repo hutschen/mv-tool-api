@@ -14,14 +14,14 @@
 # GNU AGPL V3 for more details.
 
 from typing import Iterator
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi_utils.cbv import cbv
 from mvtool.views.documents import DocumentsView
 
 from mvtool.views.jira_ import JiraIssuesView
 from ..database import CRUDOperations
 from .requirements import RequirementsView
-from ..models import MeasureInput, Measure, MeasureOutput
+from ..models import JiraIssue, JiraIssueInput, MeasureInput, Measure, MeasureOutput
 
 router = APIRouter()
 
@@ -138,3 +138,43 @@ class MeasuresView:
         **kwargs)
     def delete_measure(self, measure_id: int) -> None:
         return self._crud.delete_from_db(Measure, measure_id)
+
+    @router.post(
+        '/measures/{measure_id}/jira-issue', status_code=201, 
+        response_model=JiraIssue, **kwargs)
+    def create_and_link_jira_issue(
+            self, measure_id: int, 
+            jira_issue_input: JiraIssueInput) -> JiraIssue:
+        measure = self.get_measure(measure_id)
+
+        # check if jira issue is already linked
+        if measure.jira_issue_id is not None:
+            detail = 'Measure %d is already linked to Jira issue %s' % (
+                measure_id, measure.jira_issue_id)
+            raise HTTPException(400, detail)
+
+        # check if a Jira project is assigned to corresponding project
+        project = measure.requirement.project
+        if project.jira_project_id is None:
+            detail = f'No Jira project is assigned to project {project.id}'
+            raise HTTPException(400, detail)
+        
+        # create and link Jira issue
+        jira_issue = self._jira_issues.create_jira_issue(
+            project.jira_project_id, jira_issue_input)
+        measure.jira_issue_id = jira_issue.id
+        self._crud.update_in_db(measure_id, measure)
+        return jira_issue
+
+    @router.delete(
+        '/measures/{measure_id}/jira-issue', status_code=204,
+        response_class=Response, **kwargs)
+    def unlink_jira_issue(self, measure_id: int) -> None:
+        measure = self.get_measure(measure_id)
+        if measure.jira_issue_id is None:
+            detail = 'Measure %d is not linked to a Jira issue' % measure_id
+            raise HTTPException(404, detail)
+
+        # unlink Jira issue
+        measure.jira_issue_id = None
+        self._crud.update_in_db(measure_id, measure)
