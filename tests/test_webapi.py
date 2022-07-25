@@ -110,25 +110,22 @@ def test_list_projects(client, jira):
     response_body = response.json()
     assert type(response_body) == list
 
-def test_create_project(client, project):
-    response = client.post('/api/projects', json=dict(
-            name=project.name), auth=('u', 'p'))
+def test_create_project(client, project_input):
+    response = client.post(
+        '/api/projects', json=project_input.dict(), auth=('u', 'p'))
     assert response.status_code == 201
     response_body = response.json()
     assert type(response_body) == dict
-    assert response_body['name'] == project.name
+    assert response_body['name'] == project_input.name
 
 def test_create_project_valid_jira_project_id(
-            client, jira, jira_project_data, project):
-    jira.project.return_value = jira_project_data
-    response = client.post('/api/projects', json=dict(
-            name=project.name,
-            jira_project_id=jira_project_data.id), auth=('u', 'p'))
+            client, project_input):
+    response = client.post(
+        '/api/projects', json=project_input.dict(), auth=('u', 'p'))
     assert response.status_code == 201
     response_body = response.json()
     assert type(response_body) == dict
-    assert response_body['name'] == project.name
-    assert response_body['jira_project']['id'] == jira_project_data.id
+    assert response_body['name'] == project_input.name
 
 def test_create_project_invalid_jira_project_id(client, jira):
     jira.project.side_effect = JIRAError('error', status_code=404)
@@ -136,11 +133,6 @@ def test_create_project_invalid_jira_project_id(client, jira):
             name='A sample project',
             jira_project_id='INVALID'), auth=('u', 'p'))
     assert response.status_code == 404
-
-@pytest.fixture
-def create_project_response(client, project_input):
-    return client.post(
-        '/api/projects', json=project_input.dict(), auth=('u', 'p'))
 
 def test_get_project(client, create_project: Project):
     response = client.get(
@@ -181,12 +173,6 @@ def test_create_document(client, create_project: Project):
     assert response.status_code == 201
     document = response.json()
     assert type(document) == dict
-
-@pytest.fixture
-def create_document_response(client, create_project, document_input):
-    return client.post(
-        f'/api/projects/{create_project.id}/documents', 
-        json=document_input.dict(), auth=('u', 'p'))
 
 def test_get_document(client, create_document):
     response = client.get(f'/api/documents/{create_document.id}', auth=('u', 'p'))
@@ -229,15 +215,6 @@ def test_create_requirement(client, create_project: Project):
     assert type(requirement) == dict
     assert requirement['project']['id'] == create_project.id
 
-@pytest.fixture
-def create_requirement_response(
-        client, create_project_response, requirement_input):
-    project_data = create_project_response.json()
-    project_id = project_data['id']
-    return client.post(
-        f'/api/projects/{project_id}/requirements', 
-        json=requirement_input.dict(), auth=('u', 'p'))
-
 def test_get_requirement(client, create_requirement):
     response = client.get(
         f'/api/requirements/{create_requirement.id}', auth=('u', 'p'))
@@ -278,13 +255,6 @@ def test_create_measure(client, create_requirement):
     measure = response.json()
     assert type(measure) == dict
     assert measure['requirement']['id'] == create_requirement.id
-
-@pytest.fixture
-def create_measure_response(
-        client, create_requirement, measure_input):
-    return client.post(
-        f'/api/requirements/{create_requirement.id}/measures', 
-        json=measure_input.dict(), auth=('u', 'p'))
 
 def test_get_measure(client, create_measure):
     response = client.get(
