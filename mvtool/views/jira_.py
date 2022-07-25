@@ -17,6 +17,7 @@ from jira import JIRA, Issue, Project, JIRAError
 from pydantic import conint
 from fastapi import Depends, APIRouter
 from fastapi_utils.cbv import cbv
+
 from ..auth import get_jira
 from ..models import (JiraProject, JiraIssueType, JiraIssueStatus, 
     JiraIssueInput, JiraIssue, JiraUser)
@@ -131,9 +132,9 @@ class JiraIssuesView(JiraBaseView):
             jira_query, startAt=offset, maxResults=size)
         return [self._convert_to_jira_issue(d) for d in jira_issues_data]
 
-    @router.post(
-        '/jira-projects/{jira_project_id}/jira-issues', status_code=201, 
-        response_model=JiraIssue, **kwargs)
+    # @router.post(
+    #     '/jira-projects/{jira_project_id}/jira-issues', status_code=201, 
+    #     response_model=JiraIssue, **kwargs)
     def create_jira_issue(
             self, jira_project_id: str, 
             jira_issue: JiraIssueInput) -> JiraIssue:

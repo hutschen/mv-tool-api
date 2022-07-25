@@ -83,19 +83,6 @@ def test_list_jira_issues(client, jira, jira_project_data, jira_issue_data):
     assert len(response_body) == 1
     assert response_body[0]['project_id'] == jira_project_data.id
 
-def test_create_jira_issue(
-        client, jira, jira_project_data, jira_issue_type_data, jira_issue_data):
-    jira.create_issue.return_value = jira_issue_data
-    response = client.post(
-        f'/api/jira-projects/{jira_project_data.id}/jira-issues', json=dict(
-            summary=jira_issue_data.fields.summary,
-            issuetype_id=jira_issue_type_data.id
-        ), auth=('u', 'p'))
-    assert response.status_code == 201
-    response_body = response.json()
-    assert type(response_body) == dict
-    assert response_body['id'] == jira_issue_data.id
-
 def test_get_jira_issue(client, jira, jira_issue_data):
     jira.issue.return_value = jira_issue_data
     response = client.get(f'/api/jira-issues/{jira_issue_data.id}', auth=('u', 'p'))
@@ -281,3 +268,21 @@ def test_delete_measure(client, create_measure):
     response = client.get(
         f'/api/measures/{create_measure.id}', auth=('u', 'p'))
     assert response.status_code == 404
+
+def test_create_and_link_jira_issue(
+        client, create_measure, jira_issue_input):
+    create_measure.jira_issue_id = None
+    response = client.post(
+        f'/api/measures/{create_measure.id}/jira-issue', 
+        json=jira_issue_input.dict(), auth=('u', 'p'))
+    assert response.status_code == 201
+    jira_issue = response.json()
+    assert type(jira_issue) == dict
+    assert jira_issue['summary'] == jira_issue_input.summary
+
+def test_unlink_jira_issue(client, create_measure):
+    assert create_measure.jira_issue_id is not None
+    response = client.delete(
+        f'/api/measures/{create_measure.id}/jira-issue', auth=('u', 'p'))
+    assert response.status_code == 204
+    assert create_measure.jira_issue_id is None
