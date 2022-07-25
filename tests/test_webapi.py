@@ -19,10 +19,10 @@ from fastapi import Depends, HTTPException
 from fastapi.testclient import TestClient
 from mvtool import app
 from mvtool.auth import http_basic, get_jira
-from mvtool import database
+from mvtool.database import CRUDOperations
 
 @pytest.fixture
-def client(jira, config):
+def client(jira, crud):
     def get_jira_override(credentials = Depends(http_basic)):
         try:
             yield jira
@@ -34,14 +34,10 @@ def client(jira, config):
     app.router.on_shutdown = []
 
     with TestClient(app) as client:
-        database.setup_engine(config)
-        database.create_all()
+        app.dependency_overrides[CRUDOperations] = lambda: crud
         app.dependency_overrides[get_jira] = get_jira_override
-
         yield client
 
-        database.drop_all()
-        database.dispose_engine()
 
 def test_get_user(client, jira, jira_user_data):
     jira.myself.return_value = jira_user_data
