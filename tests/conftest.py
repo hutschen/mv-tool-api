@@ -19,6 +19,7 @@ from unittest.mock import Mock
 from mvtool.config import Config
 from mvtool import database
 from mvtool.models import Document, DocumentInput, JiraIssueInput, Measure, MeasureInput, ProjectInput, Project, ProjectOutput, Requirement, RequirementInput, RequirementOutput
+from mvtool.views.documents import DocumentsView
 from mvtool.views.jira_ import JiraIssuesView, JiraProjectsView
 from mvtool.views.projects import ProjectsView
 from mvtool.views.requirements import RequirementsView
@@ -204,5 +205,12 @@ def create_requirement(
         create_project.id, requirement_input)
 
 @pytest.fixture
-def documents_view():
-    return Mock()
+def documents_view(projects_view, crud):
+    return Mock(wraps=DocumentsView(projects_view, crud))
+
+@pytest.fixture
+def create_document(
+        documents_view: DocumentsView, create_project: Project,
+        document_input: DocumentInput):
+    return documents_view.create_document(
+        create_project.id, document_input)
