@@ -13,88 +13,75 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from unittest.mock import Mock
 import pytest
-from mvtool.database import CRUDOperations
-from mvtool.models import Requirement, RequirementInput, RequirementOutput
-from mvtool.views.projects import ProjectsView
+from fastapi import HTTPException
+from mvtool.models import Project, Requirement, RequirementInput, RequirementOutput
 from mvtool.views.requirements import RequirementsView
 
-@pytest.fixture
-def projects_view():
-    return Mock()
+def test_list_requirement_outputs(
+        requirements_view: RequirementsView, create_project: Project,
+        create_requirement: Requirement):
+    results = list(requirements_view._list_requirements(create_project.id))
 
-@pytest.fixture
-def crud():
-    return Mock()
+    assert len(results) == 1
+    requirement_output = results[0]
+    assert isinstance(requirement_output, RequirementOutput)
+    assert requirement_output.id == create_requirement.id
+    assert requirement_output.project.id == create_project.id
 
-@pytest.fixture
-def requirement_input():
-    return RequirementInput(summary='summary')
+def test_create_requirement_output(
+        requirements_view: RequirementsView, create_project: Project, 
+        requirement_input: RequirementInput):
+    requirement_output = requirements_view._create_requirement(
+        create_project.id, requirement_input)
+    
+    assert isinstance(requirement_output, RequirementOutput)
+    assert requirement_output.summary == requirement_input.summary
+    assert requirement_output.project.id == create_project.id
+    
+def test_create_requirement_output_invalid_project_id(
+        requirements_view: RequirementsView, 
+        requirement_input: RequirementInput):
+    with pytest.raises(HTTPException) as excinfo:
+        requirements_view._create_requirement(-1, requirement_input)
+        excinfo.value.status_code == 404
 
-@pytest.fixture
-def requirement(requirement_input):
-    return Requirement.from_orm(requirement_input, update=dict(id=1))
+def test_get_requirement_output(
+        requirements_view: RequirementsView, create_requirement: Requirement):
+    requirement_output = requirements_view._get_requirement(create_requirement.id)
 
-@pytest.fixture
-def requirement_output(requirement, project):
-    requirement.project_id = project.id
-    requirement.project = project
-    return RequirementOutput.from_orm(requirement)
+    assert isinstance(requirement_output, RequirementOutput)
+    assert requirement_output.id == create_requirement.id
+    assert requirement_output.project.id == create_requirement.project_id
 
-def test_list_requirements(
-        projects_view: ProjectsView, crud: CRUDOperations, requirement):
-    project_id = 1
-    crud.read_all_from_db.return_value = [requirement]
+def test_get_requirement_output_invalid_id(requirements_view: RequirementsView):
+    with pytest.raises(HTTPException) as excinfo:
+        requirements_view._get_requirement(-1)
+        excinfo.value.status_code == 404
 
-    sut = RequirementsView(projects_view, crud)
-    results = list(sut.list_requirements(project_id))
+def test_update_requirement_output(
+        requirements_view: RequirementsView, create_requirement: Requirement,
+        requirement_input: RequirementInput):
+    requirement_output = requirements_view._update_requirement(
+        create_requirement.id, requirement_input)
 
-    assert isinstance(results[0], Requirement)
-    assert results[0].id == requirement.id
-    crud.read_all_from_db.assert_called_with(Requirement, project_id=project_id)
+    assert isinstance(requirement_output, RequirementOutput)
+    assert requirement_output.id == create_requirement.id
+    assert requirement_output.summary == requirement_input.summary
+    assert requirement_output.project.id == create_requirement.project_id
 
-def test_create_requirement(
-        projects_view: ProjectsView, crud: CRUDOperations, requirement_input, requirement, project):
-    projects_view.get_project.return_value = project
-    crud.create_in_db.return_value = requirement
-
-    sut = RequirementsView(projects_view, crud)
-    result = sut.create_requirement(project.id, requirement_input)
-
-    assert isinstance(result, Requirement)
-    result = crud.create_in_db.call_args[0][0]
-    assert result.project == project
-
-def test_get_requirement(
-        projects_view: ProjectsView, crud: CRUDOperations, requirement):
-    crud.read_from_db.return_value = requirement
-
-    sut = RequirementsView(projects_view, crud)
-    result = sut.get_requirement(requirement.id)
-
-    assert isinstance(result, Requirement)
-    crud.read_from_db.assert_called_with(Requirement, requirement.id)
-
-def test_update_requirement(
-        projects_view: ProjectsView, crud: CRUDOperations, requirement_input, requirement, project):
-    requirement.project_id = project.id
-    crud.read_from_db.return_value = requirement
-    crud.update_in_db.return_value = requirement
-
-    sut = RequirementsView(projects_view, crud)
-    result = sut.update_requirement(project.id, requirement_input)
-
-    assert isinstance(result, Requirement)
-    result = crud.update_in_db.call_args[0][1]
-    assert result.project_id == project.id
+def test_update_requirement_output_invalid_id(
+        requirements_view: RequirementsView, 
+        requirement_input: RequirementInput):
+    with pytest.raises(HTTPException) as excinfo:
+        requirements_view._update_requirement(-1, requirement_input)
+        excinfo.value.status_code == 404
 
 def test_delete_requirement(
-        projects_view: ProjectsView, crud: CRUDOperations, requirement):
-    crud.delete_from_db.return_value = None
+        requirements_view: RequirementsView,
+        create_requirement: Requirement):
+    requirements_view.delete_requirement(create_requirement.id)
 
-    sut = RequirementsView(projects_view, crud)
-    result = sut.delete_requirement(requirement.id)
-
-    assert result is None
-    crud.delete_from_db.assert_called_with(Requirement, requirement.id)
+    with pytest.raises(HTTPException) as excinfo:
+        requirements_view.delete_requirement(create_requirement.id)
+        excinfo.value.status_code == 404

@@ -13,12 +13,17 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
+from jira import JIRAError
 import pytest
 from unittest.mock import Mock
-from mvtool import database
 from mvtool.config import Config
-from mvtool.database import CRUDOperations
-from mvtool.models import DocumentInput, JiraIssueInput, MeasureInput, ProjectInput, Project, ProjectOutput, RequirementInput
+from mvtool import database
+from mvtool.models import Document, DocumentInput, JiraIssueInput, Measure, MeasureInput, ProjectInput, Project, ProjectOutput, Requirement, RequirementInput, RequirementOutput
+from mvtool.views.documents import DocumentsView
+from mvtool.views.jira_ import JiraIssuesView, JiraProjectsView
+from mvtool.views.projects import ProjectsView
+from mvtool.views.requirements import RequirementsView
+from mvtool.views.measures import MeasuresView
 
 @pytest.fixture
 def config():
@@ -26,13 +31,6 @@ def config():
         sqlite_url='sqlite://',
         sqlite_echo=False,
         jira_server_url='http://jira-server-url',)
-
-@pytest.fixture
-def jira(config):
-    ''' Mocks JIRA API object. '''
-    jira = Mock()
-    jira.server_url = config.jira_server_url
-    return jira
 
 @pytest.fixture
 def jira_user_data():
@@ -91,33 +89,112 @@ def jira_issue_input(jira_issue_data):
         issuetype_id=jira_issue_data.fields.issuetype.id)
 
 @pytest.fixture
-def jira_projects_view():
-    return Mock()
+def jira(config, jira_user_data, jira_project_data, jira_issue_data):
+    ''' Mocks JIRA API object. '''
+    class JiraMock:
+        def __init__(self):
+            self.server_url = config.jira_server_url
+
+        def myself(self):
+            return jira_user_data
+
+        def projects(self):
+            return [jira_project_data]
+
+        def project(self, id):
+            if id == jira_project_data.id:
+                return jira_project_data
+            else:
+                raise JIRAError('Project not found', 404)
+
+        def search_issues(*args, **kwargs):
+            return [jira_issue_data]
+
+        def create_issue(*args, **kwargs):
+            return jira_issue_data
+
+        def issue(self, id):
+            if id == jira_issue_data.id:
+                return jira_issue_data
+            else:
+                raise JIRAError('Issue not found', 404)
+
+    return Mock(wraps=JiraMock())
 
 @pytest.fixture
-def crud():
-    return Mock()
+def jira_projects_view(jira):
+    return Mock(wraps=JiraProjectsView(jira))
 
 @pytest.fixture
-def project_input():
-    return ProjectInput(name='name')
+def jira_issues_view(jira):
+    return Mock(wraps=JiraIssuesView(jira))
 
 @pytest.fixture
-def project(project_input):
-    return Project.from_orm(project_input, update=dict(id=1))
+def crud(config):
+    database.setup_engine(config)
+    database.create_all()
+
+    session = database.get_session()
+    yield Mock(wraps=database.CRUDOperations(session))
+
+    database.drop_all()
+    database.dispose_engine()
 
 @pytest.fixture
-def project_output(project):
-    return ProjectOutput.from_orm(project)
+def project_input(jira_project_data):
+    return ProjectInput(name='name', jira_project_id=jira_project_data.id)
 
-@pytest.fixture()
+@pytest.fixture
 def document_input():
     return DocumentInput(title='title')
 
-@pytest.fixture()
+@pytest.fixture
 def requirement_input():
     return RequirementInput(summary='summary')
 
 @pytest.fixture()
-def measure_input():
-    return MeasureInput(summary='summary')
+def measure_input(jira_issue_data, create_document):
+    return MeasureInput(
+        summary='summary', jira_issue_id=jira_issue_data.id, 
+        document_id=create_document.id)
+
+@pytest.fixture
+def projects_view(jira_projects_view, crud):
+    return Mock(wraps=ProjectsView(jira_projects_view, crud))
+
+@pytest.fixture
+def create_project(projects_view: ProjectsView, project_input: ProjectInput):
+    return projects_view.create_project(project_input)
+
+@pytest.fixture
+def requirements_view(projects_view, crud):
+    return Mock(wraps=RequirementsView(projects_view, crud))
+
+@pytest.fixture
+def create_requirement(
+        requirements_view: RequirementsView, create_project: Project,
+        requirement_input: RequirementInput):
+    return requirements_view.create_requirement(
+        create_project.id, requirement_input)
+
+@pytest.fixture
+def documents_view(projects_view, crud):
+    return Mock(wraps=DocumentsView(projects_view, crud))
+
+@pytest.fixture
+def create_document(
+        documents_view: DocumentsView, create_project: Project,
+        document_input: DocumentInput):
+    return documents_view.create_document(
+        create_project.id, document_input)
+
+@pytest.fixture
+def measures_view(jira_issues_view, requirements_view, documents_view, crud):
+    return Mock(wraps=MeasuresView(
+        jira_issues_view, requirements_view, documents_view, crud))
+
+@pytest.fixture
+def create_measure(
+        measures_view: MeasuresView, create_requirement: Requirement,
+        measure_input: MeasureInput):
+    return measures_view.create_measure(create_requirement.id, measure_input)

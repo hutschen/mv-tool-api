@@ -13,68 +13,95 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from unittest.mock import Mock
 import pytest
-from mvtool.database import CRUDOperations
-from mvtool.models import ProjectInput, Project, ProjectOutput
-from mvtool.views.jira_ import JiraProjectsView
+from fastapi import HTTPException
+from jira import JIRAError
+from mvtool.models import Project, ProjectInput, ProjectOutput
 from mvtool.views.projects import ProjectsView
 
+def test_list_project_outputs(projects_view: ProjectsView, create_project: Project):
+    results = list(projects_view._list_projects())
 
-def test_list_projects(jira_projects_view: JiraProjectsView, crud: CRUDOperations, project):
-    crud.read_all_from_db.return_value = [project]
-    jira_projects_view.list_jira_projects.return_value = []
+    assert len(results) == 1
+    project_output = results[0]
+    assert isinstance(project_output, ProjectOutput)
+    assert project_output.id == create_project.id
+    assert project_output.jira_project.id == create_project.jira_project_id
 
-    sut = ProjectsView(jira_projects_view, crud)
-    results = list(sut._list_projects())
+def test_create_project_output_jira_project_id(
+        projects_view: ProjectsView, project_input: ProjectInput):
+    assert project_input.jira_project_id is not None
+    project_output = projects_view._create_project(project_input)
 
-    assert isinstance(results[0], ProjectOutput)
-    assert results[0].id == project.id
-    crud.read_all_from_db.assert_called_once()
-    jira_projects_view.list_jira_projects.assert_called_once()
+    assert isinstance(project_output, ProjectOutput)
+    assert project_output.name == project_input.name
+    assert project_output.jira_project.id == project_input.jira_project_id
 
-def test_create_project(jira_projects_view: JiraProjectsView, crud: CRUDOperations, project_input, project):
-    crud.create_in_db.return_value = project
-    jira_projects_view.check_jira_project_id.return_value = None
+def test_create_project_output_no_jira_project_id(
+        projects_view: ProjectsView, project_input: ProjectInput):
+    project_input.jira_project_id = None
+    project_output = projects_view._create_project(project_input)
 
-    sut = ProjectsView(jira_projects_view, crud)
-    result = sut._create_project(project_input)
+    assert isinstance(project_output, ProjectOutput)
+    assert project_output.name == project_input.name
+    assert project_output.jira_project is None
 
-    assert isinstance(result, ProjectOutput)
-    assert result.id == project.id
-    crud.create_in_db.assert_called_once()
-    jira_projects_view.check_jira_project_id.assert_called_once()
+def test_create_project_output_invalid_jira_project_id(
+        projects_view: ProjectsView, project_input: ProjectInput):
+    project_input.jira_project_id = 'invalid'
+    with pytest.raises(JIRAError) as exception_info:
+        projects_view._create_project(project_input)
+        assert exception_info.value.status_code == 404
 
-def test_get_project(jira_projects_view: JiraProjectsView, crud: CRUDOperations, project):
-    crud.read_from_db.return_value = project
-    jira_projects_view.try_to_get_jira_project.return_value = None
+def test_get_project_output(
+        projects_view: ProjectsView, create_project: Project):
+    assert create_project.jira_project_id is not None
+    project_output = projects_view._get_project(create_project.id)
 
-    sut = ProjectsView(jira_projects_view, crud)
-    result = sut._get_project(1)
+    assert isinstance(project_output, ProjectOutput)
+    assert project_output.id == create_project.id
+    assert project_output.name == create_project.name
+    assert project_output.jira_project.id == create_project.jira_project_id
 
-    assert isinstance(result, ProjectOutput)
-    assert result.id == project.id
-    assert result.jira_project is None
-    crud.read_from_db.assert_called_once()
-    jira_projects_view.try_to_get_jira_project.assert_called_once()
+def test_get_project_output_invalid_id(projects_view: ProjectsView):
+    with pytest.raises(HTTPException) as exception_info:
+        projects_view._get_project('invalid')
+        assert exception_info.value.status_code == 404
 
-def test_update_project(jira_projects_view: JiraProjectsView, crud: CRUDOperations, project_input, project):
-    crud.update_in_db.return_value = project
-    jira_projects_view.check_jira_project_id.return_value = None
+def test_update_project_output(
+        projects_view: ProjectsView, create_project: Project, 
+        project_input: ProjectInput):
+    assert create_project.jira_project_id is not None
+    orig_name = project_input.name
+    project_input.name += ' (updated)'
 
-    sut = ProjectsView(jira_projects_view, crud)
-    result = sut._update_project(project.id, project_input)
+    project_output = projects_view._update_project(
+        create_project.id, project_input)
 
-    assert isinstance(result, ProjectOutput)
-    assert result.id == project.id
-    crud.update_in_db.assert_called_once()
-    jira_projects_view.check_jira_project_id.assert_called_once()
+    assert isinstance(project_output, ProjectOutput)
+    assert project_output.id == create_project.id
+    assert project_output.name != orig_name
+    assert project_output.name == project_input.name
+    assert project_output.jira_project.id == project_input.jira_project_id
 
-def test_delete_project(jira_projects_view: JiraProjectsView, crud: CRUDOperations, project):
-    crud.delete_from_db.return_value = None
+def test_update_project_output_invalid_jira_project_id(
+        projects_view: ProjectsView, create_project: Project,
+        project_input: ProjectInput):
+    project_input.jira_project_id = 'invalid'
+    with pytest.raises(JIRAError) as exception_info:
+        projects_view._update_project(create_project.id, project_input)
+        assert exception_info.value.status_code == 404
 
-    sut = ProjectsView(jira_projects_view, crud)
-    result = sut.delete_project(1)
+def test_update_project_output_invalid_id(
+        projects_view: ProjectsView, project_input: ProjectInput):
+    with pytest.raises(HTTPException) as exception_info:
+        projects_view._update_project('invalid', project_input)
+        assert exception_info.value.status_code == 404
 
-    assert result is None
-    crud.delete_from_db.assert_called_once()
+def test_delete_project(
+        projects_view: ProjectsView, create_project: Project):
+    projects_view.delete_project(create_project.id)
+
+    with pytest.raises(HTTPException) as exception_info:
+        projects_view.get_project(create_project.id)
+        assert exception_info.value.status_code == 404
