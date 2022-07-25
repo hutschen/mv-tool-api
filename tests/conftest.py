@@ -23,6 +23,7 @@ from mvtool.views.documents import DocumentsView
 from mvtool.views.jira_ import JiraIssuesView, JiraProjectsView
 from mvtool.views.projects import ProjectsView
 from mvtool.views.requirements import RequirementsView
+from mvtool.views.measures import MeasuresView
 
 @pytest.fixture
 def config():
@@ -125,7 +126,7 @@ def jira_projects_view(jira):
     return Mock(wraps=JiraProjectsView(jira))
 
 @pytest.fixture
-def jira_issues_view():
+def jira_issues_view(jira):
     return Mock(wraps=JiraIssuesView(jira))
 
 @pytest.fixture
@@ -176,8 +177,10 @@ def requirement_output(requirement, project):
     return RequirementOutput.from_orm(requirement)
 
 @pytest.fixture()
-def measure_input():
-    return MeasureInput(summary='summary')
+def measure_input(jira_issue_data, create_document):
+    return MeasureInput(
+        summary='summary', jira_issue_id=jira_issue_data.id, 
+        document_id=create_document.id)
 
 @pytest.fixture
 def measure(measure_input, requirement, document):
@@ -214,3 +217,14 @@ def create_document(
         document_input: DocumentInput):
     return documents_view.create_document(
         create_project.id, document_input)
+
+@pytest.fixture
+def measures_view(jira_issues_view, requirements_view, documents_view, crud):
+    return Mock(wraps=MeasuresView(
+        jira_issues_view, requirements_view, documents_view, crud))
+
+@pytest.fixture
+def create_measure(
+        measures_view: MeasuresView, create_requirement: Requirement,
+        measure_input: MeasureInput):
+    return measures_view.create_measure(create_requirement.id, measure_input)

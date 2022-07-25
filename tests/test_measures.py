@@ -13,39 +13,115 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from pkg_resources import Requirement
-from mvtool.database import CRUDOperations
-from mvtool.models import Measure, MeasureOutput, RequirementOutput
-from mvtool.views.documents import DocumentsView
-from mvtool.views.jira_ import JiraIssuesView
-from mvtool.views.requirements import RequirementsView
+from fastapi import HTTPException
+from jira import JIRAError
+import pytest
+from mvtool.models import Document, DocumentInput, Measure, MeasureInput, MeasureOutput, Requirement
 from mvtool.views.measures import MeasuresView
 
 
-def test_list_measures(crud: CRUDOperations, measure: Measure):
-    requirement_id = measure.requirement_id
-    crud.read_all_from_db.return_value = [measure]
+def test_list_measure_outputs(
+        measures_view: MeasuresView, create_requirement: Requirement,
+        create_document: Document, jira_issue_data, create_measure: Measure):
+    results = list(measures_view._list_measures(create_requirement.id))
 
-    sut = MeasuresView(None, None, None, crud)
-    results = list(sut.list_measures(requirement_id))
+    assert len(results) == 1
+    measure_output = results[0]
+    assert isinstance(measure_output, MeasureOutput)
+    assert measure_output.id == create_measure.id
+    assert measure_output.requirement.id == create_requirement.id
+    assert measure_output.document.id == create_document.id
+    assert measure_output.jira_issue.id == jira_issue_data.id
 
-    assert isinstance(results[0], Measure)
-    crud.read_all_from_db.assert_called_with(
-        Measure, requirement_id=requirement_id)
+def test_create_measure_output(
+        measures_view: MeasuresView, create_requirement: Requirement,
+        create_document: Document, jira_issue_data, 
+        measure_input: MeasureInput):
+    measure_output = measures_view._create_measure(
+        create_requirement.id, measure_input)
 
-# def test_list_measures_outputs(
-#         jira_issues_view: JiraIssuesView, requirements_view: RequirementsView,
-#         documents_view: DocumentsView, crud: CRUDOperations, measure: Measure,
-#         requirement: Requirement, requirement_output: RequirementOutput): 
-#     requirements_view._get_requirement.return_value = requirement_output
-#     crud.read_all_from_db.return_value = [measure]
-#     jira_issues_view.get_jira_issues.return_value = []
-#     documents_view._get_documents.return_value = None
+    assert isinstance(measure_output, MeasureOutput)
+    assert measure_output.requirement.id == create_requirement.id
+    assert measure_output.document.id == create_document.id
+    assert measure_output.jira_issue.id == jira_issue_data.id
 
-#     sut = MeasuresView(jira_issues_view, requirements_view, documents_view, crud)
-#     results = list(sut._list_measures(measure.id))
+def test_create_measure_invalid_jira_issue_id(
+        measures_view: MeasuresView, create_requirement: Requirement,
+        measure_input: MeasureInput):
+    
+    with pytest.raises(JIRAError) as excinfo:
+        measure_input.jira_issue_id = 'invalid'
+        measures_view._create_measure(create_requirement.id, measure_input)
+        assert excinfo.value.status_code == 404
 
-#     assert isinstance(results[0], MeasureOutput)
-#     requirements_view._get_requirement.assert_called_with(measure.requirement_id)
-#     jira_issues_view.get_jira_issues.assert_called_once()
-#     documents_view._get_documents.assert_called_with(measure.document_id)
+def test_create_measure_invalid_document_id(
+        measures_view: MeasuresView, create_requirement: Requirement,
+        measure_input: MeasureInput):
+    
+    with pytest.raises(HTTPException) as excinfo:
+        measure_input.document_id = 'invalid'
+        measures_view._create_measure(create_requirement.id, measure_input)
+        assert excinfo.value.status_code == 404
+
+def test_create_measure_invalid_requirement_id(
+        measures_view: MeasuresView, measure_input: MeasureInput):
+    
+    with pytest.raises(HTTPException) as excinfo:
+        measures_view._create_measure('invalid', measure_input)
+        assert excinfo.value.status_code == 404
+
+def test_get_measure_output(
+        measures_view: MeasuresView, create_requirement: Requirement,
+        create_document: Document, jira_issue_data, create_measure: Measure):
+    measure_output = measures_view._get_measure(create_measure.id)
+
+    assert isinstance(measure_output, MeasureOutput)
+    assert measure_output.id == create_measure.id
+    assert measure_output.requirement.id == create_requirement.id
+    assert measure_output.document.id == create_document.id
+    assert measure_output.jira_issue.id == jira_issue_data.id
+
+def test_get_measure_output_invalid_id(
+        measures_view: MeasuresView):
+    with pytest.raises(HTTPException) as excinfo:
+        measures_view._get_measure('invalid')
+        assert excinfo.value.status_code == 404
+
+def test_update_measure_output(
+        measures_view: MeasuresView, create_requirement: Requirement,
+        create_document: Document, jira_issue_data, create_measure: Measure,
+        measure_input: MeasureInput):
+    orig_summary = create_measure.summary
+    measure_input.summary = orig_summary + ' (updated)'
+    measure_output = measures_view._update_measure(
+        create_measure.id, measure_input)
+
+    assert isinstance(measure_output, MeasureOutput)
+    assert measure_output.id == create_measure.id
+    assert measure_output.summary != orig_summary
+    assert measure_output.requirement.id == create_requirement.id
+    assert measure_output.document.id == create_document.id
+    assert measure_output.jira_issue.id == jira_issue_data.id
+
+def test_update_measure_output_invalid_jira_issue_id(
+        measures_view: MeasuresView, create_measure: Measure,
+        measure_input: MeasureInput):
+    with pytest.raises(JIRAError) as excinfo:
+        measure_input.jira_issue_id = 'invalid'
+        measures_view._update_measure(create_measure.id, measure_input)
+        assert excinfo.value.status_code == 404
+
+def test_update_measure_output_invalid_document_id(
+        measures_view: MeasuresView, create_measure: Measure,
+        measure_input: MeasureInput):
+    with pytest.raises(HTTPException) as excinfo:
+        measure_input.document_id = -1
+        measures_view._update_measure(create_measure.id, measure_input)
+        assert excinfo.value.status_code == 404
+
+
+def test_update_measure_output_invalid_id(
+        measures_view: MeasuresView, measure_input: MeasureInput):
+    with pytest.raises(HTTPException) as excinfo:
+        measures_view._update_measure(-1, measure_input)
+        assert excinfo.value.status_code == 404
