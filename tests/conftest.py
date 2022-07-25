@@ -116,7 +116,7 @@ def jira(config, jira_user_data, jira_project_data, jira_issue_data):
             else:
                 raise JIRAError('Issue not found', 404)
 
-    return Mock(wrap=JiraMock())
+    return Mock(wraps=JiraMock())
 
 @pytest.fixture
 def jira_projects_view(jira):
@@ -138,8 +138,8 @@ def crud(config):
     database.dispose_engine()
 
 @pytest.fixture
-def project_input():
-    return ProjectInput(name='name')
+def project_input(jira_project_data):
+    return ProjectInput(name='name', jira_project_id=jira_project_data.id)
 
 @pytest.fixture
 def project(project_input):
