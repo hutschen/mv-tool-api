@@ -21,6 +21,7 @@ from mvtool import database
 from mvtool.models import Document, DocumentInput, JiraIssueInput, Measure, MeasureInput, ProjectInput, Project, ProjectOutput, Requirement, RequirementInput, RequirementOutput
 from mvtool.views.jira_ import JiraIssuesView, JiraProjectsView
 from mvtool.views.projects import ProjectsView
+from mvtool.views.requirements import RequirementsView
 
 @pytest.fixture
 def config():
@@ -188,8 +189,19 @@ def projects_view(jira_projects_view, crud):
     return Mock(wraps=ProjectsView(jira_projects_view, crud))
 
 @pytest.fixture
-def requirements_view():
-    return Mock()
+def create_project(projects_view: ProjectsView, project_input: ProjectInput):
+    return projects_view.create_project(project_input)
+
+@pytest.fixture
+def requirements_view(projects_view, crud):
+    return Mock(wraps=RequirementsView(projects_view, crud))
+
+@pytest.fixture
+def create_requirement(
+        requirements_view: RequirementsView, create_project: Project,
+        requirement_input: RequirementInput):
+    return requirements_view.create_requirement(
+        create_project.id, requirement_input)
 
 @pytest.fixture
 def documents_view():

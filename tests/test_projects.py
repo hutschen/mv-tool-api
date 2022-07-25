@@ -19,10 +19,6 @@ from jira import JIRAError
 from mvtool.models import Project, ProjectInput, ProjectOutput
 from mvtool.views.projects import ProjectsView
 
-@pytest.fixture
-def create_project(projects_view: ProjectsView, project_input: ProjectInput):
-    return projects_view.create_project(project_input)
-
 def test_list_project_outputs(projects_view: ProjectsView, create_project: Project):
     results = list(projects_view._list_projects())
 
@@ -102,7 +98,7 @@ def test_update_project_output_invalid_id(
         projects_view._update_project('invalid', project_input)
         assert exception_info.value.status_code == 404
 
-def test_delete_project_output(
+def test_delete_project(
         projects_view: ProjectsView, create_project: Project):
     projects_view.delete_project(create_project.id)
 
