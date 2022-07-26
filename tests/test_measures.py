@@ -13,6 +13,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
+from unittest import result
 from fastapi import HTTPException
 from jira import JIRAError
 import pytest
@@ -23,7 +24,7 @@ from tests.conftest import jira_issue_input
 
 def test_list_measure_outputs(
         measures_view: MeasuresView, create_requirement: Requirement,
-        create_document: Document, jira_issue_data, create_measure: Measure):
+        create_document: Document, create_measure: Measure):
     results = list(measures_view._list_measures(create_requirement.id))
 
     assert len(results) == 1
@@ -33,10 +34,19 @@ def test_list_measure_outputs(
     assert measure_output.requirement.id == create_requirement.id
     assert measure_output.document.id == create_document.id
 
+def test_list_measure_output_with_jira_issue(
+        measures_view: MeasuresView, create_requirement: Requirement,
+        create_measure_with_jira_issue: Measure, jira_issue_data):
+    result = list(measures_view._list_measures(create_requirement.id))
+
+    measure_output = result[0]
+    measure_output.id == create_measure_with_jira_issue.id
+    measure_output.jira_issue_id == jira_issue_data.id
+    measure_output.jira_issue.id == jira_issue_data.id
+
 def test_create_measure_output(
         measures_view: MeasuresView, create_requirement: Requirement,
-        create_document: Document, jira_issue_data, 
-        measure_input: MeasureInput):
+        create_document: Document, measure_input: MeasureInput):
     measure_output = measures_view._create_measure(
         create_requirement.id, measure_input)
 
@@ -62,13 +72,23 @@ def test_create_measure_invalid_requirement_id(
 
 def test_get_measure_output(
         measures_view: MeasuresView, create_requirement: Requirement,
-        create_document: Document, jira_issue_data, create_measure: Measure):
+        create_document: Document, create_measure: Measure):
     measure_output = measures_view._get_measure(create_measure.id)
 
     assert isinstance(measure_output, MeasureOutput)
     assert measure_output.id == create_measure.id
     assert measure_output.requirement.id == create_requirement.id
     assert measure_output.document.id == create_document.id
+
+def test_get_measure_output_with_jira_issue(
+        measures_view: MeasuresView, create_measure_with_jira_issue: Measure, 
+        jira_issue_data):
+    measure_output = measures_view._get_measure(
+        create_measure_with_jira_issue.id)
+
+    assert measure_output.id == create_measure_with_jira_issue.id
+    assert measure_output.jira_issue_id == jira_issue_data.id
+    assert measure_output.jira_issue.id == jira_issue_data.id
 
 def test_get_measure_output_invalid_id(
         measures_view: MeasuresView):
@@ -90,6 +110,19 @@ def test_update_measure_output(
     assert measure_output.summary != orig_summary
     assert measure_output.requirement.id == create_requirement.id
     assert measure_output.document.id == create_document.id
+
+def test_update_measure_output_with_jira_issue(
+        measures_view: MeasuresView, create_measure_with_jira_issue: Measure, 
+        jira_issue_data, measure_input: MeasureInput):
+    orig_summary = create_measure_with_jira_issue.summary
+    measure_input.summary = orig_summary + ' (updated)'
+    measure_output = measures_view._update_measure(
+        create_measure_with_jira_issue.id, measure_input)
+
+    assert measure_output.id == create_measure_with_jira_issue.id
+    assert measure_output.summary != orig_summary
+    assert measure_output.jira_issue_id == jira_issue_data.id
+    assert measure_output.jira_issue.id == jira_issue_data.id
 
 def test_update_measure_output_invalid_document_id(
         measures_view: MeasuresView, create_measure: Measure,

@@ -124,7 +124,8 @@ class MeasuresView:
             self, measure_id: int, measure_update: MeasureInput) -> Measure:
         measure_current = self._crud.read_from_db(Measure, measure_id)
         measure_update = Measure.from_orm(measure_update, update=dict(
-            requirement_id=measure_current.requirement_id))
+            requirement_id=measure_current.requirement_id,
+            jira_issue_id=measure_current.jira_issue_id))
         self._documents.check_document_id(measure_update.document_id)
         return self._crud.update_in_db(measure_id, measure_update)
 
