@@ -280,9 +280,9 @@ def test_create_and_link_jira_issue(
     assert type(jira_issue) == dict
     assert jira_issue['summary'] == jira_issue_input.summary
 
-def test_unlink_jira_issue(client, create_measure):
-    assert create_measure.jira_issue_id is not None
+def test_unlink_jira_issue(client, create_measure_with_jira_issue):
     response = client.delete(
-        f'/api/measures/{create_measure.id}/jira-issue', auth=('u', 'p'))
+        f'/api/measures/{create_measure_with_jira_issue.id}/jira-issue', 
+        auth=('u', 'p'))
     assert response.status_code == 204
-    assert create_measure.jira_issue_id is None
+    assert create_measure_with_jira_issue.jira_issue_id is None

@@ -18,6 +18,7 @@ from jira import JIRAError
 import pytest
 from mvtool.models import Document, DocumentInput, JiraIssueInput, Measure, MeasureInput, MeasureOutput, Requirement
 from mvtool.views.measures import MeasuresView
+from tests.conftest import jira_issue_input
 
 
 def test_list_measure_outputs(
@@ -31,7 +32,6 @@ def test_list_measure_outputs(
     assert measure_output.id == create_measure.id
     assert measure_output.requirement.id == create_requirement.id
     assert measure_output.document.id == create_document.id
-    assert measure_output.jira_issue.id == jira_issue_data.id
 
 def test_create_measure_output(
         measures_view: MeasuresView, create_requirement: Requirement,
@@ -43,16 +43,6 @@ def test_create_measure_output(
     assert isinstance(measure_output, MeasureOutput)
     assert measure_output.requirement.id == create_requirement.id
     assert measure_output.document.id == create_document.id
-    assert measure_output.jira_issue.id == jira_issue_data.id
-
-def test_create_measure_invalid_jira_issue_id(
-        measures_view: MeasuresView, create_requirement: Requirement,
-        measure_input: MeasureInput):
-    
-    with pytest.raises(JIRAError) as excinfo:
-        measure_input.jira_issue_id = 'invalid'
-        measures_view._create_measure(create_requirement.id, measure_input)
-        assert excinfo.value.status_code == 404
 
 def test_create_measure_invalid_document_id(
         measures_view: MeasuresView, create_requirement: Requirement,
@@ -79,7 +69,6 @@ def test_get_measure_output(
     assert measure_output.id == create_measure.id
     assert measure_output.requirement.id == create_requirement.id
     assert measure_output.document.id == create_document.id
-    assert measure_output.jira_issue.id == jira_issue_data.id
 
 def test_get_measure_output_invalid_id(
         measures_view: MeasuresView):
@@ -101,15 +90,6 @@ def test_update_measure_output(
     assert measure_output.summary != orig_summary
     assert measure_output.requirement.id == create_requirement.id
     assert measure_output.document.id == create_document.id
-    assert measure_output.jira_issue.id == jira_issue_data.id
-
-def test_update_measure_output_invalid_jira_issue_id(
-        measures_view: MeasuresView, create_measure: Measure,
-        measure_input: MeasureInput):
-    with pytest.raises(JIRAError) as excinfo:
-        measure_input.jira_issue_id = 'invalid'
-        measures_view._update_measure(create_measure.id, measure_input)
-        assert excinfo.value.status_code == 404
 
 def test_update_measure_output_invalid_document_id(
         measures_view: MeasuresView, create_measure: Measure,
@@ -135,34 +115,32 @@ def test_delete_measure(measures_view: MeasuresView, create_measure: Measure):
 def test_create_and_link_jira_issue(
         measures_view: MeasuresView, create_measure: Measure, 
         jira_issue_input: JiraIssueInput):
-    create_measure.jira_issue_id = None
     jira_issue = measures_view.create_and_link_jira_issue(
         create_measure.id, jira_issue_input)
     assert create_measure.jira_issue_id == jira_issue.id
 
 def test_create_and_link_jira_issue_jira_issue_already_set(
-        measures_view: MeasuresView, create_measure: Measure, 
+        measures_view: MeasuresView, create_measure_with_jira_issue: Measure, 
         jira_issue_input: JiraIssueInput):
-    assert create_measure.jira_issue_id is not None
     with pytest.raises(HTTPException) as excinfo:
         measures_view.create_and_link_jira_issue(
-            create_measure.id, jira_issue_input)
+            create_measure_with_jira_issue.id, jira_issue_input)
         assert excinfo.value.status_code == 400
 
 def test_create_and_link_jira_issue_jira_project_not_set(
         measures_view: MeasuresView, create_measure: Measure, 
         jira_issue_input: JiraIssueInput):
     create_measure.requirement.project.jira_project_id = None
+
     with pytest.raises(HTTPException) as excinfo:
         measures_view.create_and_link_jira_issue(
             create_measure.id, jira_issue_input)
         assert excinfo.value.status_code == 400
 
 def test_unlink_jira_issue(
-        measures_view: MeasuresView, create_measure: Measure):
-    assert create_measure.jira_issue_id is not None
-    measures_view.unlink_jira_issue(create_measure.id)
-    assert create_measure.jira_issue_id is None
+        measures_view: MeasuresView, create_measure_with_jira_issue: Measure):
+    measures_view.unlink_jira_issue(create_measure_with_jira_issue.id)
+    assert create_measure_with_jira_issue.jira_issue_id is None
 
 def test_unlink_jira_issue_jira_issue_not_linked(
         measures_view: MeasuresView, create_measure: Measure):

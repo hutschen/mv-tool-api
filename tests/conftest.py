@@ -153,9 +153,9 @@ def requirement_input():
     return RequirementInput(summary='summary')
 
 @pytest.fixture()
-def measure_input(jira_issue_data, create_document):
+def measure_input(create_document):
     return MeasureInput(
-        summary='summary', jira_issue_id=jira_issue_data.id, 
+        summary='summary',
         document_id=create_document.id)
 
 @pytest.fixture
@@ -198,3 +198,11 @@ def create_measure(
         measures_view: MeasuresView, create_requirement: Requirement,
         measure_input: MeasureInput):
     return measures_view.create_measure(create_requirement.id, measure_input)
+
+@pytest.fixture
+def create_measure_with_jira_issue(
+        measures_view: MeasuresView,  create_measure: Measure, 
+        jira_issue_input: JiraIssueInput):
+    measures_view.create_and_link_jira_issue(
+        create_measure.id, jira_issue_input)
+    return create_measure
