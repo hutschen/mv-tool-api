@@ -80,18 +80,15 @@ class MeasuresView:
             measure_input: MeasureInput) -> MeasureOutput:
         requirement_output = self._requirements._get_requirement(requirement_id)
         document_output = self._documents._try_to_get_document(measure_input.document_id)
-        jira_issue = self._jira_issues.try_to_get_jira_issue(measure_input.jira_issue_id)
 
         return MeasureOutput.from_orm(
             self.create_measure(requirement_id, measure_input), update=dict(
-                requirement=requirement_output, document=document_output,
-                jira_issue=jira_issue))
+                requirement=requirement_output, document=document_output))
 
     def create_measure(
             self, requirement_id: int, measure: MeasureInput) -> Measure:
         measure = Measure.from_orm(measure)
         measure.requirement = self._requirements.get_requirement(requirement_id)
-        self._jira_issues.check_jira_issue_id(measure.jira_issue_id)
         self._documents.check_document_id(measure.document_id)
         return self._crud.create_in_db(measure)
 
@@ -127,10 +124,9 @@ class MeasuresView:
             self, measure_id: int, measure_update: MeasureInput) -> Measure:
         measure_current = self._crud.read_from_db(Measure, measure_id)
         measure_update = Measure.from_orm(measure_update, update=dict(
-            requirement_id=measure_current.requirement_id))
+            requirement_id=measure_current.requirement_id,
+            jira_issue_id=measure_current.jira_issue_id))
         self._documents.check_document_id(measure_update.document_id)
-        if measure_update.jira_issue_id != measure_current.jira_issue_id:
-            self._jira_issues.check_jira_issue_id(measure_update.jira_issue_id)
         return self._crud.update_in_db(measure_id, measure_update)
 
     @router.delete(
