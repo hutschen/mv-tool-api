@@ -17,9 +17,9 @@ from typing import Iterator
 from fastapi import APIRouter, Depends, Response
 from fastapi_utils.cbv import cbv
 
-from ..database import CRUDOperations, get_session
+from ..database import CRUDOperations
 from .projects import ProjectsView
-from ..models import Project, RequirementInput, Requirement, RequirementOutput
+from ..models import RequirementInput, Requirement, RequirementOutput
 
 router = APIRouter()
 
