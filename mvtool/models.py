@@ -13,7 +13,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from pydantic import constr, validator
+from pydantic import condecimal, constr, validator
 from sqlmodel import SQLModel, Field, Relationship
 
 
@@ -92,6 +92,13 @@ class Requirement(RequirementInput, table=True):
     project: 'Project' = Relationship(back_populates='requirements')
     measures: list[Measure] = Relationship(back_populates='requirement')
 
+    @property
+    def completion(self) -> float:
+        if not self.measures:
+            return 0.0
+        else:   
+            return sum(m.completed for m in self.measures) / len(self.measures)
+
 
 class DocumentInput(SQLModel):
     reference: str | None = None
@@ -117,10 +124,18 @@ class Project(ProjectInput, table=True):
     requirements: list[Requirement] = Relationship(back_populates='project')
     documents: list[Document] = Relationship(back_populates='project')
 
+    @property
+    def completion(self) -> float:
+        if not self.requirements:
+            return 0
+        else:
+            return sum(r.completion for r in self.requirements) / len(self.requirements)
+
 
 class ProjectOutput(ProjectInput):
     id: int
     jira_project: JiraProject | None = None
+    completion: condecimal(ge=0, le=1, decimal_places=2)
 
 
 class DocumentOutput(DocumentInput):
@@ -131,6 +146,7 @@ class DocumentOutput(DocumentInput):
 class RequirementOutput(RequirementInput):
     id: int
     project: ProjectOutput
+    completion: condecimal(ge=0, le=1, decimal_places=2)
 
 
 class MeasureOutput(SQLModel):

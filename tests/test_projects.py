@@ -16,7 +16,7 @@
 import pytest
 from fastapi import HTTPException
 from jira import JIRAError
-from mvtool.models import Project, ProjectInput, ProjectOutput
+from mvtool.models import Project, ProjectInput, ProjectOutput, Requirement, Measure
 from mvtool.views.projects import ProjectsView
 
 def test_list_project_outputs(projects_view: ProjectsView, create_project: Project):
@@ -105,3 +105,13 @@ def test_delete_project(
     with pytest.raises(HTTPException) as exception_info:
         projects_view.get_project(create_project.id)
         assert exception_info.value.status_code == 404
+
+def test_project_completion_incomplete(create_project: Project):
+    assert create_project.completion == 0.0
+
+def test_project_completion_complete(
+        create_project: Project, create_requirement: Requirement, 
+        create_measure: Measure):
+    create_measure.completed = True
+    assert create_requirement.completion == 1.0
+    assert create_project.completion == 1.0
