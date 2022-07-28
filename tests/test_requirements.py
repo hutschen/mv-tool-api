@@ -15,7 +15,7 @@
 
 import pytest
 from fastapi import HTTPException
-from mvtool.models import Project, Requirement, RequirementInput, RequirementOutput
+from mvtool.models import Measure, Project, Requirement, RequirementInput, RequirementOutput
 from mvtool.views.requirements import RequirementsView
 
 def test_list_requirement_outputs(
@@ -85,3 +85,11 @@ def test_delete_requirement(
     with pytest.raises(HTTPException) as excinfo:
         requirements_view.delete_requirement(create_requirement.id)
         excinfo.value.status_code == 404
+
+def test_requirement_completion_incomplete(create_requirement: Requirement):
+    assert create_requirement.completion == 0.0
+
+def test_requirement_completion_complete(
+        create_requirement: Requirement, create_measure: Measure):
+    create_measure.completed = True
+    assert create_requirement.completion == 1.0
