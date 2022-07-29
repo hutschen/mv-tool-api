@@ -14,7 +14,8 @@
 # GNU AGPL V3 for more details.
 
 import pytest
-from fastapi import HTTPException, Response
+from fastapi import HTTPException
+from fastapi.responses import FileResponse
 from mvtool.models import Measure, Project, Requirement, RequirementInput, RequirementOutput
 from mvtool.views.requirements import RequirementsView
 
@@ -90,7 +91,7 @@ def test_export_requirements_excel(
         requirements_view: RequirementsView, create_project: Project,
         create_requirement: Requirement):
     result = requirements_view.export_requirements_excel(create_project.id)
-    assert isinstance(result, Response)
+    assert isinstance(result, FileResponse)
 
 def test_requirement_completion_incomplete(create_requirement: Requirement):
     assert create_requirement.completion == 0.0

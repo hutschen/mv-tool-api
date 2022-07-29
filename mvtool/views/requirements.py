@@ -16,6 +16,7 @@
 from tempfile import NamedTemporaryFile
 from typing import Iterator
 from fastapi import APIRouter, Depends, Response
+from fastapi.responses import FileResponse
 from fastapi_utils.cbv import cbv
 from openpyxl import Workbook
 from openpyxl.worksheet.table import Table
@@ -52,10 +53,10 @@ class RequirementsView:
 
     @router.get(
         '/projects/{project_id}/requirements/excel', 
-        response_class=Response, **kwargs)
+        response_class=FileResponse, **kwargs)
     def export_requirements_excel(
             self, project_id: int, sheet_name: str='Export', 
-            file_name: str ='export') -> Response:
+            filename: str ='export.xlsx') -> FileResponse:
         
         # set up worksheet
         workbook = Workbook()
@@ -80,12 +81,12 @@ class RequirementsView:
         worksheet.add_table(table)
 
         # save to temporary file and return response
-        with NamedTemporaryFile() as tmp_file:
-            workbook.save(tmp_file.name)
-            return Response(
-                content=tmp_file.read(),
+        with NamedTemporaryFile(suffix='.xlsx') as temp_excel_file:
+            workbook.save(temp_excel_file.name)
+            return FileResponse(
+                temp_excel_file.name,
                 media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                headers={'Content-Disposition': f'attachment; filename="{file_name}.xlsx"'})
+                filename=filename)
 
     @router.post(
         '/projects/{project_id}/requirements', status_code=201, 
