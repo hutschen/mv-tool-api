@@ -13,9 +13,12 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
+from tempfile import NamedTemporaryFile
 from typing import Iterator
 from fastapi import APIRouter, Depends, Response
 from fastapi_utils.cbv import cbv
+from openpyxl import Workbook
+from openpyxl.worksheet.table import Table
 
 from ..database import CRUDOperations
 from .projects import ProjectsView
@@ -46,6 +49,43 @@ class RequirementsView:
 
     def list_requirements(self, project_id: int) -> list[Requirement]:
         return self._crud.read_all_from_db(Requirement, project_id=project_id)
+
+    @router.get(
+        '/projects/{project_id}/requirements/excel', 
+        response_class=Response, **kwargs)
+    def export_requirements_excel(
+            self, project_id: int, sheet_name: str='Export', 
+            file_name: str ='export') -> Response:
+        
+        # set up worksheet
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.title = sheet_name
+
+        # write data
+        column_names = [
+            'Reference', 'Summary', 'Description', 'Target Object', 
+            'Compliance Status', 'Compliance Comment', 'Completion']
+        worksheet.append(column_names)
+        for requirement in self.list_requirements(project_id):
+            worksheet.append([
+                requirement.reference, requirement.summary, 
+                requirement.description, requirement.target_object,
+                requirement.compliance_status, requirement.compliance_comment,
+                requirement.completion
+            ])
+
+        # create table
+        table = Table(displayName=sheet_name, ref=worksheet.calculate_dimension())
+        worksheet.add_table(table)
+
+        # save to temporary file and return response
+        with NamedTemporaryFile() as tmp_file:
+            workbook.save(tmp_file.name)
+            return Response(
+                content=tmp_file.read(),
+                media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                headers={'Content-Disposition': f'attachment; filename="{file_name}.xlsx"'})
 
     @router.post(
         '/projects/{project_id}/requirements', status_code=201, 
