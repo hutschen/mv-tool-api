@@ -14,7 +14,7 @@
 # GNU AGPL V3 for more details.
 
 import pytest
-from fastapi import HTTPException
+from fastapi import HTTPException, Response
 from mvtool.models import Measure, Project, Requirement, RequirementInput, RequirementOutput
 from mvtool.views.requirements import RequirementsView
 
@@ -85,6 +85,12 @@ def test_delete_requirement(
     with pytest.raises(HTTPException) as excinfo:
         requirements_view.delete_requirement(create_requirement.id)
         excinfo.value.status_code == 404
+
+def test_export_requirements_excel(
+        requirements_view: RequirementsView, create_project: Project,
+        create_requirement: Requirement):
+    result = requirements_view.export_requirements_excel(create_project.id)
+    assert isinstance(result, Response)
 
 def test_requirement_completion_incomplete(create_requirement: Requirement):
     assert create_requirement.completion == 0.0
