@@ -15,8 +15,22 @@
 
 from fastapi.responses import FileResponse
 
-from mvtool.models import Measure, Project
+from mvtool.models import Measure, Project, Requirement
 from mvtool.views.export import ExportMeasuresView
+
+def test_query_measure_data(
+        export_measures_view: ExportMeasuresView, create_project: Project, 
+        create_measure: Measure):
+    results = list(export_measures_view.query_measure_data(create_project.id))
+
+    assert len(results) == 1
+    result = results[0]
+    assert isinstance(result, tuple)
+    measure, requirement, document, jira_issue = result
+    assert isinstance(measure, Measure)
+    assert isinstance(requirement, Requirement)
+    assert document == create_measure.document
+    assert jira_issue == None
 
 def test_download_measures_excel(
         export_measures_view: ExportMeasuresView, excel_temp_file, 
