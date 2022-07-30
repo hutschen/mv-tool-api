@@ -51,43 +51,6 @@ class RequirementsView:
     def list_requirements(self, project_id: int) -> list[Requirement]:
         return self._crud.read_all_from_db(Requirement, project_id=project_id)
 
-    @router.get(
-        '/projects/{project_id}/requirements/excel', 
-        response_class=FileResponse, **kwargs)
-    def export_requirements_excel(
-            self, project_id: int, sheet_name: str='Export', 
-            filename: str ='export.xlsx') -> FileResponse:
-        
-        # set up worksheet
-        workbook = Workbook()
-        worksheet = workbook.active
-        worksheet.title = sheet_name
-
-        # write data
-        column_names = [
-            'Reference', 'Summary', 'Description', 'Target Object', 
-            'Compliance Status', 'Compliance Comment', 'Completion']
-        worksheet.append(column_names)
-        for requirement in self.list_requirements(project_id):
-            worksheet.append([
-                requirement.reference, requirement.summary, 
-                requirement.description, requirement.target_object,
-                requirement.compliance_status, requirement.compliance_comment,
-                requirement.completion
-            ])
-
-        # create table
-        table = Table(displayName=sheet_name, ref=worksheet.calculate_dimension())
-        worksheet.add_table(table)
-
-        # save to temporary file and return response
-        with NamedTemporaryFile(suffix='.xlsx') as temp_excel_file:
-            workbook.save(temp_excel_file.name)
-            return FileResponse(
-                temp_excel_file.name,
-                media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                filename=filename)
-
     @router.post(
         '/projects/{project_id}/requirements', status_code=201, 
         response_model=RequirementOutput, **kwargs)
@@ -139,3 +102,40 @@ class RequirementsView:
         response_class=Response, **kwargs)
     def delete_requirement(self, requirement_id: int) -> None:
         return self._crud.delete_from_db(Requirement, requirement_id)
+
+    @router.get(
+        '/projects/{project_id}/requirements/excel', 
+        response_class=FileResponse, **kwargs)
+    def export_requirements_excel(
+            self, project_id: int, sheet_name: str='Export', 
+            filename: str ='export.xlsx') -> FileResponse:
+        
+        # set up worksheet
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.title = sheet_name
+
+        # write data
+        column_names = [
+            'Reference', 'Summary', 'Description', 'Target Object', 
+            'Compliance Status', 'Compliance Comment', 'Completion']
+        worksheet.append(column_names)
+        for requirement in self.list_requirements(project_id):
+            worksheet.append([
+                requirement.reference, requirement.summary, 
+                requirement.description, requirement.target_object,
+                requirement.compliance_status, requirement.compliance_comment,
+                requirement.completion
+            ])
+
+        # create table
+        table = Table(displayName=sheet_name, ref=worksheet.calculate_dimension())
+        worksheet.add_table(table)
+
+        # save to temporary file and return response
+        with NamedTemporaryFile(suffix='.xlsx') as temp_excel_file:
+            workbook.save(temp_excel_file.name)
+            return FileResponse(
+                temp_excel_file.name,
+                media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                filename=filename)
