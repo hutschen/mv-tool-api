@@ -13,15 +13,9 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from tempfile import NamedTemporaryFile
 from typing import Iterator
 from fastapi import APIRouter, Depends, HTTPException, Response
-from fastapi.responses import FileResponse
 from fastapi_utils.cbv import cbv
-from openpyxl import Workbook
-from openpyxl.worksheet.table import Table
-from sqlmodel import select
-from openpyxl.worksheet.worksheet import Worksheet
 
 from mvtool.views.documents import DocumentsView
 from mvtool.views.jira_ import JiraIssuesView
@@ -30,11 +24,6 @@ from .requirements import RequirementsView
 from ..models import JiraIssue, JiraIssueInput, MeasureInput, Measure, MeasureOutput, Requirement
 
 router = APIRouter()
-
-def get_excel_temp_file():
-    with NamedTemporaryFile(suffix='.xlsx') as temp_file:
-        return temp_file
-
 
 @cbv(router)
 class MeasuresView:
@@ -184,43 +173,3 @@ class MeasuresView:
         # unlink Jira issue
         measure.jira_issue_id = None
         self._crud.update_in_db(measure_id, measure)
-
-    def fill_excel_worksheet_with_measures(self, worksheet: Worksheet, project_id: int):
-        # query data
-        query = select(Measure, Requirement
-            ).where(Measure.requirement_id == Requirement.id
-            ).where(Requirement.project_id == project_id)
-        results = self._crud.session.execute(query)
-
-        # fill worksheet
-        worksheet.append([
-            'Requirement Reference', 'Requirement Summary', 'Summary', 
-            'Description', 'Completed'])
-        for measure, requirement in results:
-            worksheet.append([
-                requirement.reference, requirement.summary, measure.summary,
-                measure.description, measure.completed])
-
-        # create table
-        table = Table(
-            displayName=worksheet.title, ref=worksheet.calculate_dimension())
-        worksheet.add_table(table)
-
-    @router.get(
-        '/projects/{project_id}/measures/excel', 
-        response_class=FileResponse, **kwargs)
-    def download_measures_excel(
-            self, project_id: int, sheet_name: str='Export', 
-            filename: str='export.xlsx', temp_file: NamedTemporaryFile = Depends(get_excel_temp_file)) -> FileResponse:
-        # set up workbook
-        workbook = Workbook()
-        worksheet = workbook.active
-        worksheet.title = sheet_name
-
-        # fill worksheet
-        self.fill_excel_worksheet_with_measures(worksheet, project_id)
-
-        # save to temporary file and return file response
-        workbook.save(temp_file.name)
-        return FileResponse(temp_file.name, filename=filename)
-        
