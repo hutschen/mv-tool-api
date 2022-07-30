@@ -13,13 +13,11 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from unittest import result
-from fastapi import HTTPException
-from jira import JIRAError
 import pytest
-from mvtool.models import Document, DocumentInput, JiraIssueInput, Measure, MeasureInput, MeasureOutput, Requirement
+from fastapi import HTTPException
+from fastapi.responses import FileResponse
+from mvtool.models import Project, Document, JiraIssueInput, Measure, MeasureInput, MeasureOutput, Requirement
 from mvtool.views.measures import MeasuresView
-from tests.conftest import jira_issue_input
 
 
 def test_list_measure_outputs(
