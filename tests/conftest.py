@@ -134,8 +134,8 @@ def crud(config):
     database.setup_engine(config)
     database.create_all()
 
-    session = database.get_session()
-    yield Mock(wraps=database.CRUDOperations(session))
+    for session in database.get_session():
+        yield Mock(wraps=database.CRUDOperations(session))
 
     database.drop_all()
     database.dispose_engine()
