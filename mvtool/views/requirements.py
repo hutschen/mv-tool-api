@@ -107,10 +107,9 @@ class RequirementsView:
     def fill_excel_worksheet_with_requirements(
             self, worksheet: Worksheet, project_id: int) -> None:
         # write data
-        column_names = [
+        worksheet.append([
             'Reference', 'Summary', 'Description', 'Target Object', 
-            'Compliance Status', 'Compliance Comment', 'Completion']
-        worksheet.append(column_names)
+            'Compliance Status', 'Compliance Comment', 'Completion'])
         for requirement in self.list_requirements(project_id):
             worksheet.append([
                 requirement.reference, requirement.summary, 
