@@ -140,7 +140,4 @@ class RequirementsView:
         # save to temporary file and return response
         with NamedTemporaryFile(suffix='.xlsx') as temp_excel_file:
             workbook.save(temp_excel_file.name)
-            return FileResponse(
-                temp_excel_file.name,
-                media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                filename=filename)
+            return FileResponse(temp_excel_file.name, filename=filename)

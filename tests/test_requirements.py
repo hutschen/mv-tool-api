@@ -92,6 +92,8 @@ def test_download_requirements_excel(
         create_requirement: Requirement):
     result = requirements_view.download_requirements_excel(create_project.id)
     assert isinstance(result, FileResponse)
+    assert result.media_type == \
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 
 def test_requirement_completion_incomplete(create_requirement: Requirement):
     assert create_requirement.completion == 0.0
