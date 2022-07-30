@@ -183,14 +183,16 @@ class MeasuresView:
 
     def fill_excel_worksheet_with_measures(self, worksheet: Worksheet, project_id: int):
         # query data
-        query = select(Requirement, Measure).where(Requirement.project_id == project_id)
+        query = select(Measure, Requirement
+            ).where(Measure.requirement_id == Requirement.id
+            ).where(Requirement.project_id == project_id)
         results = self._crud.session.execute(query)
 
         # fill worksheet
         worksheet.append([
             'Requirement Reference', 'Requirement Summary', 'Summary', 
             'Description', 'Completed'])
-        for requirement, measure in results:
+        for measure, requirement in results:
             worksheet.append([
                 requirement.reference, requirement.summary, measure.summary,
                 measure.description, measure.completed])
