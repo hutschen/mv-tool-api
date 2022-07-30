@@ -286,3 +286,14 @@ def test_unlink_jira_issue(client, create_measure_with_jira_issue):
         auth=('u', 'p'))
     assert response.status_code == 204
     assert create_measure_with_jira_issue.jira_issue_id is None
+
+def test_download_measures(client, create_project, create_measure):
+    response = client.get(
+        f'/api/projects/{create_project.id}/measures/excel', auth=('u', 'p'))
+    assert response.status_code == 200
+
+def test_download_requirements(client, create_project, create_requirement):
+    response = client.get(
+        f'/api/projects/{create_project.id}/requirements/excel',
+        auth=('u', 'p'))
+    assert response.status_code == 200

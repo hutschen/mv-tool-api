@@ -18,8 +18,9 @@ import pytest
 from unittest.mock import Mock
 from mvtool.config import Config
 from mvtool import database
-from mvtool.models import Document, DocumentInput, JiraIssueInput, Measure, MeasureInput, ProjectInput, Project, ProjectOutput, Requirement, RequirementInput, RequirementOutput
+from mvtool.models import DocumentInput, JiraIssueInput, Measure, MeasureInput, ProjectInput, Project, ProjectOutput, Requirement, RequirementInput, RequirementOutput
 from mvtool.views.documents import DocumentsView
+from mvtool.views.export import ExportMeasuresView, ExportRequirementsView, get_excel_temp_file
 from mvtool.views.jira_ import JiraIssuesView, JiraProjectsView
 from mvtool.views.projects import ProjectsView
 from mvtool.views.requirements import RequirementsView
@@ -134,8 +135,8 @@ def crud(config):
     database.setup_engine(config)
     database.create_all()
 
-    session = database.get_session()
-    yield Mock(wraps=database.CRUDOperations(session))
+    for session in database.get_session():
+        yield Mock(wraps=database.CRUDOperations(session))
 
     database.drop_all()
     database.dispose_engine()
@@ -206,3 +207,15 @@ def create_measure_with_jira_issue(
     measures_view.create_and_link_jira_issue(
         create_measure.id, jira_issue_input)
     return create_measure
+
+@pytest.fixture
+def excel_temp_file():
+    return get_excel_temp_file()
+
+@pytest.fixture
+def export_measures_view(crud, jira_issues_view):
+    return Mock(wraps=ExportMeasuresView(crud.session, jira_issues_view))
+
+@pytest.fixture
+def export_requirements_view(crud):
+    return Mock(wraps=ExportRequirementsView(crud.session))

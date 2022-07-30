@@ -16,15 +16,14 @@
 from typing import Iterator
 from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi_utils.cbv import cbv
-from mvtool.views.documents import DocumentsView
 
+from mvtool.views.documents import DocumentsView
 from mvtool.views.jira_ import JiraIssuesView
 from ..database import CRUDOperations
 from .requirements import RequirementsView
-from ..models import JiraIssue, JiraIssueInput, MeasureInput, Measure, MeasureOutput
+from ..models import JiraIssue, JiraIssueInput, MeasureInput, Measure, MeasureOutput, Requirement
 
 router = APIRouter()
-
 
 @cbv(router)
 class MeasuresView:

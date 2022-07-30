@@ -16,9 +16,13 @@
 from typing import Type, TypeVar, Generic
 from fastapi import Depends, HTTPException
 from sqlmodel import create_engine, Session, SQLModel, select
+from sqlmodel.sql.expression import Select, SelectOfScalar
 from sqlmodel.pool import StaticPool
-import logging
 from .config import Config
+
+# workaround for https://github.com/tiangolo/sqlmodel/issues/189
+SelectOfScalar.inherit_cache = True
+Select.inherit_cache = True
 
 class __State:
     engine = None
@@ -39,7 +43,7 @@ def dispose_engine():
 
 def get_session():
     with Session(__State.engine) as session:
-        return session
+        yield session
 
 def create_all():
     SQLModel.metadata.create_all(__State.engine)

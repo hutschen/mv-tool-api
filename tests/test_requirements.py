@@ -15,6 +15,7 @@
 
 import pytest
 from fastapi import HTTPException
+from fastapi.responses import FileResponse
 from mvtool.models import Measure, Project, Requirement, RequirementInput, RequirementOutput
 from mvtool.views.requirements import RequirementsView
 
