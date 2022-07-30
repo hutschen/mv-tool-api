@@ -17,7 +17,6 @@ from typing import Type, TypeVar, Generic
 from fastapi import Depends, HTTPException
 from sqlmodel import create_engine, Session, SQLModel, select
 from sqlmodel.pool import StaticPool
-import logging
 from .config import Config
 
 class __State:
