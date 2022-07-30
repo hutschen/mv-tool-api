@@ -31,6 +31,10 @@ from ..models import JiraIssue, JiraIssueInput, MeasureInput, Measure, MeasureOu
 
 router = APIRouter()
 
+def get_excel_temp_file():
+    with NamedTemporaryFile(suffix='.xlsx') as temp_file:
+        return temp_file
+
 
 @cbv(router)
 class MeasuresView:
@@ -207,7 +211,7 @@ class MeasuresView:
         response_class=FileResponse, **kwargs)
     def download_measures_excel(
             self, project_id: int, sheet_name: str='Export', 
-            filename: str='export.xlsx') -> FileResponse:
+            filename: str='export.xlsx', temp_file: NamedTemporaryFile = Depends(get_excel_temp_file)) -> FileResponse:
         # set up workbook
         workbook = Workbook()
         worksheet = workbook.active
@@ -217,7 +221,6 @@ class MeasuresView:
         self.fill_excel_worksheet_with_measures(worksheet, project_id)
 
         # save to temporary file and return file response
-        with NamedTemporaryFile(suffix='.xlsx') as temp_file:
-            workbook.save(temp_file.name)
-            return FileResponse(temp_file.name, filename=filename)
+        workbook.save(temp_file.name)
+        return FileResponse(temp_file.name, filename=filename)
         
