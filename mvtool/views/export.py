@@ -14,6 +14,7 @@
 # GNU AGPL V3 for more details.
 
 from tempfile import NamedTemporaryFile
+from typing import List
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from fastapi_utils.cbv import cbv
@@ -24,7 +25,7 @@ from openpyxl import Workbook
 from openpyxl.worksheet.table import Table
 
 from mvtool.database import get_session
-from mvtool.models import Document, Measure, Requirement
+from mvtool.models import Document, Measure, Project, Requirement
 from mvtool.views.jira_ import JiraIssuesView
 
 def get_excel_temp_file():
@@ -66,22 +67,20 @@ class ExportMeasuresView:
 
     def fill_excel_worksheet_with_measure_data(
             self, worksheet: Worksheet, project_id: int):
-        measure_data = self.query_measure_data(project_id)
-
-        # fill worksheet
         worksheet.append([
             'Requirement Reference', 'Requirement Summary', 'Summary', 
             'Description', 'Completed', 'Document Reference', 'Document Title', 
             'JIRA Issue Key'])
-        for measure, requirement, document, jira_issue in measure_data:
+
+        for measure, requirement, document, jira_issue \
+                in self.query_measure_data(project_id):
             worksheet.append([
                 requirement.reference, requirement.summary, measure.summary, 
                 measure.description, measure.completed, 
                 document.reference if document else '', 
                 document.title if document else '', 
                 jira_issue.key if jira_issue else ''])
-
-        # create table
+        
         table = Table(
             displayName=worksheet.title, ref=worksheet.calculate_dimension())
         worksheet.add_table(table)
@@ -103,5 +102,57 @@ class ExportMeasuresView:
         self.fill_excel_worksheet_with_measure_data(worksheet, project_id)
 
         # save to temporary file and return file response
+        workbook.save(temp_file.name)
+        return FileResponse(temp_file.name, filename=filename)
+
+
+@cbv(router)
+class ExportRequirementsView:
+    kwargs = dict(tags=['requirement'])
+
+    def __init__(self, session: Session = Depends(get_session)):
+        self._session = session
+
+    def query_requirement_data(self, project_id: int) -> List:
+        query = select(Requirement, Project).where(
+            Requirement.project_id == Project.id,
+            Requirement.project_id == project_id)
+        return self._session.exec(query).all()
+
+    def fill_excel_worksheet_with_requirement_data(
+            self, worksheet: Worksheet, project_id: int) -> None:
+        worksheet.append([
+            'Reference', 'Summary', 'Description', 'Target Object', 
+            'Compliance Status', 'Compliance Comment', 'Completion'])
+
+        for requirement, _ in self.query_requirement_data(project_id):
+            worksheet.append([
+                requirement.reference, requirement.summary, 
+                requirement.description, requirement.target_object,
+                requirement.compliance_status, requirement.compliance_comment,
+                requirement.completion
+            ])
+
+        table = Table(
+            displayName=worksheet.title, ref=worksheet.calculate_dimension())
+        worksheet.add_table(table)
+
+    @router.get(
+        '/projects/{project_id}/requirements/excel', 
+        response_class=FileResponse, **kwargs)
+    def download_requirements_excel(
+            self, project_id: int, sheet_name: str='Export', 
+            filename: str ='export.xlsx',
+            temp_file: NamedTemporaryFile = Depends(get_excel_temp_file)
+        ) -> FileResponse:
+        # set up workbook
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.title = sheet_name
+
+        # fill worksheet with data
+        self.fill_excel_worksheet_with_requirement_data(worksheet, project_id)
+
+        # save to temporary file and return response
         workbook.save(temp_file.name)
         return FileResponse(temp_file.name, filename=filename)

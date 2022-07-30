@@ -18,9 +18,9 @@ import pytest
 from unittest.mock import Mock
 from mvtool.config import Config
 from mvtool import database
-from mvtool.models import Document, DocumentInput, JiraIssueInput, Measure, MeasureInput, ProjectInput, Project, ProjectOutput, Requirement, RequirementInput, RequirementOutput
+from mvtool.models import DocumentInput, JiraIssueInput, Measure, MeasureInput, ProjectInput, Project, ProjectOutput, Requirement, RequirementInput, RequirementOutput
 from mvtool.views.documents import DocumentsView
-from mvtool.views.export import ExportMeasuresView, get_excel_temp_file
+from mvtool.views.export import ExportMeasuresView, ExportRequirementsView, get_excel_temp_file
 from mvtool.views.jira_ import JiraIssuesView, JiraProjectsView
 from mvtool.views.projects import ProjectsView
 from mvtool.views.requirements import RequirementsView
@@ -215,3 +215,7 @@ def excel_temp_file():
 @pytest.fixture
 def export_measures_view(crud, jira_issues_view):
     return Mock(wraps=ExportMeasuresView(crud.session, jira_issues_view))
+
+@pytest.fixture
+def export_requirements_view(crud):
+    return Mock(wraps=ExportRequirementsView(crud.session))

@@ -13,14 +13,9 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from tempfile import NamedTemporaryFile
 from typing import Iterator
 from fastapi import APIRouter, Depends, Response
-from fastapi.responses import FileResponse
 from fastapi_utils.cbv import cbv
-from openpyxl import Workbook
-from openpyxl.worksheet.table import Table
-from openpyxl.worksheet.worksheet import Worksheet
 
 from ..database import CRUDOperations
 from .projects import ProjectsView
@@ -103,41 +98,3 @@ class RequirementsView:
         response_class=Response, **kwargs)
     def delete_requirement(self, requirement_id: int) -> None:
         return self._crud.delete_from_db(Requirement, requirement_id)
-
-    def fill_excel_worksheet_with_requirements(
-            self, worksheet: Worksheet, project_id: int) -> None:
-        # write data
-        worksheet.append([
-            'Reference', 'Summary', 'Description', 'Target Object', 
-            'Compliance Status', 'Compliance Comment', 'Completion'])
-        for requirement in self.list_requirements(project_id):
-            worksheet.append([
-                requirement.reference, requirement.summary, 
-                requirement.description, requirement.target_object,
-                requirement.compliance_status, requirement.compliance_comment,
-                requirement.completion
-            ])
-
-        # create table
-        table = Table(
-            displayName=worksheet.title, ref=worksheet.calculate_dimension())
-        worksheet.add_table(table)
-
-    @router.get(
-        '/projects/{project_id}/requirements/excel', 
-        response_class=FileResponse, **kwargs)
-    def download_requirements_excel(
-            self, project_id: int, sheet_name: str='Export', 
-            filename: str ='export.xlsx') -> FileResponse:
-        # set up workbook
-        workbook = Workbook()
-        worksheet = workbook.active
-        worksheet.title = sheet_name
-
-        # fill worksheet with data
-        self.fill_excel_worksheet_with_requirements(worksheet, project_id)
-
-        # save to temporary file and return response
-        with NamedTemporaryFile(suffix='.xlsx') as temp_excel_file:
-            workbook.save(temp_excel_file.name)
-            return FileResponse(temp_excel_file.name, filename=filename)

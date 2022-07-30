@@ -16,7 +16,7 @@
 from fastapi.responses import FileResponse
 
 from mvtool.models import Measure, Project, Requirement
-from mvtool.views.export import ExportMeasuresView
+from mvtool.views.export import ExportMeasuresView, ExportRequirementsView
 
 def test_query_measure_data(
         export_measures_view: ExportMeasuresView, create_project: Project, 
@@ -36,6 +36,26 @@ def test_download_measures_excel(
         export_measures_view: ExportMeasuresView, excel_temp_file, 
         create_project: Project, create_measure: Measure):
     result = export_measures_view.download_measures_excel(
+        create_project.id, temp_file=excel_temp_file)
+    assert isinstance(result, FileResponse)
+    assert result.media_type == \
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+
+def test_query_requirement_data(
+        export_requirements_view: ExportRequirementsView, create_project: Project, 
+        create_requirement: Requirement):
+    results = export_requirements_view.query_requirement_data(
+        create_project.id)
+
+    assert len(results) == 1
+    requirement, project = results[0]
+    assert isinstance(requirement, Requirement)
+    assert isinstance(project, Project)
+
+def test_download_requirements_excel(
+        export_requirements_view: ExportRequirementsView, excel_temp_file,
+        create_project: Project, create_requirement: Requirement):
+    result = export_requirements_view.download_requirements_excel(
         create_project.id, temp_file=excel_temp_file)
     assert isinstance(result, FileResponse)
     assert result.media_type == \
