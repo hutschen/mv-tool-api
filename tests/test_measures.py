@@ -179,12 +179,3 @@ def test_unlink_jira_issue_jira_issue_not_linked(
     with pytest.raises(HTTPException) as excinfo:
         measures_view.unlink_jira_issue(create_measure.id)
         assert excinfo.value.status_code == 404
-
-@pytest.mark.skip(reason="needs tempfile dependency")
-def test_download_measures_excel(
-        measures_view: MeasuresView, create_project: Project, 
-        create_measure: Measure):
-    result = measures_view.download_measures_excel(create_project.id)
-    assert isinstance(result, FileResponse)
-    assert result.media_type == \
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'

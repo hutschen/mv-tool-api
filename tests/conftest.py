@@ -20,6 +20,7 @@ from mvtool.config import Config
 from mvtool import database
 from mvtool.models import Document, DocumentInput, JiraIssueInput, Measure, MeasureInput, ProjectInput, Project, ProjectOutput, Requirement, RequirementInput, RequirementOutput
 from mvtool.views.documents import DocumentsView
+from mvtool.views.export import ExportMeasuresView, get_excel_temp_file
 from mvtool.views.jira_ import JiraIssuesView, JiraProjectsView
 from mvtool.views.projects import ProjectsView
 from mvtool.views.requirements import RequirementsView
@@ -206,3 +207,11 @@ def create_measure_with_jira_issue(
     measures_view.create_and_link_jira_issue(
         create_measure.id, jira_issue_input)
     return create_measure
+
+@pytest.fixture
+def excel_temp_file():
+    return get_excel_temp_file()
+
+@pytest.fixture
+def export_measures_view(crud, jira_issues_view):
+    return Mock(wraps=ExportMeasuresView(crud.session, jira_issues_view))
