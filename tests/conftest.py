@@ -217,5 +217,5 @@ def export_measures_view(crud, jira_issues_view):
     return Mock(wraps=ExportMeasuresView(crud.session, jira_issues_view))
 
 @pytest.fixture
-def export_requirements_view(crud):
-    return Mock(wraps=ExportRequirementsView(crud.session))
+def export_requirements_view(crud, jira):
+    return Mock(wraps=ExportRequirementsView(crud.session, jira))

@@ -23,6 +23,7 @@ from sqlmodel import Session, select
 from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl import Workbook
 from openpyxl.worksheet.table import Table
+from mvtool.auth import get_jira
 
 from mvtool.database import get_session
 from mvtool.models import Document, Measure, Project, Requirement
@@ -110,7 +111,8 @@ class ExportMeasuresView:
 class ExportRequirementsView:
     kwargs = dict(tags=['requirement'])
 
-    def __init__(self, session: Session = Depends(get_session)):
+    def __init__(self, 
+            session: Session = Depends(get_session), _ = Depends(get_jira)):
         self._session = session
 
     def query_requirement_data(self, project_id: int) -> List:
