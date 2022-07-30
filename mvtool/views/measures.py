@@ -16,12 +16,15 @@
 from typing import Iterator
 from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi_utils.cbv import cbv
-from mvtool.views.documents import DocumentsView
+from openpyxl.worksheet.table import Table
+from sqlmodel import select
+from openpyxl.worksheet.worksheet import Worksheet
 
+from mvtool.views.documents import DocumentsView
 from mvtool.views.jira_ import JiraIssuesView
 from ..database import CRUDOperations
 from .requirements import RequirementsView
-from ..models import JiraIssue, JiraIssueInput, MeasureInput, Measure, MeasureOutput
+from ..models import JiraIssue, JiraIssueInput, MeasureInput, Measure, MeasureOutput, Requirement
 
 router = APIRouter()
 
@@ -174,3 +177,23 @@ class MeasuresView:
         # unlink Jira issue
         measure.jira_issue_id = None
         self._crud.update_in_db(measure_id, measure)
+
+    def fill_excel_worksheet_with_measures(self, worksheet: Worksheet, project_id: int):
+        # query data
+        query = select(Requirement, Measure).where(Requirement.project_id == project_id)
+        results = self._crud.session.execute(query)
+
+        # fill worksheet
+        worksheet.append([
+            'Requirement Reference', 'Requirement Summary', 'Summary', 
+            'Description', 'Completed'])
+        for requirement, measure in results:
+            worksheet.append([
+                requirement.reference, requirement.summary, measure.summary,
+                measure.description, measure.completed])
+
+        # create table
+        table = Table(
+            displayName=worksheet.title, ref=worksheet.calculate_dimension())
+        worksheet.add_table(table)
+        
