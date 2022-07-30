@@ -200,6 +200,9 @@ class MeasuresView:
             displayName=worksheet.title, ref=worksheet.calculate_dimension())
         worksheet.add_table(table)
 
+    @router.get(
+        '/projects/{project_id}/measures/excel', 
+        response_class=FileResponse, **kwargs)
     def download_measures_excel(
             self, project_id: int, sheet_name: str='Export', 
             filename: str='export.xlsx') -> FileResponse:
@@ -214,8 +217,5 @@ class MeasuresView:
         # save to temporary file and return file response
         with NamedTemporaryFile(suffix='.xlsx') as temp_file:
             workbook.save(temp_file.name)
-            return FileResponse(
-                temp_file.name,
-                media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                filename=filename)
+            return FileResponse(temp_file.name, filename=filename)
         
