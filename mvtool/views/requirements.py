@@ -127,7 +127,7 @@ class RequirementsView:
     @router.get(
         '/projects/{project_id}/requirements/excel', 
         response_class=FileResponse, **kwargs)
-    def export_requirements_excel(
+    def download_requirements_excel(
             self, project_id: int, sheet_name: str='Export', 
             filename: str ='export.xlsx') -> FileResponse:
         
