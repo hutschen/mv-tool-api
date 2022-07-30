@@ -13,9 +13,12 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
+from tempfile import NamedTemporaryFile
 from typing import Iterator
 from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi.responses import FileResponse
 from fastapi_utils.cbv import cbv
+from openpyxl import Workbook
 from openpyxl.worksheet.table import Table
 from sqlmodel import select
 from openpyxl.worksheet.worksheet import Worksheet
@@ -196,4 +199,23 @@ class MeasuresView:
         table = Table(
             displayName=worksheet.title, ref=worksheet.calculate_dimension())
         worksheet.add_table(table)
+
+    def download_measures_excel(
+            self, project_id: int, sheet_name: str='Export', 
+            filename: str='export.xlsx') -> FileResponse:
+        # set up workbook
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.title = sheet_name
+
+        # fill worksheet
+        self.fill_excel_worksheet_with_measures(worksheet, project_id)
+
+        # save to temporary file and return file response
+        with NamedTemporaryFile(suffix='.xlsx') as temp_file:
+            workbook.save(temp_file.name)
+            return FileResponse(
+                temp_file.name,
+                media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                filename=filename)
         
