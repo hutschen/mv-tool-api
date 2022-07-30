@@ -43,7 +43,7 @@ def dispose_engine():
 
 def get_session():
     with Session(__State.engine) as session:
-        return session
+        yield session
 
 def create_all():
     SQLModel.metadata.create_all(__State.engine)
