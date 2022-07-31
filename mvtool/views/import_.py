@@ -14,7 +14,7 @@
 # GNU AGPL V3 for more details.
 
 from tempfile import NamedTemporaryFile
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response, UploadFile
 from fastapi_utils.cbv import cbv
 from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl import Workbook
@@ -69,3 +69,16 @@ class ImportRequirementsView:
                 raise errors.ValueHttpError(detail)
             else:
                 yield requirement_input
+
+    @router.post(
+        '/projects/{project_id}/requirements/excel', status_code=201, 
+        response_class=Response, **kwargs)
+    def upload_requirements_excel(
+            self, project_id: int, excel_file: UploadFile):
+        # read excel file
+        workbook = Workbook(excel_file.filename)
+        worksheet = workbook.active
+        for requirement_input in \
+                self.read_requirement_from_excel_worksheet(worksheet):
+            self._requirements.create_requirement(
+                project_id, requirement_input)
