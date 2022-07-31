@@ -306,6 +306,14 @@ def test_upload_requirements(client, create_project):
             auth=('u', 'p'))
     assert response.status_code == 201
 
+def test_upload_requirements_invalid_file(client, create_project):
+    with open('tests/import/invalid_data.xlsx', "rb") as excel_file:
+        response = client.post(
+            f'/api/projects/{create_project.id}/requirements/excel', 
+            files=dict(excel_file=excel_file),
+            auth=('u', 'p'))
+    assert response.status_code == 400
+
 def test_upload_requirements_corrupted_file(client, create_project):
     with open('tests/import/corrupted.xlsx', "rb") as excel_file:
         response = client.post(
