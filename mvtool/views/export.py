@@ -14,7 +14,6 @@
 # GNU AGPL V3 for more details.
 
 from tempfile import NamedTemporaryFile
-from typing import List
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from fastapi_utils.cbv import cbv
@@ -23,11 +22,11 @@ from sqlmodel import Session, select
 from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl import Workbook
 from openpyxl.worksheet.table import Table
-from mvtool.auth import get_jira
 
 from mvtool.database import get_session
-from mvtool.models import Document, Measure, Project, Requirement
+from mvtool.models import Document, Measure, Requirement
 from mvtool.views.jira_ import JiraIssuesView
+from mvtool.views.requirements import RequirementsView
 
 def get_excel_temp_file():
     with NamedTemporaryFile(suffix='.xlsx') as temp_file:
@@ -111,15 +110,9 @@ class ExportMeasuresView:
 class ExportRequirementsView:
     kwargs = dict(tags=['requirement'])
 
-    def __init__(self, 
-            session: Session = Depends(get_session), _ = Depends(get_jira)):
-        self._session = session
-
-    def query_requirement_data(self, project_id: int) -> List:
-        query = select(Requirement, Project).where(
-            Requirement.project_id == Project.id,
-            Requirement.project_id == project_id)
-        return self._session.exec(query).all()
+    def __init__(
+            self, requirements: RequirementsView = Depends(RequirementsView)):
+        self._requirements = requirements
 
     def fill_excel_worksheet_with_requirement_data(
             self, worksheet: Worksheet, project_id: int) -> None:
@@ -127,7 +120,7 @@ class ExportRequirementsView:
             'Reference', 'Summary', 'Description', 'Target Object', 
             'Compliance Status', 'Compliance Comment', 'Completion'])
 
-        for requirement, _ in self.query_requirement_data(project_id):
+        for requirement in self._requirements.list_requirements(project_id):
             worksheet.append([
                 requirement.reference, requirement.summary, 
                 requirement.description, requirement.target_object,

@@ -41,17 +41,6 @@ def test_download_measures_excel(
     assert result.media_type == \
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 
-def test_query_requirement_data(
-        export_requirements_view: ExportRequirementsView, create_project: Project, 
-        create_requirement: Requirement):
-    results = export_requirements_view.query_requirement_data(
-        create_project.id)
-
-    assert len(results) == 1
-    requirement, project = results[0]
-    assert isinstance(requirement, Requirement)
-    assert isinstance(project, Project)
-
 def test_download_requirements_excel(
         export_requirements_view: ExportRequirementsView, excel_temp_file,
         create_project: Project, create_requirement: Requirement):
