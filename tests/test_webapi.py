@@ -297,3 +297,20 @@ def test_download_requirements(client, create_project, create_requirement):
         f'/api/projects/{create_project.id}/requirements/excel',
         auth=('u', 'p'))
     assert response.status_code == 200
+
+def test_upload_requirements(client, create_project):
+    with open('tests/import/valid.xlsx', "rb") as excel_file:
+        response = client.post(
+            f'/api/projects/{create_project.id}/requirements/excel', 
+            files=dict(excel_file=excel_file),
+            auth=('u', 'p'))
+    assert response.status_code == 201
+
+def test_upload_requirements_corrupted_file(client, create_project):
+    with open('tests/import/corrupted.xlsx', "rb") as excel_file:
+        response = client.post(
+            f'/api/projects/{create_project.id}/requirements/excel', 
+            files=dict(excel_file=excel_file),
+            auth=('u', 'p'))
+    assert response.status_code == 400
+    assert len(create_project.requirements) == 0
