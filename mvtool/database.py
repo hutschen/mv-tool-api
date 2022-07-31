@@ -44,6 +44,7 @@ def dispose_engine():
 def get_session():
     with Session(__State.engine) as session:
         yield session
+        session.commit()
 
 def create_all():
     SQLModel.metadata.create_all(__State.engine)
@@ -68,7 +69,7 @@ class CRUDOperations(Generic[T]):
 
     def create_in_db(self, item: T) -> T:
         self.session.add(item)
-        self.session.commit()
+        self.session.flush()
         self.session.refresh(item)
         return item
 
@@ -85,10 +86,10 @@ class CRUDOperations(Generic[T]):
         item = self.read_from_db(sqlmodel, id)
         item_update.id = item.id
         self.session.merge(item_update)
-        self.session.commit()
+        self.session.flush()
         return item
 
     def delete_from_db(self, sqlmodel: Type[T], id: int) -> None:
         item = self.read_from_db(sqlmodel, id)
         self.session.delete(item)
-        self.session.commit()
+        self.session.flush()
