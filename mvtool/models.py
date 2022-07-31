@@ -80,7 +80,8 @@ class RequirementInput(SQLModel):
 
     @validator('compliance_comment')
     def compliance_comment_validator(cls, v, values):
-        if values['compliance_status'] is None and v:
+        if v and ('compliance_status' in values) \
+                and (values['compliance_status'] is None):
             raise ValueError(
                 'compliance_comment cannot be set if compliance_status is None')
         return v

@@ -13,10 +13,16 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
+from unittest.mock import Mock
 from fastapi.responses import FileResponse
+from openpyxl import load_workbook
+from pydantic import ValidationError
+import pytest
 
-from mvtool.models import Measure, Project, Requirement
+from mvtool.models import Measure, Project, Requirement, RequirementInput
 from mvtool.views.export import ExportMeasuresView, ExportRequirementsView
+from mvtool.views.import_ import ImportRequirementsView
+from mvtool.views.requirements import RequirementsView
 
 def test_query_measure_data(
         export_measures_view: ExportMeasuresView, create_project: Project, 
@@ -49,3 +55,31 @@ def test_download_requirements_excel(
     assert isinstance(result, FileResponse)
     assert result.media_type == \
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+
+
+def test_read_requirements_from_excel_worksheet():
+    sut = ImportRequirementsView(None, None)
+    workbook = load_workbook('tests/import/valid.xlsx')
+    worksheet = workbook.active
+
+    results = list(sut.read_requirement_from_excel_worksheet(worksheet))
+
+    assert len(results) >= 1
+    result = results[0]
+    assert isinstance(result, RequirementInput)
+
+def test_read_requirements_from_excel_worksheet_invalid_headers():
+    sut = ImportRequirementsView(None, None)
+    workbook = load_workbook('tests/import/invalid_headers.xlsx')
+    worksheet = workbook.active
+
+    with pytest.raises(ValueError):
+        list(sut.read_requirement_from_excel_worksheet(worksheet))
+
+def test_read_requirements_from_excel_worksheet_invalid_data():
+    sut = ImportRequirementsView(None, None)
+    workbook = load_workbook('tests/import/invalid_data.xlsx')
+    worksheet = workbook.active
+
+    with pytest.raises(ValidationError):
+        list(sut.read_requirement_from_excel_worksheet(worksheet))
