@@ -13,16 +13,14 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from unittest.mock import Mock
+from fastapi import HTTPException
 from fastapi.responses import FileResponse
 from openpyxl import load_workbook
-from pydantic import ValidationError
 import pytest
 
 from mvtool.models import Measure, Project, Requirement, RequirementInput
 from mvtool.views.export import ExportMeasuresView, ExportRequirementsView
 from mvtool.views.import_ import ImportRequirementsView
-from mvtool.views.requirements import RequirementsView
 
 def test_query_measure_data(
         export_measures_view: ExportMeasuresView, create_project: Project, 
@@ -73,13 +71,19 @@ def test_read_requirements_from_excel_worksheet_invalid_headers():
     workbook = load_workbook('tests/import/invalid_headers.xlsx')
     worksheet = workbook.active
 
-    with pytest.raises(ValueError):
+    with pytest.raises(HTTPException) as error_info:
         list(sut.read_requirement_from_excel_worksheet(worksheet))
+    
+    assert error_info.value.status_code == 400
+    assert error_info.value.detail.startswith('Missing headers')
 
 def test_read_requirements_from_excel_worksheet_invalid_data():
     sut = ImportRequirementsView(None, None)
     workbook = load_workbook('tests/import/invalid_data.xlsx')
     worksheet = workbook.active
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(HTTPException) as error_info:
         list(sut.read_requirement_from_excel_worksheet(worksheet))
+
+    assert error_info.value.status_code == 400
+    assert error_info.value.detail.startswith('Invalid data')

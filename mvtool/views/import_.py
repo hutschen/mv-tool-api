@@ -18,10 +18,12 @@ from fastapi import APIRouter, Depends
 from fastapi_utils.cbv import cbv
 from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl import Workbook
+from pydantic import ValidationError
 from mvtool.models import RequirementInput
 from mvtool.views.export import get_excel_temp_file
 
 from mvtool.views.requirements import RequirementsView
+from mvtool import errors
 
 router = APIRouter()
 
@@ -43,19 +45,27 @@ class ImportRequirementsView:
         for index, values in enumerate(worksheet.iter_rows(values_only=True)):
             # check and process header row
             if index == 0:
-                # check if headers is subset of set(values)
-                if not headers.issubset(set(values)):
-                    raise ValueError('Invalid header row')
+                # check if all required headers are present
+                if not headers.issubset(values):
+                    detail = 'Missing headers on worksheet "%s": %s' % (
+                        worksheet.title, ', '.join(headers - set(values)))
+                    raise errors.ValueHttpError(detail)
                 headers = tuple(values)
                 continue
             
-            # process data row
+            # get data from row
             requirement_data = dict(zip(headers, values))
-            # TODO: catch validation error
-            yield RequirementInput(
-                reference=requirement_data['Reference'] or None,
-                summary=requirement_data['Summary'],
-                description=requirement_data['Description'] or None,
-                target_object=requirement_data['Target Object'] or None,
-                compliance_status=requirement_data['Compliance Status'] or None,
-                compliance_comment=requirement_data['Compliance Comment'] or None)
+            try:
+                requirement_input = RequirementInput(
+                    reference=requirement_data['Reference'] or None,
+                    summary=requirement_data['Summary'],
+                    description=requirement_data['Description'] or None,
+                    target_object=requirement_data['Target Object'] or None,
+                    compliance_status=requirement_data['Compliance Status'] or None,
+                    compliance_comment=requirement_data['Compliance Comment'] or None)
+            except ValidationError as error:
+                detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
+                    worksheet.title, index + 1, error)
+                raise errors.ValueHttpError(detail)
+            else:
+                yield requirement_input
