@@ -13,6 +13,7 @@ sqlalchemy = "==1.4.35"
 sqlmodel = "==0.0.6"
 cachetools = "*"
 openpyxl = "*"
+python-multipart = "*"
 
 [dev-packages]
 pytest = "*"
