@@ -19,10 +19,11 @@ from fastapi_utils.cbv import cbv
 from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl import load_workbook
 from pydantic import ValidationError
-from mvtool.models import RequirementInput
+from mvtool.models import MeasureInput, RequirementInput
 from mvtool.views.export import get_excel_temp_file
 
 from mvtool.views.requirements import RequirementsView
+from mvtool.views.measures import MeasuresView
 from mvtool import errors
 
 router = APIRouter()
@@ -101,3 +102,40 @@ class ImportRequirementsView:
                 self.read_requirement_from_excel_worksheet(worksheet):
             self._requirements.create_requirement(
                 project_id, requirement_input)
+
+
+class ImportMeasuresView:
+    kwargs = dict(tags=['measure'])
+
+    def __init__(self,
+            temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
+            measures: MeasuresView = Depends(MeasuresView)):
+        self._temp_file = temp_file
+        self._measures = measures
+
+    def read_measures_from_excel_worksheet(self, worksheet: Worksheet):
+        headers = {'Summary', 'Description'}
+
+        for index, values in enumerate(worksheet.iter_rows(values_only=True)):
+            # check and process header row
+            if index == 0:
+                # check if all required headers are present
+                if not headers.issubset(values):
+                    detail = 'Missing headers on worksheet "%s": %s' % (
+                        worksheet.title, ', '.join(headers - set(values)))
+                    raise errors.ValueHttpError(detail)
+                headers = tuple(values)
+                continue
+            
+            # get data from row
+            measure_data = dict(zip(headers, values))
+            try:
+                measure_input = MeasureInput(
+                    summary=measure_data['Summary'],
+                    description=measure_data['Description'] or None)
+            except ValidationError as error:
+                detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
+                    worksheet.title, index + 1, error)
+                raise errors.ValueHttpError(detail)
+            else:
+                yield measure_input
