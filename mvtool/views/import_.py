@@ -139,3 +139,61 @@ class ImportMeasuresView:
                 raise errors.ValueHttpError(detail)
             else:
                 yield measure_input
+
+    @router.post(
+        '/requirements/{requirement_id}/measures/excel', status_code=201,
+        response_class=Response, **kwargs)
+    def upload_measures_excel(
+            self, requirement_id: int, excel_file: UploadFile):
+        with open(self._temp_file.name, 'wb') as f:
+            # 1MB buffer size should be sufficient to load an Excel file
+            buffer_size = 1000 * 1024
+            chunk = excel_file.file.read(buffer_size)
+            while chunk:
+                f.write(chunk)
+                chunk = excel_file.file.read(buffer_size)
+
+        # carefully open the Excel file
+        try:
+            workbook = load_workbook(self._temp_file.name, read_only=True)
+        except Exception:
+            # have to catch all exceptions, because openpyxl does raise several
+            # exceptions when reading an invalid Excel file
+            raise errors.ValueHttpError('Excel file seems to be corrupt')
+        worksheet = workbook.active
+        if not worksheet:
+            # when the Excel file is empty or not exists, openpyxl returns None 
+            # instead of raising an exception
+            raise errors.ValueHttpError('No worksheet found in Excel file')
+
+        # read data from worksheet
+        for measure_input in \
+                self.read_measures_from_excel_worksheet(worksheet):
+            self._measures.create_measure(requirement_id, measure_input)
+    def upload_measures_excel(
+            self, requirement_id: int, excel_file: UploadFile):
+        with open(self._temp_file.name, 'wb') as f:
+            # 1MB buffer size should be sufficient to load an Excel file
+            buffer_size = 1000 * 1024
+            chunk = excel_file.file.read(buffer_size)
+            while chunk:
+                f.write(chunk)
+                chunk = excel_file.file.read(buffer_size)
+
+        # carefully open the Excel file
+        try:
+            workbook = load_workbook(self._temp_file.name, read_only=True)
+        except Exception:
+            # have to catch all exceptions, because openpyxl does raise several
+            # exceptions when reading an invalid Excel file
+            raise errors.ValueHttpError('Excel file seems to be corrupt')
+        worksheet = workbook.active
+        if not worksheet:
+            # when the Excel file is empty or not exists, openpyxl returns None 
+            # instead of raising an exception
+            raise errors.ValueHttpError('No worksheet found in Excel file')
+
+        # read data from worksheet
+        for measure_input in \
+                self.read_measures_from_excel_worksheet(worksheet):
+            self._measures.create_measure(requirement_id, measure_input)
