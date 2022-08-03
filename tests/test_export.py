@@ -18,9 +18,9 @@ from fastapi.responses import FileResponse
 from openpyxl import load_workbook
 import pytest
 
-from mvtool.models import Measure, Project, Requirement, RequirementInput
+from mvtool.models import Measure, MeasureInput, Project, Requirement, RequirementInput
 from mvtool.views.export import ExportMeasuresView, ExportRequirementsView
-from mvtool.views.import_ import ImportRequirementsView
+from mvtool.views.import_ import ImportMeasuresView, ImportRequirementsView
 
 def test_query_measure_data(
         export_measures_view: ExportMeasuresView, create_project: Project, 
@@ -57,7 +57,7 @@ def test_download_requirements_excel(
 
 def test_read_requirements_from_excel_worksheet():
     sut = ImportRequirementsView(None, None)
-    workbook = load_workbook('tests/import/valid.xlsx')
+    workbook = load_workbook('tests/import/requirements_valid.xlsx')
     worksheet = workbook.active
 
     results = list(sut.read_requirement_from_excel_worksheet(worksheet))
@@ -68,7 +68,7 @@ def test_read_requirements_from_excel_worksheet():
 
 def test_read_requirements_from_excel_worksheet_invalid_headers():
     sut = ImportRequirementsView(None, None)
-    workbook = load_workbook('tests/import/invalid_headers.xlsx')
+    workbook = load_workbook('tests/import/requirements_invalid_headers.xlsx')
     worksheet = workbook.active
 
     with pytest.raises(HTTPException) as error_info:
@@ -79,7 +79,7 @@ def test_read_requirements_from_excel_worksheet_invalid_headers():
 
 def test_read_requirements_from_excel_worksheet_invalid_data():
     sut = ImportRequirementsView(None, None)
-    workbook = load_workbook('tests/import/invalid_data.xlsx')
+    workbook = load_workbook('tests/import/requirements_invalid_data.xlsx')
     worksheet = workbook.active
 
     with pytest.raises(HTTPException) as error_info:
@@ -87,3 +87,15 @@ def test_read_requirements_from_excel_worksheet_invalid_data():
 
     assert error_info.value.status_code == 400
     assert error_info.value.detail.startswith('Invalid data')
+
+@pytest.mark.skip(reason='Not fully implemented yet')
+def test_read_measures_from_excel_worksheet():
+    sut = ImportMeasuresView(None, None)
+    workbook = load_workbook('tests/import/requirements_valid.xlsx')
+    worksheet = workbook.active
+
+    results = list(sut.read_measures_from_excel_worksheet(worksheet))
+
+    assert len(results) >= 1
+    result = results[0]
+    assert isinstance(result, MeasureInput)
