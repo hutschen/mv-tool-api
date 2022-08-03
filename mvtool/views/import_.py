@@ -170,6 +170,10 @@ class ImportMeasuresView:
         for measure_input in \
                 self.read_measures_from_excel_worksheet(worksheet):
             self._measures.create_measure(requirement_id, measure_input)
+    
+    @router.post(
+        '/requirements/{requirement_id}/measures/excel', status_code=201,
+        response_class=Response, **kwargs)
     def upload_measures_excel(
             self, requirement_id: int, excel_file: UploadFile):
         with open(self._temp_file.name, 'wb') as f:
