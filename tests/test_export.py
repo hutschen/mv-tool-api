@@ -88,10 +88,9 @@ def test_read_requirements_from_excel_worksheet_invalid_data():
     assert error_info.value.status_code == 400
     assert error_info.value.detail.startswith('Invalid data')
 
-@pytest.mark.skip(reason='Not fully implemented yet')
 def test_read_measures_from_excel_worksheet():
     sut = ImportMeasuresView(None, None)
-    workbook = load_workbook('tests/import/requirements_valid.xlsx')
+    workbook = load_workbook('tests/import/measures_valid.xlsx')
     worksheet = workbook.active
 
     results = list(sut.read_measures_from_excel_worksheet(worksheet))
@@ -99,3 +98,14 @@ def test_read_measures_from_excel_worksheet():
     assert len(results) >= 1
     result = results[0]
     assert isinstance(result, MeasureInput)
+
+def test_read_measures_from_excel_worksheet_invalid_headers():
+    sut = ImportMeasuresView(None, None)
+    workbook = load_workbook('tests/import/measures_invalid_headers.xlsx')
+    worksheet = workbook.active
+
+    with pytest.raises(HTTPException) as error_info:
+        list(sut.read_measures_from_excel_worksheet(worksheet))
+    
+    assert error_info.value.status_code == 400
+    assert error_info.value.detail.startswith('Missing headers')
