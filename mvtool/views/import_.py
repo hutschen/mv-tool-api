@@ -20,7 +20,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl import load_workbook
 from pydantic import ValidationError
 from mvtool.models import MeasureInput, RequirementInput
-from mvtool.views.export import get_excel_temp_file
+from mvtool.views.excel import get_excel_temp_file
 
 from mvtool.views.requirements import RequirementsView
 from mvtool.views.measures import MeasuresView

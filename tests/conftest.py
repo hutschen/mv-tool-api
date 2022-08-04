@@ -20,7 +20,7 @@ from mvtool.config import Config
 from mvtool import database
 from mvtool.models import DocumentInput, JiraIssueInput, Measure, MeasureInput, ProjectInput, Project, ProjectOutput, Requirement, RequirementInput, RequirementOutput
 from mvtool.views.documents import DocumentsView
-from mvtool.views.export import ExportMeasuresView, ExportRequirementsView, get_excel_temp_file
+from mvtool.views.excel import ExportMeasuresView, ExportRequirementsView, get_excel_temp_file
 from mvtool.views.jira_ import JiraIssuesView, JiraProjectsView
 from mvtool.views.projects import ProjectsView
 from mvtool.views.requirements import RequirementsView

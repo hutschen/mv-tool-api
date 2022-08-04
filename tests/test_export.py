@@ -19,7 +19,7 @@ from openpyxl import load_workbook
 import pytest
 
 from mvtool.models import Measure, MeasureInput, Project, Requirement, RequirementInput
-from mvtool.views.export import ExportMeasuresView, ExportRequirementsView
+from mvtool.views.excel import ExportMeasuresView, ExportRequirementsView
 from mvtool.views.import_ import ImportMeasuresView, ImportRequirementsView
 
 def test_query_measure_data(
