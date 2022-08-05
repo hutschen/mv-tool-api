@@ -113,7 +113,7 @@ def test_read_requirements_from_excel_worksheet_invalid_data():
 
 
 def test_read_measures_from_excel_worksheet():
-    sut = ImportMeasuresView(None, None)
+    sut = ImportMeasuresView(None)
     workbook = load_workbook("tests/import/measures_valid.xlsx")
     worksheet = workbook.active
 
@@ -125,7 +125,7 @@ def test_read_measures_from_excel_worksheet():
 
 
 def test_read_measures_from_excel_worksheet_invalid_headers():
-    sut = ImportMeasuresView(None, None)
+    sut = ImportMeasuresView(None)
     workbook = load_workbook("tests/import/measures_invalid_headers.xlsx")
     worksheet = workbook.active
 

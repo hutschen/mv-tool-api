@@ -287,12 +287,7 @@ class ImportRequirementsView:
 class ImportMeasuresView:
     kwargs = dict(tags=["measure"])
 
-    def __init__(
-        self,
-        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
-        measures: MeasuresView = Depends(MeasuresView),
-    ):
-        self._temp_file = temp_file
+    def __init__(self, measures: MeasuresView = Depends(MeasuresView)):
         self._measures = measures
 
     def read_measures_from_excel_worksheet(self, worksheet: Worksheet):
@@ -334,8 +329,13 @@ class ImportMeasuresView:
         response_class=Response,
         **kwargs
     )
-    def upload_measures_excel(self, requirement_id: int, excel_file: UploadFile):
-        with open(self._temp_file.name, "wb") as f:
+    def upload_measures_excel(
+        self,
+        requirement_id: int,
+        excel_file: UploadFile,
+        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
+    ):
+        with open(temp_file.name, "wb") as f:
             # 1MB buffer size should be sufficient to load an Excel file
             buffer_size = 1000 * 1024
             chunk = excel_file.file.read(buffer_size)
@@ -345,7 +345,7 @@ class ImportMeasuresView:
 
         # carefully open the Excel file
         try:
-            workbook = load_workbook(self._temp_file.name, read_only=True)
+            workbook = load_workbook(temp_file.name, read_only=True)
         except Exception:
             # have to catch all exceptions, because openpyxl does raise several
             # exceptions when reading an invalid Excel file
