@@ -77,7 +77,7 @@ def test_download_requirements_excel(
 
 
 def test_read_requirements_from_excel_worksheet():
-    sut = ImportRequirementsView(None, None)
+    sut = ImportRequirementsView(None)
     workbook = load_workbook("tests/import/requirements_valid.xlsx")
     worksheet = workbook.active
 
@@ -89,7 +89,7 @@ def test_read_requirements_from_excel_worksheet():
 
 
 def test_read_requirements_from_excel_worksheet_invalid_headers():
-    sut = ImportRequirementsView(None, None)
+    sut = ImportRequirementsView(None)
     workbook = load_workbook("tests/import/requirements_invalid_headers.xlsx")
     worksheet = workbook.active
 
@@ -101,7 +101,7 @@ def test_read_requirements_from_excel_worksheet_invalid_headers():
 
 
 def test_read_requirements_from_excel_worksheet_invalid_data():
-    sut = ImportRequirementsView(None, None)
+    sut = ImportRequirementsView(None)
     workbook = load_workbook("tests/import/requirements_invalid_data.xlsx")
     worksheet = workbook.active
 
