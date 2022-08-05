@@ -1,5 +1,5 @@
 # coding: utf-8
-# 
+#
 # Copyright 2022 Helmar Hutschenreuter
 #
 # The source code of this program is made available
@@ -31,19 +31,24 @@ from mvtool.views.jira_ import JiraIssuesView
 from mvtool.views.measures import MeasuresView
 from mvtool.views.requirements import RequirementsView
 
+
 def get_excel_temp_file():
-    with NamedTemporaryFile(suffix='.xlsx') as temp_file:
+    with NamedTemporaryFile(suffix=".xlsx") as temp_file:
         return temp_file
+
 
 router = APIRouter()
 
+
 @cbv(router)
 class ExportMeasuresView:
-    kwargs = dict(tags=['measure'])
+    kwargs = dict(tags=["measure"])
 
-    def __init__(self, 
-            session: Session = Depends(get_session), 
-            jira_issues: JiraIssuesView = Depends(JiraIssuesView)):
+    def __init__(
+        self,
+        session: Session = Depends(get_session),
+        jira_issues: JiraIssuesView = Depends(JiraIssuesView),
+    ):
         self._session = session
         self._jira_issues = jira_issues
 
@@ -51,14 +56,14 @@ class ExportMeasuresView:
         query = select(Measure, Requirement, Document).where(
             Measure.requirement_id == Requirement.id,
             Measure.document_id == Document.id,
-            Requirement.project_id == project_id)
+            Requirement.project_id == project_id,
+        )
         results = self._session.exec(query).all()
 
         # query jira issues
-        jira_issue_ids = [
-            m.jira_issue_id for m, _, _ in results if m.jira_issue_id]
+        jira_issue_ids = [m.jira_issue_id for m, _, _ in results if m.jira_issue_id]
         jira_issues = self._jira_issues.get_jira_issues(jira_issue_ids)
-        jira_issue_map = {ji.id:ji for ji in jira_issues}
+        jira_issue_map = {ji.id: ji for ji in jira_issues}
 
         # assign jira issue to measure and yield results
         for measure, requirement, document in results:
@@ -69,33 +74,50 @@ class ExportMeasuresView:
             yield measure, requirement, document, jira_issue
 
     def fill_excel_worksheet_with_measure_data(
-            self, worksheet: Worksheet, project_id: int):
-        worksheet.append([
-            'Requirement Reference', 'Requirement Summary', 'Summary', 
-            'Description', 'Completed', 'Document Reference', 'Document Title', 
-            'JIRA Issue Key'])
+        self, worksheet: Worksheet, project_id: int
+    ):
+        worksheet.append(
+            [
+                "Requirement Reference",
+                "Requirement Summary",
+                "Summary",
+                "Description",
+                "Completed",
+                "Document Reference",
+                "Document Title",
+                "JIRA Issue Key",
+            ]
+        )
 
-        for measure, requirement, document, jira_issue \
-                in self.query_measure_data(project_id):
-            worksheet.append([
-                requirement.reference, requirement.summary, measure.summary, 
-                measure.description, measure.completed, 
-                document.reference if document else '', 
-                document.title if document else '', 
-                jira_issue.key if jira_issue else ''])
-        
-        table = Table(
-            displayName=worksheet.title, ref=worksheet.calculate_dimension())
+        for measure, requirement, document, jira_issue in self.query_measure_data(
+            project_id
+        ):
+            worksheet.append(
+                [
+                    requirement.reference,
+                    requirement.summary,
+                    measure.summary,
+                    measure.description,
+                    measure.completed,
+                    document.reference if document else "",
+                    document.title if document else "",
+                    jira_issue.key if jira_issue else "",
+                ]
+            )
+
+        table = Table(displayName=worksheet.title, ref=worksheet.calculate_dimension())
         worksheet.add_table(table)
 
     @router.get(
-        '/projects/{project_id}/measures/excel', 
-        response_class=FileResponse, **kwargs)
+        "/projects/{project_id}/measures/excel", response_class=FileResponse, **kwargs
+    )
     def download_measures_excel(
-            self, project_id: int, sheet_name: str='Export', 
-            filename: str='export.xlsx', 
-            temp_file: NamedTemporaryFile = Depends(get_excel_temp_file)
-        ) -> FileResponse:
+        self,
+        project_id: int,
+        sheet_name: str = "Export",
+        filename: str = "export.xlsx",
+        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
+    ) -> FileResponse:
         # set up workbook
         workbook = Workbook()
         worksheet = workbook.active
@@ -111,38 +133,54 @@ class ExportMeasuresView:
 
 @cbv(router)
 class ExportRequirementsView:
-    kwargs = dict(tags=['requirement'])
+    kwargs = dict(tags=["requirement"])
 
-    def __init__(
-            self, requirements: RequirementsView = Depends(RequirementsView)):
+    def __init__(self, requirements: RequirementsView = Depends(RequirementsView)):
         self._requirements = requirements
 
     def fill_excel_worksheet_with_requirement_data(
-            self, worksheet: Worksheet, project_id: int) -> None:
-        worksheet.append([
-            'Reference', 'Summary', 'Description', 'Target Object', 
-            'Compliance Status', 'Compliance Comment', 'Completion'])
+        self, worksheet: Worksheet, project_id: int
+    ) -> None:
+        worksheet.append(
+            [
+                "Reference",
+                "Summary",
+                "Description",
+                "Target Object",
+                "Compliance Status",
+                "Compliance Comment",
+                "Completion",
+            ]
+        )
 
         for requirement in self._requirements.list_requirements(project_id):
-            worksheet.append([
-                requirement.reference, requirement.summary, 
-                requirement.description, requirement.target_object,
-                requirement.compliance_status, requirement.compliance_comment,
-                requirement.completion
-            ])
+            worksheet.append(
+                [
+                    requirement.reference,
+                    requirement.summary,
+                    requirement.description,
+                    requirement.target_object,
+                    requirement.compliance_status,
+                    requirement.compliance_comment,
+                    requirement.completion,
+                ]
+            )
 
-        table = Table(
-            displayName=worksheet.title, ref=worksheet.calculate_dimension())
+        table = Table(displayName=worksheet.title, ref=worksheet.calculate_dimension())
         worksheet.add_table(table)
 
     @router.get(
-        '/projects/{project_id}/requirements/excel', 
-        response_class=FileResponse, **kwargs)
+        "/projects/{project_id}/requirements/excel",
+        response_class=FileResponse,
+        **kwargs
+    )
     def download_requirements_excel(
-            self, project_id: int, sheet_name: str='Export', 
-            filename: str ='export.xlsx',
-            temp_file: NamedTemporaryFile = Depends(get_excel_temp_file)
-        ) -> FileResponse:
+        self,
+        project_id: int,
+        sheet_name: str = "Export",
+        filename: str = "export.xlsx",
+        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
+    ) -> FileResponse:
         # set up workbook
         workbook = Workbook()
         worksheet = workbook.active
@@ -158,53 +196,68 @@ class ExportRequirementsView:
 
 @cbv(router)
 class ImportRequirementsView:
-    kwargs = dict(tags=['requirement'])
+    kwargs = dict(tags=["requirement"])
 
-    def __init__(self,
-            temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
-            requirements: RequirementsView = Depends(RequirementsView)):
+    def __init__(
+        self,
+        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
+        requirements: RequirementsView = Depends(RequirementsView),
+    ):
         self._temp_file = temp_file
         self._requirements = requirements
 
     def read_requirement_from_excel_worksheet(self, worksheet: Worksheet):
         headers = {
-            'Reference', 'Summary', 'Description', 'Target Object', 
-            'Compliance Status', 'Compliance Comment'}
-        
+            "Reference",
+            "Summary",
+            "Description",
+            "Target Object",
+            "Compliance Status",
+            "Compliance Comment",
+        }
+
         for index, values in enumerate(worksheet.iter_rows(values_only=True)):
             # check and process header row
             if index == 0:
                 # check if all required headers are present
                 if not headers.issubset(values):
                     detail = 'Missing headers on worksheet "%s": %s' % (
-                        worksheet.title, ', '.join(headers - set(values)))
+                        worksheet.title,
+                        ", ".join(headers - set(values)),
+                    )
                     raise errors.ValueHttpError(detail)
                 headers = tuple(values)
                 continue
-            
+
             # get data from row
             requirement_data = dict(zip(headers, values))
             try:
                 requirement_input = RequirementInput(
-                    reference=requirement_data['Reference'] or None,
-                    summary=requirement_data['Summary'],
-                    description=requirement_data['Description'] or None,
-                    target_object=requirement_data['Target Object'] or None,
-                    compliance_status=requirement_data['Compliance Status'] or None,
-                    compliance_comment=requirement_data['Compliance Comment'] or None)
+                    reference=requirement_data["Reference"] or None,
+                    summary=requirement_data["Summary"],
+                    description=requirement_data["Description"] or None,
+                    target_object=requirement_data["Target Object"] or None,
+                    compliance_status=requirement_data["Compliance Status"] or None,
+                    compliance_comment=requirement_data["Compliance Comment"] or None,
+                )
             except ValidationError as error:
                 detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
-                    worksheet.title, index + 1, error)
+                    worksheet.title,
+                    index + 1,
+                    error,
+                )
                 raise errors.ValueHttpError(detail)
             else:
                 yield requirement_input
 
     @router.post(
-        '/projects/{project_id}/requirements/excel', status_code=201, 
-        response_class=Response, **kwargs)
-    def upload_requirements_excel(
-            self, project_id: int, excel_file: UploadFile):
-        with open(self._temp_file.name, 'wb') as f:
+        "/projects/{project_id}/requirements/excel",
+        status_code=201,
+        response_class=Response,
+        **kwargs
+    )
+    def upload_requirements_excel(self, project_id: int, excel_file: UploadFile):
+        with open(self._temp_file.name, "wb") as f:
             # 1MB buffer size should be sufficient to load an Excel file
             buffer_size = 1000 * 1024
             chunk = excel_file.file.read(buffer_size)
@@ -218,32 +271,32 @@ class ImportRequirementsView:
         except Exception:
             # have to catch all exceptions, because openpyxl does raise several
             # exceptions when reading an invalid Excel file
-            raise errors.ValueHttpError('Excel file seems to be corrupt')
+            raise errors.ValueHttpError("Excel file seems to be corrupt")
         worksheet = workbook.active
         if not worksheet:
-            # when the Excel file is empty or not exists, openpyxl returns None 
+            # when the Excel file is empty or not exists, openpyxl returns None
             # instead of raising an exception
-            raise errors.ValueHttpError('No worksheet found in Excel file')
+            raise errors.ValueHttpError("No worksheet found in Excel file")
 
         # read data from worksheet
-        for requirement_input in \
-                self.read_requirement_from_excel_worksheet(worksheet):
-            self._requirements.create_requirement(
-                project_id, requirement_input)
+        for requirement_input in self.read_requirement_from_excel_worksheet(worksheet):
+            self._requirements.create_requirement(project_id, requirement_input)
 
 
 @cbv(router)
 class ImportMeasuresView:
-    kwargs = dict(tags=['measure'])
+    kwargs = dict(tags=["measure"])
 
-    def __init__(self,
-            temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
-            measures: MeasuresView = Depends(MeasuresView)):
+    def __init__(
+        self,
+        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
+        measures: MeasuresView = Depends(MeasuresView),
+    ):
         self._temp_file = temp_file
         self._measures = measures
 
     def read_measures_from_excel_worksheet(self, worksheet: Worksheet):
-        headers = {'Summary', 'Description'}
+        headers = {"Summary", "Description"}
 
         for index, values in enumerate(worksheet.iter_rows(values_only=True)):
             # check and process header row
@@ -251,30 +304,38 @@ class ImportMeasuresView:
                 # check if all required headers are present
                 if not headers.issubset(values):
                     detail = 'Missing headers on worksheet "%s": %s' % (
-                        worksheet.title, ', '.join(headers - set(values)))
+                        worksheet.title,
+                        ", ".join(headers - set(values)),
+                    )
                     raise errors.ValueHttpError(detail)
                 headers = tuple(values)
                 continue
-            
+
             # get data from row
             measure_data = dict(zip(headers, values))
             try:
                 measure_input = MeasureInput(
-                    summary=measure_data['Summary'],
-                    description=measure_data['Description'] or None)
+                    summary=measure_data["Summary"],
+                    description=measure_data["Description"] or None,
+                )
             except ValidationError as error:
                 detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
-                    worksheet.title, index + 1, error)
+                    worksheet.title,
+                    index + 1,
+                    error,
+                )
                 raise errors.ValueHttpError(detail)
             else:
                 yield measure_input
 
     @router.post(
-        '/requirements/{requirement_id}/measures/excel', status_code=201,
-        response_class=Response, **kwargs)
-    def upload_measures_excel(
-            self, requirement_id: int, excel_file: UploadFile):
-        with open(self._temp_file.name, 'wb') as f:
+        "/requirements/{requirement_id}/measures/excel",
+        status_code=201,
+        response_class=Response,
+        **kwargs
+    )
+    def upload_measures_excel(self, requirement_id: int, excel_file: UploadFile):
+        with open(self._temp_file.name, "wb") as f:
             # 1MB buffer size should be sufficient to load an Excel file
             buffer_size = 1000 * 1024
             chunk = excel_file.file.read(buffer_size)
@@ -288,14 +349,13 @@ class ImportMeasuresView:
         except Exception:
             # have to catch all exceptions, because openpyxl does raise several
             # exceptions when reading an invalid Excel file
-            raise errors.ValueHttpError('Excel file seems to be corrupt')
+            raise errors.ValueHttpError("Excel file seems to be corrupt")
         worksheet = workbook.active
         if not worksheet:
-            # when the Excel file is empty or not exists, openpyxl returns None 
+            # when the Excel file is empty or not exists, openpyxl returns None
             # instead of raising an exception
-            raise errors.ValueHttpError('No worksheet found in Excel file')
+            raise errors.ValueHttpError("No worksheet found in Excel file")
 
         # read data from worksheet
-        for measure_input in \
-                self.read_measures_from_excel_worksheet(worksheet):
+        for measure_input in self.read_measures_from_excel_worksheet(worksheet):
             self._measures.create_measure(requirement_id, measure_input)
