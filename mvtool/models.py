@@ -1,5 +1,5 @@
 # coding: utf-8
-# 
+#
 # Copyright 2022 Helmar Hutschenreuter
 #
 # The source code of this program is made available
@@ -59,15 +59,15 @@ class MeasureInput(SQLModel):
     description: str | None = None
     completed: bool = False
     document_id: int | None = None
-    
+
 
 class Measure(MeasureInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
     jira_issue_id: str | None = None
-    requirement_id: int | None = Field(default=None, foreign_key='requirement.id')
-    requirement : 'Requirement' = Relationship(back_populates='measures')  
-    document_id: int | None = Field(default=None, foreign_key='document.id')
-    document: 'Document' = Relationship(back_populates='measures')
+    requirement_id: int | None = Field(default=None, foreign_key="requirement.id")
+    requirement: "Requirement" = Relationship(back_populates="measures")
+    document_id: int | None = Field(default=None, foreign_key="document.id")
+    document: "Document" = Relationship(back_populates="measures")
 
 
 class RequirementInput(SQLModel):
@@ -75,29 +75,36 @@ class RequirementInput(SQLModel):
     summary: str
     description: str | None
     target_object: str | None
-    compliance_status: constr(regex=r'^(C|PC|NC|N/A)$') | None
+    compliance_status: constr(regex=r"^(C|PC|NC|N/A)$") | None
     compliance_comment: str | None
 
-    @validator('compliance_comment')
+    @validator("compliance_comment")
     def compliance_comment_validator(cls, v, values):
-        if v and ('compliance_status' in values) \
-                and (values['compliance_status'] is None):
+        if (
+            v
+            and ("compliance_status" in values)
+            and (values["compliance_status"] is None)
+        ):
             raise ValueError(
-                'compliance_comment cannot be set if compliance_status is None')
+                "compliance_comment cannot be set if compliance_status is None"
+            )
         return v
 
 
 class Requirement(RequirementInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    project_id: int | None = Field(default=None, foreign_key='project.id')
-    project: 'Project' = Relationship(back_populates='requirements')
-    measures: list[Measure] = Relationship(back_populates='requirement')
+    project_id: int | None = Field(default=None, foreign_key="project.id")
+    project: "Project" = Relationship(back_populates="requirements")
+    measures: list[Measure] = Relationship(
+        back_populates="requirement",
+        sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
+    )
 
     @property
     def completion(self) -> float:
         if not self.measures:
             return 0.0
-        else:   
+        else:
             return sum(m.completed for m in self.measures) / len(self.measures)
 
 
@@ -109,9 +116,9 @@ class DocumentInput(SQLModel):
 
 class Document(DocumentInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    project_id: int | None = Field(default=None, foreign_key='project.id')
-    project: 'Project' = Relationship(back_populates='documents')
-    measures: list[Measure] = Relationship(back_populates='document')
+    project_id: int | None = Field(default=None, foreign_key="project.id")
+    project: "Project" = Relationship(back_populates="documents")
+    measures: list[Measure] = Relationship(back_populates="document")
 
 
 class ProjectInput(SQLModel):
@@ -122,8 +129,14 @@ class ProjectInput(SQLModel):
 
 class Project(ProjectInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    requirements: list[Requirement] = Relationship(back_populates='project')
-    documents: list[Document] = Relationship(back_populates='project')
+    requirements: list[Requirement] = Relationship(
+        back_populates="project",
+        sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
+    )
+    documents: list[Document] = Relationship(
+        back_populates="project",
+        sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
+    )
 
     @property
     def completion(self) -> float:
