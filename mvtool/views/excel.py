@@ -194,8 +194,31 @@ class ExportRequirementsView:
         return FileResponse(temp_file.name, filename=filename)
 
 
+class ImportExcelView:
+    def _upload_to_workbook(
+        self,
+        excel_file: UploadFile,
+        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
+    ) -> Workbook:
+        with open(temp_file.name, "wb") as f:
+            # 1MB buffer size should be sufficient to load an Excel file
+            buffer_size = 1000 * 1024
+            chunk = excel_file.file.read(buffer_size)
+            while chunk:
+                f.write(chunk)
+                chunk = excel_file.file.read(buffer_size)
+
+        # carefully open the Excel file
+        try:
+            return load_workbook(temp_file.name, read_only=True)
+        except Exception:
+            # have to catch all exceptions, because openpyxl does raise several
+            # exceptions when reading an invalid Excel file
+            raise errors.ValueHttpError("Excel file seems to be corrupt")
+
+
 @cbv(router)
-class ImportRequirementsView:
+class ImportRequirementsView(ImportExcelView):
     kwargs = dict(tags=["requirement"])
 
     def __init__(
@@ -260,26 +283,9 @@ class ImportRequirementsView:
         excel_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ):
-        with open(temp_file.name, "wb") as f:
-            # 1MB buffer size should be sufficient to load an Excel file
-            buffer_size = 1000 * 1024
-            chunk = excel_file.file.read(buffer_size)
-            while chunk:
-                f.write(chunk)
-                chunk = excel_file.file.read(buffer_size)
-
-        # carefully open the Excel file
-        try:
-            workbook = load_workbook(temp_file.name, read_only=True)
-        except Exception:
-            # have to catch all exceptions, because openpyxl does raise several
-            # exceptions when reading an invalid Excel file
-            raise errors.ValueHttpError("Excel file seems to be corrupt")
+        # get worksheet from Excel file
+        workbook = self._upload_to_workbook(excel_file, temp_file)
         worksheet = workbook.active
-        if not worksheet:
-            # when the Excel file is empty or not exists, openpyxl returns None
-            # instead of raising an exception
-            raise errors.ValueHttpError("No worksheet found in Excel file")
 
         # read data from worksheet
         for requirement_input in self.read_requirement_from_excel_worksheet(worksheet):
@@ -287,7 +293,7 @@ class ImportRequirementsView:
 
 
 @cbv(router)
-class ImportMeasuresView:
+class ImportMeasuresView(ImportExcelView):
     kwargs = dict(tags=["measure"])
 
     def __init__(self, measures: MeasuresView = Depends(MeasuresView)):
@@ -338,27 +344,10 @@ class ImportMeasuresView:
         excel_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ):
-        with open(temp_file.name, "wb") as f:
-            # 1MB buffer size should be sufficient to load an Excel file
-            buffer_size = 1000 * 1024
-            chunk = excel_file.file.read(buffer_size)
-            while chunk:
-                f.write(chunk)
-                chunk = excel_file.file.read(buffer_size)
-
-        # carefully open the Excel file
-        try:
-            workbook = load_workbook(temp_file.name, read_only=True)
-        except Exception:
-            # have to catch all exceptions, because openpyxl does raise several
-            # exceptions when reading an invalid Excel file
-            raise errors.ValueHttpError("Excel file seems to be corrupt")
+        # get worksheet from Excel file
+        workbook = self._upload_to_workbook(excel_file, temp_file)
         worksheet = workbook.active
-        if not worksheet:
-            # when the Excel file is empty or not exists, openpyxl returns None
-            # instead of raising an exception
-            raise errors.ValueHttpError("No worksheet found in Excel file")
 
-        # read data from worksheet
+        # read measures from worksheet
         for measure_input in self.read_measures_from_excel_worksheet(worksheet):
             self._measures.create_measure(requirement_id, measure_input)
