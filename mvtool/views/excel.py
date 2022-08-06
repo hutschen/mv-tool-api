@@ -141,7 +141,7 @@ class ExportMeasuresView:
         sheet_name: str = "Export",
         filename: str = "export.xlsx",
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
-    ):
+    ) -> FileResponse:
         # set up workbook
         workbook = Workbook()
         worksheet = workbook.active

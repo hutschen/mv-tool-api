@@ -48,7 +48,7 @@ def test_query_measure_data(
     assert jira_issue == None
 
 
-def test_download_measures_excel(
+def test_download_measures_excel_for_project(
     export_measures_view: ExportMeasuresView,
     excel_temp_file,
     create_project: Project,
@@ -56,6 +56,22 @@ def test_download_measures_excel(
 ):
     result = export_measures_view.download_measures_excel_for_project(
         create_project.id, temp_file=excel_temp_file
+    )
+    assert isinstance(result, FileResponse)
+    assert (
+        result.media_type
+        == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+
+def test_download_measures_excel_for_requirement(
+    export_measures_view: ExportMeasuresView,
+    excel_temp_file,
+    create_requirement: Requirement,
+    create_measure: Measure,
+):
+    result = export_measures_view.download_measures_excel_for_requirement(
+        create_requirement.id, temp_file=excel_temp_file
     )
     assert isinstance(result, FileResponse)
     assert (
