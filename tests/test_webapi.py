@@ -299,7 +299,7 @@ def test_download_requirements(client, create_project, create_requirement):
     assert response.status_code == 200
 
 def test_upload_requirements(client, create_project):
-    with open('tests/import/valid.xlsx', "rb") as excel_file:
+    with open('tests/import/requirements_valid.xlsx', "rb") as excel_file:
         response = client.post(
             f'/api/projects/{create_project.id}/requirements/excel', 
             files=dict(excel_file=excel_file),
@@ -307,7 +307,7 @@ def test_upload_requirements(client, create_project):
     assert response.status_code == 201
 
 def test_upload_requirements_invalid_file(client, create_project):
-    with open('tests/import/invalid_data.xlsx', "rb") as excel_file:
+    with open('tests/import/requirements_invalid_data.xlsx', "rb") as excel_file:
         response = client.post(
             f'/api/projects/{create_project.id}/requirements/excel', 
             files=dict(excel_file=excel_file),
@@ -322,3 +322,19 @@ def test_upload_requirements_corrupted_file(client, create_project):
             auth=('u', 'p'))
     assert response.status_code == 400
     assert len(create_project.requirements) == 0
+
+def test_upload_measures(client, create_requirement):
+    with open('tests/import/measures_valid.xlsx', "rb") as excel_file:
+        response = client.post(
+            f'/api/requirements/{create_requirement.id}/measures/excel', 
+            files=dict(excel_file=excel_file),
+            auth=('u', 'p'))
+    assert response.status_code == 201
+
+def test_upload_measures_corrupted_file(client, create_requirement):
+    with open('tests/import/corrupted.xlsx', "rb") as excel_file:
+        response = client.post(
+            f'/api/requirements/{create_requirement.id}/measures/excel', 
+            files=dict(excel_file=excel_file),
+            auth=('u', 'p'))
+    assert response.status_code == 400
