@@ -14,7 +14,7 @@
 # GNU AGPL V3 for more details.
 
 from tempfile import NamedTemporaryFile
-from typing import Collection, Dict
+from typing import Any, Collection, Dict
 from fastapi import APIRouter, Depends, Response, UploadFile
 from fastapi.responses import FileResponse
 from fastapi_utils.cbv import cbv
@@ -53,11 +53,11 @@ class ExportMeasuresView:
         self._session = session
         self._jira_issues = jira_issues
 
-    def query_measure_data(self, project_id: int) -> Iterator:
+    def _query_measure_data(self, *whereclause: Any) -> Iterator:
         query = select(Measure, Requirement, Document).where(
             Measure.requirement_id == Requirement.id,
             Measure.document_id == Document.id,
-            Requirement.project_id == project_id,
+            *whereclause,
         )
         results = self._session.exec(query).all()
 
@@ -74,8 +74,8 @@ class ExportMeasuresView:
                 jira_issue = None
             yield measure, requirement, document, jira_issue
 
-    def fill_excel_worksheet_with_measure_data(
-        self, worksheet: Worksheet, project_id: int
+    def _fill_excel_worksheet_with_measure_data(
+        self, worksheet: Worksheet, measure_data
     ):
         worksheet.append(
             [
@@ -90,9 +90,7 @@ class ExportMeasuresView:
             ]
         )
 
-        for measure, requirement, document, jira_issue in self.query_measure_data(
-            project_id
-        ):
+        for measure, requirement, document, jira_issue in measure_data:
             worksheet.append(
                 [
                     requirement.reference,
@@ -112,7 +110,7 @@ class ExportMeasuresView:
     @router.get(
         "/projects/{project_id}/measures/excel", response_class=FileResponse, **kwargs
     )
-    def download_measures_excel(
+    def download_measures_excel_for_project(
         self,
         project_id: int,
         sheet_name: str = "Export",
@@ -124,8 +122,9 @@ class ExportMeasuresView:
         worksheet = workbook.active
         worksheet.title = sheet_name
 
-        # fill worksheet
-        self.fill_excel_worksheet_with_measure_data(worksheet, project_id)
+        # query measure data
+        measure_data = self._query_measure_data(Requirement.project_id == project_id)
+        self._fill_excel_worksheet_with_measure_data(worksheet, measure_data)
 
         # save to temporary file and return file response
         workbook.save(temp_file.name)
@@ -173,7 +172,7 @@ class ExportRequirementsView:
     @router.get(
         "/projects/{project_id}/requirements/excel",
         response_class=FileResponse,
-        **kwargs
+        **kwargs,
     )
     def download_requirements_excel(
         self,
@@ -285,7 +284,7 @@ class ImportRequirementsView(ImportExcelView):
         "/projects/{project_id}/requirements/excel",
         status_code=201,
         response_class=Response,
-        **kwargs
+        **kwargs,
     )
     def upload_requirements_excel(
         self,
@@ -349,7 +348,7 @@ class ImportMeasuresView(ImportExcelView):
         "/requirements/{requirement_id}/measures/excel",
         status_code=201,
         response_class=Response,
-        **kwargs
+        **kwargs,
     )
     def upload_measures_excel(
         self,

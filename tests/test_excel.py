@@ -32,7 +32,11 @@ def test_query_measure_data(
     create_project: Project,
     create_measure: Measure,
 ):
-    results = list(export_measures_view.query_measure_data(create_project.id))
+    results = list(
+        export_measures_view._query_measure_data(
+            Requirement.project_id == create_project.id
+        )
+    )
 
     assert len(results) == 1
     result = results[0]
@@ -50,7 +54,7 @@ def test_download_measures_excel(
     create_project: Project,
     create_measure: Measure,
 ):
-    result = export_measures_view.download_measures_excel(
+    result = export_measures_view.download_measures_excel_for_project(
         create_project.id, temp_file=excel_temp_file
     )
     assert isinstance(result, FileResponse)
