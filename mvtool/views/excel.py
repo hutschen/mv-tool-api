@@ -130,6 +130,33 @@ class ExportMeasuresView:
         workbook.save(temp_file.name)
         return FileResponse(temp_file.name, filename=filename)
 
+    @router.get(
+        "/requirements/{requirement_id}/measures/excel",
+        response_class=FileResponse,
+        **kwargs,
+    )
+    def download_measures_excel_for_requirement(
+        self,
+        requirement_id: int,
+        sheet_name: str = "Export",
+        filename: str = "export.xlsx",
+        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
+    ):
+        # set up workbook
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.title = sheet_name
+
+        # query measure data
+        measure_data = self._query_measure_data(
+            Measure.requirement_id == requirement_id
+        )
+        self._fill_excel_worksheet_with_measure_data(worksheet, measure_data)
+
+        # save to temporary file and return file response
+        workbook.save(temp_file.name)
+        return FileResponse(temp_file.name, filename=filename)
+
 
 @cbv(router)
 class ExportRequirementsView:
