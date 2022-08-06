@@ -14,6 +14,7 @@
 # GNU AGPL V3 for more details.
 
 from tempfile import NamedTemporaryFile
+from typing import Collection, Dict
 from fastapi import APIRouter, Depends, Response, UploadFile
 from fastapi.responses import FileResponse
 from fastapi_utils.cbv import cbv
@@ -216,6 +217,26 @@ class ImportExcelView:
             # exceptions when reading an invalid Excel file
             raise errors.ValueHttpError("Excel file seems to be corrupt")
 
+    def _iter_rows_on_worksheet(
+        self, worksheet: Worksheet, headers: Collection[str]
+    ) -> Iterator[Dict[str, str]]:
+        headers = set(headers)
+        is_header_row = True
+
+        for row in worksheet.iter_rows(values_only=True):
+            if is_header_row:
+                # check if all required headers are present
+                if not headers.issubset(row):
+                    detail = 'Missing headers on worksheet "%s": %s' % (
+                        worksheet.title,
+                        ", ".join(headers - set(row)),
+                    )
+                    raise errors.ValueHttpError(detail)
+                headers = tuple(row)
+                is_header_row = False
+            else:
+                yield dict(zip(headers, row))
+
 
 @cbv(router)
 class ImportRequirementsView(ImportExcelView):
@@ -228,38 +249,27 @@ class ImportRequirementsView(ImportExcelView):
         self._requirements = requirements
 
     def read_requirement_from_excel_worksheet(self, worksheet: Worksheet):
-        headers = {
-            "Reference",
-            "Summary",
-            "Description",
-            "Target Object",
-            "Compliance Status",
-            "Compliance Comment",
-        }
-
-        for index, values in enumerate(worksheet.iter_rows(values_only=True)):
-            # check and process header row
-            if index == 0:
-                # check if all required headers are present
-                if not headers.issubset(values):
-                    detail = 'Missing headers on worksheet "%s": %s' % (
-                        worksheet.title,
-                        ", ".join(headers - set(values)),
-                    )
-                    raise errors.ValueHttpError(detail)
-                headers = tuple(values)
-                continue
-
-            # get data from row
-            requirement_data = dict(zip(headers, values))
+        for index, row in enumerate(
+            self._iter_rows_on_worksheet(
+                worksheet,
+                (
+                    "Reference",
+                    "Summary",
+                    "Description",
+                    "Target Object",
+                    "Compliance Status",
+                    "Compliance Comment",
+                ),
+            )
+        ):
             try:
                 requirement_input = RequirementInput(
-                    reference=requirement_data["Reference"] or None,
-                    summary=requirement_data["Summary"],
-                    description=requirement_data["Description"] or None,
-                    target_object=requirement_data["Target Object"] or None,
-                    compliance_status=requirement_data["Compliance Status"] or None,
-                    compliance_comment=requirement_data["Compliance Comment"] or None,
+                    reference=row["Reference"] or None,
+                    summary=row["Summary"],
+                    description=row["Description"] or None,
+                    target_object=row["Target Object"] or None,
+                    compliance_status=row["Compliance Status"] or None,
+                    compliance_comment=row["Compliance Comment"] or None,
                 )
             except ValidationError as error:
                 detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
@@ -300,27 +310,30 @@ class ImportMeasuresView(ImportExcelView):
         self._measures = measures
 
     def read_measures_from_excel_worksheet(self, worksheet: Worksheet):
-        headers = {"Summary", "Description"}
-
-        for index, values in enumerate(worksheet.iter_rows(values_only=True)):
-            # check and process header row
-            if index == 0:
-                # check if all required headers are present
-                if not headers.issubset(values):
-                    detail = 'Missing headers on worksheet "%s": %s' % (
-                        worksheet.title,
-                        ", ".join(headers - set(values)),
-                    )
-                    raise errors.ValueHttpError(detail)
-                headers = tuple(values)
-                continue
-
-            # get data from row
-            measure_data = dict(zip(headers, values))
+        for index, row in enumerate(
+            self._iter_rows_on_worksheet(
+                worksheet,
+                ("Summary", "Description"),
+            )
+        ):
             try:
                 measure_input = MeasureInput(
-                    summary=measure_data["Summary"],
-                    description=measure_data["Description"] or None,
+                    summary=row["Summary"],
+                    description=row["Description"] or None,
+                )
+            except ValidationError as error:
+                detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
+                    worksheet.title,
+                    index + 1,
+                    error,
+                )
+                raise errors.ValueHttpError(detail)
+            else:
+                yield measure_input
+            try:
+                measure_input = MeasureInput(
+                    summary=row["Summary"],
+                    description=row["Description"] or None,
                 )
             except ValidationError as error:
                 detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
