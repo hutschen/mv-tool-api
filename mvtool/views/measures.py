@@ -170,7 +170,7 @@ class MeasuresView:
         "/measures/{measure_id}/jira-issue",
         status_code=201,
         response_model=JiraIssue,
-        **kwargs,
+        **JiraIssuesView.kwargs,
     )
     def create_and_link_jira_issue(
         self, measure_id: int, jira_issue_input: JiraIssueInput
@@ -199,11 +199,23 @@ class MeasuresView:
         self._crud.update_in_db(measure_id, measure)
         return jira_issue
 
+    @router.get(
+        "/measures/{measure_id}/jira-issue",
+        response_model=JiraIssue,
+        **JiraIssuesView.kwargs,
+    )
+    def get_linked_jira_issue(self, measure_id: int) -> JiraIssue:
+        measure = self.get_measure(measure_id)
+        if measure.jira_issue_id is None:
+            detail = f"Measure with id {measure_id} is not linked to Jira issue"
+            raise HTTPException(400, detail)
+        return self._jira_issues.get_jira_issue(measure.jira_issue_id)
+
     @router.delete(
         "/measures/{measure_id}/jira-issue",
         status_code=204,
         response_class=Response,
-        **kwargs,
+        **JiraIssuesView.kwargs,
     )
     def unlink_jira_issue(self, measure_id: int) -> None:
         measure = self.get_measure(measure_id)

@@ -218,6 +218,14 @@ def test_create_and_link_jira_issue_jira_project_not_set(
         assert excinfo.value.status_code == 400
 
 
+def test_get_linked_jira_issue(
+    measures_view: MeasuresView,
+    create_measure_with_jira_issue: Measure,
+):
+    jira_issue = measures_view.get_linked_jira_issue(create_measure_with_jira_issue.id)
+    assert jira_issue.id == create_measure_with_jira_issue.jira_issue_id
+
+
 def test_unlink_jira_issue(
     measures_view: MeasuresView, create_measure_with_jira_issue: Measure
 ):
