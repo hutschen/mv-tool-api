@@ -1,5 +1,5 @@
 # coding: utf-8
-# 
+#
 # Copyright 2022 Helmar Hutschenreuter
 #
 # The source code of this program is made available
@@ -18,6 +18,21 @@ from fastapi import HTTPException
 
 
 class ValueHttpError(HTTPException, ValueError):
-    def __init__(self,
-            detail: Any = None, headers: Dict[str, Any] | None = None) -> None:
+    def __init__(
+        self, detail: Any = None, headers: Dict[str, Any] | None = None
+    ) -> None:
+        HTTPException.__init__(self, status_code=400, detail=detail, headers=headers)
+
+
+class NotFoundError(HTTPException):
+    def __init__(
+        self, detail: Any = None, headers: Dict[str, Any] | None = None
+    ) -> None:
+        HTTPException.__init__(self, status_code=404, detail=detail, headers=headers)
+
+
+class ClientError(HTTPException):
+    def __init__(
+        self, detail: Any = None, headers: Dict[str, Any] | None = None
+    ) -> None:
         HTTPException.__init__(self, status_code=400, detail=detail, headers=headers)
