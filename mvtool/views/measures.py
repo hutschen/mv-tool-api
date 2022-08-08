@@ -14,20 +14,20 @@
 # GNU AGPL V3 for more details.
 
 from typing import Iterator
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, Response
 from fastapi_utils.cbv import cbv
 
 from mvtool.views.documents import DocumentsView
 from mvtool.views.jira_ import JiraIssuesView
 from ..database import CRUDOperations
 from .requirements import RequirementsView
+from ..errors import ClientError, NotFoundError
 from ..models import (
     JiraIssue,
     JiraIssueInput,
     MeasureInput,
     Measure,
     MeasureOutput,
-    Requirement,
 )
 
 router = APIRouter()
@@ -183,13 +183,13 @@ class MeasuresView:
                 measure_id,
                 measure.jira_issue_id,
             )
-            raise HTTPException(400, detail)
+            raise ClientError(detail)
 
         # check if a Jira project is assigned to corresponding project
         project = measure.requirement.project
         if project.jira_project_id is None:
             detail = f"No Jira project is assigned to project {project.id}"
-            raise HTTPException(400, detail)
+            raise ClientError(detail)
 
         # create and link Jira issue
         jira_issue = self._jira_issues.create_jira_issue(
@@ -208,7 +208,7 @@ class MeasuresView:
         measure = self.get_measure(measure_id)
         if measure.jira_issue_id is None:
             detail = f"Measure with id {measure_id} is not linked to Jira issue"
-            raise HTTPException(400, detail)
+            raise NotFoundError(detail)
         return self._jira_issues.get_jira_issue(measure.jira_issue_id)
 
     @router.delete(
@@ -221,7 +221,7 @@ class MeasuresView:
         measure = self.get_measure(measure_id)
         if measure.jira_issue_id is None:
             detail = "Measure %d is not linked to a Jira issue" % measure_id
-            raise HTTPException(404, detail)
+            raise NotFoundError(detail)
 
         # unlink Jira issue
         measure.jira_issue_id = None

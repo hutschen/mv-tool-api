@@ -226,6 +226,14 @@ def test_get_linked_jira_issue(
     assert jira_issue.id == create_measure_with_jira_issue.jira_issue_id
 
 
+def test_get_linked_jira_issue_jira_issue_not_linked(
+    measures_view: MeasuresView, create_measure: Measure
+):
+    with pytest.raises(HTTPException) as excinfo:
+        measures_view.get_linked_jira_issue(create_measure.id)
+        assert excinfo.value.status_code == 404
+
+
 def test_unlink_jira_issue(
     measures_view: MeasuresView, create_measure_with_jira_issue: Measure
 ):
