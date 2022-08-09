@@ -13,7 +13,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from pydantic import condecimal, constr, validator
+from pydantic import confloat, constr, validator
 from sqlmodel import SQLModel, Field, Relationship
 
 
@@ -149,7 +149,7 @@ class Project(ProjectInput, table=True):
 class ProjectOutput(ProjectInput):
     id: int
     jira_project: JiraProject | None = None
-    completion: condecimal(ge=0, le=1, decimal_places=2)
+    completion: confloat(ge=0, le=1)
 
 
 class DocumentOutput(DocumentInput):
@@ -160,7 +160,7 @@ class DocumentOutput(DocumentInput):
 class RequirementOutput(RequirementInput):
     id: int
     project: ProjectOutput
-    completion: condecimal(ge=0, le=1, decimal_places=2)
+    completion: confloat(ge=0, le=1)
 
 
 class MeasureOutput(SQLModel):
