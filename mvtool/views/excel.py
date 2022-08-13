@@ -54,10 +54,11 @@ class ExportMeasuresView:
         self._jira_issues = jira_issues
 
     def _query_measure_data(self, *whereclause: Any) -> Iterator:
-        query = select(Measure, Requirement, Document).where(
-            Measure.requirement_id == Requirement.id,
-            Measure.document_id == Document.id,
-            *whereclause,
+        query = (
+            select(Measure, Requirement, Document)
+            .join(Requirement)
+            .join(Document, isouter=True)
+            .where(*whereclause)
         )
         results = self._session.exec(query).all()
 
@@ -90,6 +91,7 @@ class ExportMeasuresView:
             ]
         )
 
+        is_empty = True
         for measure, requirement, document, jira_issue in measure_data:
             worksheet.append(
                 [
@@ -103,9 +105,13 @@ class ExportMeasuresView:
                     jira_issue.key if jira_issue else "",
                 ]
             )
+            is_empty = False
 
-        table = Table(displayName=worksheet.title, ref=worksheet.calculate_dimension())
-        worksheet.add_table(table)
+        if not is_empty:
+            table = Table(
+                displayName=worksheet.title, ref=worksheet.calculate_dimension()
+            )
+            worksheet.add_table(table)
 
     @router.get(
         "/projects/{project_id}/measures/excel", response_class=FileResponse, **kwargs
@@ -180,6 +186,7 @@ class ExportRequirementsView:
             ]
         )
 
+        is_empty = True
         for requirement in self._requirements.list_requirements(project_id):
             worksheet.append(
                 [
@@ -192,9 +199,13 @@ class ExportRequirementsView:
                     requirement.completion,
                 ]
             )
+            is_empty = False
 
-        table = Table(displayName=worksheet.title, ref=worksheet.calculate_dimension())
-        worksheet.add_table(table)
+        if not is_empty:
+            table = Table(
+                displayName=worksheet.title, ref=worksheet.calculate_dimension()
+            )
+            worksheet.add_table(table)
 
     @router.get(
         "/projects/{project_id}/requirements/excel",
