@@ -235,16 +235,16 @@ class ExportRequirementsView:
 class ImportExcelView:
     def _upload_to_workbook(
         self,
-        excel_file: UploadFile,
+        upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> Workbook:
         with open(temp_file.name, "wb") as f:
             # 1MB buffer size should be sufficient to load an Excel file
             buffer_size = 1000 * 1024
-            chunk = excel_file.file.read(buffer_size)
+            chunk = upload_file.file.read(buffer_size)
             while chunk:
                 f.write(chunk)
-                chunk = excel_file.file.read(buffer_size)
+                chunk = upload_file.file.read(buffer_size)
 
         # carefully open the Excel file
         try:
@@ -327,11 +327,11 @@ class ImportRequirementsView(ImportExcelView):
     def upload_requirements_excel(
         self,
         project_id: int,
-        excel_file: UploadFile,
+        upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ):
         # get worksheet from Excel file
-        workbook = self._upload_to_workbook(excel_file, temp_file)
+        workbook = self._upload_to_workbook(upload_file, temp_file)
         worksheet = workbook.active
 
         # read data from worksheet
@@ -391,11 +391,11 @@ class ImportMeasuresView(ImportExcelView):
     def upload_measures_excel(
         self,
         requirement_id: int,
-        excel_file: UploadFile,
+        upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ):
         # get worksheet from Excel file
-        workbook = self._upload_to_workbook(excel_file, temp_file)
+        workbook = self._upload_to_workbook(upload_file, temp_file)
         worksheet = workbook.active
 
         # read measures from worksheet
