@@ -14,7 +14,7 @@
 # GNU AGPL V3 for more details.
 
 from pydantic import confloat, constr, validator
-from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel import SQLModel, Field, Relationship, Session, select, func
 
 
 class JiraUser(SQLModel):
@@ -102,10 +102,21 @@ class Requirement(RequirementInput, table=True):
 
     @property
     def completion(self) -> float:
-        if not self.measures:
-            return 0.0
-        else:
-            return sum(m.completed for m in self.measures) / len(self.measures)
+        session = Session.object_session(self)
+
+        # get the total number of measures subordinated to this requirement
+        total_query = (
+            select([func.count()])
+            .select_from(Measure)
+            .where(Measure.requirement_id == self.id)
+        )
+        total = session.execute(total_query).scalar()
+
+        # get the number of completed measures subordinated to this requirement
+        completed_query = total_query.where(Measure.completed == True)
+        completed = session.execute(completed_query).scalar()
+
+        return completed / total if total else 0.0
 
 
 class DocumentInput(SQLModel):
@@ -140,10 +151,22 @@ class Project(ProjectInput, table=True):
 
     @property
     def completion(self) -> float:
-        if not self.requirements:
-            return 0
-        else:
-            return sum(r.completion for r in self.requirements) / len(self.requirements)
+        session = Session.object_session(self)
+
+        # get the total number of measures in project
+        total_query = (
+            select([func.count()])
+            .select_from(Measure, Requirement)
+            .join(Requirement)
+            .where(Requirement.project_id == self.id)
+        )
+        total = session.execute(total_query).scalar()
+
+        # get the number of completed measures in project
+        completed_query = total_query.where(Measure.completed == True)
+        completed = session.execute(completed_query).scalar()
+
+        return completed / total if total else 0.0
 
 
 class ProjectOutput(ProjectInput):
