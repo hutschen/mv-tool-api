@@ -14,7 +14,7 @@
 # GNU AGPL V3 for more details.
 
 from pydantic import confloat, constr, validator
-from sqlmodel import SQLModel, Field, Relationship, Session, select, func
+from sqlmodel import SQLModel, Field, Relationship, Session, select, func, or_
 
 
 class JiraUser(SQLModel):
@@ -101,7 +101,10 @@ class Requirement(RequirementInput, table=True):
     )
 
     @property
-    def completion(self) -> float:
+    def completion(self) -> float | None:
+        if self.compliance_status not in ("C", "PC", None):
+            return None
+
         session = Session.object_session(self)
 
         # get the total number of measures subordinated to this requirement
@@ -150,15 +153,21 @@ class Project(ProjectInput, table=True):
     )
 
     @property
-    def completion(self) -> float:
+    def completion(self) -> float | None:
         session = Session.object_session(self)
 
         # get the total number of measures in project
         total_query = (
             select([func.count()])
             .select_from(Measure, Requirement)
-            .join(Requirement)
-            .where(Requirement.project_id == self.id)
+            .outerjoin(Measure)
+            .where(
+                Requirement.project_id == self.id,
+                or_(
+                    Requirement.compliance_status.in_(("C", "PC")),
+                    Requirement.compliance_status.is_(None),
+                ),
+            )
         )
         total = session.execute(total_query).scalar()
 
@@ -166,13 +175,13 @@ class Project(ProjectInput, table=True):
         completed_query = total_query.where(Measure.completed == True)
         completed = session.execute(completed_query).scalar()
 
-        return completed / total if total else 0.0
+        return completed / total if total else None
 
 
 class ProjectOutput(ProjectInput):
     id: int
     jira_project: JiraProject | None = None
-    completion: confloat(ge=0, le=1)
+    completion: confloat(ge=0, le=1) | None
 
 
 class DocumentOutput(DocumentInput):
@@ -183,7 +192,7 @@ class DocumentOutput(DocumentInput):
 class RequirementOutput(RequirementInput):
     id: int
     project: ProjectOutput
-    completion: confloat(ge=0, le=1)
+    completion: confloat(ge=0, le=1) | None
 
 
 class MeasureOutput(SQLModel):
