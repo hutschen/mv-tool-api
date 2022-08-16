@@ -101,7 +101,10 @@ class Requirement(RequirementInput, table=True):
     )
 
     @property
-    def completion(self) -> float:
+    def completion(self) -> float | None:
+        if self.compliance_status not in ("C", "PC", None):
+            return None
+
         session = Session.object_session(self)
 
         # get the total number of measures subordinated to this requirement
@@ -189,7 +192,7 @@ class DocumentOutput(DocumentInput):
 class RequirementOutput(RequirementInput):
     id: int
     project: ProjectOutput
-    completion: confloat(ge=0, le=1)
+    completion: confloat(ge=0, le=1) | None
 
 
 class MeasureOutput(SQLModel):
