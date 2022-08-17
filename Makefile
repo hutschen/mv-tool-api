@@ -16,3 +16,6 @@ dependencies-prod-install:
 
 dependencies-dev-install:
 	pipenv install --dev
+
+dependencies-update:
+	pipenv update --dev
