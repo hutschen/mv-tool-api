@@ -1,5 +1,5 @@
 # coding: utf-8
-# 
+#
 # Copyright 2022 Helmar Hutschenreuter
 #
 # The source code of this program is made available
@@ -13,8 +13,8 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU AGPL V3 for more details.
 
-from pydantic import constr, validator
-from sqlmodel import SQLModel, Field, Relationship
+from pydantic import confloat, constr, validator
+from sqlmodel import SQLModel, Field, Relationship, Session, select, func, or_
 
 
 class JiraUser(SQLModel):
@@ -58,16 +58,16 @@ class MeasureInput(SQLModel):
     summary: str
     description: str | None = None
     completed: bool = False
-    jira_issue_id: str | None = None
     document_id: int | None = None
-    
+
 
 class Measure(MeasureInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    requirement_id: int | None = Field(default=None, foreign_key='requirement.id')
-    requirement : 'Requirement' = Relationship(back_populates='measures')  
-    document_id: int | None = Field(default=None, foreign_key='document.id')
-    document: 'Document' = Relationship(back_populates='measures')
+    jira_issue_id: str | None = None
+    requirement_id: int | None = Field(default=None, foreign_key="requirement.id")
+    requirement: "Requirement" = Relationship(back_populates="measures")
+    document_id: int | None = Field(default=None, foreign_key="document.id")
+    document: "Document" = Relationship(back_populates="measures")
 
 
 class RequirementInput(SQLModel):
@@ -75,22 +75,51 @@ class RequirementInput(SQLModel):
     summary: str
     description: str | None
     target_object: str | None
-    compliance_status: constr(regex=r'^(C|PC|NC|N/A)$') | None
+    compliance_status: constr(regex=r"^(C|PC|NC|N/A)$") | None
     compliance_comment: str | None
 
-    @validator('compliance_comment')
+    @validator("compliance_comment")
     def compliance_comment_validator(cls, v, values):
-        if values['compliance_status'] is None and v:
+        if (
+            v
+            and ("compliance_status" in values)
+            and (values["compliance_status"] is None)
+        ):
             raise ValueError(
-                'compliance_comment cannot be set if compliance_status is None')
+                "compliance_comment cannot be set if compliance_status is None"
+            )
         return v
 
 
 class Requirement(RequirementInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    project_id: int | None = Field(default=None, foreign_key='project.id')
-    project: 'Project' = Relationship(back_populates='requirements')
-    measures: list[Measure] = Relationship(back_populates='requirement')
+    project_id: int | None = Field(default=None, foreign_key="project.id")
+    project: "Project" = Relationship(back_populates="requirements")
+    measures: list[Measure] = Relationship(
+        back_populates="requirement",
+        sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
+    )
+
+    @property
+    def completion(self) -> float | None:
+        if self.compliance_status not in ("C", "PC", None):
+            return None
+
+        session = Session.object_session(self)
+
+        # get the total number of measures subordinated to this requirement
+        total_query = (
+            select([func.count()])
+            .select_from(Measure)
+            .where(Measure.requirement_id == self.id)
+        )
+        total = session.execute(total_query).scalar()
+
+        # get the number of completed measures subordinated to this requirement
+        completed_query = total_query.where(Measure.completed == True)
+        completed = session.execute(completed_query).scalar()
+
+        return completed / total if total else 0.0
 
 
 class DocumentInput(SQLModel):
@@ -101,9 +130,9 @@ class DocumentInput(SQLModel):
 
 class Document(DocumentInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    project_id: int | None = Field(default=None, foreign_key='project.id')
-    project: 'Project' = Relationship(back_populates='documents')
-    measures: list[Measure] = Relationship(back_populates='document')
+    project_id: int | None = Field(default=None, foreign_key="project.id")
+    project: "Project" = Relationship(back_populates="documents")
+    measures: list[Measure] = Relationship(back_populates="document")
 
 
 class ProjectInput(SQLModel):
@@ -114,23 +143,56 @@ class ProjectInput(SQLModel):
 
 class Project(ProjectInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    requirements: list[Requirement] = Relationship(back_populates='project')
-    documents: list[Document] = Relationship(back_populates='project')
+    requirements: list[Requirement] = Relationship(
+        back_populates="project",
+        sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
+    )
+    documents: list[Document] = Relationship(
+        back_populates="project",
+        sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
+    )
+
+    @property
+    def completion(self) -> float | None:
+        session = Session.object_session(self)
+
+        # get the total number of measures in project
+        total_query = (
+            select([func.count()])
+            .select_from(Measure, Requirement)
+            .outerjoin(Measure)
+            .where(
+                Requirement.project_id == self.id,
+                or_(
+                    Requirement.compliance_status.in_(("C", "PC")),
+                    Requirement.compliance_status.is_(None),
+                ),
+            )
+        )
+        total = session.execute(total_query).scalar()
+
+        # get the number of completed measures in project
+        completed_query = total_query.where(Measure.completed == True)
+        completed = session.execute(completed_query).scalar()
+
+        return completed / total if total else None
 
 
 class ProjectOutput(ProjectInput):
     id: int
     jira_project: JiraProject | None = None
+    completion: confloat(ge=0, le=1) | None
 
 
 class DocumentOutput(DocumentInput):
     id: int
-    project: Project
+    project: ProjectOutput
 
 
 class RequirementOutput(RequirementInput):
     id: int
-    project: Project
+    project: ProjectOutput
+    completion: confloat(ge=0, le=1) | None
 
 
 class MeasureOutput(SQLModel):

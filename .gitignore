@@ -7,6 +7,10 @@ __pycache__
 config.yml
 *.db
 
+# Pytest
+cov_html
+.coverage
+
 # IDEs and editors
 .idea/
 .project

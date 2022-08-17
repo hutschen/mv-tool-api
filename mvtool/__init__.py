@@ -16,16 +16,18 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+
+from mvtool.views import excel
 from .views import jira_, projects, requirements, measures, documents
-from . import database
+from . import database, config
 
 app = FastAPI(title='MV-Tool')
-app.include_router(jira_.router, prefix='/api/jira')
+app.include_router(jira_.router, prefix='/api')
 app.include_router(projects.router, prefix='/api')
 app.include_router(requirements.router, prefix='/api')
 app.include_router(measures.router, prefix='/api')
 app.include_router(documents.router, prefix='/api')
-# app.include_router(tasks.router, prefix='/api')
+app.include_router(excel.router, prefix='/api')
 app.mount('/', StaticFiles(directory='htdocs', html=True))
 app.add_middleware(
     CORSMiddleware,
@@ -37,5 +39,10 @@ app.add_middleware(
 
 @app.on_event('startup')
 def on_startup():
+    config_ = config.load_config()
+    database.setup_engine(config_)
     database.create_all()
-    return
+
+@app.on_event('shutdown')
+def on_shutdown():
+    database.dispose_engine()
