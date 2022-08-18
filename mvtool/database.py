@@ -1,17 +1,19 @@
 # coding: utf-8
-# 
-# Copyright 2022 Helmar Hutschenreuter
 #
-# The source code of this program is made available
-# under the terms of the GNU Affero General Public License version 3
-# (GNU AGPL V3) as published by the Free Software Foundation. You may obtain
-# a copy of the GNU AGPL V3 at https://www.gnu.org/licenses/.
+# Copyright (C) 2022 Helmar Hutschenreuter
 #
-# In the case you use this program under the terms of the GNU AGPL V3,
-# the program is provided in the hope that it will be useful,
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU AGPL V3 for more details.  
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from typing import Type, TypeVar, Generic
 from fastapi import Depends, HTTPException
@@ -24,38 +26,46 @@ from .config import Config
 SelectOfScalar.inherit_cache = True
 Select.inherit_cache = True
 
+
 class __State:
     engine = None
+
 
 def setup_engine(config: Config):
     if __State.engine is None:
         __State.engine = create_engine(
             config.sqlite_url,
-            connect_args={'check_same_thread': False},  # Needed for SQLite
+            connect_args={"check_same_thread": False},  # Needed for SQLite
             echo=config.sqlite_echo,
-            poolclass=StaticPool
+            poolclass=StaticPool,
         )
     return __State.engine
+
 
 def dispose_engine():
     __State.engine.dispose()
     __State.engine = None
+
 
 def get_session():
     with Session(__State.engine) as session:
         yield session
         session.commit()
 
+
 def create_all():
     SQLModel.metadata.create_all(__State.engine)
+
 
 def drop_all():
     SQLModel.metadata.drop_all(__State.engine)
 
 
-T = TypeVar('T', bound=SQLModel)
+T = TypeVar("T", bound=SQLModel)
+
+
 class CRUDOperations(Generic[T]):
-    def __init__(self, session = Depends(get_session)):
+    def __init__(self, session=Depends(get_session)):
         self.session = session
 
     def read_all_from_db(self, sqlmodel: Type[T], **filters) -> list[T]:
@@ -79,7 +89,7 @@ class CRUDOperations(Generic[T]):
             return item
         else:
             item_name = item.__class__.__name__
-            raise HTTPException(404, f'No {item_name} with id={id}.')
+            raise HTTPException(404, f"No {item_name} with id={id}.")
 
     def update_in_db(self, id: int, item_update: T) -> T:
         sqlmodel = item_update.__class__
