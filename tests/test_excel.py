@@ -20,8 +20,16 @@ from fastapi.responses import FileResponse
 from openpyxl import load_workbook
 import pytest
 
-from mvtool.models import Measure, MeasureInput, Project, Requirement, RequirementInput
+from mvtool.models import (
+    Document,
+    Measure,
+    MeasureInput,
+    Project,
+    Requirement,
+    RequirementInput,
+)
 from mvtool.views.excel import (
+    ExportDocumentsView,
     ExportMeasuresView,
     ExportRequirementsView,
     ImportMeasuresView,
@@ -89,6 +97,22 @@ def test_download_requirements_excel(
     create_requirement: Requirement,
 ):
     result = export_requirements_view.download_requirements_excel(
+        create_project.id, temp_file=excel_temp_file
+    )
+    assert isinstance(result, FileResponse)
+    assert (
+        result.media_type
+        == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+
+def test_download_documents_excel(
+    export_documents_view: ExportDocumentsView,
+    excel_temp_file,
+    create_project: Project,
+    create_document: Document,
+):
+    result = export_documents_view.download_documents_excel(
         create_project.id, temp_file=excel_temp_file
     )
     assert isinstance(result, FileResponse)
