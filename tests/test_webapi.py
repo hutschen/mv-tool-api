@@ -351,6 +351,13 @@ def test_download_requirements(client, create_project, create_requirement):
     assert response.status_code == 200
 
 
+def test_download_documents(client, create_project, create_document):
+    response = client.get(
+        f"/api/projects/{create_project.id}/documents/excel", auth=("u", "p")
+    )
+    assert response.status_code == 200
+
+
 def test_upload_requirements(client, create_project):
     with open("tests/import/requirements_valid.xlsx", "rb") as excel_file:
         response = client.post(

@@ -261,6 +261,11 @@ class ExportDocumentsView:
             )
             worksheet.add_table(table)
 
+    @router.get(
+        "/projects/{project_id}/documents/excel",
+        response_class=FileResponse,
+        **kwargs,
+    )
     def download_documents_excel(
         self,
         project_id: int,
