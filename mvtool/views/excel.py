@@ -31,9 +31,10 @@ from mvtool import errors
 
 from mvtool.database import get_session
 from mvtool.models import Document, Measure, MeasureInput, Requirement, RequirementInput
-from mvtool.views.jira_ import JiraIssuesView
-from mvtool.views.measures import MeasuresView
-from mvtool.views.requirements import RequirementsView
+from .jira_ import JiraIssuesView
+from .measures import MeasuresView
+from .requirements import RequirementsView
+from .documents import DocumentsView
 
 
 def get_excel_temp_file():
@@ -229,6 +230,51 @@ class ExportRequirementsView:
 
         # fill worksheet with data
         self.fill_excel_worksheet_with_requirement_data(worksheet, project_id)
+
+        # save to temporary file and return response
+        workbook.save(temp_file.name)
+        return FileResponse(temp_file.name, filename=filename)
+
+
+@cbv(router)
+class ExportDocumentsView:
+    kwargs = dict(tags=["document"])
+
+    def __init__(self, documents: DocumentsView = Depends(DocumentsView)):
+        self._documents = documents
+
+    def fill_excel_worksheet_with_document_data(
+        self, worksheet: Worksheet, project_id: int
+    ) -> None:
+        worksheet.append(["ID", "Reference", "Title", "Description"])
+
+        is_empty = True
+        for document in self._documents.list_documents(project_id):
+            worksheet.append(
+                [document.id, document.reference, document.title, document.description]
+            )
+            is_empty = False
+
+        if not is_empty:
+            table = Table(
+                displayName=worksheet.title, ref=worksheet.calculate_dimension()
+            )
+            worksheet.add_table(table)
+
+    def download_documents_excel(
+        self,
+        project_id: int,
+        sheet_name: str = "Export",
+        filename: str = "export.xlsx",
+        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
+    ) -> FileResponse:
+        # set up workbook
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.title = sheet_name
+
+        # fill worksheet with data
+        self.fill_excel_worksheet_with_document_data(worksheet, project_id)
 
         # save to temporary file and return response
         workbook.save(temp_file.name)
