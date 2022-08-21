@@ -15,14 +15,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
 from mvtool.views import excel
 from .views import jira_, projects, requirements, measures, documents
 from . import database, config
+from .angular import AngularFiles
 
 app = FastAPI(title="MV-Tool")
 app.include_router(jira_.router, prefix="/api")
@@ -31,7 +30,7 @@ app.include_router(requirements.router, prefix="/api")
 app.include_router(measures.router, prefix="/api")
 app.include_router(documents.router, prefix="/api")
 app.include_router(excel.router, prefix="/api")
-app.mount("/", StaticFiles(directory="htdocs", html=True))
+app.mount("/", AngularFiles(directory="htdocs", html=True))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:8000", "http://localhost:4200"],
