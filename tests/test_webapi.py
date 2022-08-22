@@ -407,3 +407,23 @@ def test_upload_measures_corrupted_file(client, create_requirement):
             auth=("u", "p"),
         )
     assert response.status_code == 400
+
+
+def test_upload_documents(client, create_project):
+    with open("tests/import/documents_valid.xlsx", "rb") as excel_file:
+        response = client.post(
+            f"/api/projects/{create_project.id}/documents/excel",
+            files=dict(upload_file=excel_file),
+            auth=("u", "p"),
+        )
+    assert response.status_code == 201
+
+
+def test_upload_documents_corrupted_file(client, create_project):
+    with open("tests/import/corrupted.xlsx", "rb") as excel_file:
+        response = client.post(
+            f"/api/projects/{create_project.id}/documents/excel",
+            files=dict(upload_file=excel_file),
+            auth=("u", "p"),
+        )
+    assert response.status_code == 400
