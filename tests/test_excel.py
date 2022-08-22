@@ -22,6 +22,7 @@ import pytest
 
 from mvtool.models import (
     Document,
+    DocumentInput,
     Measure,
     MeasureInput,
     Project,
@@ -32,6 +33,7 @@ from mvtool.views.excel import (
     ExportDocumentsView,
     ExportMeasuresView,
     ExportRequirementsView,
+    ImportDocumentsView,
     ImportMeasuresView,
     ImportRequirementsView,
 )
@@ -177,6 +179,30 @@ def test_read_measures_from_excel_worksheet_invalid_headers():
 
     with pytest.raises(HTTPException) as error_info:
         list(sut.read_measures_from_excel_worksheet(worksheet))
+
+    assert error_info.value.status_code == 400
+    assert error_info.value.detail.startswith("Missing headers")
+
+
+def test_read_documents_from_excel_worksheet():
+    sut = ImportDocumentsView(None)
+    workbook = load_workbook("tests/import/documents_valid.xlsx")
+    worksheet = workbook.active
+
+    results = list(sut.read_documents_from_excel_worksheet(worksheet))
+
+    assert len(results) >= 1
+    result = results[0]
+    assert isinstance(result, DocumentInput)
+
+
+def test_read_documents_from_excel_worksheet_invalid_headers():
+    sut = ImportDocumentsView(None)
+    workbook = load_workbook("tests/import/documents_invalid_headers.xlsx")
+    worksheet = workbook.active
+
+    with pytest.raises(HTTPException) as error_info:
+        list(sut.read_documents_from_excel_worksheet(worksheet))
 
     assert error_info.value.status_code == 400
     assert error_info.value.detail.startswith("Missing headers")

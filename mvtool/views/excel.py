@@ -30,7 +30,14 @@ from openpyxl.worksheet.table import Table
 from mvtool import errors
 
 from mvtool.database import get_session
-from mvtool.models import Document, Measure, MeasureInput, Requirement, RequirementInput
+from mvtool.models import (
+    Document,
+    Measure,
+    MeasureInput,
+    Requirement,
+    RequirementInput,
+    DocumentInput,
+)
 from .jira_ import JiraIssuesView
 from .measures import MeasuresView
 from .requirements import RequirementsView
@@ -455,3 +462,54 @@ class ImportMeasuresView(ImportExcelView):
         # read measures from worksheet
         for measure_input in self.read_measures_from_excel_worksheet(worksheet):
             self._measures.create_measure(requirement_id, measure_input)
+
+
+@cbv(router)
+class ImportDocumentsView(ImportExcelView):
+    kwargs = dict(tags=["document"])
+
+    def __init__(self, documents: DocumentsView = Depends(DocumentsView)):
+        self._documents = documents
+
+    def read_documents_from_excel_worksheet(self, worksheet: Worksheet):
+        for index, row in enumerate(
+            self._iter_rows_on_worksheet(
+                worksheet,
+                ("Reference", "Title", "Description"),
+            )
+        ):
+            try:
+                document_input = DocumentInput(
+                    reference=row["Reference"] or None,
+                    title=row["Title"],
+                    description=row["Description"] or None,
+                )
+            except ValidationError as error:
+                detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
+                    worksheet.title,
+                    index + 1,
+                    error,
+                )
+                raise errors.ValueHttpError(detail)
+            else:
+                yield document_input
+
+    @router.post(
+        "/projects/{project_id}/documents/excel",
+        status_code=201,
+        response_class=Response,
+        **kwargs,
+    )
+    def upload_documents_excel(
+        self,
+        project_id: int,
+        upload_file: UploadFile,
+        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
+    ):
+        # get worksheet from Excel file
+        workbook = self._upload_to_workbook(upload_file, temp_file)
+        worksheet = workbook.active
+
+        # read documents from worksheet
+        for document_input in self.read_documents_from_excel_worksheet(worksheet):
+            self._documents.create_document(project_id, document_input)
