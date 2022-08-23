@@ -52,6 +52,28 @@ def get_excel_temp_file():
 router = APIRouter()
 
 
+class ExcelMixin:
+    def _fill_worksheet(
+        self,
+        worksheet: Worksheet,
+        headers: Collection[str],
+        data: Iterator[Dict[str, str]],
+    ):
+        # Fill worksheet with data
+        worksheet.append(headers)
+        is_empty = True
+        for row in data:
+            worksheet.append(row)
+            is_empty = False
+
+        # Add table to worksheet
+        if not is_empty:
+            table = Table(
+                displayName=worksheet.title, ref=worksheet.calculate_dimension()
+            )
+            worksheet.add_table(table)
+
+
 @cbv(router)
 class ExportMeasuresView:
     kwargs = dict(tags=["measure"])
