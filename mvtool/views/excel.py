@@ -53,11 +53,11 @@ router = APIRouter()
 
 
 class ExcelMixin:
-    def _fill_worksheet(
+    def _write_worksheet(
         self,
         worksheet: Worksheet,
         headers: Collection[str],
-        data: Iterator[Dict[str, str]],
+        data: Iterator[Collection[str]],
     ):
         # Fill worksheet with data
         worksheet.append(headers)
@@ -72,6 +72,27 @@ class ExcelMixin:
                 displayName=worksheet.title, ref=worksheet.calculate_dimension()
             )
             worksheet.add_table(table)
+
+    def _read_worksheet(
+        self, worksheet: Worksheet, headers: Collection[str]
+    ) -> Iterator[Dict[str, str]]:
+        headers = set(headers)
+        is_header_row = True
+
+        for row in worksheet.iter_rows(values_only=True):
+            if is_header_row:
+                # Check if all headers are present
+                if not headers.issubset(row):
+                    detail = 'Missing headers on worksheet "%s": %s' % (
+                        worksheet.title,
+                        ", ".join(headers - set(row)),
+                    )
+                    raise errors.ValueHttpError(detail)
+                headers = tuple(row)
+                is_header_row = False
+            else:
+                # Convert row to dict and yield
+                yield dict(zip(headers, row))
 
 
 @cbv(router)
