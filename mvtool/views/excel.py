@@ -313,7 +313,7 @@ class ExportDocumentsView(ExcelMixin):
 
 
 class ImportExcelView:
-    def _upload_to_workbook(
+    def _convert_upload_file_to_workbook(
         self,
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
@@ -411,7 +411,7 @@ class ImportRequirementsView(ImportExcelView):
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ):
         # get worksheet from Excel file
-        workbook = self._upload_to_workbook(upload_file, temp_file)
+        workbook = self._convert_upload_file_to_workbook(upload_file, temp_file)
         worksheet = workbook.active
 
         # read data from worksheet
@@ -475,7 +475,7 @@ class ImportMeasuresView(ImportExcelView):
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ):
         # get worksheet from Excel file
-        workbook = self._upload_to_workbook(upload_file, temp_file)
+        workbook = self._convert_upload_file_to_workbook(upload_file, temp_file)
         worksheet = workbook.active
 
         # read measures from worksheet
@@ -526,7 +526,7 @@ class ImportDocumentsView(ImportExcelView):
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ):
         # get worksheet from Excel file
-        workbook = self._upload_to_workbook(upload_file, temp_file)
+        workbook = self._convert_upload_file_to_workbook(upload_file, temp_file)
         worksheet = workbook.active
 
         # read documents from worksheet
