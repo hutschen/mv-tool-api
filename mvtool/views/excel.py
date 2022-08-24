@@ -32,6 +32,7 @@ from mvtool import errors
 from mvtool.database import get_session
 from mvtool.models import (
     Document,
+    JiraIssue,
     Measure,
     MeasureInput,
     Requirement,
@@ -57,13 +58,14 @@ class ExcelMixin:
         self,
         worksheet: Worksheet,
         headers: Collection[str],
-        data: Iterator[Collection[str]],
+        data: Iterator[dict[str, str]],
     ):
         # Fill worksheet with data
         worksheet.append(headers)
         is_empty = True
         for row in data:
-            worksheet.append(row)
+            values = [row.get(header, "") for header in headers]
+            worksheet.append(values)
             is_empty = False
 
         # Add table to worksheet
@@ -96,7 +98,7 @@ class ExcelMixin:
 
 
 @cbv(router)
-class ExportMeasuresView:
+class ExportMeasuresView(ExcelMixin):
     kwargs = dict(tags=["measure"])
 
     def __init__(
@@ -106,8 +108,20 @@ class ExportMeasuresView:
     ):
         self._session = session
         self._jira_issues = jira_issues
+        self._headers = [
+            "Requirement Reference",
+            "Requirement Summary",
+            "Summary",
+            "Description",
+            "Completed",
+            "Document Reference",
+            "Document Title",
+            "JIRA Issue Key",
+        ]
 
-    def _query_measure_data(self, *whereclause: Any) -> Iterator:
+    def _query_measure_data(
+        self, *whereclause: Any
+    ) -> Iterator[tuple[Measure, Requirement, Document, JiraIssue]]:
         query = (
             select(Measure, Requirement, Document)
             .join(Requirement)
@@ -129,43 +143,20 @@ class ExportMeasuresView:
                 jira_issue = None
             yield measure, requirement, document, jira_issue
 
-    def _fill_excel_worksheet_with_measure_data(
-        self, worksheet: Worksheet, measure_data
-    ):
-        worksheet.append(
-            [
-                "Requirement Reference",
-                "Requirement Summary",
-                "Summary",
-                "Description",
-                "Completed",
-                "Document Reference",
-                "Document Title",
-                "JIRA Issue Key",
-            ]
-        )
-
-        is_empty = True
-        for measure, requirement, document, jira_issue in measure_data:
-            worksheet.append(
-                [
-                    requirement.reference,
-                    requirement.summary,
-                    measure.summary,
-                    measure.description,
-                    measure.completed,
-                    document.reference if document else "",
-                    document.title if document else "",
-                    jira_issue.key if jira_issue else "",
-                ]
-            )
-            is_empty = False
-
-        if not is_empty:
-            table = Table(
-                displayName=worksheet.title, ref=worksheet.calculate_dimension()
-            )
-            worksheet.add_table(table)
+    def _convert_measure_data_to_dict(
+        self, data: Iterator[tuple[Measure, Requirement, Document, JiraIssue]]
+    ) -> Iterator[dict[str, str]]:
+        for measure, requirement, document, jira_issue in data:
+            yield {
+                "Requirement Reference": requirement.reference,
+                "Requirement Summary": requirement.summary,
+                "Summary": measure.summary,
+                "Description": measure.description,
+                "Completed": measure.completed,
+                "Document Reference": document.reference if document else "",
+                "Document Title": document.title if document else "",
+                "JIRA Issue Key": jira_issue.key if jira_issue else "",
+            }
 
     @router.get(
         "/projects/{project_id}/measures/excel", response_class=FileResponse, **kwargs
@@ -182,9 +173,10 @@ class ExportMeasuresView:
         worksheet = workbook.active
         worksheet.title = sheet_name
 
-        # query measure data
-        measure_data = self._query_measure_data(Requirement.project_id == project_id)
-        self._fill_excel_worksheet_with_measure_data(worksheet, measure_data)
+        # query and write measure data
+        data = self._query_measure_data(Requirement.project_id == project_id)
+        rows = self._convert_measure_data_to_dict(data)
+        self._write_worksheet(worksheet, self._headers, rows)
 
         # save to temporary file and return file response
         workbook.save(temp_file.name)
@@ -208,10 +200,9 @@ class ExportMeasuresView:
         worksheet.title = sheet_name
 
         # query measure data
-        measure_data = self._query_measure_data(
-            Measure.requirement_id == requirement_id
-        )
-        self._fill_excel_worksheet_with_measure_data(worksheet, measure_data)
+        data = self._query_measure_data(Measure.requirement_id == requirement_id)
+        rows = self._convert_measure_data_to_dict(data)
+        self._write_worksheet(worksheet, self._headers, rows)
 
         # save to temporary file and return file response
         workbook.save(temp_file.name)
