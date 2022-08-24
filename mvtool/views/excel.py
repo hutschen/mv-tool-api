@@ -210,47 +210,34 @@ class ExportMeasuresView(ExcelMixin):
 
 
 @cbv(router)
-class ExportRequirementsView:
+class ExportRequirementsView(ExcelMixin):
     kwargs = dict(tags=["requirement"])
 
     def __init__(self, requirements: RequirementsView = Depends(RequirementsView)):
         self._requirements = requirements
+        self._headers = [
+            "Reference",
+            "Summary",
+            "Description",
+            "Target Object",
+            "Compliance Status",
+            "Compliance Comment",
+            "Completion",
+        ]
 
-    def fill_excel_worksheet_with_requirement_data(
-        self, worksheet: Worksheet, project_id: int
-    ) -> None:
-        worksheet.append(
-            [
-                "Reference",
-                "Summary",
-                "Description",
-                "Target Object",
-                "Compliance Status",
-                "Compliance Comment",
-                "Completion",
-            ]
-        )
-
-        is_empty = True
-        for requirement in self._requirements.list_requirements(project_id):
-            worksheet.append(
-                [
-                    requirement.reference,
-                    requirement.summary,
-                    requirement.description,
-                    requirement.target_object,
-                    requirement.compliance_status,
-                    requirement.compliance_comment,
-                    requirement.completion,
-                ]
-            )
-            is_empty = False
-
-        if not is_empty:
-            table = Table(
-                displayName=worksheet.title, ref=worksheet.calculate_dimension()
-            )
-            worksheet.add_table(table)
+    def _convert_requirements_to_dict(
+        self, requirements: Iterator[Requirement]
+    ) -> Iterator[dict[str, str]]:
+        for requirement in requirements:
+            yield {
+                "Reference": requirement.reference,
+                "Summary": requirement.summary,
+                "Description": requirement.description,
+                "Target Object": requirement.target_object,
+                "Compliance Status": requirement.compliance_status,
+                "Compliance Comment": requirement.compliance_comment,
+                "Completion": requirement.completion,
+            }
 
     @router.get(
         "/projects/{project_id}/requirements/excel",
@@ -270,7 +257,9 @@ class ExportRequirementsView:
         worksheet.title = sheet_name
 
         # fill worksheet with data
-        self.fill_excel_worksheet_with_requirement_data(worksheet, project_id)
+        requirements = self._requirements.list_requirements(project_id)
+        rows = self._convert_requirements_to_dict(requirements)
+        self._write_worksheet(worksheet, self._headers, rows)
 
         # save to temporary file and return response
         workbook.save(temp_file.name)
