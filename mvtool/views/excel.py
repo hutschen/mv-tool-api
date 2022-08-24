@@ -267,29 +267,23 @@ class ExportRequirementsView(ExcelMixin):
 
 
 @cbv(router)
-class ExportDocumentsView:
+class ExportDocumentsView(ExcelMixin):
     kwargs = dict(tags=["document"])
 
     def __init__(self, documents: DocumentsView = Depends(DocumentsView)):
         self._documents = documents
+        self._headers = ["ID", "Reference", "Title", "Description"]
 
-    def fill_excel_worksheet_with_document_data(
-        self, worksheet: Worksheet, project_id: int
-    ) -> None:
-        worksheet.append(["ID", "Reference", "Title", "Description"])
-
-        is_empty = True
-        for document in self._documents.list_documents(project_id):
-            worksheet.append(
-                [document.id, document.reference, document.title, document.description]
-            )
-            is_empty = False
-
-        if not is_empty:
-            table = Table(
-                displayName=worksheet.title, ref=worksheet.calculate_dimension()
-            )
-            worksheet.add_table(table)
+    def _convert_documents_to_dict(
+        self, documents: Iterator[Document]
+    ) -> Iterator[dict[str, str]]:
+        for document in documents:
+            yield {
+                "ID": document.id,
+                "Reference": document.reference,
+                "Title": document.title,
+                "Description": document.description,
+            }
 
     @router.get(
         "/projects/{project_id}/documents/excel",
@@ -309,7 +303,9 @@ class ExportDocumentsView:
         worksheet.title = sheet_name
 
         # fill worksheet with data
-        self.fill_excel_worksheet_with_document_data(worksheet, project_id)
+        documents = self._documents.list_documents(project_id)
+        rows = self._convert_documents_to_dict(documents)
+        self._write_worksheet(worksheet, self._headers, rows)
 
         # save to temporary file and return response
         workbook.save(temp_file.name)
