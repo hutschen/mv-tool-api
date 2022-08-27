@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import shutil
 from tempfile import NamedTemporaryFile
 from typing import Any, Collection, Generic, TypeVar
 from fastapi import APIRouter, Depends, Response, UploadFile
@@ -132,13 +133,8 @@ class ExcelView(Generic[T]):
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile,
     ) -> Iterator[T]:
-        with open(temp_file.name, "wb") as f:
-            # 1MB buffer size should be sufficient to load an Excel file
-            buffer_size = 1000 * 1024
-            chunk = upload_file.file.read(buffer_size)
-            while chunk:
-                f.write(chunk)
-                chunk = upload_file.file.read(buffer_size)
+        # Save uploaded file to temp file
+        shutil.copyfileobj(upload_file.file, temp_file)
 
         # carefully open the Excel file
         try:
