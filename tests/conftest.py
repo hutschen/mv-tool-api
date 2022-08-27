@@ -266,7 +266,7 @@ def create_measure_with_jira_issue(
 
 @pytest.fixture
 def excel_temp_file():
-    return get_excel_temp_file()
+    return next(iter(get_excel_temp_file()))
 
 
 @pytest.fixture

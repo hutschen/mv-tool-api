@@ -47,7 +47,7 @@ from .documents import DocumentsView
 
 def get_excel_temp_file():
     with NamedTemporaryFile(suffix=".xlsx") as temp_file:
-        return temp_file
+        yield temp_file
 
 
 router = APIRouter()
