@@ -17,7 +17,7 @@
 
 
 from tempfile import NamedTemporaryFile
-from typing import Any, Collection, Dict
+from typing import Any, Collection, Generic, Type, TypeVar
 from fastapi import APIRouter, Depends, Response, UploadFile
 from fastapi.responses import FileResponse
 from fastapi_utils.cbv import cbv
@@ -51,19 +51,20 @@ def get_excel_temp_file():
 
 
 router = APIRouter()
+T = TypeVar("T")
 
 
-class ExcelView:
+class ExcelView(Generic[T]):
     def __init__(self, headers: Collection[str]):
         self._headers = headers
 
-    def _convert_to_row(self, data: Any) -> dict[str, str]:
+    def _convert_to_row(self, data: T) -> dict[str, str]:
         raise NotImplementedError("Must be implemented by subclass")
 
     def _write_worksheet(
         self,
         worksheet: Worksheet,
-        data: Iterator[Any],
+        data: Iterator[T],
     ):
         # Fill worksheet with data
         worksheet.append(self._headers)
@@ -81,13 +82,13 @@ class ExcelView:
             )
             worksheet.add_table(table)
 
-    def _convert_from_row(self, row: dict[str, str], worksheet, row_no) -> Any:
+    def _convert_from_row(self, row: dict[str, str], worksheet, row_no) -> T:
         raise NotImplementedError("Must be implemented by subclass")
 
     def _read_worksheet(
         self,
         worksheet: Worksheet,
-    ) -> Iterator[Any]:
+    ) -> Iterator[T]:
         headers_set = set(self._headers)
         headers_ordered = None
         is_header_row = True
@@ -109,7 +110,7 @@ class ExcelView:
 
     def _process_download(
         self,
-        data: Iterator[Any],
+        data: Iterator[T],
         temp_file: NamedTemporaryFile,
         sheet_name: str = "Export",
         filename: str = "export.xlsx",
@@ -128,7 +129,7 @@ class ExcelView:
         self,
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile,
-    ) -> Iterator[Any]:
+    ) -> Iterator[T]:
         with open(temp_file.name, "wb") as f:
             # 1MB buffer size should be sufficient to load an Excel file
             buffer_size = 1000 * 1024
@@ -152,7 +153,7 @@ class ExcelView:
 
 @cbv(router)
 class ExportMeasuresView(ExcelView):
-    kwargs = dict(tags=["measure"])
+    kwargs = MeasuresView.kwargs
 
     def __init__(
         self,
@@ -196,20 +197,20 @@ class ExportMeasuresView(ExcelView):
                 jira_issue = None
             yield measure, requirement, document, jira_issue
 
-    def _convert_measure_data_to_dict(
-        self, data: Iterator[tuple[Measure, Requirement, Document, JiraIssue]]
-    ) -> Iterator[dict[str, str]]:
-        for measure, requirement, document, jira_issue in data:
-            yield {
-                "Requirement Reference": requirement.reference,
-                "Requirement Summary": requirement.summary,
-                "Summary": measure.summary,
-                "Description": measure.description,
-                "Completed": measure.completed,
-                "Document Reference": document.reference if document else "",
-                "Document Title": document.title if document else "",
-                "JIRA Issue Key": jira_issue.key if jira_issue else "",
-            }
+    def _convert_to_row(
+        self, data: tuple[Measure, Requirement, Document, JiraIssue]
+    ) -> dict[str, str]:
+        measure, requirement, document, jira_issue = data
+        return {
+            "Requirement Reference": requirement.reference,
+            "Requirement Summary": requirement.summary,
+            "Summary": measure.summary,
+            "Description": measure.description,
+            "Completed": measure.completed,
+            "Document Reference": document.reference if document else "",
+            "Document Title": document.title if document else "",
+            "JIRA Issue Key": jira_issue.key if jira_issue else "",
+        }
 
     @router.get(
         "/projects/{project_id}/measures/excel", response_class=FileResponse, **kwargs
@@ -221,19 +222,12 @@ class ExportMeasuresView(ExcelView):
         filename: str = "export.xlsx",
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> FileResponse:
-        # set up workbook
-        workbook = Workbook()
-        worksheet = workbook.active
-        worksheet.title = sheet_name
-
-        # query and write measure data
-        data = self._query_measure_data(Requirement.project_id == project_id)
-        rows = self._convert_measure_data_to_dict(data)
-        self._write_worksheet(worksheet, self._headers, rows)
-
-        # save to temporary file and return file response
-        workbook.save(temp_file.name)
-        return FileResponse(temp_file.name, filename=filename)
+        return self._process_download(
+            self._query_measure_data(Requirement.project_id == project_id),
+            temp_file,
+            sheet_name,
+            filename,
+        )
 
     @router.get(
         "/requirements/{requirement_id}/measures/excel",
@@ -247,19 +241,12 @@ class ExportMeasuresView(ExcelView):
         filename: str = "export.xlsx",
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> FileResponse:
-        # set up workbook
-        workbook = Workbook()
-        worksheet = workbook.active
-        worksheet.title = sheet_name
-
-        # query measure data
-        data = self._query_measure_data(Measure.requirement_id == requirement_id)
-        rows = self._convert_measure_data_to_dict(data)
-        self._write_worksheet(worksheet, self._headers, rows)
-
-        # save to temporary file and return file response
-        workbook.save(temp_file.name)
-        return FileResponse(temp_file.name, filename=filename)
+        return self._process_download(
+            self._query_measure_data(Requirement.id == requirement_id),
+            temp_file,
+            sheet_name,
+            filename,
+        )
 
 
 @cbv(router)
