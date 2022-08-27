@@ -16,7 +16,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import re
+import shutil
+from tempfile import NamedTemporaryFile
+from fastapi import APIRouter, Depends, Response, UploadFile
+from fastapi_utils.cbv import cbv
 import docx
+
+from .projects import ProjectsView
+from .requirements import RequirementsView
+from ..database import CRUDOperations
 from ..models import GSBaustein, Requirement
 from .. import errors
 
@@ -152,7 +160,7 @@ class GSBausteinParser:
             if paragraphs.current.style.name == "Title":
                 match = cls._gs_baustein_title_re.match(paragraphs.current.text)
                 if match:
-                    return GSBaustein(gs_ref=match.group(1), title=match.group(3))
+                    return GSBaustein(reference=match.group(1), title=match.group(3))
                 else:
                     raise errors.ValueHttpError(
                         f"Could not parse GS baustein title: {paragraphs.current.text}"
@@ -172,3 +180,44 @@ class GSBausteinParser:
         gs_baustein = cls._parse_gs_baustein_title(paragraphs)
         gs_baustein.requirements = cls._parse_requirements_from_baustein(paragraphs)
         return gs_baustein
+
+
+def get_word_temp_file():
+    with NamedTemporaryFile(suffix=".docx") as temp_file:
+        yield temp_file
+
+
+router = APIRouter()
+
+
+@cbv(router)
+class ImportGSBaustein:
+    kwargs = RequirementsView.kwargs
+
+    def __init__(
+        self,
+        projects: ProjectsView = Depends(ProjectsView),
+        crud: CRUDOperations[GSBaustein] = Depends(CRUDOperations),
+    ):
+        self._projects = projects
+        self._crud = crud
+
+    @router.post(
+        "/projects/{project_id}/requirements/gs-baustein",
+        status_code=201,
+        response_class=Response,
+        **kwargs,
+    )
+    def upload_gs_baustein(
+        self,
+        project_id: int,
+        upload_file: UploadFile,
+        temp_file: NamedTemporaryFile = Depends(get_word_temp_file),
+    ):
+        project = self._projects.get_project(project_id)
+        shutil.copyfileobj(upload_file.file, temp_file)
+
+        gs_baustein = GSBausteinParser.parse(temp_file.name)
+        for requirement in gs_baustein.requirements:
+            requirement.project = project
+        self._crud.create_in_db(gs_baustein)
