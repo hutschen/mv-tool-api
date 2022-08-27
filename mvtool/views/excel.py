@@ -17,7 +17,7 @@
 
 
 from tempfile import NamedTemporaryFile
-from typing import Any, Collection, Generic, Type, TypeVar
+from typing import Any, Collection, Generic, TypeVar
 from fastapi import APIRouter, Depends, Response, UploadFile
 from fastapi.responses import FileResponse
 from fastapi_utils.cbv import cbv
