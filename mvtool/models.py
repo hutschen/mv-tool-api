@@ -73,6 +73,22 @@ class Measure(MeasureInput, table=True):
     document: "Document" = Relationship(back_populates="measures")
 
 
+class GSBausteinInput(SQLModel):
+    gs_ref: str
+    title: str
+
+
+class GSBaustein(GSBausteinInput, table=True):
+    __tablename__ = "gs_baustein"
+    id: int | None = Field(default=None, primary_key=True)
+    gs_ref: str = Field(default=None)
+    title: str = Field(default=None)
+    requirements: "Requirement" = Relationship(
+        back_populates="gs_baustein",
+        sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
+    )
+
+
 class RequirementInput(SQLModel):
     reference: str | None
     summary: str
@@ -80,6 +96,11 @@ class RequirementInput(SQLModel):
     target_object: str | None
     compliance_status: constr(regex=r"^(C|PC|NC|N/A)$") | None
     compliance_comment: str | None
+
+    # Special fields for IT Grundschutz Kompendium
+    gs_anforderung_ref: str | None
+    gs_absicherung: constr(regex=r"^(B|S|H)$") | None
+    gs_verantwortliche: str | None
 
     @validator("compliance_comment")
     def compliance_comment_validator(cls, v, values):
@@ -102,6 +123,10 @@ class Requirement(RequirementInput, table=True):
         back_populates="requirement",
         sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
     )
+
+    # Special fields for IT Grundschutz Kompendium
+    gs_baustein_id: int | None = Field(default=None, foreign_key="gs_baustein.id")
+    gs_baustein: GSBaustein | None = Relationship(back_populates="requirements")
 
     @property
     def completion(self) -> float | None:
@@ -196,6 +221,9 @@ class RequirementOutput(RequirementInput):
     id: int
     project: ProjectOutput
     completion: confloat(ge=0, le=1) | None
+
+    # Special fields for IT Grundschutz Kompendium
+    gs_baustein: GSBaustein | None
 
 
 class MeasureOutput(SQLModel):
