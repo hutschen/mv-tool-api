@@ -45,7 +45,7 @@ class ParagraphsWrapper:
 
     @property
     def current(self):
-        if self.index >= len(self.paragraphs):
+        if self.index > len(self.paragraphs):
             return None
         else:
             return self.paragraphs[self.index - 1]
