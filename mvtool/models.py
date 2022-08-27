@@ -81,12 +81,7 @@ class GSBausteinInput(SQLModel):
 class GSBaustein(GSBausteinInput, table=True):
     __tablename__ = "gs_baustein"
     id: int | None = Field(default=None, primary_key=True)
-    gs_ref: str = Field(default=None)
-    title: str = Field(default=None)
-    requirements: "Requirement" = Relationship(
-        back_populates="gs_baustein",
-        sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
-    )
+    requirements: "Requirement" = Relationship(back_populates="gs_baustein")
 
 
 class RequirementInput(SQLModel):
@@ -126,7 +121,9 @@ class Requirement(RequirementInput, table=True):
 
     # Special fields for IT Grundschutz Kompendium
     gs_baustein_id: int | None = Field(default=None, foreign_key="gs_baustein.id")
-    gs_baustein: GSBaustein | None = Relationship(back_populates="requirements")
+    gs_baustein: GSBaustein | None = Relationship(
+        back_populates="requirements", sa_relationship_kwargs={"cascade": "all,delete"}
+    )
 
     @property
     def completion(self) -> float | None:
