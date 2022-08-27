@@ -265,19 +265,16 @@ class ExportRequirementsView(ExcelView):
             "Completion",
         ]
 
-    def _convert_requirements_to_dict(
-        self, requirements: Iterator[Requirement]
-    ) -> Iterator[dict[str, str]]:
-        for requirement in requirements:
-            yield {
-                "Reference": requirement.reference,
-                "Summary": requirement.summary,
-                "Description": requirement.description,
-                "Target Object": requirement.target_object,
-                "Compliance Status": requirement.compliance_status,
-                "Compliance Comment": requirement.compliance_comment,
-                "Completion": requirement.completion,
-            }
+    def _convert_to_row(self, data: Requirement) -> dict[str, str]:
+        return {
+            "Reference": data.reference,
+            "Summary": data.summary,
+            "Description": data.description,
+            "Target Object": data.target_object,
+            "Compliance Status": data.compliance_status,
+            "Compliance Comment": data.compliance_comment,
+            "Completion": data.completion,
+        }
 
     @router.get(
         "/projects/{project_id}/requirements/excel",
@@ -291,19 +288,12 @@ class ExportRequirementsView(ExcelView):
         filename: str = "export.xlsx",
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> FileResponse:
-        # set up workbook
-        workbook = Workbook()
-        worksheet = workbook.active
-        worksheet.title = sheet_name
-
-        # fill worksheet with data
-        requirements = self._requirements.list_requirements(project_id)
-        rows = self._convert_requirements_to_dict(requirements)
-        self._write_worksheet(worksheet, self._headers, rows)
-
-        # save to temporary file and return response
-        workbook.save(temp_file.name)
-        return FileResponse(temp_file.name, filename=filename)
+        return self._process_download(
+            self._requirements.list_requirements(project_id),
+            temp_file,
+            sheet_name,
+            filename,
+        )
 
 
 @cbv(router)
