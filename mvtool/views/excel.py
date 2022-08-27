@@ -409,47 +409,26 @@ class ImportRequirementsView(ExcelView):
 
 
 @cbv(router)
-class ImportMeasuresView(ImportExcelView):
-    kwargs = dict(tags=["measure"])
+class ImportMeasuresView(ExcelView):
+    kwargs = MeasuresView.kwargs
 
     def __init__(self, measures: MeasuresView = Depends(MeasuresView)):
+        ExcelView.__init__(self, ["Summary", "Description"])
         self._measures = measures
 
-    def read_measures_from_excel_worksheet(self, worksheet: Worksheet):
-        for index, row in enumerate(
-            self._iter_rows_on_worksheet(
-                worksheet,
-                ("Summary", "Description"),
+    def _convert_from_row(self, row: dict[str, str], worksheet, row_no) -> MeasureInput:
+        try:
+            return MeasureInput(
+                summary=row["Summary"],
+                description=row["Description"] or None,
             )
-        ):
-            try:
-                measure_input = MeasureInput(
-                    summary=row["Summary"],
-                    description=row["Description"] or None,
-                )
-            except ValidationError as error:
-                detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
-                    worksheet.title,
-                    index + 1,
-                    error,
-                )
-                raise errors.ValueHttpError(detail)
-            else:
-                yield measure_input
-            try:
-                measure_input = MeasureInput(
-                    summary=row["Summary"],
-                    description=row["Description"] or None,
-                )
-            except ValidationError as error:
-                detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
-                    worksheet.title,
-                    index + 1,
-                    error,
-                )
-                raise errors.ValueHttpError(detail)
-            else:
-                yield measure_input
+        except ValidationError as error:
+            detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
+                worksheet.title,
+                row_no + 1,
+                error,
+            )
+            raise errors.ValueHttpError(detail)
 
     @router.post(
         "/requirements/{requirement_id}/measures/excel",
@@ -463,44 +442,34 @@ class ImportMeasuresView(ImportExcelView):
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ):
-        # get worksheet from Excel file
-        workbook = self._convert_upload_file_to_workbook(upload_file, temp_file)
-        worksheet = workbook.active
-
-        # read measures from worksheet
-        for measure_input in self.read_measures_from_excel_worksheet(worksheet):
+        for measure_input in self._process_upload(upload_file, temp_file):
             self._measures.create_measure(requirement_id, measure_input)
 
 
 @cbv(router)
-class ImportDocumentsView(ImportExcelView):
-    kwargs = dict(tags=["document"])
+class ImportDocumentsView(ExcelView):
+    kwargs = DocumentsView.kwargs
 
     def __init__(self, documents: DocumentsView = Depends(DocumentsView)):
+        ExcelView.__init__(self, ["Reference", "Title", "Description"])
         self._documents = documents
 
-    def read_documents_from_excel_worksheet(self, worksheet: Worksheet):
-        for index, row in enumerate(
-            self._iter_rows_on_worksheet(
-                worksheet,
-                ("Reference", "Title", "Description"),
+    def _convert_from_row(
+        self, row: dict[str, str], worksheet, row_no
+    ) -> DocumentInput:
+        try:
+            return DocumentInput(
+                reference=row["Reference"] or None,
+                title=row["Title"],
+                description=row["Description"] or None,
             )
-        ):
-            try:
-                document_input = DocumentInput(
-                    reference=row["Reference"] or None,
-                    title=row["Title"],
-                    description=row["Description"] or None,
-                )
-            except ValidationError as error:
-                detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
-                    worksheet.title,
-                    index + 1,
-                    error,
-                )
-                raise errors.ValueHttpError(detail)
-            else:
-                yield document_input
+        except ValidationError as error:
+            detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
+                worksheet.title,
+                row_no + 1,
+                error,
+            )
+            raise errors.ValueHttpError(detail)
 
     @router.post(
         "/projects/{project_id}/documents/excel",
@@ -514,10 +483,5 @@ class ImportDocumentsView(ImportExcelView):
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ):
-        # get worksheet from Excel file
-        workbook = self._convert_upload_file_to_workbook(upload_file, temp_file)
-        worksheet = workbook.active
-
-        # read documents from worksheet
-        for document_input in self.read_documents_from_excel_worksheet(worksheet):
+        for document_input in self._process_upload(upload_file, temp_file):
             self._documents.create_document(project_id, document_input)
