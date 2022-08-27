@@ -94,14 +94,6 @@ class RequirementInput(SQLModel):
         return v
 
 
-class GSBaustein(SQLModel, table=True):
-    __tablename__ = "gs_baustein"
-    id: int | None = Field(default=None, primary_key=True)
-    reference: str
-    title: str
-    requirements: "Requirement" = Relationship(back_populates="gs_baustein")
-
-
 class Requirement(RequirementInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
     project_id: int | None = Field(default=None, foreign_key="project.id")
@@ -116,7 +108,7 @@ class Requirement(RequirementInput, table=True):
     gs_absicherung: constr(regex=r"^(B|S|H)$") | None
     gs_verantwortliche: str | None
     gs_baustein_id: int | None = Field(default=None, foreign_key="gs_baustein.id")
-    gs_baustein: GSBaustein | None = Relationship(
+    gs_baustein: "GSBaustein" = Relationship(
         back_populates="requirements", sa_relationship_kwargs={"cascade": "all,delete"}
     )
 
@@ -140,6 +132,14 @@ class Requirement(RequirementInput, table=True):
         completed = session.execute(completed_query).scalar()
 
         return completed / total if total else 0.0
+
+
+class GSBaustein(SQLModel, table=True):
+    __tablename__ = "gs_baustein"
+    id: int | None = Field(default=None, primary_key=True)
+    reference: str
+    title: str
+    requirements: list[Requirement] = Relationship(back_populates="gs_baustein")
 
 
 class DocumentInput(SQLModel):
