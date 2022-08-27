@@ -160,18 +160,21 @@ class ExportMeasuresView(ExcelView):
         session: Session = Depends(get_session),
         jira_issues: JiraIssuesView = Depends(JiraIssuesView),
     ):
+        ExcelView.__init__(
+            self,
+            [
+                "Requirement Reference",
+                "Requirement Summary",
+                "Summary",
+                "Description",
+                "Completed",
+                "Document Reference",
+                "Document Title",
+                "JIRA Issue Key",
+            ],
+        )
         self._session = session
         self._jira_issues = jira_issues
-        self._headers = [
-            "Requirement Reference",
-            "Requirement Summary",
-            "Summary",
-            "Description",
-            "Completed",
-            "Document Reference",
-            "Document Title",
-            "JIRA Issue Key",
-        ]
 
     def _query_measure_data(
         self, *whereclause: Any
@@ -254,16 +257,19 @@ class ExportRequirementsView(ExcelView):
     kwargs = dict(tags=["requirement"])
 
     def __init__(self, requirements: RequirementsView = Depends(RequirementsView)):
+        ExcelView.__init__(
+            self,
+            [
+                "Reference",
+                "Summary",
+                "Description",
+                "Target Object",
+                "Compliance Status",
+                "Compliance Comment",
+                "Completion",
+            ],
+        )
         self._requirements = requirements
-        self._headers = [
-            "Reference",
-            "Summary",
-            "Description",
-            "Target Object",
-            "Compliance Status",
-            "Compliance Comment",
-            "Completion",
-        ]
 
     def _convert_to_row(self, data: Requirement) -> dict[str, str]:
         return {
