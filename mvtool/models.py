@@ -97,7 +97,7 @@ class RequirementInput(SQLModel):
 class GSBaustein(SQLModel, table=True):
     __tablename__ = "gs_baustein"
     id: int | None = Field(default=None, primary_key=True)
-    gs_ref: str
+    reference: str
     title: str
     requirements: "Requirement" = Relationship(back_populates="gs_baustein")
 
@@ -112,7 +112,7 @@ class Requirement(RequirementInput, table=True):
     )
 
     # Special fields for IT Grundschutz Kompendium
-    gs_anforderung_ref: str | None
+    gs_anforderung_reference: str | None
     gs_absicherung: constr(regex=r"^(B|S|H)$") | None
     gs_verantwortliche: str | None
     gs_baustein_id: int | None = Field(default=None, foreign_key="gs_baustein.id")
@@ -215,7 +215,7 @@ class RequirementOutput(RequirementInput):
     completion: confloat(ge=0, le=1) | None
 
     # Special fields for IT Grundschutz Kompendium
-    gs_anforderung_ref: str | None
+    gs_anforderung_reference: str | None
     gs_absicherung: constr(regex=r"^(B|S|H)$") | None
     gs_verantwortliche: str | None
     gs_baustein: GSBaustein | None
