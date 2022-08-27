@@ -27,3 +27,8 @@ cov_html
 !.vscode/launch.json
 !.vscode/extensions.json
 .history/*
+
+# Test data
+~$*.docx
+tests/import/gs_bausteine/*.docx
+!tests/import/gs_bausteine/gs_baustein.docx
