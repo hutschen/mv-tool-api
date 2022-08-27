@@ -53,18 +53,24 @@ def get_excel_temp_file():
 router = APIRouter()
 
 
-class ExcelMixin:
+class ExcelView:
+    def __init__(self, headers: Collection[str]):
+        self._headers = headers
+
+    def _convert_to_row(self, data: Any) -> dict[str, str]:
+        raise NotImplementedError("Must be implemented by subclass")
+
     def _write_worksheet(
         self,
         worksheet: Worksheet,
-        headers: Collection[str],
-        data: Iterator[dict[str, str]],
+        data: Iterator[Any],
     ):
         # Fill worksheet with data
-        worksheet.append(headers)
+        worksheet.append(self._headers)
         is_empty = True
-        for row in data:
-            values = [row.get(header, "") for header in headers]
+        for row_data in data:
+            row = self._convert_to_row(row_data)
+            values = [row.get(header, "") for header in self._headers]
             worksheet.append(values)
             is_empty = False
 
@@ -75,30 +81,77 @@ class ExcelMixin:
             )
             worksheet.add_table(table)
 
+    def _convert_from_row(self, row: dict[str, str], worksheet, row_no) -> Any:
+        raise NotImplementedError("Must be implemented by subclass")
+
     def _read_worksheet(
-        self, worksheet: Worksheet, headers: Collection[str]
-    ) -> Iterator[Dict[str, str]]:
-        headers = set(headers)
+        self,
+        worksheet: Worksheet,
+    ) -> Iterator[Any]:
+        headers_set = set(self._headers)
+        headers_ordered = None
         is_header_row = True
 
         for row in worksheet.iter_rows(values_only=True):
             if is_header_row:
                 # Check if all headers are present
-                if not headers.issubset(row):
+                if not headers_set.issubset(row):
                     detail = 'Missing headers on worksheet "%s": %s' % (
                         worksheet.title,
-                        ", ".join(headers - set(row)),
+                        ", ".join(headers_set - set(row)),
                     )
                     raise errors.ValueHttpError(detail)
-                headers = tuple(row)
+                headers_ordered = tuple(row)
                 is_header_row = False
             else:
                 # Convert row to dict and yield
-                yield dict(zip(headers, row))
+                yield self._convert_from_row(dict(zip(headers_ordered, row)))
+
+    def _process_download(
+        self,
+        data: Iterator[Any],
+        temp_file: NamedTemporaryFile,
+        sheet_name: str = "Export",
+        filename: str = "export.xlsx",
+    ) -> FileResponse:
+        # set up workbook
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.title = sheet_name
+
+        # Write data to worksheet, save workbook and return file response
+        self._write_worksheet(worksheet, data)
+        workbook.save(temp_file.name)
+        return FileResponse(temp_file.name, filename=filename)
+
+    def _process_upload(
+        self,
+        upload_file: UploadFile,
+        temp_file: NamedTemporaryFile,
+    ) -> Iterator[Any]:
+        with open(temp_file.name, "wb") as f:
+            # 1MB buffer size should be sufficient to load an Excel file
+            buffer_size = 1000 * 1024
+            chunk = upload_file.file.read(buffer_size)
+            while chunk:
+                f.write(chunk)
+                chunk = upload_file.file.read(buffer_size)
+
+        # carefully open the Excel file
+        try:
+            workbook = load_workbook(temp_file.name, read_only=True)
+        except Exception:
+            # have to catch all exceptions, because openpyxl does raise several
+            # exceptions when reading an invalid Excel file
+            raise errors.ValueHttpError("Excel file seems to be corrupt")
+
+        # Load data from workbook
+        worksheet = workbook.active
+        return self._read_worksheet(worksheet)
 
 
 @cbv(router)
-class ExportMeasuresView(ExcelMixin):
+class ExportMeasuresView(ExcelView):
     kwargs = dict(tags=["measure"])
 
     def __init__(
@@ -210,7 +263,7 @@ class ExportMeasuresView(ExcelMixin):
 
 
 @cbv(router)
-class ExportRequirementsView(ExcelMixin):
+class ExportRequirementsView(ExcelView):
     kwargs = dict(tags=["requirement"])
 
     def __init__(self, requirements: RequirementsView = Depends(RequirementsView)):
@@ -267,7 +320,7 @@ class ExportRequirementsView(ExcelMixin):
 
 
 @cbv(router)
-class ExportDocumentsView(ExcelMixin):
+class ExportDocumentsView(ExcelView):
     kwargs = dict(tags=["document"])
 
     def __init__(self, documents: DocumentsView = Depends(DocumentsView)):
@@ -312,51 +365,8 @@ class ExportDocumentsView(ExcelMixin):
         return FileResponse(temp_file.name, filename=filename)
 
 
-class ImportExcelView:
-    def _convert_upload_file_to_workbook(
-        self,
-        upload_file: UploadFile,
-        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
-    ) -> Workbook:
-        with open(temp_file.name, "wb") as f:
-            # 1MB buffer size should be sufficient to load an Excel file
-            buffer_size = 1000 * 1024
-            chunk = upload_file.file.read(buffer_size)
-            while chunk:
-                f.write(chunk)
-                chunk = upload_file.file.read(buffer_size)
-
-        # carefully open the Excel file
-        try:
-            return load_workbook(temp_file.name, read_only=True)
-        except Exception:
-            # have to catch all exceptions, because openpyxl does raise several
-            # exceptions when reading an invalid Excel file
-            raise errors.ValueHttpError("Excel file seems to be corrupt")
-
-    def _iter_rows_on_worksheet(
-        self, worksheet: Worksheet, headers: Collection[str]
-    ) -> Iterator[Dict[str, str]]:
-        headers = set(headers)
-        is_header_row = True
-
-        for row in worksheet.iter_rows(values_only=True):
-            if is_header_row:
-                # check if all required headers are present
-                if not headers.issubset(row):
-                    detail = 'Missing headers on worksheet "%s": %s' % (
-                        worksheet.title,
-                        ", ".join(headers - set(row)),
-                    )
-                    raise errors.ValueHttpError(detail)
-                headers = tuple(row)
-                is_header_row = False
-            else:
-                yield dict(zip(headers, row))
-
-
 @cbv(router)
-class ImportRequirementsView(ImportExcelView):
+class ImportRequirementsView(ExcelView):
     kwargs = dict(tags=["requirement"])
 
     def __init__(
@@ -364,6 +374,37 @@ class ImportRequirementsView(ImportExcelView):
         requirements: RequirementsView = Depends(RequirementsView),
     ):
         self._requirements = requirements
+        self._headers = [
+            "Reference",
+            "Summary",
+            "Description",
+            "Target Object",
+            "Compliance Status",
+            "Compliance Comment",
+        ]
+
+    def _convert_dict_to_requirement_input(
+        self, rows: Iterator[dict[str, str]]
+    ) -> Iterator[RequirementInput]:
+        for row in rows:
+            try:
+                yield RequirementInput(
+                    reference=row["Reference"],
+                    summary=row["Summary"],
+                    description=row["Description"],
+                    target_object=row["Target Object"],
+                    compliance_status=row["Compliance Status"],
+                    compliance_comment=row["Compliance Comment"],
+                )
+            except ValidationError as error:
+                detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
+                    worksheet.title,
+                    index + 1,
+                    error,
+                )
+                raise errors.ValueHttpError(detail)
+            else:
+                yield requirement_input
 
     def read_requirement_from_excel_worksheet(self, worksheet: Worksheet):
         for index, row in enumerate(
@@ -411,7 +452,7 @@ class ImportRequirementsView(ImportExcelView):
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ):
         # get worksheet from Excel file
-        workbook = self._convert_upload_file_to_workbook(upload_file, temp_file)
+        workbook = self._process_upload(upload_file, temp_file)
         worksheet = workbook.active
 
         # read data from worksheet
