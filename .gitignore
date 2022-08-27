@@ -30,5 +30,5 @@ cov_html
 
 # Test data
 ~$*.docx
-tests/import/gs_bausteine/*.docx
-!tests/import/gs_bausteine/gs_baustein.docx
+tests/data/gs_bausteine/*.docx
+!tests/data/gs_bausteine/gs_baustein.docx

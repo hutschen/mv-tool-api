@@ -19,9 +19,9 @@ from mvtool.views.gs import GSBausteinParser
 
 
 def get_gs_baustein_filenames():
-    for filename in os.listdir("tests/import/gs_bausteine"):
+    for filename in os.listdir("tests/data/gs_bausteine"):
         if filename.endswith(".docx"):
-            yield os.path.join("tests/import/gs_bausteine", filename)
+            yield os.path.join("tests/data/gs_bausteine", filename)
 
 
 @pytest.mark.parametrize("filename", get_gs_baustein_filenames())
