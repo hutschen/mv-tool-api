@@ -254,7 +254,7 @@ class ExportMeasuresView(ExcelView):
 
 @cbv(router)
 class ExportRequirementsView(ExcelView):
-    kwargs = dict(tags=["requirement"])
+    kwargs = RequirementsView.kwargs
 
     def __init__(self, requirements: RequirementsView = Depends(RequirementsView)):
         ExcelView.__init__(
@@ -304,11 +304,11 @@ class ExportRequirementsView(ExcelView):
 
 @cbv(router)
 class ExportDocumentsView(ExcelView):
-    kwargs = dict(tags=["document"])
+    kwargs = DocumentsView.kwargs
 
     def __init__(self, documents: DocumentsView = Depends(DocumentsView)):
+        ExcelView.__init__(self, ["ID", "Reference", "Title", "Description"])
         self._documents = documents
-        self._headers = ["ID", "Reference", "Title", "Description"]
 
     def _convert_documents_to_dict(
         self, documents: Iterator[Document]
@@ -320,6 +320,14 @@ class ExportDocumentsView(ExcelView):
                 "Title": document.title,
                 "Description": document.description,
             }
+
+    def _convert_to_row(self, data: Document) -> dict[str, str]:
+        return {
+            "ID": data.id,
+            "Reference": data.reference,
+            "Title": data.title,
+            "Description": data.description,
+        }
 
     @router.get(
         "/projects/{project_id}/documents/excel",
@@ -333,19 +341,12 @@ class ExportDocumentsView(ExcelView):
         filename: str = "export.xlsx",
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> FileResponse:
-        # set up workbook
-        workbook = Workbook()
-        worksheet = workbook.active
-        worksheet.title = sheet_name
-
-        # fill worksheet with data
-        documents = self._documents.list_documents(project_id)
-        rows = self._convert_documents_to_dict(documents)
-        self._write_worksheet(worksheet, self._headers, rows)
-
-        # save to temporary file and return response
-        workbook.save(temp_file.name)
-        return FileResponse(temp_file.name, filename=filename)
+        return self._process_download(
+            self._documents.list_documents(project_id),
+            temp_file,
+            sheet_name,
+            filename,
+        )
 
 
 @cbv(router)
