@@ -84,7 +84,7 @@ class GSBausteinParser:
     def _parse_requirement_title(cls, text):
         match = cls._requirement_title_re_1.match(text)
         if match:
-            requirement = Requirement(
+            return Requirement(
                 gs_anforderung_reference=match.group(1),
                 summary=match.group(3),
                 gs_absicherung=match.group(6),
@@ -93,7 +93,7 @@ class GSBausteinParser:
         else:
             match = cls._requirement_title_re_2.match(text)
             if match:
-                requirement = Requirement(
+                return Requirement(
                     gs_anforderung_reference=match.group(1),
                     summary=match.group(3),
                     gs_absicherung=match.group(4),
@@ -104,8 +104,6 @@ class GSBausteinParser:
                     f"Could not parse requirement title: {text}"
                 )
 
-        return None if requirement.summary == "ENTFALLEN" else requirement
-
     @classmethod
     def _parse_requirements(cls, paragraphs):
         requirements = []
@@ -114,6 +112,9 @@ class GSBausteinParser:
             if paragraphs.current.style.name == "Heading 3":
                 skip_normal = False
                 requirement = cls._parse_requirement_title(paragraphs.current.text)
+                if requirement.summary == "ENTFALLEN":
+                    skip_normal = True
+                    continue
                 cls._parse_requirement_texts(paragraphs, requirement)
                 requirements.append(requirement)
             elif paragraphs.current.style.name == "Normal" and skip_normal:
