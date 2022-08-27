@@ -45,7 +45,7 @@ class JiraIssueStatus(SQLModel):
 
 class JiraIssueInput(SQLModel):
     summary: str
-    description: str | None = None
+    description: str | None
     issuetype_id: str
 
 
@@ -59,14 +59,14 @@ class JiraIssue(JiraIssueInput):
 
 class MeasureInput(SQLModel):
     summary: str
-    description: str | None = None
+    description: str | None
     completed: bool = False
-    document_id: int | None = None
+    document_id: int | None
 
 
 class Measure(MeasureInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    jira_issue_id: str | None = None
+    jira_issue_id: str | None
     requirement_id: int | None = Field(default=None, foreign_key="requirement.id")
     requirement: "Requirement" = Relationship(back_populates="measures")
     document_id: int | None = Field(default=None, foreign_key="document.id")
@@ -151,9 +151,9 @@ class Requirement(RequirementInput, table=True):
 
 
 class DocumentInput(SQLModel):
-    reference: str | None = None
+    reference: str | None
     title: str
-    description: str | None = None
+    description: str | None
 
 
 class Document(DocumentInput, table=True):
@@ -165,8 +165,8 @@ class Document(DocumentInput, table=True):
 
 class ProjectInput(SQLModel):
     name: str
-    description: str | None = None
-    jira_project_id: str | None = None
+    description: str | None
+    jira_project_id: str | None
 
 
 class Project(ProjectInput, table=True):
@@ -208,7 +208,7 @@ class Project(ProjectInput, table=True):
 
 class ProjectOutput(ProjectInput):
     id: int
-    jira_project: JiraProject | None = None
+    jira_project: JiraProject | None
     completion: confloat(ge=0, le=1) | None
 
 
@@ -229,7 +229,7 @@ class RequirementOutput(RequirementInput):
 class MeasureOutput(SQLModel):
     id: int
     summary: str
-    description: str | None = None
+    description: str | None
     completed: bool = False
     requirement: RequirementOutput
     jira_issue_id: str | None
