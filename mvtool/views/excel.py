@@ -90,10 +90,10 @@ class ExcelView(Generic[T]):
         worksheet: Worksheet,
     ) -> Iterator[T]:
         headers_set = set(self._headers)
-        headers_ordered = None
+        headers_read = None
         is_header_row = True
 
-        for row in worksheet.iter_rows(values_only=True):
+        for row_index, row in enumerate(worksheet.iter_rows(values_only=True)):
             if is_header_row:
                 # Check if all headers are present
                 if not headers_set.issubset(row):
@@ -102,11 +102,13 @@ class ExcelView(Generic[T]):
                         ", ".join(headers_set - set(row)),
                     )
                     raise errors.ValueHttpError(detail)
-                headers_ordered = tuple(row)
+                headers_read = tuple(row)
                 is_header_row = False
             else:
                 # Convert row to dict and yield
-                yield self._convert_from_row(dict(zip(headers_ordered, row)))
+                yield self._convert_from_row(
+                    dict(zip(headers_read, row)), worksheet, row_index + 1
+                )
 
     def _process_download(
         self,
@@ -357,71 +359,38 @@ class ImportRequirementsView(ExcelView):
         self,
         requirements: RequirementsView = Depends(RequirementsView),
     ):
+        ExcelView.__init__(
+            self,
+            [
+                "Reference",
+                "Summary",
+                "Description",
+                "Target Object",
+                "Compliance Status",
+                "Compliance Comment",
+            ],
+        )
         self._requirements = requirements
-        self._headers = [
-            "Reference",
-            "Summary",
-            "Description",
-            "Target Object",
-            "Compliance Status",
-            "Compliance Comment",
-        ]
 
-    def _convert_dict_to_requirement_input(
-        self, rows: Iterator[dict[str, str]]
-    ) -> Iterator[RequirementInput]:
-        for row in rows:
-            try:
-                yield RequirementInput(
-                    reference=row["Reference"],
-                    summary=row["Summary"],
-                    description=row["Description"],
-                    target_object=row["Target Object"],
-                    compliance_status=row["Compliance Status"],
-                    compliance_comment=row["Compliance Comment"],
-                )
-            except ValidationError as error:
-                detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
-                    worksheet.title,
-                    index + 1,
-                    error,
-                )
-                raise errors.ValueHttpError(detail)
-            else:
-                yield requirement_input
-
-    def read_requirement_from_excel_worksheet(self, worksheet: Worksheet):
-        for index, row in enumerate(
-            self._iter_rows_on_worksheet(
-                worksheet,
-                (
-                    "Reference",
-                    "Summary",
-                    "Description",
-                    "Target Object",
-                    "Compliance Status",
-                    "Compliance Comment",
-                ),
+    def _convert_from_row(
+        self, row: dict[str, str], worksheet, row_no
+    ) -> RequirementInput:
+        try:
+            return RequirementInput(
+                reference=row["Reference"],
+                summary=row["Summary"],
+                description=row["Description"],
+                target_object=row["Target Object"],
+                compliance_status=row["Compliance Status"],
+                compliance_comment=row["Compliance Comment"],
             )
-        ):
-            try:
-                requirement_input = RequirementInput(
-                    reference=row["Reference"] or None,
-                    summary=row["Summary"],
-                    description=row["Description"] or None,
-                    target_object=row["Target Object"] or None,
-                    compliance_status=row["Compliance Status"] or None,
-                    compliance_comment=row["Compliance Comment"] or None,
-                )
-            except ValidationError as error:
-                detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
-                    worksheet.title,
-                    index + 1,
-                    error,
-                )
-                raise errors.ValueHttpError(detail)
-            else:
-                yield requirement_input
+        except ValidationError as error:
+            detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
+                worksheet.title,
+                row_no + 1,
+                error,
+            )
+            raise errors.ValueHttpError(detail)
 
     @router.post(
         "/projects/{project_id}/requirements/excel",
@@ -435,12 +404,7 @@ class ImportRequirementsView(ExcelView):
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ):
-        # get worksheet from Excel file
-        workbook = self._process_upload(upload_file, temp_file)
-        worksheet = workbook.active
-
-        # read data from worksheet
-        for requirement_input in self.read_requirement_from_excel_worksheet(worksheet):
+        for requirement_input in self._process_upload(upload_file, temp_file):
             self._requirements.create_requirement(project_id, requirement_input)
 
 
