@@ -34,9 +34,9 @@ class __State:
 def setup_engine(config: Config):
     if __State.engine is None:
         __State.engine = create_engine(
-            config.sqlite_url,
+            config.database.url,
             connect_args={"check_same_thread": False},  # Needed for SQLite
-            echo=config.sqlite_echo,
+            echo=config.database.echo,
             poolclass=StaticPool,
         )
     return __State.engine

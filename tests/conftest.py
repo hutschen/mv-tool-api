@@ -19,7 +19,7 @@
 from jira import JIRAError
 import pytest
 from unittest.mock import Mock
-from mvtool.config import Config
+from mvtool.config import Config, DatabaseConfig
 from mvtool import database
 from mvtool.models import (
     DocumentInput,
@@ -50,8 +50,7 @@ from mvtool.views.measures import MeasuresView
 @pytest.fixture
 def config():
     return Config(
-        sqlite_url="sqlite://",
-        sqlite_echo=False,
+        database=DatabaseConfig(url="sqlite://"),
         jira_server_url="http://jira-server-url",
     )
 

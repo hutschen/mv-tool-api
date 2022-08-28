@@ -18,15 +18,19 @@
 
 import yaml
 import pathlib
-from pydantic import BaseModel, AnyHttpUrl
+from pydantic import BaseModel
+
+
+class DatabaseConfig(BaseModel):
+    url: str = "sqlite://"
+    echo: bool = False
 
 
 class Config(BaseModel):
-    jira_server_url: AnyHttpUrl
+    jira_server_url: str
     username: str | None = None
     password: str | None = None
-    sqlite_url: str = "sqlite://"
-    sqlite_echo: bool = False
+    database: DatabaseConfig = DatabaseConfig()
 
 
 def load_config():
