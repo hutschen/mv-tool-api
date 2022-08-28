@@ -26,11 +26,14 @@ class DatabaseConfig(BaseModel):
     echo: bool = False
 
 
+class JiraConfig(BaseModel):
+    url: str
+
+
 class Config(BaseModel):
-    jira_server_url: str
-    username: str | None = None
-    password: str | None = None
+    jira: JiraConfig
     database: DatabaseConfig = DatabaseConfig()
+    locked: bool = False
 
 
 def load_config():

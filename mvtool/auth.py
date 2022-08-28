@@ -35,9 +35,7 @@ def get_jira(
     config: Config = Depends(load_config),
 ) -> JIRA:
     try:
-        yield _get_jira(
-            config.jira_server_url, credentials.username, credentials.password
-        )
+        yield _get_jira(config.jira.url, credentials.username, credentials.password)
     except JIRAError as error:
         detail = None
         if error.text:

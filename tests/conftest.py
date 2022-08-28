@@ -19,7 +19,7 @@
 from jira import JIRAError
 import pytest
 from unittest.mock import Mock
-from mvtool.config import Config, DatabaseConfig
+from mvtool.config import Config, DatabaseConfig, JiraConfig
 from mvtool import database
 from mvtool.models import (
     DocumentInput,
@@ -51,7 +51,7 @@ from mvtool.views.measures import MeasuresView
 def config():
     return Config(
         database=DatabaseConfig(url="sqlite://"),
-        jira_server_url="http://jira-server-url",
+        jira=JiraConfig(url="http://jira-server-url"),
     )
 
 
@@ -129,7 +129,7 @@ def jira(config, jira_user_data, jira_project_data, jira_issue_data):
 
     class JiraMock:
         def __init__(self):
-            self.server_url = config.jira_server_url
+            self.server_url = config.jira.url
 
         def myself(self):
             return jira_user_data
