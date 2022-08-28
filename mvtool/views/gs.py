@@ -70,7 +70,10 @@ class GSBausteinParser:
 
     @classmethod
     def parse(cls, filename):
-        word_document = docx.Document(filename)
+        try:
+            word_document = docx.Document(filename)
+        except docx.opc.exceptions.PackageNotFoundError:
+            raise errors.ValueHttpError("Word file seems to be corrupted")
         paragraphs = ParagraphsWrapper(word_document.paragraphs)
         gs_baustein = cls._parse_baustein(paragraphs)
         return gs_baustein
@@ -191,7 +194,7 @@ router = APIRouter()
 
 
 @cbv(router)
-class ImportGSBaustein:
+class ImportGSBausteinView:
     kwargs = RequirementsView.kwargs
 
     def __init__(
@@ -215,8 +218,9 @@ class ImportGSBaustein:
         temp_file: NamedTemporaryFile = Depends(get_word_temp_file),
     ):
         project = self._projects.get_project(project_id)
-        shutil.copyfileobj(upload_file.file, temp_file)
+        shutil.copyfileobj(upload_file.file, temp_file.file)
 
+        # Parse GS Baustein and save it and its requirements in the database
         gs_baustein = GSBausteinParser.parse(temp_file.name)
         for requirement in gs_baustein.requirements:
             requirement.project = project
