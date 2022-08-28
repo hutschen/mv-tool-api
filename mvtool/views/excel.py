@@ -134,7 +134,7 @@ class ExcelView(Generic[T]):
         temp_file: NamedTemporaryFile,
     ) -> Iterator[T]:
         # Save uploaded file to temp file
-        shutil.copyfileobj(upload_file.file, temp_file)
+        shutil.copyfileobj(upload_file.file, temp_file.file)
 
         # carefully open the Excel file
         try:
