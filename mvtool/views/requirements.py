@@ -105,7 +105,14 @@ class RequirementsView:
     ) -> Requirement:
         requirement = self._crud.read_from_db(Requirement, requirement_id)
         updated_requirement = Requirement.from_orm(
-            requirement_input, update=dict(project_id=requirement.project_id)
+            requirement_input,
+            update=dict(
+                project_id=requirement.project_id,
+                gs_anforderung_reference=requirement.gs_anforderung_reference,
+                gs_absicherung=requirement.gs_absicherung,
+                gs_verantwortliche=requirement.gs_verantwortliche,
+                gs_baustein_id=requirement.gs_baustein_id,
+            ),
         )
         return self._crud.update_in_db(requirement_id, updated_requirement)
 
