@@ -73,7 +73,7 @@ def test_keep_document_of_when_delete_measure(crud: CRUDOperations):
 
 def test_delete_gs_baustein_when_delete_requirement(crud: CRUDOperations):
     requirement = Requirement(summary="test")
-    requirement.gs_baustein = GSBaustein(gs_ref="test", title="test")
+    requirement.gs_baustein = GSBaustein(reference="test", title="test")
     crud.create_in_db(requirement)
     crud.session.commit()
 

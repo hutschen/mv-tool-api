@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import shutil
 from tempfile import NamedTemporaryFile
 from typing import Any, Collection, Generic, TypeVar
 from fastapi import APIRouter, Depends, Response, UploadFile
@@ -47,7 +48,7 @@ from .documents import DocumentsView
 
 def get_excel_temp_file():
     with NamedTemporaryFile(suffix=".xlsx") as temp_file:
-        return temp_file
+        yield temp_file
 
 
 router = APIRouter()
@@ -132,13 +133,8 @@ class ExcelView(Generic[T]):
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile,
     ) -> Iterator[T]:
-        with open(temp_file.name, "wb") as f:
-            # 1MB buffer size should be sufficient to load an Excel file
-            buffer_size = 1000 * 1024
-            chunk = upload_file.file.read(buffer_size)
-            while chunk:
-                f.write(chunk)
-                chunk = upload_file.file.read(buffer_size)
+        # Save uploaded file to temp file
+        shutil.copyfileobj(upload_file.file, temp_file.file)
 
         # carefully open the Excel file
         try:
@@ -146,7 +142,7 @@ class ExcelView(Generic[T]):
         except Exception:
             # have to catch all exceptions, because openpyxl does raise several
             # exceptions when reading an invalid Excel file
-            raise errors.ValueHttpError("Excel file seems to be corrupt")
+            raise errors.ValueHttpError("Excel file seems to be corrupted")
 
         # Load data from workbook
         worksheet = workbook.active

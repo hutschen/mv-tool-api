@@ -359,7 +359,7 @@ def test_download_documents(client, create_project, create_document):
 
 
 def test_upload_requirements(client, create_project):
-    with open("tests/import/requirements_valid.xlsx", "rb") as excel_file:
+    with open("tests/data/excel/requirements_valid.xlsx", "rb") as excel_file:
         response = client.post(
             f"/api/projects/{create_project.id}/requirements/excel",
             files=dict(upload_file=excel_file),
@@ -369,7 +369,7 @@ def test_upload_requirements(client, create_project):
 
 
 def test_upload_requirements_invalid_file(client, create_project):
-    with open("tests/import/requirements_invalid_data.xlsx", "rb") as excel_file:
+    with open("tests/data/excel/requirements_invalid_data.xlsx", "rb") as excel_file:
         response = client.post(
             f"/api/projects/{create_project.id}/requirements/excel",
             files=dict(upload_file=excel_file),
@@ -379,7 +379,7 @@ def test_upload_requirements_invalid_file(client, create_project):
 
 
 def test_upload_requirements_corrupted_file(client, create_project):
-    with open("tests/import/corrupted.xlsx", "rb") as excel_file:
+    with open("tests/data/corrupted", "rb") as excel_file:
         response = client.post(
             f"/api/projects/{create_project.id}/requirements/excel",
             files=dict(upload_file=excel_file),
@@ -390,7 +390,7 @@ def test_upload_requirements_corrupted_file(client, create_project):
 
 
 def test_upload_measures(client, create_requirement):
-    with open("tests/import/measures_valid.xlsx", "rb") as excel_file:
+    with open("tests/data/excel/measures_valid.xlsx", "rb") as excel_file:
         response = client.post(
             f"/api/requirements/{create_requirement.id}/measures/excel",
             files=dict(upload_file=excel_file),
@@ -400,7 +400,7 @@ def test_upload_measures(client, create_requirement):
 
 
 def test_upload_measures_corrupted_file(client, create_requirement):
-    with open("tests/import/corrupted.xlsx", "rb") as excel_file:
+    with open("tests/data/corrupted", "rb") as excel_file:
         response = client.post(
             f"/api/requirements/{create_requirement.id}/measures/excel",
             files=dict(upload_file=excel_file),
@@ -410,7 +410,7 @@ def test_upload_measures_corrupted_file(client, create_requirement):
 
 
 def test_upload_documents(client, create_project):
-    with open("tests/import/documents_valid.xlsx", "rb") as excel_file:
+    with open("tests/data/excel/documents_valid.xlsx", "rb") as excel_file:
         response = client.post(
             f"/api/projects/{create_project.id}/documents/excel",
             files=dict(upload_file=excel_file),
@@ -420,10 +420,20 @@ def test_upload_documents(client, create_project):
 
 
 def test_upload_documents_corrupted_file(client, create_project):
-    with open("tests/import/corrupted.xlsx", "rb") as excel_file:
+    with open("tests/data/corrupted", "rb") as excel_file:
         response = client.post(
             f"/api/projects/{create_project.id}/documents/excel",
             files=dict(upload_file=excel_file),
             auth=("u", "p"),
         )
     assert response.status_code == 400
+
+
+def test_upload_gs_baustein(client, create_project):
+    with open("tests/data/gs_bausteine/_valid.docx", "rb") as gs_baustein_file:
+        response = client.post(
+            f"/api/projects/{create_project.id}/requirements/gs-baustein",
+            files=dict(upload_file=gs_baustein_file),
+            auth=("u", "p"),
+        )
+    assert response.status_code == 201

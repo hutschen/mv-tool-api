@@ -14,6 +14,7 @@ sqlmodel = "==0.0.6"
 cachetools = "*"
 openpyxl = "*"
 python-multipart = "*"
+python-docx = "*"
 
 [dev-packages]
 pytest = "*"

@@ -40,6 +40,7 @@ from mvtool.views.excel import (
     ExportRequirementsView,
     get_excel_temp_file,
 )
+from mvtool.views.gs import get_word_temp_file
 from mvtool.views.jira_ import JiraIssuesView, JiraProjectsView
 from mvtool.views.projects import ProjectsView
 from mvtool.views.requirements import RequirementsView
@@ -266,7 +267,8 @@ def create_measure_with_jira_issue(
 
 @pytest.fixture
 def excel_temp_file():
-    return get_excel_temp_file()
+    for file in get_excel_temp_file():
+        yield file
 
 
 @pytest.fixture
@@ -282,3 +284,9 @@ def export_requirements_view(requirements_view):
 @pytest.fixture
 def export_documents_view(documents_view):
     return Mock(wraps=ExportDocumentsView(documents_view))
+
+
+@pytest.fixture
+def word_temp_file():
+    for file in get_word_temp_file():
+        yield file

@@ -37,7 +37,7 @@ from mvtool.views.excel import (
 
 def test_read_worksheet():
     sut = ImportRequirementsView(None)
-    workbook = load_workbook("tests/import/requirements_valid.xlsx")
+    workbook = load_workbook("tests/data/excel/requirements_valid.xlsx")
     worksheet = workbook.active
 
     results = list(sut._read_worksheet(worksheet))
@@ -49,7 +49,7 @@ def test_read_worksheet():
 
 def test_read_worksheet_invalid_headers():
     sut = ImportRequirementsView(None)
-    workbook = load_workbook("tests/import/requirements_invalid_headers.xlsx")
+    workbook = load_workbook("tests/data/excel/requirements_invalid_headers.xlsx")
     worksheet = workbook.active
 
     with pytest.raises(HTTPException) as error_info:
@@ -61,7 +61,7 @@ def test_read_worksheet_invalid_headers():
 
 def test_read_worksheet_invalid_data():
     sut = ImportRequirementsView(None)
-    workbook = load_workbook("tests/import/requirements_invalid_data.xlsx")
+    workbook = load_workbook("tests/data/excel/requirements_invalid_data.xlsx")
     worksheet = workbook.active
 
     with pytest.raises(HTTPException) as error_info:

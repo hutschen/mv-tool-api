@@ -18,8 +18,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from mvtool.views import excel
-from .views import jira_, projects, requirements, measures, documents
+from .views import jira_, projects, requirements, measures, documents, excel, gs
 from . import database, config
 from .angular import AngularFiles
 
@@ -30,6 +29,7 @@ app.include_router(requirements.router, prefix="/api")
 app.include_router(measures.router, prefix="/api")
 app.include_router(documents.router, prefix="/api")
 app.include_router(excel.router, prefix="/api")
+app.include_router(gs.router, prefix="/api")
 app.mount("/", AngularFiles(directory="htdocs", html=True))
 app.add_middleware(
     CORSMiddleware,
