@@ -142,7 +142,7 @@ class ExcelView(Generic[T]):
         except Exception:
             # have to catch all exceptions, because openpyxl does raise several
             # exceptions when reading an invalid Excel file
-            raise errors.ValueHttpError("Excel file seems to be corrupt")
+            raise errors.ValueHttpError("Excel file seems to be corrupted")
 
         # Load data from workbook
         worksheet = workbook.active
