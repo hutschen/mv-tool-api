@@ -30,13 +30,9 @@ class JiraConfig(BaseModel):
     url: str
 
 
-class ConfigInput(BaseModel):
+class Config(BaseModel):
     database: DatabaseConfig
     jira: JiraConfig
-
-
-class Config(ConfigInput):
-    locked: bool = False
 
 
 def load_config():
