@@ -30,9 +30,12 @@ class JiraConfig(BaseModel):
     url: str
 
 
-class Config(BaseModel):
+class ConfigInput(BaseModel):
+    database: DatabaseConfig
     jira: JiraConfig
-    database: DatabaseConfig = DatabaseConfig()
+
+
+class Config(ConfigInput):
     locked: bool = False
 
 
