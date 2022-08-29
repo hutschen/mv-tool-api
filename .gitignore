@@ -33,3 +33,6 @@ cov_html
 tests/data/gs_bausteine/*.docx
 !tests/data/gs_bausteine/_valid.docx
 !tests/data/gs_bausteine/_invalid.docx
+
+# Logs
+*.log
