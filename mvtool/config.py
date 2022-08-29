@@ -19,6 +19,7 @@
 import yaml
 import pathlib
 from pydantic import BaseModel
+from uvicorn.config import LOGGING_CONFIG
 
 
 class DatabaseConfig(BaseModel):
@@ -34,6 +35,38 @@ class Config(BaseModel):
     database: DatabaseConfig
     jira: JiraConfig
 
+
+class UvicornConfig(BaseModel):
+    port: int = 8000
+    reload: bool = True
+    log_level: str = "info"
+    log_filename: str | None = "mvtool.log"
+
+    @property
+    def logging_config(self):
+        if not self.log_filename:
+            return LOGGING_CONFIG
+
+        custom_logging_config = LOGGING_CONFIG.copy()
+        custom_logging_config["formatters"]["default"]["use_colors"] = False
+        custom_logging_config["formatters"]["access"]["use_colors"] = False
+        custom_logging_config["handlers"] = {
+            "default": {
+                "class": "logging.FileHandler",
+                "formatter": "default",
+                "filename": self.log_filename,
+                "mode": "a",
+                "encoding": "utf-8",
+            },
+            "access": {
+                "class": "logging.FileHandler",
+                "formatter": "access",
+                "filename": self.log_filename,
+                "mode": "a",
+                "encoding": "utf-8",
+            },
+        }
+        return custom_logging_config
 
 def load_config():
     config_filename = pathlib.Path.joinpath(
