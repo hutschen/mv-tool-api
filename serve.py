@@ -16,7 +16,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import uvicorn
+from mvtool.config import UvicornConfig
 
 
 if __name__ == "__main__":
-    uvicorn.run("mvtool:app", reload=True)
+    # TODO: load config from file and configure uvicorn
+    config = UvicornConfig()
+    uvicorn.run(
+        "mvtool:app",
+        reload=True,
+        log_level=config.log_level,
+        log_config=config.logging_config,
+    )

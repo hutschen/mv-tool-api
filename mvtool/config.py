@@ -40,7 +40,7 @@ class UvicornConfig(BaseModel):
     port: int = 8000
     reload: bool = True
     log_level: str = "info"
-    log_filename: str | None = "mvtool.log"
+    log_filename: str | None = None
 
     @property
     def logging_config(self):
