@@ -43,7 +43,7 @@ class UvicornConfig(BaseModel):
     log_filename: str | None = None
 
     @property
-    def logging_config(self):
+    def log_config(self) -> dict:
         if not self.log_filename:
             return LOGGING_CONFIG
 
@@ -67,6 +67,23 @@ class UvicornConfig(BaseModel):
             },
         }
         return custom_logging_config
+
+
+class InitConfig(BaseModel):
+    uvicorn: UvicornConfig
+    config_filename: str = "config.yaml"
+    locked: bool = False
+
+
+def load_init_config() -> InitConfig:
+    config_filename = pathlib.Path.joinpath(
+        pathlib.Path(__file__).parent, "../config-init.yml"
+    ).resolve()
+
+    with open(config_filename, "r") as config_file:
+        config_data = yaml.safe_load(config_file)
+    return InitConfig.parse_obj(config_data)
+
 
 def load_config():
     config_filename = pathlib.Path.joinpath(
