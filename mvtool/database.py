@@ -33,12 +33,18 @@ class __State:
 
 def setup_engine(config: Config):
     if __State.engine is None:
-        __State.engine = create_engine(
-            config.database.url,
-            connect_args={"check_same_thread": False},  # Needed for SQLite
-            echo=config.database.echo,
-            poolclass=StaticPool,
-        )
+        if config.database.url.startswith("sqlite"):
+            __State.engine = create_engine(
+                config.database.url,
+                connect_args={"check_same_thread": False},  # Needed for SQLite
+                echo=config.database.echo,
+                poolclass=StaticPool,  # Maintain a single connection for all threads
+            )
+        else:
+            __State.engine = create_engine(
+                config.database.url,
+                echo=config.database.echo,
+            )
     return __State.engine
 
 
