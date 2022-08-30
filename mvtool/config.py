@@ -32,16 +32,11 @@ class JiraConfig(BaseModel):
     url: str
 
 
-class Config(BaseModel):
-    database: DatabaseConfig
-    jira: JiraConfig
-
-
 class UvicornConfig(BaseModel):
     port: int = 8000
-    reload: bool = True
-    log_level: str = "info"
-    log_filename: str | None = None
+    reload: bool = False
+    log_level: str = "error"
+    log_filename: str | None = "mvtool.log"
 
     @property
     def log_config(self) -> dict:
@@ -70,12 +65,13 @@ class UvicornConfig(BaseModel):
         return custom_logging_config
 
 
-class InitConfig(BaseModel):
+class Config(BaseModel):
+    database: DatabaseConfig
+    jira: JiraConfig
     uvicorn: UvicornConfig = UvicornConfig()
-    config_filename: str = "config.yaml"
 
 
-INIT_CONFIG_FILENAME = "config-init.yml"
+CONFIG_FILENAME = "config.yml"
 
 
 def _to_abs_filename(filename: str) -> str:
@@ -83,15 +79,7 @@ def _to_abs_filename(filename: str) -> str:
 
 
 @lru_cache()
-def load_init_config() -> InitConfig:
-    with open(_to_abs_filename(INIT_CONFIG_FILENAME), "r") as config_file:
-        config_data = yaml.safe_load(config_file)
-    return InitConfig.parse_obj(config_data)
-
-
-@lru_cache()
-def load_config():
-    init_config = load_init_config()
-    with open(_to_abs_filename(init_config.config_filename), "r") as config_file:
+def load_config() -> Config:
+    with open(_to_abs_filename(CONFIG_FILENAME), "r") as config_file:
         config_data = yaml.safe_load(config_file)
     return Config.parse_obj(config_data)

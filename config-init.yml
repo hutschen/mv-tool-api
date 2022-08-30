@@ -1,6 +1,0 @@
-uvicorn:
-  port: 8000
-  reload: true
-  log_level: 'info'
-  log_filename: null
-config_filename: config.yml

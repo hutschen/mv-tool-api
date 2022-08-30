@@ -20,9 +20,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .views import jira_, projects, requirements, measures, documents, excel, gs
-from . import database, config
+from . import database
+from .config import load_config
 from .angular import AngularFiles
-from .config import load_init_config
 
 app = FastAPI(title="MV-Tool")
 app.include_router(jira_.router, prefix="/api")
@@ -44,8 +44,8 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup():
-    config_ = config.load_config()
-    database.setup_engine(config_)
+    config = load_config()
+    database.setup_engine(config)
     database.create_all()
 
 
@@ -55,10 +55,10 @@ def on_shutdown():
 
 
 def serve():
-    init_config = load_init_config()
+    config = load_config()
     uvicorn.run(
         "mvtool:app",
-        reload=init_config.uvicorn.reload,
-        log_level=init_config.uvicorn.log_level,
-        log_config=init_config.uvicorn.log_config,
+        reload=config.uvicorn.reload,
+        log_level=config.uvicorn.log_level,
+        log_config=config.uvicorn.log_config,
     )
