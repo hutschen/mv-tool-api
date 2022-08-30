@@ -16,24 +16,82 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+from functools import lru_cache
 import yaml
 import pathlib
-from pydantic import BaseModel, AnyHttpUrl
+from pydantic import BaseModel
+from uvicorn.config import LOGGING_CONFIG
+
+
+class DatabaseConfig(BaseModel):
+    url: str = "sqlite://"
+    echo: bool = False
+
+
+class JiraConfig(BaseModel):
+    url: str
 
 
 class Config(BaseModel):
-    jira_server_url: AnyHttpUrl
-    username: str | None = None
-    password: str | None = None
-    sqlite_url: str = "sqlite://"
-    sqlite_echo: bool = False
+    database: DatabaseConfig
+    jira: JiraConfig
 
 
+class UvicornConfig(BaseModel):
+    port: int = 8000
+    reload: bool = True
+    log_level: str = "info"
+    log_filename: str | None = None
+
+    @property
+    def log_config(self) -> dict:
+        if not self.log_filename:
+            return LOGGING_CONFIG
+
+        custom_logging_config = LOGGING_CONFIG.copy()
+        custom_logging_config["formatters"]["default"]["use_colors"] = False
+        custom_logging_config["formatters"]["access"]["use_colors"] = False
+        custom_logging_config["handlers"] = {
+            "default": {
+                "class": "logging.FileHandler",
+                "formatter": "default",
+                "filename": self.log_filename,
+                "mode": "a",
+                "encoding": "utf-8",
+            },
+            "access": {
+                "class": "logging.FileHandler",
+                "formatter": "access",
+                "filename": self.log_filename,
+                "mode": "a",
+                "encoding": "utf-8",
+            },
+        }
+        return custom_logging_config
+
+
+class InitConfig(BaseModel):
+    uvicorn: UvicornConfig = UvicornConfig()
+    config_filename: str = "config.yaml"
+
+
+INIT_CONFIG_FILENAME = "config-init.yml"
+
+
+def _to_abs_filename(filename: str) -> str:
+    return pathlib.Path(__file__).parent.joinpath("..", filename).resolve()
+
+
+@lru_cache()
+def load_init_config() -> InitConfig:
+    with open(_to_abs_filename(INIT_CONFIG_FILENAME), "r") as config_file:
+        config_data = yaml.safe_load(config_file)
+    return InitConfig.parse_obj(config_data)
+
+
+@lru_cache()
 def load_config():
-    config_filename = pathlib.Path.joinpath(
-        pathlib.Path(__file__).parent, "../config.yml"
-    ).resolve()
-
-    with open(config_filename, "r") as config_file:
+    init_config = load_init_config()
+    with open(_to_abs_filename(init_config.config_filename), "r") as config_file:
         config_data = yaml.safe_load(config_file)
     return Config.parse_obj(config_data)
