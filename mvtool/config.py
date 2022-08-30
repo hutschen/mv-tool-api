@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+from functools import lru_cache
 import yaml
 import pathlib
 from pydantic import BaseModel
@@ -70,26 +71,27 @@ class UvicornConfig(BaseModel):
 
 
 class InitConfig(BaseModel):
-    uvicorn: UvicornConfig
+    uvicorn: UvicornConfig = UvicornConfig()
     config_filename: str = "config.yaml"
-    locked: bool = False
 
 
+INIT_CONFIG_FILENAME = "config-init.yml"
+
+
+def _to_abs_filename(filename: str) -> str:
+    return pathlib.Path(__file__).parent.joinpath("..", filename).resolve()
+
+
+@lru_cache()
 def load_init_config() -> InitConfig:
-    config_filename = pathlib.Path.joinpath(
-        pathlib.Path(__file__).parent, "../config-init.yml"
-    ).resolve()
-
-    with open(config_filename, "r") as config_file:
+    with open(_to_abs_filename(INIT_CONFIG_FILENAME), "r") as config_file:
         config_data = yaml.safe_load(config_file)
     return InitConfig.parse_obj(config_data)
 
 
+@lru_cache()
 def load_config():
-    config_filename = pathlib.Path.joinpath(
-        pathlib.Path(__file__).parent, "../config.yml"
-    ).resolve()
-
-    with open(config_filename, "r") as config_file:
+    init_config = load_init_config()
+    with open(_to_abs_filename(init_config.config_filename), "r") as config_file:
         config_data = yaml.safe_load(config_file)
     return Config.parse_obj(config_data)

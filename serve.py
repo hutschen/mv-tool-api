@@ -15,15 +15,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import uvicorn
-from mvtool.config import load_init_config
+import mvtool
 
 
 if __name__ == "__main__":
-    init_config = load_init_config()
-    uvicorn.run(
-        "mvtool:app",
-        reload=init_config.uvicorn.reload,
-        log_level=init_config.uvicorn.log_level,
-        log_config=init_config.uvicorn.log_config,
-    )
+    mvtool.serve()
