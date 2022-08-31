@@ -182,6 +182,7 @@ class ExportMeasuresView(ExcelView):
             .join(Requirement)
             .join(Document, isouter=True)
             .where(*whereclause)
+            .order_by(Measure.id)
         )
         results = self._session.exec(query).all()
 

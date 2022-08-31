@@ -80,6 +80,7 @@ class CRUDOperations(Generic[T]):
         for key, value in filters.items():
             if value is not None:
                 query = query.where(sqlmodel.__dict__[key] == value)
+        query = query.order_by(sqlmodel.id)
 
         return self.session.exec(query).all()
 
