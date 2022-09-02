@@ -36,3 +36,6 @@ tests/data/gs_bausteine/*.docx
 
 # Logs
 *.log
+
+# Licenses
+licenses.md
