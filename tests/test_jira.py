@@ -19,7 +19,6 @@ import pytest
 from jira import JIRAError
 from mvtool.models import (
     JiraIssue,
-    JiraIssueInput,
     JiraIssueType,
     JiraProject,
     JiraUser,
