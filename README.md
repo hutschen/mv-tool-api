@@ -6,7 +6,7 @@ MV-Tool supports this process insofar as concrete implementation steps (measures
 
 ## Installation
 
-MV tool consists of two components, the web API and the [web client](https://github.com/hutschen/mv-tool-ng). This repository contains the web API. For installation in a production environment, deployment using Docker is recommended. You can find the appropriate Docker container on [Docker Hub](https://hub.docker.com/r/hutschen/mv-tool) or you can build by using the Dockerfile, which you can find in [a separate repository](https://github.com/hutschen/mv-tool-docker).
+MV tool consists of two components, the web API and the [web client](https://github.com/hutschen/mv-tool-ng). This repository contains the web API. For installation in a production environment, deployment using Docker is recommended. You can find the appropriate Docker image on [Docker Hub](https://hub.docker.com/r/hutschen/mv-tool) or you can build by using the Dockerfile, which you can find in [a separate repository](https://github.com/hutschen/mv-tool-docker).
 
 ## Contributing
 
