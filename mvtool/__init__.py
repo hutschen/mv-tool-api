@@ -59,6 +59,7 @@ def serve():
     uvicorn.run(
         "mvtool:app",
         host=config.uvicorn.host,
+        port=config.uvicorn.port,
         reload=config.uvicorn.reload,
         log_level=config.uvicorn.log_level,
         log_config=config.uvicorn.log_config,
