@@ -1,36 +1,85 @@
 # coding: utf-8
-# 
-# Copyright 2022 Helmar Hutschenreuter
 #
-# The source code of this program is made available
-# under the terms of the GNU Affero General Public License version 3
-# (GNU AGPL V3) as published by the Free Software Foundation. You may obtain
-# a copy of the GNU AGPL V3 at https://www.gnu.org/licenses/.
+# Copyright (C) 2022 Helmar Hutschenreuter
 #
-# In the case you use this program under the terms of the GNU AGPL V3,
-# the program is provided in the hope that it will be useful,
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU AGPL V3 for more details.
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
+from functools import lru_cache
 import yaml
 import pathlib
-from fastapi import Depends
-from pydantic import BaseModel, AnyHttpUrl
+from pydantic import BaseModel
+from uvicorn.config import LOGGING_CONFIG
+
+
+class DatabaseConfig(BaseModel):
+    url: str = "sqlite://"
+    echo: bool = False
+
+
+class JiraConfig(BaseModel):
+    url: str
+
+
+class UvicornConfig(BaseModel):
+    port: int = 8000
+    reload: bool = False
+    log_level: str = "error"
+    log_filename: str | None = "mvtool.log"
+
+    @property
+    def log_config(self) -> dict:
+        if not self.log_filename:
+            return LOGGING_CONFIG
+
+        custom_logging_config = LOGGING_CONFIG.copy()
+        custom_logging_config["formatters"]["default"]["use_colors"] = False
+        custom_logging_config["formatters"]["access"]["use_colors"] = False
+        custom_logging_config["handlers"] = {
+            "default": {
+                "class": "logging.FileHandler",
+                "formatter": "default",
+                "filename": self.log_filename,
+                "mode": "a",
+                "encoding": "utf-8",
+            },
+            "access": {
+                "class": "logging.FileHandler",
+                "formatter": "access",
+                "filename": self.log_filename,
+                "mode": "a",
+                "encoding": "utf-8",
+            },
+        }
+        return custom_logging_config
 
 
 class Config(BaseModel):
-    jira_server_url: AnyHttpUrl
-    username: str | None = None
-    password: str | None = None
-    sqlite_url: str = 'sqlite://'
-    sqlite_echo: bool = False
+    database: DatabaseConfig
+    jira: JiraConfig
+    uvicorn: UvicornConfig = UvicornConfig()
 
 
-def load_config():
-    config_filename = pathlib.Path.joinpath(
-        pathlib.Path(__file__).parent, '../config.yml').resolve()
-    
-    with open(config_filename, 'r') as config_file:
+CONFIG_FILENAME = "config.yml"
+
+
+def _to_abs_filename(filename: str) -> str:
+    return pathlib.Path(__file__).parent.joinpath("..", filename).resolve()
+
+
+@lru_cache()
+def load_config() -> Config:
+    with open(_to_abs_filename(CONFIG_FILENAME), "r") as config_file:
         config_data = yaml.safe_load(config_file)
     return Config.parse_obj(config_data)

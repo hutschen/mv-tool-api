@@ -1,17 +1,19 @@
 # coding: utf-8
 #
-# Copyright 2022 Helmar Hutschenreuter
+# Copyright (C) 2022 Helmar Hutschenreuter
 #
-# The source code of this program is made available
-# under the terms of the GNU Affero General Public License version 3
-# (GNU AGPL V3) as published by the Free Software Foundation. You may obtain
-# a copy of the GNU AGPL V3 at https://www.gnu.org/licenses/.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
 #
-# In the case you use this program under the terms of the GNU AGPL V3,
-# the program is provided in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU AGPL V3 for more details.
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import pytest
 from jira import JIRAError, Project
@@ -349,8 +351,15 @@ def test_download_requirements(client, create_project, create_requirement):
     assert response.status_code == 200
 
 
+def test_download_documents(client, create_project, create_document):
+    response = client.get(
+        f"/api/projects/{create_project.id}/documents/excel", auth=("u", "p")
+    )
+    assert response.status_code == 200
+
+
 def test_upload_requirements(client, create_project):
-    with open("tests/import/requirements_valid.xlsx", "rb") as excel_file:
+    with open("tests/data/excel/requirements_valid.xlsx", "rb") as excel_file:
         response = client.post(
             f"/api/projects/{create_project.id}/requirements/excel",
             files=dict(upload_file=excel_file),
@@ -360,7 +369,7 @@ def test_upload_requirements(client, create_project):
 
 
 def test_upload_requirements_invalid_file(client, create_project):
-    with open("tests/import/requirements_invalid_data.xlsx", "rb") as excel_file:
+    with open("tests/data/excel/requirements_invalid_data.xlsx", "rb") as excel_file:
         response = client.post(
             f"/api/projects/{create_project.id}/requirements/excel",
             files=dict(upload_file=excel_file),
@@ -370,7 +379,7 @@ def test_upload_requirements_invalid_file(client, create_project):
 
 
 def test_upload_requirements_corrupted_file(client, create_project):
-    with open("tests/import/corrupted.xlsx", "rb") as excel_file:
+    with open("tests/data/corrupted", "rb") as excel_file:
         response = client.post(
             f"/api/projects/{create_project.id}/requirements/excel",
             files=dict(upload_file=excel_file),
@@ -381,7 +390,7 @@ def test_upload_requirements_corrupted_file(client, create_project):
 
 
 def test_upload_measures(client, create_requirement):
-    with open("tests/import/measures_valid.xlsx", "rb") as excel_file:
+    with open("tests/data/excel/measures_valid.xlsx", "rb") as excel_file:
         response = client.post(
             f"/api/requirements/{create_requirement.id}/measures/excel",
             files=dict(upload_file=excel_file),
@@ -391,10 +400,40 @@ def test_upload_measures(client, create_requirement):
 
 
 def test_upload_measures_corrupted_file(client, create_requirement):
-    with open("tests/import/corrupted.xlsx", "rb") as excel_file:
+    with open("tests/data/corrupted", "rb") as excel_file:
         response = client.post(
             f"/api/requirements/{create_requirement.id}/measures/excel",
             files=dict(upload_file=excel_file),
             auth=("u", "p"),
         )
     assert response.status_code == 400
+
+
+def test_upload_documents(client, create_project):
+    with open("tests/data/excel/documents_valid.xlsx", "rb") as excel_file:
+        response = client.post(
+            f"/api/projects/{create_project.id}/documents/excel",
+            files=dict(upload_file=excel_file),
+            auth=("u", "p"),
+        )
+    assert response.status_code == 201
+
+
+def test_upload_documents_corrupted_file(client, create_project):
+    with open("tests/data/corrupted", "rb") as excel_file:
+        response = client.post(
+            f"/api/projects/{create_project.id}/documents/excel",
+            files=dict(upload_file=excel_file),
+            auth=("u", "p"),
+        )
+    assert response.status_code == 400
+
+
+def test_upload_gs_baustein(client, create_project):
+    with open("tests/data/gs_bausteine/_valid.docx", "rb") as gs_baustein_file:
+        response = client.post(
+            f"/api/projects/{create_project.id}/requirements/gs-baustein",
+            files=dict(upload_file=gs_baustein_file),
+            auth=("u", "p"),
+        )
+    assert response.status_code == 201

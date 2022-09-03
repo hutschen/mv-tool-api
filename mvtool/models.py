@@ -1,17 +1,20 @@
 # coding: utf-8
 #
-# Copyright 2022 Helmar Hutschenreuter
+# Copyright (C) 2022 Helmar Hutschenreuter
 #
-# The source code of this program is made available
-# under the terms of the GNU Affero General Public License version 3
-# (GNU AGPL V3) as published by the Free Software Foundation. You may obtain
-# a copy of the GNU AGPL V3 at https://www.gnu.org/licenses/.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
 #
-# In the case you use this program under the terms of the GNU AGPL V3,
-# the program is provided in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU AGPL V3 for more details.
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 
 from pydantic import confloat, constr, validator
 from sqlmodel import SQLModel, Field, Relationship, Session, select, func, or_
@@ -42,7 +45,7 @@ class JiraIssueStatus(SQLModel):
 
 class JiraIssueInput(SQLModel):
     summary: str
-    description: str | None = None
+    description: str | None
     issuetype_id: str
 
 
@@ -56,14 +59,14 @@ class JiraIssue(JiraIssueInput):
 
 class MeasureInput(SQLModel):
     summary: str
-    description: str | None = None
+    description: str | None
     completed: bool = False
-    document_id: int | None = None
+    document_id: int | None
 
 
 class Measure(MeasureInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    jira_issue_id: str | None = None
+    jira_issue_id: str | None
     requirement_id: int | None = Field(default=None, foreign_key="requirement.id")
     requirement: "Requirement" = Relationship(back_populates="measures")
     document_id: int | None = Field(default=None, foreign_key="document.id")
@@ -100,6 +103,15 @@ class Requirement(RequirementInput, table=True):
         sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
     )
 
+    # Special fields for IT Grundschutz Kompendium
+    gs_anforderung_reference: str | None
+    gs_absicherung: constr(regex=r"^(B|S|H)$") | None
+    gs_verantwortliche: str | None
+    gs_baustein_id: int | None = Field(default=None, foreign_key="gs_baustein.id")
+    gs_baustein: "GSBaustein" = Relationship(
+        back_populates="requirements", sa_relationship_kwargs={"cascade": "all,delete"}
+    )
+
     @property
     def completion(self) -> float | None:
         if self.compliance_status not in ("C", "PC", None):
@@ -122,10 +134,18 @@ class Requirement(RequirementInput, table=True):
         return completed / total if total else 0.0
 
 
-class DocumentInput(SQLModel):
-    reference: str | None = None
+class GSBaustein(SQLModel, table=True):
+    __tablename__ = "gs_baustein"
+    id: int | None = Field(default=None, primary_key=True)
+    reference: str
     title: str
-    description: str | None = None
+    requirements: list[Requirement] = Relationship(back_populates="gs_baustein")
+
+
+class DocumentInput(SQLModel):
+    reference: str | None
+    title: str
+    description: str | None
 
 
 class Document(DocumentInput, table=True):
@@ -137,8 +157,8 @@ class Document(DocumentInput, table=True):
 
 class ProjectInput(SQLModel):
     name: str
-    description: str | None = None
-    jira_project_id: str | None = None
+    description: str | None
+    jira_project_id: str | None
 
 
 class Project(ProjectInput, table=True):
@@ -180,7 +200,7 @@ class Project(ProjectInput, table=True):
 
 class ProjectOutput(ProjectInput):
     id: int
-    jira_project: JiraProject | None = None
+    jira_project: JiraProject | None
     completion: confloat(ge=0, le=1) | None
 
 
@@ -194,11 +214,17 @@ class RequirementOutput(RequirementInput):
     project: ProjectOutput
     completion: confloat(ge=0, le=1) | None
 
+    # Special fields for IT Grundschutz Kompendium
+    gs_anforderung_reference: str | None
+    gs_absicherung: constr(regex=r"^(B|S|H)$") | None
+    gs_verantwortliche: str | None
+    gs_baustein: GSBaustein | None
+
 
 class MeasureOutput(SQLModel):
     id: int
     summary: str
-    description: str | None = None
+    description: str | None
     completed: bool = False
     requirement: RequirementOutput
     jira_issue_id: str | None

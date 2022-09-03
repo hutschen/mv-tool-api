@@ -27,3 +27,15 @@ cov_html
 !.vscode/launch.json
 !.vscode/extensions.json
 .history/*
+
+# Test data
+~$*.docx
+tests/data/gs_bausteine/*.docx
+!tests/data/gs_bausteine/_valid.docx
+!tests/data/gs_bausteine/_invalid.docx
+
+# Logs
+*.log
+
+# Licenses
+licenses.md

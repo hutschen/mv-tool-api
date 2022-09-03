@@ -1,30 +1,74 @@
 # coding: utf-8
 #
-# Copyright 2022 Helmar Hutschenreuter
+# Copyright (C) 2022 Helmar Hutschenreuter
 #
-# The source code of this program is made available
-# under the terms of the GNU Affero General Public License version 3
-# (GNU AGPL V3) as published by the Free Software Foundation. You may obtain
-# a copy of the GNU AGPL V3 at https://www.gnu.org/licenses/.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
 #
-# In the case you use this program under the terms of the GNU AGPL V3,
-# the program is provided in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU AGPL V3 for more details.
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from fastapi import HTTPException
 from fastapi.responses import FileResponse
 from openpyxl import load_workbook
 import pytest
 
-from mvtool.models import Measure, MeasureInput, Project, Requirement, RequirementInput
+from mvtool.models import (
+    Document,
+    Measure,
+    Project,
+    Requirement,
+    RequirementInput,
+)
 from mvtool.views.excel import (
+    ExportDocumentsView,
     ExportMeasuresView,
     ExportRequirementsView,
-    ImportMeasuresView,
     ImportRequirementsView,
 )
+
+
+def test_read_worksheet():
+    sut = ImportRequirementsView(None)
+    workbook = load_workbook("tests/data/excel/requirements_valid.xlsx")
+    worksheet = workbook.active
+
+    results = list(sut._read_worksheet(worksheet))
+
+    assert len(results) >= 1
+    result = results[0]
+    assert isinstance(result, RequirementInput)
+
+
+def test_read_worksheet_invalid_headers():
+    sut = ImportRequirementsView(None)
+    workbook = load_workbook("tests/data/excel/requirements_invalid_headers.xlsx")
+    worksheet = workbook.active
+
+    with pytest.raises(HTTPException) as error_info:
+        list(sut._read_worksheet(worksheet))
+
+    assert error_info.value.status_code == 400
+    assert error_info.value.detail.startswith("Missing headers")
+
+
+def test_read_worksheet_invalid_data():
+    sut = ImportRequirementsView(None)
+    workbook = load_workbook("tests/data/excel/requirements_invalid_data.xlsx")
+    worksheet = workbook.active
+
+    with pytest.raises(HTTPException) as error_info:
+        list(sut._read_worksheet(worksheet))
+
+    assert error_info.value.status_code == 400
+    assert error_info.value.detail.startswith("Invalid data")
 
 
 def test_query_measure_data(
@@ -96,61 +140,17 @@ def test_download_requirements_excel(
     )
 
 
-def test_read_requirements_from_excel_worksheet():
-    sut = ImportRequirementsView(None)
-    workbook = load_workbook("tests/import/requirements_valid.xlsx")
-    worksheet = workbook.active
-
-    results = list(sut.read_requirement_from_excel_worksheet(worksheet))
-
-    assert len(results) >= 1
-    result = results[0]
-    assert isinstance(result, RequirementInput)
-
-
-def test_read_requirements_from_excel_worksheet_invalid_headers():
-    sut = ImportRequirementsView(None)
-    workbook = load_workbook("tests/import/requirements_invalid_headers.xlsx")
-    worksheet = workbook.active
-
-    with pytest.raises(HTTPException) as error_info:
-        list(sut.read_requirement_from_excel_worksheet(worksheet))
-
-    assert error_info.value.status_code == 400
-    assert error_info.value.detail.startswith("Missing headers")
-
-
-def test_read_requirements_from_excel_worksheet_invalid_data():
-    sut = ImportRequirementsView(None)
-    workbook = load_workbook("tests/import/requirements_invalid_data.xlsx")
-    worksheet = workbook.active
-
-    with pytest.raises(HTTPException) as error_info:
-        list(sut.read_requirement_from_excel_worksheet(worksheet))
-
-    assert error_info.value.status_code == 400
-    assert error_info.value.detail.startswith("Invalid data")
-
-
-def test_read_measures_from_excel_worksheet():
-    sut = ImportMeasuresView(None)
-    workbook = load_workbook("tests/import/measures_valid.xlsx")
-    worksheet = workbook.active
-
-    results = list(sut.read_measures_from_excel_worksheet(worksheet))
-
-    assert len(results) >= 1
-    result = results[0]
-    assert isinstance(result, MeasureInput)
-
-
-def test_read_measures_from_excel_worksheet_invalid_headers():
-    sut = ImportMeasuresView(None)
-    workbook = load_workbook("tests/import/measures_invalid_headers.xlsx")
-    worksheet = workbook.active
-
-    with pytest.raises(HTTPException) as error_info:
-        list(sut.read_measures_from_excel_worksheet(worksheet))
-
-    assert error_info.value.status_code == 400
-    assert error_info.value.detail.startswith("Missing headers")
+def test_download_documents_excel(
+    export_documents_view: ExportDocumentsView,
+    excel_temp_file,
+    create_project: Project,
+    create_document: Document,
+):
+    result = export_documents_view.download_documents_excel(
+        create_project.id, temp_file=excel_temp_file
+    )
+    assert isinstance(result, FileResponse)
+    assert (
+        result.media_type
+        == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )

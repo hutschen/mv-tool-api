@@ -1,20 +1,24 @@
 # coding: utf-8
 #
-# Copyright 2022 Helmar Hutschenreuter
+# Copyright (C) 2022 Helmar Hutschenreuter
 #
-# The source code of this program is made available
-# under the terms of the GNU Affero General Public License version 3
-# (GNU AGPL V3) as published by the Free Software Foundation. You may obtain
-# a copy of the GNU AGPL V3 at https://www.gnu.org/licenses/.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
 #
-# In the case you use this program under the terms of the GNU AGPL V3,
-# the program is provided in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU AGPL V3 for more details.
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
+import shutil
 from tempfile import NamedTemporaryFile
-from typing import Any, Collection, Dict
+from typing import Any, Collection, Generic, TypeVar
 from fastapi import APIRouter, Depends, Response, UploadFile
 from fastapi.responses import FileResponse
 from fastapi_utils.cbv import cbv
@@ -27,38 +31,158 @@ from openpyxl.worksheet.table import Table
 from mvtool import errors
 
 from mvtool.database import get_session
-from mvtool.models import Document, Measure, MeasureInput, Requirement, RequirementInput
-from mvtool.views.jira_ import JiraIssuesView
-from mvtool.views.measures import MeasuresView
-from mvtool.views.requirements import RequirementsView
+from mvtool.models import (
+    Document,
+    JiraIssue,
+    Measure,
+    MeasureInput,
+    Requirement,
+    RequirementInput,
+    DocumentInput,
+)
+from .jira_ import JiraIssuesView
+from .measures import MeasuresView
+from .requirements import RequirementsView
+from .documents import DocumentsView
 
 
 def get_excel_temp_file():
     with NamedTemporaryFile(suffix=".xlsx") as temp_file:
-        return temp_file
+        yield temp_file
 
 
 router = APIRouter()
+T = TypeVar("T")
+
+
+class ExcelView(Generic[T]):
+    def __init__(self, headers: Collection[str]):
+        self._headers = headers
+
+    def _convert_to_row(self, data: T) -> dict[str, str]:
+        raise NotImplementedError("Must be implemented by subclass")
+
+    def _write_worksheet(
+        self,
+        worksheet: Worksheet,
+        data: Iterator[T],
+    ):
+        # Fill worksheet with data
+        worksheet.append(self._headers)
+        is_empty = True
+        for row_data in data:
+            row = self._convert_to_row(row_data)
+            values = [row.get(header, "") for header in self._headers]
+            worksheet.append(values)
+            is_empty = False
+
+        # Add table to worksheet
+        if not is_empty:
+            table = Table(
+                displayName=worksheet.title, ref=worksheet.calculate_dimension()
+            )
+            worksheet.add_table(table)
+
+    def _convert_from_row(self, row: dict[str, str], worksheet, row_no) -> T:
+        raise NotImplementedError("Must be implemented by subclass")
+
+    def _read_worksheet(
+        self,
+        worksheet: Worksheet,
+    ) -> Iterator[T]:
+        headers_set = set(self._headers)
+        headers_read = None
+        is_header_row = True
+
+        for row_index, row in enumerate(worksheet.iter_rows(values_only=True)):
+            if is_header_row:
+                # Check if all headers are present
+                if not headers_set.issubset(row):
+                    detail = 'Missing headers on worksheet "%s": %s' % (
+                        worksheet.title,
+                        ", ".join(headers_set - set(row)),
+                    )
+                    raise errors.ValueHttpError(detail)
+                headers_read = tuple(row)
+                is_header_row = False
+            else:
+                # Convert row to dict and yield
+                yield self._convert_from_row(
+                    dict(zip(headers_read, row)), worksheet, row_index + 1
+                )
+
+    def _process_download(
+        self,
+        data: Iterator[T],
+        temp_file: NamedTemporaryFile,
+        sheet_name: str = "Export",
+        filename: str = "export.xlsx",
+    ) -> FileResponse:
+        # set up workbook
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.title = sheet_name
+
+        # Write data to worksheet, save workbook and return file response
+        self._write_worksheet(worksheet, data)
+        workbook.save(temp_file.name)
+        return FileResponse(temp_file.name, filename=filename)
+
+    def _process_upload(
+        self,
+        upload_file: UploadFile,
+        temp_file: NamedTemporaryFile,
+    ) -> Iterator[T]:
+        # Save uploaded file to temp file
+        shutil.copyfileobj(upload_file.file, temp_file.file)
+
+        # carefully open the Excel file
+        try:
+            workbook = load_workbook(temp_file.name, read_only=True)
+        except Exception:
+            # have to catch all exceptions, because openpyxl does raise several
+            # exceptions when reading an invalid Excel file
+            raise errors.ValueHttpError("Excel file seems to be corrupted")
+
+        # Load data from workbook
+        worksheet = workbook.active
+        return self._read_worksheet(worksheet)
 
 
 @cbv(router)
-class ExportMeasuresView:
-    kwargs = dict(tags=["measure"])
+class ExportMeasuresView(ExcelView):
+    kwargs = MeasuresView.kwargs
 
     def __init__(
         self,
         session: Session = Depends(get_session),
         jira_issues: JiraIssuesView = Depends(JiraIssuesView),
     ):
+        ExcelView.__init__(
+            self,
+            [
+                "Requirement Reference",
+                "Requirement Summary",
+                "Summary",
+                "Description",
+                "Completed",
+                "Document Reference",
+                "Document Title",
+                "JIRA Issue Key",
+            ],
+        )
         self._session = session
         self._jira_issues = jira_issues
 
-    def _query_measure_data(self, *whereclause: Any) -> Iterator:
+    def _query_measure_data(
+        self, *whereclause: Any
+    ) -> Iterator[tuple[Measure, Requirement, Document, JiraIssue]]:
         query = (
             select(Measure, Requirement, Document)
             .join(Requirement)
             .join(Document, isouter=True)
             .where(*whereclause)
+            .order_by(Measure.id)
         )
         results = self._session.exec(query).all()
 
@@ -75,43 +199,20 @@ class ExportMeasuresView:
                 jira_issue = None
             yield measure, requirement, document, jira_issue
 
-    def _fill_excel_worksheet_with_measure_data(
-        self, worksheet: Worksheet, measure_data
-    ):
-        worksheet.append(
-            [
-                "Requirement Reference",
-                "Requirement Summary",
-                "Summary",
-                "Description",
-                "Completed",
-                "Document Reference",
-                "Document Title",
-                "JIRA Issue Key",
-            ]
-        )
-
-        is_empty = True
-        for measure, requirement, document, jira_issue in measure_data:
-            worksheet.append(
-                [
-                    requirement.reference,
-                    requirement.summary,
-                    measure.summary,
-                    measure.description,
-                    measure.completed,
-                    document.reference if document else "",
-                    document.title if document else "",
-                    jira_issue.key if jira_issue else "",
-                ]
-            )
-            is_empty = False
-
-        if not is_empty:
-            table = Table(
-                displayName=worksheet.title, ref=worksheet.calculate_dimension()
-            )
-            worksheet.add_table(table)
+    def _convert_to_row(
+        self, data: tuple[Measure, Requirement, Document, JiraIssue]
+    ) -> dict[str, str]:
+        measure, requirement, document, jira_issue = data
+        return {
+            "Requirement Reference": requirement.reference,
+            "Requirement Summary": requirement.summary,
+            "Summary": measure.summary,
+            "Description": measure.description,
+            "Completed": measure.completed,
+            "Document Reference": document.reference if document else "",
+            "Document Title": document.title if document else "",
+            "JIRA Issue Key": jira_issue.key if jira_issue else "",
+        }
 
     @router.get(
         "/projects/{project_id}/measures/excel", response_class=FileResponse, **kwargs
@@ -123,18 +224,12 @@ class ExportMeasuresView:
         filename: str = "export.xlsx",
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> FileResponse:
-        # set up workbook
-        workbook = Workbook()
-        worksheet = workbook.active
-        worksheet.title = sheet_name
-
-        # query measure data
-        measure_data = self._query_measure_data(Requirement.project_id == project_id)
-        self._fill_excel_worksheet_with_measure_data(worksheet, measure_data)
-
-        # save to temporary file and return file response
-        workbook.save(temp_file.name)
-        return FileResponse(temp_file.name, filename=filename)
+        return self._process_download(
+            self._query_measure_data(Requirement.project_id == project_id),
+            temp_file,
+            sheet_name,
+            filename,
+        )
 
     @router.get(
         "/requirements/{requirement_id}/measures/excel",
@@ -148,33 +243,21 @@ class ExportMeasuresView:
         filename: str = "export.xlsx",
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> FileResponse:
-        # set up workbook
-        workbook = Workbook()
-        worksheet = workbook.active
-        worksheet.title = sheet_name
-
-        # query measure data
-        measure_data = self._query_measure_data(
-            Measure.requirement_id == requirement_id
+        return self._process_download(
+            self._query_measure_data(Requirement.id == requirement_id),
+            temp_file,
+            sheet_name,
+            filename,
         )
-        self._fill_excel_worksheet_with_measure_data(worksheet, measure_data)
-
-        # save to temporary file and return file response
-        workbook.save(temp_file.name)
-        return FileResponse(temp_file.name, filename=filename)
 
 
 @cbv(router)
-class ExportRequirementsView:
-    kwargs = dict(tags=["requirement"])
+class ExportRequirementsView(ExcelView):
+    kwargs = RequirementsView.kwargs
 
     def __init__(self, requirements: RequirementsView = Depends(RequirementsView)):
-        self._requirements = requirements
-
-    def fill_excel_worksheet_with_requirement_data(
-        self, worksheet: Worksheet, project_id: int
-    ) -> None:
-        worksheet.append(
+        ExcelView.__init__(
+            self,
             [
                 "Reference",
                 "Summary",
@@ -183,29 +266,20 @@ class ExportRequirementsView:
                 "Compliance Status",
                 "Compliance Comment",
                 "Completion",
-            ]
+            ],
         )
+        self._requirements = requirements
 
-        is_empty = True
-        for requirement in self._requirements.list_requirements(project_id):
-            worksheet.append(
-                [
-                    requirement.reference,
-                    requirement.summary,
-                    requirement.description,
-                    requirement.target_object,
-                    requirement.compliance_status,
-                    requirement.compliance_comment,
-                    requirement.completion,
-                ]
-            )
-            is_empty = False
-
-        if not is_empty:
-            table = Table(
-                displayName=worksheet.title, ref=worksheet.calculate_dimension()
-            )
-            worksheet.add_table(table)
+    def _convert_to_row(self, data: Requirement) -> dict[str, str]:
+        return {
+            "Reference": data.reference,
+            "Summary": data.summary,
+            "Description": data.description,
+            "Target Object": data.target_object,
+            "Compliance Status": data.compliance_status,
+            "Compliance Comment": data.compliance_comment,
+            "Completion": data.completion,
+        }
 
     @router.get(
         "/projects/{project_id}/requirements/excel",
@@ -219,104 +293,101 @@ class ExportRequirementsView:
         filename: str = "export.xlsx",
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> FileResponse:
-        # set up workbook
-        workbook = Workbook()
-        worksheet = workbook.active
-        worksheet.title = sheet_name
-
-        # fill worksheet with data
-        self.fill_excel_worksheet_with_requirement_data(worksheet, project_id)
-
-        # save to temporary file and return response
-        workbook.save(temp_file.name)
-        return FileResponse(temp_file.name, filename=filename)
-
-
-class ImportExcelView:
-    def _upload_to_workbook(
-        self,
-        upload_file: UploadFile,
-        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
-    ) -> Workbook:
-        with open(temp_file.name, "wb") as f:
-            # 1MB buffer size should be sufficient to load an Excel file
-            buffer_size = 1000 * 1024
-            chunk = upload_file.file.read(buffer_size)
-            while chunk:
-                f.write(chunk)
-                chunk = upload_file.file.read(buffer_size)
-
-        # carefully open the Excel file
-        try:
-            return load_workbook(temp_file.name, read_only=True)
-        except Exception:
-            # have to catch all exceptions, because openpyxl does raise several
-            # exceptions when reading an invalid Excel file
-            raise errors.ValueHttpError("Excel file seems to be corrupt")
-
-    def _iter_rows_on_worksheet(
-        self, worksheet: Worksheet, headers: Collection[str]
-    ) -> Iterator[Dict[str, str]]:
-        headers = set(headers)
-        is_header_row = True
-
-        for row in worksheet.iter_rows(values_only=True):
-            if is_header_row:
-                # check if all required headers are present
-                if not headers.issubset(row):
-                    detail = 'Missing headers on worksheet "%s": %s' % (
-                        worksheet.title,
-                        ", ".join(headers - set(row)),
-                    )
-                    raise errors.ValueHttpError(detail)
-                headers = tuple(row)
-                is_header_row = False
-            else:
-                yield dict(zip(headers, row))
+        return self._process_download(
+            self._requirements.list_requirements(project_id),
+            temp_file,
+            sheet_name,
+            filename,
+        )
 
 
 @cbv(router)
-class ImportRequirementsView(ImportExcelView):
+class ExportDocumentsView(ExcelView):
+    kwargs = DocumentsView.kwargs
+
+    def __init__(self, documents: DocumentsView = Depends(DocumentsView)):
+        ExcelView.__init__(self, ["ID", "Reference", "Title", "Description"])
+        self._documents = documents
+
+    def _convert_documents_to_dict(
+        self, documents: Iterator[Document]
+    ) -> Iterator[dict[str, str]]:
+        for document in documents:
+            yield {
+                "ID": document.id,
+                "Reference": document.reference,
+                "Title": document.title,
+                "Description": document.description,
+            }
+
+    def _convert_to_row(self, data: Document) -> dict[str, str]:
+        return {
+            "ID": data.id,
+            "Reference": data.reference,
+            "Title": data.title,
+            "Description": data.description,
+        }
+
+    @router.get(
+        "/projects/{project_id}/documents/excel",
+        response_class=FileResponse,
+        **kwargs,
+    )
+    def download_documents_excel(
+        self,
+        project_id: int,
+        sheet_name: str = "Export",
+        filename: str = "export.xlsx",
+        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
+    ) -> FileResponse:
+        return self._process_download(
+            self._documents.list_documents(project_id),
+            temp_file,
+            sheet_name,
+            filename,
+        )
+
+
+@cbv(router)
+class ImportRequirementsView(ExcelView):
     kwargs = dict(tags=["requirement"])
 
     def __init__(
         self,
         requirements: RequirementsView = Depends(RequirementsView),
     ):
+        ExcelView.__init__(
+            self,
+            [
+                "Reference",
+                "Summary",
+                "Description",
+                "Target Object",
+                "Compliance Status",
+                "Compliance Comment",
+            ],
+        )
         self._requirements = requirements
 
-    def read_requirement_from_excel_worksheet(self, worksheet: Worksheet):
-        for index, row in enumerate(
-            self._iter_rows_on_worksheet(
-                worksheet,
-                (
-                    "Reference",
-                    "Summary",
-                    "Description",
-                    "Target Object",
-                    "Compliance Status",
-                    "Compliance Comment",
-                ),
+    def _convert_from_row(
+        self, row: dict[str, str], worksheet, row_no
+    ) -> RequirementInput:
+        try:
+            return RequirementInput(
+                reference=row["Reference"],
+                summary=row["Summary"],
+                description=row["Description"],
+                target_object=row["Target Object"],
+                compliance_status=row["Compliance Status"],
+                compliance_comment=row["Compliance Comment"],
             )
-        ):
-            try:
-                requirement_input = RequirementInput(
-                    reference=row["Reference"] or None,
-                    summary=row["Summary"],
-                    description=row["Description"] or None,
-                    target_object=row["Target Object"] or None,
-                    compliance_status=row["Compliance Status"] or None,
-                    compliance_comment=row["Compliance Comment"] or None,
-                )
-            except ValidationError as error:
-                detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
-                    worksheet.title,
-                    index + 1,
-                    error,
-                )
-                raise errors.ValueHttpError(detail)
-            else:
-                yield requirement_input
+        except ValidationError as error:
+            detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
+                worksheet.title,
+                row_no + 1,
+                error,
+            )
+            raise errors.ValueHttpError(detail)
 
     @router.post(
         "/projects/{project_id}/requirements/excel",
@@ -330,57 +401,31 @@ class ImportRequirementsView(ImportExcelView):
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ):
-        # get worksheet from Excel file
-        workbook = self._upload_to_workbook(upload_file, temp_file)
-        worksheet = workbook.active
-
-        # read data from worksheet
-        for requirement_input in self.read_requirement_from_excel_worksheet(worksheet):
+        for requirement_input in self._process_upload(upload_file, temp_file):
             self._requirements.create_requirement(project_id, requirement_input)
 
 
 @cbv(router)
-class ImportMeasuresView(ImportExcelView):
-    kwargs = dict(tags=["measure"])
+class ImportMeasuresView(ExcelView):
+    kwargs = MeasuresView.kwargs
 
     def __init__(self, measures: MeasuresView = Depends(MeasuresView)):
+        ExcelView.__init__(self, ["Summary", "Description"])
         self._measures = measures
 
-    def read_measures_from_excel_worksheet(self, worksheet: Worksheet):
-        for index, row in enumerate(
-            self._iter_rows_on_worksheet(
-                worksheet,
-                ("Summary", "Description"),
+    def _convert_from_row(self, row: dict[str, str], worksheet, row_no) -> MeasureInput:
+        try:
+            return MeasureInput(
+                summary=row["Summary"],
+                description=row["Description"] or None,
             )
-        ):
-            try:
-                measure_input = MeasureInput(
-                    summary=row["Summary"],
-                    description=row["Description"] or None,
-                )
-            except ValidationError as error:
-                detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
-                    worksheet.title,
-                    index + 1,
-                    error,
-                )
-                raise errors.ValueHttpError(detail)
-            else:
-                yield measure_input
-            try:
-                measure_input = MeasureInput(
-                    summary=row["Summary"],
-                    description=row["Description"] or None,
-                )
-            except ValidationError as error:
-                detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
-                    worksheet.title,
-                    index + 1,
-                    error,
-                )
-                raise errors.ValueHttpError(detail)
-            else:
-                yield measure_input
+        except ValidationError as error:
+            detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
+                worksheet.title,
+                row_no + 1,
+                error,
+            )
+            raise errors.ValueHttpError(detail)
 
     @router.post(
         "/requirements/{requirement_id}/measures/excel",
@@ -394,10 +439,46 @@ class ImportMeasuresView(ImportExcelView):
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ):
-        # get worksheet from Excel file
-        workbook = self._upload_to_workbook(upload_file, temp_file)
-        worksheet = workbook.active
-
-        # read measures from worksheet
-        for measure_input in self.read_measures_from_excel_worksheet(worksheet):
+        for measure_input in self._process_upload(upload_file, temp_file):
             self._measures.create_measure(requirement_id, measure_input)
+
+
+@cbv(router)
+class ImportDocumentsView(ExcelView):
+    kwargs = DocumentsView.kwargs
+
+    def __init__(self, documents: DocumentsView = Depends(DocumentsView)):
+        ExcelView.__init__(self, ["Reference", "Title", "Description"])
+        self._documents = documents
+
+    def _convert_from_row(
+        self, row: dict[str, str], worksheet, row_no
+    ) -> DocumentInput:
+        try:
+            return DocumentInput(
+                reference=row["Reference"] or None,
+                title=row["Title"],
+                description=row["Description"] or None,
+            )
+        except ValidationError as error:
+            detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
+                worksheet.title,
+                row_no + 1,
+                error,
+            )
+            raise errors.ValueHttpError(detail)
+
+    @router.post(
+        "/projects/{project_id}/documents/excel",
+        status_code=201,
+        response_class=Response,
+        **kwargs,
+    )
+    def upload_documents_excel(
+        self,
+        project_id: int,
+        upload_file: UploadFile,
+        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
+    ):
+        for document_input in self._process_upload(upload_file, temp_file):
+            self._documents.create_document(project_id, document_input)
