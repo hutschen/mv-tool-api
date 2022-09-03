@@ -20,7 +20,6 @@ from fastapi import HTTPException
 from jira import JIRAError
 from mvtool.models import Project, ProjectInput, ProjectOutput, Requirement, Measure
 from mvtool.views.projects import ProjectsView
-from mvtool.database import CRUDOperations
 
 
 def test_list_project_outputs(projects_view: ProjectsView, create_project: Project):

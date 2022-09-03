@@ -28,10 +28,8 @@ from mvtool.models import (
     MeasureInput,
     ProjectInput,
     Project,
-    ProjectOutput,
     Requirement,
     RequirementInput,
-    RequirementOutput,
 )
 from mvtool.views.documents import DocumentsView
 from mvtool.views.excel import (
