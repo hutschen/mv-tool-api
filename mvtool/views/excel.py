@@ -208,7 +208,7 @@ class MeasuresExcelView(ExcelView):
             self,
             [
                 ExcelHeader("Requirement Reference", ExcelHeader.WRITE_ONLY, True),
-                ExcelHeader("Requirement GS Absicherung", ExcelHeader.WRITE_ONLY, True),
+                ExcelHeader("Requirement GS ID", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Requirement Summary", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("ID", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Summary"),
@@ -254,7 +254,7 @@ class MeasuresExcelView(ExcelView):
         measure, requirement, document, jira_issue = data
         return {
             "Requirement Reference": requirement.reference,
-            "Requirement GS Absicherung": requirement.gs_absicherung,
+            "Requirement GS ID": requirement.gs_anforderung_reference,
             "Requirement Summary": requirement.summary,
             "ID": measure.id,
             "Summary": measure.summary,
