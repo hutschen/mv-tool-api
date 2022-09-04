@@ -126,6 +126,22 @@ def test_download_measures_excel_for_requirement(
     )
 
 
+def test_upload_measures_excel(
+    measures_excel_view: MeasuresExcelView,
+    excel_temp_file,
+    create_requirement: Requirement,
+):
+    upload_file = Mock()
+    upload_file.file = io.FileIO("tests/data/excel/measures_valid.xlsx", "r")
+
+    measures_excel_view.upload_measures_excel(
+        create_requirement.id, upload_file, excel_temp_file
+    )
+
+    assert create_requirement.measures is not None
+    assert len(create_requirement.measures) > 0
+
+
 def test_download_requirements_excel(
     export_requirements_view: ExportRequirementsView,
     excel_temp_file,
