@@ -55,6 +55,25 @@ router = APIRouter()
 T = TypeVar("T")
 
 
+class ExcelHeader:
+    READ_WRITE = 0
+    READ_ONLY = 1
+    WRITE_ONLY = 2
+
+    def __init__(self, name: str, mode: int | None = None, optional: bool = False):
+        self.name = name
+        self._mode = mode or self.READ_WRITE
+        self.optional = optional
+
+    @property
+    def is_write(self) -> bool:
+        return self._mode in (self.READ_WRITE, self.WRITE_ONLY)
+
+    @property
+    def is_read(self) -> bool:
+        return self._mode in (self.READ_WRITE, self.READ_ONLY)
+
+
 class ExcelView(Generic[T]):
     def __init__(self, headers: Collection[str]):
         self._headers = headers
