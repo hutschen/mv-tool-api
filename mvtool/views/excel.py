@@ -85,7 +85,7 @@ class ExcelView(Generic[T]):
     def _write_preprocessing(
         self, data: Iterator[T]
     ) -> tuple[list[str], dict[str, str]]:
-        header_names: set[str] = {}
+        header_names: set[str] = set()
         rows: list[dict[str, str]] = []
 
         # Convert data to rows and determine headers
