@@ -206,14 +206,16 @@ class ExportMeasuresView(ExcelView):
         ExcelView.__init__(
             self,
             [
-                "Requirement Reference",
-                "Requirement Summary",
-                "Summary",
-                "Description",
-                "Completed",
-                "Document Reference",
-                "Document Title",
-                "JIRA Issue Key",
+                ExcelHeader("Requirement Reference", ExcelHeader.WRITE_ONLY, True),
+                ExcelHeader("Requirement GS Absicherung", ExcelHeader.WRITE_ONLY, True),
+                ExcelHeader("Requirement Summary", ExcelHeader.WRITE_ONLY, True),
+                ExcelHeader("ID"),
+                ExcelHeader("Summary"),
+                ExcelHeader("Description", optional=True),
+                ExcelHeader("Completed"),
+                ExcelHeader("Document Reference", ExcelHeader.WRITE_ONLY, True),
+                ExcelHeader("Document Title", ExcelHeader.WRITE_ONLY, True),
+                ExcelHeader("JIRA Issue Key", ExcelHeader.WRITE_ONLY, True),
             ],
         )
         self._session = session
@@ -250,13 +252,15 @@ class ExportMeasuresView(ExcelView):
         measure, requirement, document, jira_issue = data
         return {
             "Requirement Reference": requirement.reference,
+            "Requirement GS Absicherung": requirement.gs_absicherung,
             "Requirement Summary": requirement.summary,
+            "ID": measure.id,
             "Summary": measure.summary,
             "Description": measure.description,
             "Completed": measure.completed,
-            "Document Reference": document.reference if document else "",
-            "Document Title": document.title if document else "",
-            "JIRA Issue Key": jira_issue.key if jira_issue else "",
+            "Document Reference": document.reference if document else None,
+            "Document Title": document.title if document else None,
+            "JIRA Issue Key": jira_issue.key if jira_issue else None,
         }
 
     @router.get(
