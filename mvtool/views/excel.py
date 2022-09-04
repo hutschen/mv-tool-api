@@ -202,6 +202,7 @@ class MeasuresExcelView(ExcelView):
         self,
         session: Session = Depends(get_session),
         jira_issues: JiraIssuesView = Depends(JiraIssuesView),
+        measures: MeasuresView = Depends(MeasuresView),
     ):
         ExcelView.__init__(
             self,
@@ -209,10 +210,10 @@ class MeasuresExcelView(ExcelView):
                 ExcelHeader("Requirement Reference", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Requirement GS Absicherung", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Requirement Summary", ExcelHeader.WRITE_ONLY, True),
-                ExcelHeader("ID"),
+                ExcelHeader("ID", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Summary"),
                 ExcelHeader("Description", optional=True),
-                ExcelHeader("Completed"),
+                ExcelHeader("Completed", optional=True),
                 ExcelHeader("Document Reference", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Document Title", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("JIRA Issue Key", ExcelHeader.WRITE_ONLY, True),
@@ -220,6 +221,7 @@ class MeasuresExcelView(ExcelView):
         )
         self._session = session
         self._jira_issues = jira_issues
+        self._measures = measures
 
     def _query_measure_data(
         self, *whereclause: Any
@@ -263,6 +265,22 @@ class MeasuresExcelView(ExcelView):
             "JIRA Issue Key": jira_issue.key if jira_issue else None,
         }
 
+    def _convert_from_row(self, row: dict[str, str], worksheet, row_no) -> MeasureInput:
+        try:
+            # TODO: validate ID and completed
+            return MeasureInput(
+                summary=row["Summary"],
+                description=row["Description"] or None,
+                completed=row["Completed"] or False,
+            )
+        except ValidationError as error:
+            detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
+                worksheet.title,
+                row_no + 1,
+                error,
+            )
+            raise errors.ValueHttpError(detail)
+
     @router.get(
         "/projects/{project_id}/measures/excel", response_class=FileResponse, **kwargs
     )
@@ -298,6 +316,21 @@ class MeasuresExcelView(ExcelView):
             sheet_name,
             filename,
         )
+
+    @router.post(
+        "/requirements/{requirement_id}/measures/excel",
+        status_code=201,
+        response_class=Response,
+        **kwargs,
+    )
+    def upload_measures_excel(
+        self,
+        requirement_id: int,
+        upload_file: UploadFile,
+        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
+    ):
+        for measure_input in self._process_upload(upload_file, temp_file):
+            self._measures.create_measure(requirement_id, measure_input)
 
 
 @cbv(router)
@@ -454,42 +487,42 @@ class ImportRequirementsView(ExcelView):
             self._requirements.create_requirement(project_id, requirement_input)
 
 
-@cbv(router)
-class ImportMeasuresView(ExcelView):
-    kwargs = MeasuresView.kwargs
+# @cbv(router)
+# class ImportMeasuresView(ExcelView):
+#     kwargs = MeasuresView.kwargs
 
-    def __init__(self, measures: MeasuresView = Depends(MeasuresView)):
-        ExcelView.__init__(self, ["Summary", "Description"])
-        self._measures = measures
+#     def __init__(self, measures: MeasuresView = Depends(MeasuresView)):
+#         ExcelView.__init__(self, ["Summary", "Description"])
+#         self._measures = measures
 
-    def _convert_from_row(self, row: dict[str, str], worksheet, row_no) -> MeasureInput:
-        try:
-            return MeasureInput(
-                summary=row["Summary"],
-                description=row["Description"] or None,
-            )
-        except ValidationError as error:
-            detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
-                worksheet.title,
-                row_no + 1,
-                error,
-            )
-            raise errors.ValueHttpError(detail)
+#     def _convert_from_row(self, row: dict[str, str], worksheet, row_no) -> MeasureInput:
+#         try:
+#             return MeasureInput(
+#                 summary=row["Summary"],
+#                 description=row["Description"] or None,
+#             )
+#         except ValidationError as error:
+#             detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
+#                 worksheet.title,
+#                 row_no + 1,
+#                 error,
+#             )
+#             raise errors.ValueHttpError(detail)
 
-    @router.post(
-        "/requirements/{requirement_id}/measures/excel",
-        status_code=201,
-        response_class=Response,
-        **kwargs,
-    )
-    def upload_measures_excel(
-        self,
-        requirement_id: int,
-        upload_file: UploadFile,
-        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
-    ):
-        for measure_input in self._process_upload(upload_file, temp_file):
-            self._measures.create_measure(requirement_id, measure_input)
+#     @router.post(
+#         "/requirements/{requirement_id}/measures/excel",
+#         status_code=201,
+#         response_class=Response,
+#         **kwargs,
+#     )
+#     def upload_measures_excel(
+#         self,
+#         requirement_id: int,
+#         upload_file: UploadFile,
+#         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
+#     ):
+#         for measure_input in self._process_upload(upload_file, temp_file):
+#             self._measures.create_measure(requirement_id, measure_input)
 
 
 @cbv(router)
