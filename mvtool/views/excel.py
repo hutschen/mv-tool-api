@@ -195,7 +195,7 @@ class ExcelView(Generic[T]):
 
 
 @cbv(router)
-class ExportMeasuresView(ExcelView):
+class MeasuresExcelView(ExcelView):
     kwargs = MeasuresView.kwargs
 
     def __init__(

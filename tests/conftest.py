@@ -34,7 +34,7 @@ from mvtool.models import (
 from mvtool.views.documents import DocumentsView
 from mvtool.views.excel import (
     ExportDocumentsView,
-    ExportMeasuresView,
+    MeasuresExcelView,
     ExportRequirementsView,
     get_excel_temp_file,
 )
@@ -269,8 +269,8 @@ def excel_temp_file():
 
 
 @pytest.fixture
-def export_measures_view(crud, jira_issues_view):
-    return Mock(wraps=ExportMeasuresView(crud.session, jira_issues_view))
+def measures_excel_view(crud, jira_issues_view, measures_view):
+    return Mock(wraps=MeasuresExcelView(crud.session, jira_issues_view, measures_view))
 
 
 @pytest.fixture

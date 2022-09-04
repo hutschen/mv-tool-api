@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import io
+from unittest.mock import Mock
 from fastapi import HTTPException
 from fastapi.responses import FileResponse
 from openpyxl import load_workbook
@@ -29,7 +31,7 @@ from mvtool.models import (
 )
 from mvtool.views.excel import (
     ExportDocumentsView,
-    ExportMeasuresView,
+    MeasuresExcelView,
     ExportRequirementsView,
     ImportRequirementsView,
 )
@@ -72,12 +74,12 @@ def test_read_worksheet_invalid_data():
 
 
 def test_query_measure_data(
-    export_measures_view: ExportMeasuresView,
+    measures_excel_view: MeasuresExcelView,
     create_project: Project,
     create_measure: Measure,
 ):
     results = list(
-        export_measures_view._query_measure_data(
+        measures_excel_view._query_measure_data(
             Requirement.project_id == create_project.id
         )
     )
@@ -93,12 +95,12 @@ def test_query_measure_data(
 
 
 def test_download_measures_excel_for_project(
-    export_measures_view: ExportMeasuresView,
+    measures_excel_view: MeasuresExcelView,
     excel_temp_file,
     create_project: Project,
     create_measure: Measure,
 ):
-    result = export_measures_view.download_measures_excel_for_project(
+    result = measures_excel_view.download_measures_excel_for_project(
         create_project.id, temp_file=excel_temp_file
     )
     assert isinstance(result, FileResponse)
@@ -109,12 +111,12 @@ def test_download_measures_excel_for_project(
 
 
 def test_download_measures_excel_for_requirement(
-    export_measures_view: ExportMeasuresView,
+    measures_excel_view: MeasuresExcelView,
     excel_temp_file,
     create_requirement: Requirement,
     create_measure: Measure,
 ):
-    result = export_measures_view.download_measures_excel_for_requirement(
+    result = measures_excel_view.download_measures_excel_for_requirement(
         create_requirement.id, temp_file=excel_temp_file
     )
     assert isinstance(result, FileResponse)
