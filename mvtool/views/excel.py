@@ -75,11 +75,31 @@ class ExcelHeader:
 
 
 class ExcelView(Generic[T]):
-    def __init__(self, headers: Collection[str]):
-        self._headers = headers
+    def __init__(self, headers: Collection[ExcelHeader]):
+        self._write_headers = [header for header in headers if header.is_write]
+        self._read_headers = [header for header in headers if header.is_read]
 
     def _convert_to_row(self, data: T) -> dict[str, str]:
         raise NotImplementedError("Must be implemented by subclass")
+
+    def _write_preprocessing(
+        self, data: Iterator[T]
+    ) -> tuple[list[str], dict[str, str]]:
+        header_names: set[str] = {}
+        rows: list[dict[str, str]] = []
+
+        # Convert data to rows and determine headers
+        for row_data in data:
+            row = self._convert_to_row(row_data)
+            for header in self._write_headers:
+                if header.optional and not row[header.name]:
+                    continue
+                header_names.add(header.name)
+            rows.append(row)
+
+        # Arrange headers in the order they are defined
+        header_names = [h.name for h in self._write_headers if h.name in header_names]
+        return header_names, rows
 
     def _write_worksheet(
         self,
