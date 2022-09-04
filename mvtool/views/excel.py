@@ -106,12 +106,13 @@ class ExcelView(Generic[T]):
         worksheet: Worksheet,
         data: Iterator[T],
     ):
+        header_names, rows = self._write_preprocessing(data)
+
         # Fill worksheet with data
-        worksheet.append(self._headers)
+        worksheet.append(header_names)
         is_empty = True
-        for row_data in data:
-            row = self._convert_to_row(row_data)
-            values = [row.get(header, "") for header in self._headers]
+        for row in rows:
+            values = [row.get(h_name, "") for h_name in header_names]
             worksheet.append(values)
             is_empty = False
 
