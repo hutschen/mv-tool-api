@@ -130,25 +130,30 @@ class ExcelView(Generic[T]):
         self,
         worksheet: Worksheet,
     ) -> Iterator[T]:
-        headers_set = set(self._headers)
-        headers_read = None
+        required_header_names = {h.name for h in self._read_headers if not h.optional}
+        worksheet_header_names = None
         is_header_row = True
 
         for row_index, row in enumerate(worksheet.iter_rows(values_only=True)):
             if is_header_row:
                 # Check if all headers are present
-                if not headers_set.issubset(row):
+                if not required_header_names.issubset(row):
                     detail = 'Missing headers on worksheet "%s": %s' % (
                         worksheet.title,
-                        ", ".join(headers_set - set(row)),
+                        ", ".join(required_header_names - set(row)),
                     )
                     raise errors.ValueHttpError(detail)
-                headers_read = tuple(row)
+                worksheet_header_names = tuple(row)
                 is_header_row = False
             else:
                 # Convert row to dict and yield
                 yield self._convert_from_row(
-                    dict(zip(headers_read, row)), worksheet, row_index + 1
+                    {
+                        **{h.name: None for h in self._read_headers},
+                        **dict(zip(worksheet_header_names, row)),
+                    },
+                    worksheet,
+                    row_index + 1,
                 )
 
     def _process_download(
