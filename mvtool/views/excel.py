@@ -366,6 +366,26 @@ class RequirementsExcelView(ExcelView):
             "Completion": data.completion,
         }
 
+    def _convert_from_row(
+        self, row: dict[str, str], worksheet, row_no
+    ) -> RequirementInput:
+        try:
+            return RequirementInput(
+                reference=row["Reference"],
+                summary=row["Summary"],
+                description=row["Description"],
+                target_object=row["Target Object"],
+                compliance_status=row["Compliance Status"],
+                compliance_comment=row["Compliance Comment"],
+            )
+        except ValidationError as error:
+            detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
+                worksheet.title,
+                row_no + 1,
+                error,
+            )
+            raise errors.ValueHttpError(detail)
+
     @router.get(
         "/projects/{project_id}/requirements/excel",
         response_class=FileResponse,
@@ -384,6 +404,21 @@ class RequirementsExcelView(ExcelView):
             sheet_name,
             filename,
         )
+
+    @router.post(
+        "/projects/{project_id}/requirements/excel",
+        status_code=201,
+        response_class=Response,
+        **kwargs,
+    )
+    def upload_requirements_excel(
+        self,
+        project_id: int,
+        upload_file: UploadFile,
+        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
+    ):
+        for requirement_input in self._process_upload(upload_file, temp_file):
+            self._requirements.create_requirement(project_id, requirement_input)
 
 
 @cbv(router)
@@ -431,63 +466,6 @@ class ExportDocumentsView(ExcelView):
             sheet_name,
             filename,
         )
-
-
-@cbv(router)
-class ImportRequirementsView(ExcelView):
-    kwargs = dict(tags=["requirement"])
-
-    def __init__(
-        self,
-        requirements: RequirementsView = Depends(RequirementsView),
-    ):
-        ExcelView.__init__(
-            self,
-            [
-                "Reference",
-                "Summary",
-                "Description",
-                "Target Object",
-                "Compliance Status",
-                "Compliance Comment",
-            ],
-        )
-        self._requirements = requirements
-
-    def _convert_from_row(
-        self, row: dict[str, str], worksheet, row_no
-    ) -> RequirementInput:
-        try:
-            return RequirementInput(
-                reference=row["Reference"],
-                summary=row["Summary"],
-                description=row["Description"],
-                target_object=row["Target Object"],
-                compliance_status=row["Compliance Status"],
-                compliance_comment=row["Compliance Comment"],
-            )
-        except ValidationError as error:
-            detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
-                worksheet.title,
-                row_no + 1,
-                error,
-            )
-            raise errors.ValueHttpError(detail)
-
-    @router.post(
-        "/projects/{project_id}/requirements/excel",
-        status_code=201,
-        response_class=Response,
-        **kwargs,
-    )
-    def upload_requirements_excel(
-        self,
-        project_id: int,
-        upload_file: UploadFile,
-        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
-    ):
-        for requirement_input in self._process_upload(upload_file, temp_file):
-            self._requirements.create_requirement(project_id, requirement_input)
 
 
 @cbv(router)
