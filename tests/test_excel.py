@@ -33,12 +33,11 @@ from mvtool.views.excel import (
     ExportDocumentsView,
     MeasuresExcelView,
     RequirementsExcelView,
-    ImportRequirementsView,
 )
 
 
 def test_read_worksheet():
-    sut = ImportRequirementsView(None)
+    sut = RequirementsExcelView(None)
     workbook = load_workbook("tests/data/excel/requirements_valid.xlsx")
     worksheet = workbook.active
 
@@ -50,7 +49,7 @@ def test_read_worksheet():
 
 
 def test_read_worksheet_invalid_headers():
-    sut = ImportRequirementsView(None)
+    sut = RequirementsExcelView(None)
     workbook = load_workbook("tests/data/excel/requirements_invalid_headers.xlsx")
     worksheet = workbook.active
 
@@ -62,7 +61,7 @@ def test_read_worksheet_invalid_headers():
 
 
 def test_read_worksheet_invalid_data():
-    sut = ImportRequirementsView(None)
+    sut = RequirementsExcelView(None)
     workbook = load_workbook("tests/data/excel/requirements_invalid_data.xlsx")
     worksheet = workbook.active
 
@@ -143,12 +142,12 @@ def test_upload_measures_excel(
 
 
 def test_download_requirements_excel(
-    export_requirements_view: RequirementsExcelView,
+    requirements_excel_view: RequirementsExcelView,
     excel_temp_file,
     create_project: Project,
     create_requirement: Requirement,
 ):
-    result = export_requirements_view.download_requirements_excel(
+    result = requirements_excel_view.download_requirements_excel(
         create_project.id, temp_file=excel_temp_file
     )
     assert isinstance(result, FileResponse)
@@ -158,6 +157,23 @@ def test_download_requirements_excel(
     )
 
 
+def test_upload_requirements_excel(
+    requirements_excel_view: RequirementsExcelView,
+    excel_temp_file,
+    create_project: Project,
+):
+    upload_file = Mock()
+    upload_file.file = io.FileIO("tests/data/excel/requirements_valid.xlsx", "r")
+
+    requirements_excel_view.upload_requirements_excel(
+        create_project.id, upload_file, excel_temp_file
+    )
+
+    assert create_project.requirements is not None
+    assert len(create_project.requirements) > 0
+
+
+@pytest.mark.skip()
 def test_download_documents_excel(
     export_documents_view: ExportDocumentsView,
     excel_temp_file,
