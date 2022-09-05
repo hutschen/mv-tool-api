@@ -481,44 +481,6 @@ class ImportRequirementsView(ExcelView):
             self._requirements.create_requirement(project_id, requirement_input)
 
 
-# @cbv(router)
-# class ImportMeasuresView(ExcelView):
-#     kwargs = MeasuresView.kwargs
-
-#     def __init__(self, measures: MeasuresView = Depends(MeasuresView)):
-#         ExcelView.__init__(self, ["Summary", "Description"])
-#         self._measures = measures
-
-#     def _convert_from_row(self, row: dict[str, str], worksheet, row_no) -> MeasureInput:
-#         try:
-#             return MeasureInput(
-#                 summary=row["Summary"],
-#                 description=row["Description"] or None,
-#             )
-#         except ValidationError as error:
-#             detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
-#                 worksheet.title,
-#                 row_no + 1,
-#                 error,
-#             )
-#             raise errors.ValueHttpError(detail)
-
-#     @router.post(
-#         "/requirements/{requirement_id}/measures/excel",
-#         status_code=201,
-#         response_class=Response,
-#         **kwargs,
-#     )
-#     def upload_measures_excel(
-#         self,
-#         requirement_id: int,
-#         upload_file: UploadFile,
-#         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
-#     ):
-#         for measure_input in self._process_upload(upload_file, temp_file):
-#             self._measures.create_measure(requirement_id, measure_input)
-
-
 @cbv(router)
 class ImportDocumentsView(ExcelView):
     kwargs = DocumentsView.kwargs
