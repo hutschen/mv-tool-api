@@ -82,11 +82,13 @@ class ExcelView(Generic[T]):
     def _convert_to_row(self, data: T) -> dict[str, str]:
         raise NotImplementedError("Must be implemented by subclass")
 
-    def _write_preprocessing(
-        self, data: Iterator[T]
-    ) -> tuple[list[str], dict[str, str]]:
-        header_names: set[str] = set()
-        rows: list[dict[str, str]] = []
+    def _write_worksheet(
+        self,
+        worksheet: Worksheet,
+        data: Iterator[T],
+    ):
+        header_names = set()
+        rows = []
 
         # Convert data to rows and determine headers
         for row_data in data:
@@ -99,14 +101,6 @@ class ExcelView(Generic[T]):
 
         # Arrange headers in the order they are defined
         header_names = [h.name for h in self._write_headers if h.name in header_names]
-        return header_names, rows
-
-    def _write_worksheet(
-        self,
-        worksheet: Worksheet,
-        data: Iterator[T],
-    ):
-        header_names, rows = self._write_preprocessing(data)
 
         # Fill worksheet with data
         worksheet.append(header_names)
