@@ -32,7 +32,7 @@ from mvtool.models import (
 from mvtool.views.excel import (
     ExportDocumentsView,
     MeasuresExcelView,
-    ExportRequirementsView,
+    RequirementsExcelView,
     ImportRequirementsView,
 )
 
@@ -143,7 +143,7 @@ def test_upload_measures_excel(
 
 
 def test_download_requirements_excel(
-    export_requirements_view: ExportRequirementsView,
+    export_requirements_view: RequirementsExcelView,
     excel_temp_file,
     create_project: Project,
     create_requirement: Requirement,

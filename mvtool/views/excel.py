@@ -328,7 +328,7 @@ class MeasuresExcelView(ExcelView):
 
 
 @cbv(router)
-class ExportRequirementsView(ExcelView):
+class RequirementsExcelView(ExcelView):
     kwargs = RequirementsView.kwargs
 
     def __init__(self, requirements: RequirementsView = Depends(RequirementsView)):
