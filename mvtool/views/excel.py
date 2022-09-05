@@ -335,22 +335,32 @@ class RequirementsExcelView(ExcelView):
         ExcelView.__init__(
             self,
             [
-                "Reference",
-                "Summary",
-                "Description",
-                "Target Object",
-                "Compliance Status",
-                "Compliance Comment",
-                "Completion",
+                ExcelHeader("ID", ExcelHeader.WRITE_ONLY, True),
+                ExcelHeader("Reference", optional=True),
+                ExcelHeader("GS ID", ExcelHeader.WRITE_ONLY, True),
+                ExcelHeader("GS Baustein", ExcelHeader.WRITE_ONLY, True),
+                ExcelHeader("Summary"),
+                ExcelHeader("Description", optional=True),
+                ExcelHeader("GS Absicherung", ExcelHeader.WRITE_ONLY, True),
+                ExcelHeader("GS Verantwortliche", ExcelHeader.WRITE_ONLY, True),
+                ExcelHeader("Target Object", optional=True),
+                ExcelHeader("Compliance Status", optional=True),
+                ExcelHeader("Compliance Comment", optional=True),
+                ExcelHeader("Completion", ExcelHeader.WRITE_ONLY, True),
             ],
         )
         self._requirements = requirements
 
     def _convert_to_row(self, data: Requirement) -> dict[str, str]:
         return {
+            "ID": data.id,
             "Reference": data.reference,
+            "GS ID": data.gs_anforderung_reference,
+            "GS Baustein": data.gs_baustein.title if data.gs_baustein else None,
             "Summary": data.summary,
             "Description": data.description,
+            "GS Absicherung": data.gs_absicherung,
+            "GS Verantwortliche": data.gs_verantwortliche,
             "Target Object": data.target_object,
             "Compliance Status": data.compliance_status,
             "Compliance Comment": data.compliance_comment,
