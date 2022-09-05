@@ -261,7 +261,6 @@ class MeasuresExcelView(ExcelView):
 
     def _convert_from_row(self, row: dict[str, str], worksheet, row_no) -> MeasureInput:
         try:
-            # TODO: validate ID and completed
             return MeasureInput(
                 summary=row["Summary"],
                 description=row["Description"] or None,
