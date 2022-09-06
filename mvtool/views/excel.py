@@ -79,20 +79,21 @@ class ExcelView(Generic[T]):
         self._write_headers = [header for header in headers if header.is_write]
         self._read_headers = [header for header in headers if header.is_read]
 
-    def _convert_to_row(self, data: T) -> dict[str, str]:
+    def _convert_to_row(self, data: T, **kwargs) -> dict[str, str]:
         raise NotImplementedError("Must be implemented by subclass")
 
     def _write_worksheet(
         self,
         worksheet: Worksheet,
         data: Iterator[T],
+        **kwargs,
     ):
         header_names = set()
         rows = []
 
         # Convert data to rows and determine headers
         for row_data in data:
-            row = self._convert_to_row(row_data)
+            row = self._convert_to_row(row_data, **kwargs)
             for header in self._write_headers:
                 if header.optional and not row[header.name]:
                     continue
@@ -117,12 +118,13 @@ class ExcelView(Generic[T]):
             )
             worksheet.add_table(table)
 
-    def _convert_from_row(self, row: dict[str, str], worksheet, row_no) -> T:
+    def _convert_from_row(self, row: dict[str, str], worksheet, row_no, **kwargs) -> T:
         raise NotImplementedError("Must be implemented by subclass")
 
     def _read_worksheet(
         self,
         worksheet: Worksheet,
+        **kwargs,
     ) -> Iterator[T]:
         required_header_names = {h.name for h in self._read_headers if not h.optional}
         worksheet_header_names = None
@@ -148,6 +150,7 @@ class ExcelView(Generic[T]):
                     },
                     worksheet,
                     row_index + 1,
+                    **kwargs,
                 )
 
     def _process_download(
@@ -156,6 +159,7 @@ class ExcelView(Generic[T]):
         temp_file: NamedTemporaryFile,
         sheet_name: str = "Export",
         filename: str = "export.xlsx",
+        **kwargs,
     ) -> FileResponse:
         # set up workbook
         workbook = Workbook()
@@ -163,14 +167,12 @@ class ExcelView(Generic[T]):
         worksheet.title = sheet_name
 
         # Write data to worksheet, save workbook and return file response
-        self._write_worksheet(worksheet, data)
+        self._write_worksheet(worksheet, data, **kwargs)
         workbook.save(temp_file.name)
         return FileResponse(temp_file.name, filename=filename)
 
     def _process_upload(
-        self,
-        upload_file: UploadFile,
-        temp_file: NamedTemporaryFile,
+        self, upload_file: UploadFile, temp_file: NamedTemporaryFile, **kwargs
     ) -> Iterator[T]:
         # Save uploaded file to temp file
         shutil.copyfileobj(upload_file.file, temp_file.file)
@@ -185,7 +187,7 @@ class ExcelView(Generic[T]):
 
         # Load data from workbook
         worksheet = workbook.active
-        return self._read_worksheet(worksheet)
+        return self._read_worksheet(worksheet, **kwargs)
 
 
 @cbv(router)
