@@ -432,7 +432,7 @@ class DocumentsExcelView(ExcelView):
         ExcelView.__init__(
             self,
             [
-                ExcelHeader("ID", True, optional=True),
+                ExcelHeader("ID", optional=True),
                 ExcelHeader("Reference", optional=True),
                 ExcelHeader("Title"),
                 ExcelHeader("Description", optional=True),
