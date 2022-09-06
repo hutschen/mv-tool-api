@@ -173,14 +173,13 @@ def test_upload_requirements_excel(
     assert len(create_project.requirements) > 0
 
 
-@pytest.mark.skip()
 def test_download_documents_excel(
-    export_documents_view: DocumentsExcelView,
+    documents_excel_view: DocumentsExcelView,
     excel_temp_file,
     create_project: Project,
     create_document: Document,
 ):
-    result = export_documents_view.download_documents_excel(
+    result = documents_excel_view.download_documents_excel(
         create_project.id, temp_file=excel_temp_file
     )
     assert isinstance(result, FileResponse)
@@ -188,3 +187,19 @@ def test_download_documents_excel(
         result.media_type
         == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
+
+def test_upload_documents_excel(
+    documents_excel_view: DocumentsExcelView,
+    excel_temp_file,
+    create_project: Project,
+):
+    upload_file = Mock()
+    upload_file.file = io.FileIO("tests/data/excel/documents_valid.xlsx", "r")
+
+    documents_excel_view.upload_documents_excel(
+        create_project.id, upload_file, excel_temp_file
+    )
+
+    assert create_project.documents is not None
+    assert len(create_project.documents) > 0

@@ -279,7 +279,7 @@ def requirements_excel_view(requirements_view):
 
 
 @pytest.fixture
-def export_documents_view(documents_view):
+def documents_excel_view(documents_view):
     return Mock(wraps=DocumentsExcelView(documents_view))
 
 
