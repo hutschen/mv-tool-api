@@ -197,8 +197,10 @@ def test_upload_documents_excel(
     upload_file = Mock()
     upload_file.file = io.FileIO("tests/data/excel/documents_valid.xlsx", "r")
 
-    documents_excel_view.upload_documents_excel(
-        create_project.id, upload_file, excel_temp_file
+    list(
+        documents_excel_view.upload_documents_excel(
+            create_project.id, upload_file, excel_temp_file
+        )
     )
 
     assert create_project.documents is not None

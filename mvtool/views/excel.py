@@ -22,17 +22,18 @@ from typing import Any, Collection, Generic, TypeVar
 from fastapi import APIRouter, Depends, Response, UploadFile
 from fastapi.responses import FileResponse
 from fastapi_utils.cbv import cbv
-from pydantic import ValidationError
+from pydantic import ValidationError, BaseModel
 from pyparsing import Iterator
 from sqlmodel import Session, select
 from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl import Workbook, load_workbook
 from openpyxl.worksheet.table import Table
-from mvtool import errors
 
+from mvtool import errors
 from mvtool.database import get_session
 from mvtool.models import (
     Document,
+    DocumentOutput,
     JiraIssue,
     Measure,
     MeasureInput,
@@ -53,6 +54,10 @@ def get_excel_temp_file():
 
 router = APIRouter()
 T = TypeVar("T")
+
+
+class IdModel(BaseModel):
+    id: int | None
 
 
 class ExcelHeader:
@@ -241,7 +246,7 @@ class MeasuresExcelView(ExcelView):
             yield measure, requirement, document, jira_issue
 
     def _convert_to_row(
-        self, data: tuple[Measure, Requirement, Document, JiraIssue]
+        self, data: tuple[Measure, Requirement, Document, JiraIssue], *args
     ) -> dict[str, str]:
         measure, requirement, document, jira_issue = data
         return {
@@ -285,8 +290,8 @@ class MeasuresExcelView(ExcelView):
         return self._process_download(
             self._query_measure_data(Requirement.project_id == project_id),
             temp_file,
-            sheet_name,
-            filename,
+            sheet_name=sheet_name,
+            filename=filename,
         )
 
     @router.get(
@@ -304,8 +309,8 @@ class MeasuresExcelView(ExcelView):
         return self._process_download(
             self._query_measure_data(Requirement.id == requirement_id),
             temp_file,
-            sheet_name,
-            filename,
+            sheet_name=sheet_name,
+            filename=filename,
         )
 
     @router.post(
@@ -399,8 +404,8 @@ class RequirementsExcelView(ExcelView):
         return self._process_download(
             self._requirements.list_requirements(project_id),
             temp_file,
-            sheet_name,
-            filename,
+            sheet_name=sheet_name,
+            filename=filename,
         )
 
     @router.post(
@@ -427,7 +432,7 @@ class DocumentsExcelView(ExcelView):
         ExcelView.__init__(
             self,
             [
-                ExcelHeader("ID", ExcelHeader.WRITE_ONLY, True),
+                ExcelHeader("ID", True, optional=True),
                 ExcelHeader("Reference", optional=True),
                 ExcelHeader("Title"),
                 ExcelHeader("Description", optional=True),
@@ -458,15 +463,17 @@ class DocumentsExcelView(ExcelView):
         return self._process_download(
             self._documents.list_documents(project_id),
             temp_file,
-            sheet_name,
-            filename,
+            sheet_name=sheet_name,
+            filename=filename,
         )
 
     def _convert_from_row(
-        self, row: dict[str, str], worksheet, row_no
-    ) -> DocumentInput:
+        self, row: dict[str, str], worksheet, row_no, project_id
+    ) -> DocumentOutput:
+        # Convert the row to a DocumentInput
         try:
-            return DocumentInput(
+            document_id = IdModel(id=row["ID"]).id
+            document_input = DocumentInput(
                 reference=row["Reference"] or None,
                 title=row["Title"],
                 description=row["Description"] or None,
@@ -479,10 +486,17 @@ class DocumentsExcelView(ExcelView):
             )
             raise errors.ValueHttpError(detail)
 
+        # Create or update the document
+        if document_id is None:
+            return self._documents._create_document(project_id, document_input)
+        else:
+            # FIXME: Check if the document belongs to the project
+            return self._documents._update_document(document_id, document_input)
+
     @router.post(
         "/projects/{project_id}/documents/excel",
         status_code=201,
-        response_class=Response,
+        response_model=list[DocumentOutput],
         **kwargs,
     )
     def upload_documents_excel(
@@ -490,6 +504,5 @@ class DocumentsExcelView(ExcelView):
         project_id: int,
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
-    ):
-        for document_input in self._process_upload(upload_file, temp_file):
-            self._documents.create_document(project_id, document_input)
+    ) -> Iterator[DocumentOutput]:
+        return self._process_upload(upload_file, temp_file, project_id)
