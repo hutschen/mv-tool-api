@@ -426,19 +426,16 @@ class DocumentsExcelView(ExcelView):
     kwargs = DocumentsView.kwargs
 
     def __init__(self, documents: DocumentsView = Depends(DocumentsView)):
-        ExcelView.__init__(self, ["ID", "Reference", "Title", "Description"])
+        ExcelView.__init__(
+            self,
+            [
+                ExcelHeader("ID", ExcelHeader.WRITE_ONLY, True),
+                ExcelHeader("Reference", optional=True),
+                ExcelHeader("Title"),
+                ExcelHeader("Description", optional=True),
+            ],
+        )
         self._documents = documents
-
-    def _convert_documents_to_dict(
-        self, documents: Iterator[Document]
-    ) -> Iterator[dict[str, str]]:
-        for document in documents:
-            yield {
-                "ID": document.id,
-                "Reference": document.reference,
-                "Title": document.title,
-                "Description": document.description,
-            }
 
     def _convert_to_row(self, data: Document) -> dict[str, str]:
         return {
@@ -447,6 +444,23 @@ class DocumentsExcelView(ExcelView):
             "Title": data.title,
             "Description": data.description,
         }
+
+    def _convert_from_row(
+        self, row: dict[str, str], worksheet, row_no
+    ) -> DocumentInput:
+        try:
+            return DocumentInput(
+                reference=row["Reference"] or None,
+                title=row["Title"],
+                description=row["Description"] or None,
+            )
+        except ValidationError as error:
+            detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
+                worksheet.title,
+                row_no + 1,
+                error,
+            )
+            raise errors.ValueHttpError(detail)
 
     @router.get(
         "/projects/{project_id}/documents/excel",
@@ -466,32 +480,6 @@ class DocumentsExcelView(ExcelView):
             sheet_name,
             filename,
         )
-
-
-@cbv(router)
-class ImportDocumentsView(ExcelView):
-    kwargs = DocumentsView.kwargs
-
-    def __init__(self, documents: DocumentsView = Depends(DocumentsView)):
-        ExcelView.__init__(self, ["Reference", "Title", "Description"])
-        self._documents = documents
-
-    def _convert_from_row(
-        self, row: dict[str, str], worksheet, row_no
-    ) -> DocumentInput:
-        try:
-            return DocumentInput(
-                reference=row["Reference"] or None,
-                title=row["Title"],
-                description=row["Description"] or None,
-            )
-        except ValidationError as error:
-            detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
-                worksheet.title,
-                row_no + 1,
-                error,
-            )
-            raise errors.ValueHttpError(detail)
 
     @router.post(
         "/projects/{project_id}/documents/excel",
