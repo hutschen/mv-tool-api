@@ -447,23 +447,6 @@ class DocumentsExcelView(ExcelView):
             "Description": data.description,
         }
 
-    def _convert_from_row(
-        self, row: dict[str, str], worksheet, row_no
-    ) -> DocumentInput:
-        try:
-            return DocumentInput(
-                reference=row["Reference"] or None,
-                title=row["Title"],
-                description=row["Description"] or None,
-            )
-        except ValidationError as error:
-            detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
-                worksheet.title,
-                row_no + 1,
-                error,
-            )
-            raise errors.ValueHttpError(detail)
-
     @router.get(
         "/projects/{project_id}/documents/excel",
         response_class=FileResponse,
@@ -482,6 +465,23 @@ class DocumentsExcelView(ExcelView):
             sheet_name,
             filename,
         )
+
+    def _convert_from_row(
+        self, row: dict[str, str], worksheet, row_no
+    ) -> DocumentInput:
+        try:
+            return DocumentInput(
+                reference=row["Reference"] or None,
+                title=row["Title"],
+                description=row["Description"] or None,
+            )
+        except ValidationError as error:
+            detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
+                worksheet.title,
+                row_no + 1,
+                error,
+            )
+            raise errors.ValueHttpError(detail)
 
     @router.post(
         "/projects/{project_id}/documents/excel",
