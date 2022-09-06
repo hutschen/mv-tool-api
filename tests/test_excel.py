@@ -30,7 +30,7 @@ from mvtool.models import (
     RequirementInput,
 )
 from mvtool.views.excel import (
-    ExportDocumentsView,
+    DocumentsExcelView,
     MeasuresExcelView,
     RequirementsExcelView,
 )
@@ -175,7 +175,7 @@ def test_upload_requirements_excel(
 
 @pytest.mark.skip()
 def test_download_documents_excel(
-    export_documents_view: ExportDocumentsView,
+    export_documents_view: DocumentsExcelView,
     excel_temp_file,
     create_project: Project,
     create_document: Document,

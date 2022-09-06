@@ -422,7 +422,7 @@ class RequirementsExcelView(ExcelView):
 
 
 @cbv(router)
-class ExportDocumentsView(ExcelView):
+class DocumentsExcelView(ExcelView):
     kwargs = DocumentsView.kwargs
 
     def __init__(self, documents: DocumentsView = Depends(DocumentsView)):

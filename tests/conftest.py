@@ -33,7 +33,7 @@ from mvtool.models import (
 )
 from mvtool.views.documents import DocumentsView
 from mvtool.views.excel import (
-    ExportDocumentsView,
+    DocumentsExcelView,
     MeasuresExcelView,
     RequirementsExcelView,
     get_excel_temp_file,
@@ -280,7 +280,7 @@ def requirements_excel_view(requirements_view):
 
 @pytest.fixture
 def export_documents_view(documents_view):
-    return Mock(wraps=ExportDocumentsView(documents_view))
+    return Mock(wraps=DocumentsExcelView(documents_view))
 
 
 @pytest.fixture
