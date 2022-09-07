@@ -40,6 +40,7 @@ from mvtool.models import (
     Requirement,
     RequirementInput,
     DocumentInput,
+    RequirementOutput,
 )
 from .jira_ import JiraIssuesView
 from .measures import MeasuresView
@@ -337,7 +338,7 @@ class RequirementsExcelView(ExcelView):
         ExcelView.__init__(
             self,
             [
-                ExcelHeader("ID", ExcelHeader.WRITE_ONLY, True),
+                ExcelHeader("ID", optional=True),
                 ExcelHeader("Reference", optional=True),
                 ExcelHeader("GS ID", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("GS Baustein", ExcelHeader.WRITE_ONLY, True),
@@ -370,10 +371,11 @@ class RequirementsExcelView(ExcelView):
         }
 
     def _convert_from_row(
-        self, row: dict[str, str], worksheet, row_no
+        self, row: dict[str, str], worksheet, row_no: int, project_id: int
     ) -> RequirementInput:
         try:
-            return RequirementInput(
+            requirement_id = IdModel(id=row["ID"]).id
+            requirement_input = RequirementInput(
                 reference=row["Reference"],
                 summary=row["Summary"],
                 description=row["Description"],
@@ -388,6 +390,15 @@ class RequirementsExcelView(ExcelView):
                 error,
             )
             raise errors.ValueHttpError(detail)
+
+        # Create or update requirement
+        if requirement_id is None:
+            return self._requirements._create_requirement(project_id, requirement_input)
+        else:
+            # FIXME: Check if requirement belongs to project
+            return self._requirements._update_requirement(
+                requirement_id, requirement_input
+            )
 
     @router.get(
         "/projects/{project_id}/requirements/excel",
@@ -411,7 +422,7 @@ class RequirementsExcelView(ExcelView):
     @router.post(
         "/projects/{project_id}/requirements/excel",
         status_code=201,
-        response_class=Response,
+        response_model=list[RequirementOutput],
         **kwargs,
     )
     def upload_requirements_excel(
@@ -419,9 +430,8 @@ class RequirementsExcelView(ExcelView):
         project_id: int,
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
-    ):
-        for requirement_input in self._process_upload(upload_file, temp_file):
-            self._requirements.create_requirement(project_id, requirement_input)
+    ) -> Iterator[RequirementOutput]:
+        return self._process_upload(upload_file, temp_file, project_id)
 
 
 @cbv(router)
@@ -468,7 +478,7 @@ class DocumentsExcelView(ExcelView):
         )
 
     def _convert_from_row(
-        self, row: dict[str, str], worksheet, row_no, project_id
+        self, row: dict[str, str], worksheet, row_no: int, project_id: int
     ) -> DocumentOutput:
         # Convert the row to a DocumentInput
         try:
