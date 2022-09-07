@@ -376,12 +376,12 @@ class RequirementsExcelView(ExcelView):
         try:
             requirement_id = IdModel(id=row["ID"]).id
             requirement_input = RequirementInput(
-                reference=row["Reference"],
+                reference=row["Reference"] or None,
                 summary=row["Summary"],
-                description=row["Description"],
-                target_object=row["Target Object"],
-                compliance_status=row["Compliance Status"],
-                compliance_comment=row["Compliance Comment"],
+                description=row["Description"] or None,
+                target_object=row["Target Object"] or None,
+                compliance_status=row["Compliance Status"] or None,
+                compliance_comment=row["Compliance Comment"] or None,
             )
         except ValidationError as error:
             detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
