@@ -165,8 +165,10 @@ def test_upload_requirements_excel(
     upload_file = Mock()
     upload_file.file = io.FileIO("tests/data/excel/requirements_valid.xlsx", "r")
 
-    requirements_excel_view.upload_requirements_excel(
-        create_project.id, upload_file, excel_temp_file
+    list(
+        requirements_excel_view.upload_requirements_excel(
+            create_project.id, upload_file, excel_temp_file
+        )
     )
 
     assert create_project.requirements is not None
