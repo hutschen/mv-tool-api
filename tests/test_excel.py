@@ -58,7 +58,7 @@ def worksheet_headers():
 
 
 @pytest.fixture
-def worksheet(worksheet_rows):
+def filled_worksheet(worksheet_rows):
     wb = Workbook()
     ws = wb.active
 
@@ -71,22 +71,26 @@ def worksheet(worksheet_rows):
     return ws
 
 
-def test_read_worksheet(worksheet, worksheet_headers, worksheet_rows):
+def test_read_worksheet(filled_worksheet, worksheet_headers, worksheet_rows):
     sut = ExcelView(worksheet_headers)
     sut._convert_from_row = lambda row, *_: row
 
-    results = list(sut._read_worksheet(worksheet))
+    results = list(sut._read_worksheet(filled_worksheet))
     assert results == worksheet_rows
 
 
-def test_read_worksheet_invalid_headers(worksheet):
+def test_read_worksheet_invalid_headers(filled_worksheet):
     sut = ExcelView([ExcelHeader("not_existing")])
 
     with pytest.raises(HTTPException) as error_info:
-        list(sut._read_worksheet(worksheet))
+        list(sut._read_worksheet(filled_worksheet))
 
     assert error_info.value.status_code == 400
     assert error_info.value.detail.startswith("Missing headers")
+
+
+def test_write_worksheet():
+    pass
 
 
 def test_query_measure_data(
