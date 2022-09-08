@@ -27,27 +27,56 @@ from mvtool.models import (
     Measure,
     Project,
     Requirement,
-    RequirementInput,
 )
 from mvtool.views.excel import (
     DocumentsExcelView,
+    ExcelHeader,
+    ExcelView,
     MeasuresExcelView,
     RequirementsExcelView,
 )
+from openpyxl import Workbook
 
 
-# TODO: test without intializing RequirementsExcelView
-@pytest.mark.skip()
-def test_read_worksheet():
-    sut = RequirementsExcelView(None)
-    workbook = load_workbook("tests/data/excel/requirements_valid.xlsx")
-    worksheet = workbook.active
+@pytest.fixture
+def worksheet_rows():
+    return [
+        {"int": 0, "str": "hello", "bool": True, "float": 1.0},
+        {"int": 1, "str": "world", "bool": False, "float": 2.0},
+        {"int": 2, "str": None, "bool": False, "float": 2.5},
+    ]
+
+
+@pytest.fixture
+def worksheet_headers():
+    return [
+        ExcelHeader("int"),
+        ExcelHeader("str"),
+        ExcelHeader("bool"),
+        ExcelHeader("float"),
+    ]
+
+
+@pytest.fixture
+def worksheet(worksheet_rows):
+    wb = Workbook()
+    ws = wb.active
+
+    headers = None
+    for row in worksheet_rows:
+        if not headers:
+            headers = [k for k, _ in row.items()]
+            ws.append(headers)
+        ws.append(row[h] for h in headers)
+    return ws
+
+
+def test_read_worksheet(worksheet, worksheet_headers, worksheet_rows):
+    sut = ExcelView(worksheet_headers)
+    sut._convert_from_row = lambda row, *_: row
 
     results = list(sut._read_worksheet(worksheet))
-
-    assert len(results) >= 1
-    result = results[0]
-    assert isinstance(result, RequirementInput)
+    assert results == worksheet_rows
 
 
 # TODO: test without intializing RequirementsExcelView
