@@ -79,32 +79,14 @@ def test_read_worksheet(worksheet, worksheet_headers, worksheet_rows):
     assert results == worksheet_rows
 
 
-# TODO: test without intializing RequirementsExcelView
-@pytest.mark.skip()
-def test_read_worksheet_invalid_headers():
-    sut = RequirementsExcelView(None)
-    workbook = load_workbook("tests/data/excel/requirements_invalid_headers.xlsx")
-    worksheet = workbook.active
+def test_read_worksheet_invalid_headers(worksheet):
+    sut = ExcelView([ExcelHeader("not_existing")])
 
     with pytest.raises(HTTPException) as error_info:
         list(sut._read_worksheet(worksheet))
 
     assert error_info.value.status_code == 400
     assert error_info.value.detail.startswith("Missing headers")
-
-
-# TODO: test without intializing RequirementsExcelView
-@pytest.mark.skip()
-def test_read_worksheet_invalid_data():
-    sut = RequirementsExcelView(None)
-    workbook = load_workbook("tests/data/excel/requirements_invalid_data.xlsx")
-    worksheet = workbook.active
-
-    with pytest.raises(HTTPException) as error_info:
-        list(sut._read_worksheet(worksheet))
-
-    assert error_info.value.status_code == 400
-    assert error_info.value.detail.startswith("Invalid data")
 
 
 def test_query_measure_data(
