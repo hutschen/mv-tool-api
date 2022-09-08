@@ -19,7 +19,6 @@ import io
 from unittest.mock import Mock
 from fastapi import HTTPException
 from fastapi.responses import FileResponse
-from openpyxl import load_workbook
 import pytest
 
 from mvtool.models import (
@@ -58,17 +57,19 @@ def worksheet_headers():
 
 
 @pytest.fixture
-def filled_worksheet(worksheet_rows):
-    wb = Workbook()
-    ws = wb.active
+def empty_worksheet():
+    return Workbook().active
 
+
+@pytest.fixture
+def filled_worksheet(empty_worksheet, worksheet_rows):
     headers = None
     for row in worksheet_rows:
         if not headers:
             headers = [k for k, _ in row.items()]
-            ws.append(headers)
-        ws.append(row[h] for h in headers)
-    return ws
+            empty_worksheet.append(headers)
+        empty_worksheet.append(row[h] for h in headers)
+    return empty_worksheet
 
 
 def test_read_worksheet(filled_worksheet, worksheet_headers, worksheet_rows):
@@ -89,8 +90,21 @@ def test_read_worksheet_invalid_headers(filled_worksheet):
     assert error_info.value.detail.startswith("Missing headers")
 
 
-def test_write_worksheet():
-    pass
+def test_write_worksheet(empty_worksheet, worksheet_headers, worksheet_rows):
+    sut = ExcelView(worksheet_headers)
+    sut._convert_to_row = lambda row, *_: row
+
+    sut._write_worksheet(empty_worksheet, worksheet_rows)
+
+    # read back the worksheet and compare the rows
+    headers = None
+    results = []
+    for values in empty_worksheet.iter_rows(values_only=True):
+        if not headers:
+            headers = values
+        else:
+            results.append(dict(zip(headers, values)))
+    assert results == worksheet_rows
 
 
 def test_query_measure_data(
