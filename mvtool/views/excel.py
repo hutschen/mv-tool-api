@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+from collections import OrderedDict
 import shutil
 from tempfile import NamedTemporaryFile
 from typing import Any, Collection, Generic, TypeVar
@@ -95,22 +96,22 @@ class ExcelView(Generic[T]):
         data: Iterator[T],
         *args,
     ):
-        header_names = set()
+        # Convert data to rows and determine optional headers
+        header_flags = OrderedDict(
+            (h.name, not h.optional) for h in self._write_headers
+        )
         rows = []
 
-        # Convert data to rows and determine headers
         for row_data in data:
             row = self._convert_to_row(row_data, *args)
-            for header in self._write_headers:
-                if header.optional and not row[header.name]:
+            for header_name, header_flag in header_flags.items():
+                if not header_flag and not row[header_name]:
                     continue
-                header_names.add(header.name)
+                header_flags[header_name] = True
             rows.append(row)
 
-        # Arrange headers in the order they are defined
-        header_names = [h.name for h in self._write_headers if h.name in header_names]
-
         # Fill worksheet with data
+        header_names = [h_name for h_name, h_flag in header_flags.items() if h_flag]
         worksheet.append(header_names)
         is_empty = True
         for row in rows:
