@@ -37,6 +37,7 @@ from mvtool.models import (
     JiraIssue,
     Measure,
     MeasureInput,
+    MeasureOutput,
     Requirement,
     RequirementInput,
     DocumentInput,
@@ -208,7 +209,7 @@ class MeasuresExcelView(ExcelView):
                 ExcelHeader("Requirement Reference", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Requirement GS ID", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Requirement Summary", ExcelHeader.WRITE_ONLY, True),
-                ExcelHeader("ID", ExcelHeader.WRITE_ONLY, True),
+                ExcelHeader("ID", optional=True),
                 ExcelHeader("Summary"),
                 ExcelHeader("Description", optional=True),
                 ExcelHeader("Completed", optional=True),
@@ -263,9 +264,12 @@ class MeasuresExcelView(ExcelView):
             "JIRA Issue Key": jira_issue.key if jira_issue else None,
         }
 
-    def _convert_from_row(self, row: dict[str, str], worksheet, row_no) -> MeasureInput:
+    def _convert_from_row(
+        self, row: dict[str, str], worksheet, row_no: int, requirement_id: int
+    ) -> MeasureInput:
         try:
-            return MeasureInput(
+            measure_id = IdModel(id=row["ID"]).id
+            measure_input = MeasureInput(
                 summary=row["Summary"],
                 description=row["Description"] or None,
                 completed=row["Completed"] or False,
@@ -277,6 +281,13 @@ class MeasuresExcelView(ExcelView):
                 error,
             )
             raise errors.ValueHttpError(detail)
+
+        # Create of update measure
+        if measure_id is None:
+            return self._measures.create_measure(requirement_id, measure_input)
+        else:
+            # FIXME: Check if measure belongs to requirement
+            return self._measures.update_measure(measure_id, measure_input)
 
     @router.get(
         "/projects/{project_id}/measures/excel", response_class=FileResponse, **kwargs
@@ -317,7 +328,7 @@ class MeasuresExcelView(ExcelView):
     @router.post(
         "/requirements/{requirement_id}/measures/excel",
         status_code=201,
-        response_class=Response,
+        response_model=list[MeasureOutput],
         **kwargs,
     )
     def upload_measures_excel(
@@ -325,9 +336,8 @@ class MeasuresExcelView(ExcelView):
         requirement_id: int,
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
-    ):
-        for measure_input in self._process_upload(upload_file, temp_file):
-            self._measures.create_measure(requirement_id, measure_input)
+    ) -> Iterator[MeasureOutput]:
+        return self._process_upload(upload_file, temp_file, requirement_id)
 
 
 @cbv(router)

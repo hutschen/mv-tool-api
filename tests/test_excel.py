@@ -168,8 +168,10 @@ def test_upload_measures_excel(
     upload_file = Mock()
     upload_file.file = io.FileIO("tests/data/excel/measures_valid.xlsx", "r")
 
-    measures_excel_view.upload_measures_excel(
-        create_requirement.id, upload_file, excel_temp_file
+    list(
+        measures_excel_view.upload_measures_excel(
+            create_requirement.id, upload_file, excel_temp_file
+        )
     )
 
     assert create_requirement.measures is not None
