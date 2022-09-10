@@ -122,6 +122,31 @@ def test_write_worksheet_no_rows(empty_worksheet, worksheet_headers):
     assert headers == tuple(h.name for h in worksheet_headers)
     assert row_count == 0
 
+
+def test_determine_headers_to_write(empty_worksheet, worksheet_headers):
+    # Set worksheet headers optional
+    for h in worksheet_headers:
+        h.optional = True
+
+    sut = ExcelView(worksheet_headers)
+    sut._convert_to_row = lambda row, *_: row
+
+    # Write data to worksheet
+    sut._write_worksheet(
+        empty_worksheet,
+        [
+            {"int": 0, "str": "hello", "bool": True, "float": 0.0},
+            {"int": 0, "str": "world", "bool": False, "float": 0.0},
+            {"int": 0, "str": None, "bool": False, "float": 0.0},
+        ],
+    )
+
+    # Read headers from worksheet
+    for headers in empty_worksheet.iter_rows(values_only=True):
+        break
+    assert headers == ("str", "bool")
+
+
 def test_query_measure_data(
     measures_excel_view: MeasuresExcelView,
     create_project: Project,
