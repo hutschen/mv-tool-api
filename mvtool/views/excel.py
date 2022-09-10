@@ -285,10 +285,10 @@ class MeasuresExcelView(ExcelView):
 
         # Create of update measure
         if measure_id is None:
-            return self._measures.create_measure(requirement_id, measure_input)
+            return self._measures._create_measure(requirement_id, measure_input)
         else:
             # FIXME: Check if measure belongs to requirement
-            return self._measures.update_measure(measure_id, measure_input)
+            return self._measures._update_measure(measure_id, measure_input)
 
     @router.get(
         "/projects/{project_id}/measures/excel", response_class=FileResponse, **kwargs
