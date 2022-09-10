@@ -16,29 +16,33 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+from collections import OrderedDict
 import shutil
 from tempfile import NamedTemporaryFile
 from typing import Any, Collection, Generic, TypeVar
 from fastapi import APIRouter, Depends, Response, UploadFile
 from fastapi.responses import FileResponse
 from fastapi_utils.cbv import cbv
-from pydantic import ValidationError
+from pydantic import ValidationError, BaseModel
 from pyparsing import Iterator
 from sqlmodel import Session, select
 from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl import Workbook, load_workbook
 from openpyxl.worksheet.table import Table
-from mvtool import errors
 
+from mvtool import errors
 from mvtool.database import get_session
 from mvtool.models import (
     Document,
+    DocumentOutput,
     JiraIssue,
     Measure,
     MeasureInput,
+    MeasureOutput,
     Requirement,
     RequirementInput,
     DocumentInput,
+    RequirementOutput,
 )
 from .jira_ import JiraIssuesView
 from .measures import MeasuresView
@@ -53,6 +57,10 @@ def get_excel_temp_file():
 
 router = APIRouter()
 T = TypeVar("T")
+
+
+class IdModel(BaseModel):
+    id: int | None
 
 
 class ExcelHeader:
@@ -79,30 +87,31 @@ class ExcelView(Generic[T]):
         self._write_headers = [header for header in headers if header.is_write]
         self._read_headers = [header for header in headers if header.is_read]
 
-    def _convert_to_row(self, data: T) -> dict[str, str]:
+    def _convert_to_row(self, data: T, *args) -> dict[str, str]:
         raise NotImplementedError("Must be implemented by subclass")
 
     def _write_worksheet(
         self,
         worksheet: Worksheet,
         data: Iterator[T],
+        *args,
     ):
-        header_names = set()
+        # Convert data to rows and determine optional headers
+        header_flags = OrderedDict(
+            (h.name, not h.optional) for h in self._write_headers
+        )
         rows = []
 
-        # Convert data to rows and determine headers
         for row_data in data:
-            row = self._convert_to_row(row_data)
-            for header in self._write_headers:
-                if header.optional and not row[header.name]:
+            row = self._convert_to_row(row_data, *args)
+            for header_name, header_flag in header_flags.items():
+                if not header_flag and not row[header_name]:
                     continue
-                header_names.add(header.name)
+                header_flags[header_name] = True
             rows.append(row)
 
-        # Arrange headers in the order they are defined
-        header_names = [h.name for h in self._write_headers if h.name in header_names]
-
         # Fill worksheet with data
+        header_names = [h_name for h_name, h_flag in header_flags.items() if h_flag]
         worksheet.append(header_names)
         is_empty = True
         for row in rows:
@@ -117,13 +126,10 @@ class ExcelView(Generic[T]):
             )
             worksheet.add_table(table)
 
-    def _convert_from_row(self, row: dict[str, str], worksheet, row_no) -> T:
+    def _convert_from_row(self, row: dict[str, str], worksheet, row_no, *args) -> T:
         raise NotImplementedError("Must be implemented by subclass")
 
-    def _read_worksheet(
-        self,
-        worksheet: Worksheet,
-    ) -> Iterator[T]:
+    def _read_worksheet(self, worksheet: Worksheet, *args) -> Iterator[T]:
         required_header_names = {h.name for h in self._read_headers if not h.optional}
         worksheet_header_names = None
         is_header_row = True
@@ -148,12 +154,14 @@ class ExcelView(Generic[T]):
                     },
                     worksheet,
                     row_index + 1,
+                    *args,
                 )
 
     def _process_download(
         self,
         data: Iterator[T],
         temp_file: NamedTemporaryFile,
+        *args,
         sheet_name: str = "Export",
         filename: str = "export.xlsx",
     ) -> FileResponse:
@@ -163,14 +171,12 @@ class ExcelView(Generic[T]):
         worksheet.title = sheet_name
 
         # Write data to worksheet, save workbook and return file response
-        self._write_worksheet(worksheet, data)
+        self._write_worksheet(worksheet, data, *args)
         workbook.save(temp_file.name)
         return FileResponse(temp_file.name, filename=filename)
 
     def _process_upload(
-        self,
-        upload_file: UploadFile,
-        temp_file: NamedTemporaryFile,
+        self, upload_file: UploadFile, temp_file: NamedTemporaryFile, *args
     ) -> Iterator[T]:
         # Save uploaded file to temp file
         shutil.copyfileobj(upload_file.file, temp_file.file)
@@ -185,7 +191,7 @@ class ExcelView(Generic[T]):
 
         # Load data from workbook
         worksheet = workbook.active
-        return self._read_worksheet(worksheet)
+        return self._read_worksheet(worksheet, *args)
 
 
 @cbv(router)
@@ -204,7 +210,7 @@ class MeasuresExcelView(ExcelView):
                 ExcelHeader("Requirement Reference", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Requirement GS ID", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Requirement Summary", ExcelHeader.WRITE_ONLY, True),
-                ExcelHeader("ID", ExcelHeader.WRITE_ONLY, True),
+                ExcelHeader("ID", optional=True),
                 ExcelHeader("Summary"),
                 ExcelHeader("Description", optional=True),
                 ExcelHeader("Completed", optional=True),
@@ -243,7 +249,7 @@ class MeasuresExcelView(ExcelView):
             yield measure, requirement, document, jira_issue
 
     def _convert_to_row(
-        self, data: tuple[Measure, Requirement, Document, JiraIssue]
+        self, data: tuple[Measure, Requirement, Document, JiraIssue], *args
     ) -> dict[str, str]:
         measure, requirement, document, jira_issue = data
         return {
@@ -259,9 +265,12 @@ class MeasuresExcelView(ExcelView):
             "JIRA Issue Key": jira_issue.key if jira_issue else None,
         }
 
-    def _convert_from_row(self, row: dict[str, str], worksheet, row_no) -> MeasureInput:
+    def _convert_from_row(
+        self, row: dict[str, str], worksheet, row_no: int, requirement_id: int
+    ) -> MeasureInput:
         try:
-            return MeasureInput(
+            measure_id = IdModel(id=row["ID"]).id
+            measure_input = MeasureInput(
                 summary=row["Summary"],
                 description=row["Description"] or None,
                 completed=row["Completed"] or False,
@@ -273,6 +282,13 @@ class MeasuresExcelView(ExcelView):
                 error,
             )
             raise errors.ValueHttpError(detail)
+
+        # Create of update measure
+        if measure_id is None:
+            return self._measures._create_measure(requirement_id, measure_input)
+        else:
+            # FIXME: Check if measure belongs to requirement
+            return self._measures._update_measure(measure_id, measure_input)
 
     @router.get(
         "/projects/{project_id}/measures/excel", response_class=FileResponse, **kwargs
@@ -287,8 +303,8 @@ class MeasuresExcelView(ExcelView):
         return self._process_download(
             self._query_measure_data(Requirement.project_id == project_id),
             temp_file,
-            sheet_name,
-            filename,
+            sheet_name=sheet_name,
+            filename=filename,
         )
 
     @router.get(
@@ -306,14 +322,14 @@ class MeasuresExcelView(ExcelView):
         return self._process_download(
             self._query_measure_data(Requirement.id == requirement_id),
             temp_file,
-            sheet_name,
-            filename,
+            sheet_name=sheet_name,
+            filename=filename,
         )
 
     @router.post(
         "/requirements/{requirement_id}/measures/excel",
         status_code=201,
-        response_class=Response,
+        response_model=list[MeasureOutput],
         **kwargs,
     )
     def upload_measures_excel(
@@ -321,9 +337,8 @@ class MeasuresExcelView(ExcelView):
         requirement_id: int,
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
-    ):
-        for measure_input in self._process_upload(upload_file, temp_file):
-            self._measures.create_measure(requirement_id, measure_input)
+    ) -> Iterator[MeasureOutput]:
+        return self._process_upload(upload_file, temp_file, requirement_id)
 
 
 @cbv(router)
@@ -334,7 +349,7 @@ class RequirementsExcelView(ExcelView):
         ExcelView.__init__(
             self,
             [
-                ExcelHeader("ID", ExcelHeader.WRITE_ONLY, True),
+                ExcelHeader("ID", optional=True),
                 ExcelHeader("Reference", optional=True),
                 ExcelHeader("GS ID", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("GS Baustein", ExcelHeader.WRITE_ONLY, True),
@@ -367,16 +382,17 @@ class RequirementsExcelView(ExcelView):
         }
 
     def _convert_from_row(
-        self, row: dict[str, str], worksheet, row_no
+        self, row: dict[str, str], worksheet, row_no: int, project_id: int
     ) -> RequirementInput:
         try:
-            return RequirementInput(
-                reference=row["Reference"],
+            requirement_id = IdModel(id=row["ID"]).id
+            requirement_input = RequirementInput(
+                reference=row["Reference"] or None,
                 summary=row["Summary"],
-                description=row["Description"],
-                target_object=row["Target Object"],
-                compliance_status=row["Compliance Status"],
-                compliance_comment=row["Compliance Comment"],
+                description=row["Description"] or None,
+                target_object=row["Target Object"] or None,
+                compliance_status=row["Compliance Status"] or None,
+                compliance_comment=row["Compliance Comment"] or None,
             )
         except ValidationError as error:
             detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
@@ -385,6 +401,15 @@ class RequirementsExcelView(ExcelView):
                 error,
             )
             raise errors.ValueHttpError(detail)
+
+        # Create or update requirement
+        if requirement_id is None:
+            return self._requirements._create_requirement(project_id, requirement_input)
+        else:
+            # FIXME: Check if requirement belongs to project
+            return self._requirements._update_requirement(
+                requirement_id, requirement_input
+            )
 
     @router.get(
         "/projects/{project_id}/requirements/excel",
@@ -401,14 +426,14 @@ class RequirementsExcelView(ExcelView):
         return self._process_download(
             self._requirements.list_requirements(project_id),
             temp_file,
-            sheet_name,
-            filename,
+            sheet_name=sheet_name,
+            filename=filename,
         )
 
     @router.post(
         "/projects/{project_id}/requirements/excel",
         status_code=201,
-        response_class=Response,
+        response_model=list[RequirementOutput],
         **kwargs,
     )
     def upload_requirements_excel(
@@ -416,9 +441,8 @@ class RequirementsExcelView(ExcelView):
         project_id: int,
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
-    ):
-        for requirement_input in self._process_upload(upload_file, temp_file):
-            self._requirements.create_requirement(project_id, requirement_input)
+    ) -> Iterator[RequirementOutput]:
+        return self._process_upload(upload_file, temp_file, project_id)
 
 
 @cbv(router)
@@ -429,7 +453,7 @@ class DocumentsExcelView(ExcelView):
         ExcelView.__init__(
             self,
             [
-                ExcelHeader("ID", ExcelHeader.WRITE_ONLY, True),
+                ExcelHeader("ID", optional=True),
                 ExcelHeader("Reference", optional=True),
                 ExcelHeader("Title"),
                 ExcelHeader("Description", optional=True),
@@ -444,23 +468,6 @@ class DocumentsExcelView(ExcelView):
             "Title": data.title,
             "Description": data.description,
         }
-
-    def _convert_from_row(
-        self, row: dict[str, str], worksheet, row_no
-    ) -> DocumentInput:
-        try:
-            return DocumentInput(
-                reference=row["Reference"] or None,
-                title=row["Title"],
-                description=row["Description"] or None,
-            )
-        except ValidationError as error:
-            detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
-                worksheet.title,
-                row_no + 1,
-                error,
-            )
-            raise errors.ValueHttpError(detail)
 
     @router.get(
         "/projects/{project_id}/documents/excel",
@@ -477,14 +484,40 @@ class DocumentsExcelView(ExcelView):
         return self._process_download(
             self._documents.list_documents(project_id),
             temp_file,
-            sheet_name,
-            filename,
+            sheet_name=sheet_name,
+            filename=filename,
         )
+
+    def _convert_from_row(
+        self, row: dict[str, str], worksheet, row_no: int, project_id: int
+    ) -> DocumentOutput:
+        # Convert the row to a DocumentInput
+        try:
+            document_id = IdModel(id=row["ID"]).id
+            document_input = DocumentInput(
+                reference=row["Reference"] or None,
+                title=row["Title"],
+                description=row["Description"] or None,
+            )
+        except ValidationError as error:
+            detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
+                worksheet.title,
+                row_no + 1,
+                error,
+            )
+            raise errors.ValueHttpError(detail)
+
+        # Create or update the document
+        if document_id is None:
+            return self._documents._create_document(project_id, document_input)
+        else:
+            # FIXME: Check if the document belongs to the project
+            return self._documents._update_document(document_id, document_input)
 
     @router.post(
         "/projects/{project_id}/documents/excel",
         status_code=201,
-        response_class=Response,
+        response_model=list[DocumentOutput],
         **kwargs,
     )
     def upload_documents_excel(
@@ -492,6 +525,5 @@ class DocumentsExcelView(ExcelView):
         project_id: int,
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
-    ):
-        for document_input in self._process_upload(upload_file, temp_file):
-            self._documents.create_document(project_id, document_input)
+    ) -> Iterator[DocumentOutput]:
+        return self._process_upload(upload_file, temp_file, project_id)

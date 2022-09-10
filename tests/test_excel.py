@@ -19,7 +19,6 @@ import io
 from unittest.mock import Mock
 from fastapi import HTTPException
 from fastapi.responses import FileResponse
-from openpyxl import load_workbook
 import pytest
 
 from mvtool.models import (
@@ -27,49 +26,125 @@ from mvtool.models import (
     Measure,
     Project,
     Requirement,
-    RequirementInput,
 )
 from mvtool.views.excel import (
     DocumentsExcelView,
+    ExcelHeader,
+    ExcelView,
     MeasuresExcelView,
     RequirementsExcelView,
 )
+from openpyxl import Workbook
 
 
-def test_read_worksheet():
-    sut = RequirementsExcelView(None)
-    workbook = load_workbook("tests/data/excel/requirements_valid.xlsx")
-    worksheet = workbook.active
-
-    results = list(sut._read_worksheet(worksheet))
-
-    assert len(results) >= 1
-    result = results[0]
-    assert isinstance(result, RequirementInput)
+@pytest.fixture
+def worksheet_rows():
+    return [
+        {"int": 0, "str": "hello", "bool": True, "float": 1.0},
+        {"int": 1, "str": "world", "bool": False, "float": 2.0},
+        {"int": 2, "str": None, "bool": False, "float": 2.5},
+    ]
 
 
-def test_read_worksheet_invalid_headers():
-    sut = RequirementsExcelView(None)
-    workbook = load_workbook("tests/data/excel/requirements_invalid_headers.xlsx")
-    worksheet = workbook.active
+@pytest.fixture
+def worksheet_headers():
+    return [
+        ExcelHeader("int"),
+        ExcelHeader("str"),
+        ExcelHeader("bool"),
+        ExcelHeader("float"),
+    ]
+
+
+@pytest.fixture
+def empty_worksheet():
+    return Workbook().active
+
+
+@pytest.fixture
+def filled_worksheet(empty_worksheet, worksheet_rows):
+    headers = None
+    for row in worksheet_rows:
+        if not headers:
+            headers = [k for k, _ in row.items()]
+            empty_worksheet.append(headers)
+        empty_worksheet.append(row[h] for h in headers)
+    return empty_worksheet
+
+
+def test_read_worksheet(filled_worksheet, worksheet_headers, worksheet_rows):
+    sut = ExcelView(worksheet_headers)
+    sut._convert_from_row = lambda row, *_: row
+
+    results = list(sut._read_worksheet(filled_worksheet))
+    assert results == worksheet_rows
+
+
+def test_read_worksheet_invalid_headers(filled_worksheet):
+    sut = ExcelView([ExcelHeader("not_existing")])
 
     with pytest.raises(HTTPException) as error_info:
-        list(sut._read_worksheet(worksheet))
+        list(sut._read_worksheet(filled_worksheet))
 
     assert error_info.value.status_code == 400
     assert error_info.value.detail.startswith("Missing headers")
 
 
-def test_read_worksheet_invalid_data():
-    sut = RequirementsExcelView(None)
-    workbook = load_workbook("tests/data/excel/requirements_invalid_data.xlsx")
-    worksheet = workbook.active
+def test_write_worksheet(empty_worksheet, worksheet_headers, worksheet_rows):
+    sut = ExcelView(worksheet_headers)
+    sut._convert_to_row = lambda row, *_: row
 
-    with pytest.raises(HTTPException) as error_info:
-        list(sut._read_worksheet(worksheet))
+    sut._write_worksheet(empty_worksheet, worksheet_rows)
 
-    assert error_info.value.status_code == 400
-    assert error_info.value.detail.startswith("Invalid data")
+    # read back the worksheet and compare the rows
+    headers = None
+    results = []
+    for values in empty_worksheet.iter_rows(values_only=True):
+        if not headers:
+            headers = values
+        else:
+            results.append(dict(zip(headers, values)))
+    assert results == worksheet_rows
+
+
+def test_write_worksheet_no_rows(empty_worksheet, worksheet_headers):
+    sut = ExcelView(worksheet_headers)
+    sut._write_worksheet(empty_worksheet, [])
+
+    # read back the worksheet
+    headers = None
+    row_count = 0
+    for values in empty_worksheet.iter_rows(values_only=True):
+        if not headers:
+            headers = values
+        else:
+            row_count += 1
+    assert headers == tuple(h.name for h in worksheet_headers)
+    assert row_count == 0
+
+
+def test_determine_headers_to_write(empty_worksheet, worksheet_headers):
+    # Set worksheet headers optional
+    for h in worksheet_headers:
+        h.optional = True
+
+    sut = ExcelView(worksheet_headers)
+    sut._convert_to_row = lambda row, *_: row
+
+    # Write data to worksheet
+    sut._write_worksheet(
+        empty_worksheet,
+        [
+            {"int": 0, "str": "hello", "bool": True, "float": 0.0},
+            {"int": 0, "str": "world", "bool": False, "float": 0.0},
+            {"int": 0, "str": None, "bool": False, "float": 0.0},
+        ],
+    )
+
+    # Read headers from worksheet
+    for headers in empty_worksheet.iter_rows(values_only=True):
+        break
+    assert headers == ("str", "bool")
 
 
 def test_query_measure_data(
@@ -133,8 +208,10 @@ def test_upload_measures_excel(
     upload_file = Mock()
     upload_file.file = io.FileIO("tests/data/excel/measures_valid.xlsx", "r")
 
-    measures_excel_view.upload_measures_excel(
-        create_requirement.id, upload_file, excel_temp_file
+    list(
+        measures_excel_view.upload_measures_excel(
+            create_requirement.id, upload_file, excel_temp_file
+        )
     )
 
     assert create_requirement.measures is not None
@@ -165,8 +242,10 @@ def test_upload_requirements_excel(
     upload_file = Mock()
     upload_file.file = io.FileIO("tests/data/excel/requirements_valid.xlsx", "r")
 
-    requirements_excel_view.upload_requirements_excel(
-        create_project.id, upload_file, excel_temp_file
+    list(
+        requirements_excel_view.upload_requirements_excel(
+            create_project.id, upload_file, excel_temp_file
+        )
     )
 
     assert create_project.requirements is not None
@@ -197,8 +276,10 @@ def test_upload_documents_excel(
     upload_file = Mock()
     upload_file.file = io.FileIO("tests/data/excel/documents_valid.xlsx", "r")
 
-    documents_excel_view.upload_documents_excel(
-        create_project.id, upload_file, excel_temp_file
+    list(
+        documents_excel_view.upload_documents_excel(
+            create_project.id, upload_file, excel_temp_file
+        )
     )
 
     assert create_project.documents is not None
