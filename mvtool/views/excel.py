@@ -20,7 +20,7 @@ from collections import OrderedDict
 import shutil
 from tempfile import NamedTemporaryFile
 from typing import Any, Collection, Generic, TypeVar
-from fastapi import APIRouter, Depends, Response, UploadFile
+from fastapi import APIRouter, Depends, UploadFile
 from fastapi.responses import FileResponse
 from fastapi_utils.cbv import cbv
 from pydantic import ValidationError, BaseModel
