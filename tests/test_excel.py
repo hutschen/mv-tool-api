@@ -107,6 +107,21 @@ def test_write_worksheet(empty_worksheet, worksheet_headers, worksheet_rows):
     assert results == worksheet_rows
 
 
+def test_write_worksheet_no_rows(empty_worksheet, worksheet_headers):
+    sut = ExcelView(worksheet_headers)
+    sut._write_worksheet(empty_worksheet, [])
+
+    # read back the worksheet
+    headers = None
+    row_count = 0
+    for values in empty_worksheet.iter_rows(values_only=True):
+        if not headers:
+            headers = values
+        else:
+            row_count += 1
+    assert headers == tuple(h.name for h in worksheet_headers)
+    assert row_count == 0
+
 def test_query_measure_data(
     measures_excel_view: MeasuresExcelView,
     create_project: Project,
