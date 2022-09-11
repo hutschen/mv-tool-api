@@ -534,8 +534,8 @@ class DocumentsExcelView(ExcelView):
         )
 
     def _convert_from_row(
-        self, row: dict[str, str], worksheet, row_no: int, project_id: int
-    ) -> DocumentOutput:
+        self, row: dict[str, str], worksheet, row_no: int
+    ) -> tuple[int | None, DocumentInput]:
         # Convert the row to a DocumentInput
         try:
             document_id = IdModel(id=row["ID"]).id
@@ -551,13 +551,8 @@ class DocumentsExcelView(ExcelView):
                 error,
             )
             raise errors.ValueHttpError(detail)
-
-        # Create or update the document
-        if document_id is None:
-            return self._documents._create_document(project_id, document_input)
         else:
-            # FIXME: Check if the document belongs to the project
-            return self._documents._update_document(document_id, document_input)
+            return document_id, document_input
 
     def _bulk_create_update_documents(
         self, project_id: int, data: Iterator[tuple[int | None, DocumentInput]]
@@ -617,4 +612,6 @@ class DocumentsExcelView(ExcelView):
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> Iterator[DocumentOutput]:
-        return self._process_upload(upload_file, temp_file, project_id)
+        return self._bulk_create_update_documents(
+            project_id, self._process_upload(upload_file, temp_file)
+        )
