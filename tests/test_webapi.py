@@ -21,7 +21,7 @@ from fastapi import Depends, HTTPException
 from fastapi.testclient import TestClient
 from mvtool import app
 from mvtool.auth import http_basic, get_jira
-from mvtool.database import CRUDOperations
+from mvtool.database import get_session
 
 
 @pytest.fixture
@@ -37,7 +37,7 @@ def client(jira, crud):
     app.router.on_shutdown = []
 
     with TestClient(app) as client:
-        app.dependency_overrides[CRUDOperations] = lambda: crud
+        app.dependency_overrides[get_session] = lambda: crud.session
         app.dependency_overrides[get_jira] = get_jira_override
         yield client
 
