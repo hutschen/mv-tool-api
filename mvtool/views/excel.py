@@ -494,7 +494,12 @@ class RequirementsExcelView(ExcelView):
 class DocumentsExcelView(ExcelView):
     kwargs = DocumentsView.kwargs
 
-    def __init__(self, documents: DocumentsView = Depends(DocumentsView)):
+    def __init__(
+        self,
+        session: Session = Depends(get_session),
+        projects: ProjectsView = Depends(ProjectsView),
+        documents: DocumentsView = Depends(DocumentsView),
+    ):
         ExcelView.__init__(
             self,
             [
@@ -504,6 +509,8 @@ class DocumentsExcelView(ExcelView):
                 ExcelHeader("Description", optional=True),
             ],
         )
+        self._session = session
+        self._projects = projects
         self._documents = documents
 
     def _convert_to_row(self, data: Document) -> dict[str, str]:
@@ -557,10 +564,6 @@ class DocumentsExcelView(ExcelView):
     def _bulk_create_update_documents(
         self, project_id: int, data: Iterator[tuple[int | None, DocumentInput]]
     ) -> list[DocumentOutput]:
-        # TODO: Initialize this attributes in constructor
-        self._session = self._documents._crud.session
-        self._projects = self._documents._projects
-
         # Get project from database and retrieve data
         project = self._projects.get_project(project_id)
         data = list(data)

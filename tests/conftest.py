@@ -281,8 +281,8 @@ def requirements_excel_view(crud, projects_view, requirements_view):
 
 
 @pytest.fixture
-def documents_excel_view(documents_view):
-    return Mock(wraps=DocumentsExcelView(documents_view))
+def documents_excel_view(crud, projects_view, documents_view):
+    return Mock(wraps=DocumentsExcelView(crud.session, projects_view, documents_view))
 
 
 @pytest.fixture
