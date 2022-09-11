@@ -401,8 +401,8 @@ class RequirementsExcelView(ExcelView):
         )
 
     def _convert_from_row(
-        self, row: dict[str, str], worksheet, row_no: int, project_id: int
-    ) -> RequirementInput:
+        self, row: dict[str, str], worksheet, row_no: int
+    ) -> tuple[int | None, RequirementInput]:
         try:
             requirement_id = IdModel(id=row["ID"]).id
             requirement_input = RequirementInput(
@@ -420,14 +420,8 @@ class RequirementsExcelView(ExcelView):
                 error,
             )
             raise errors.ValueHttpError(detail)
-
-        # Create or update requirement
-        if requirement_id is None:
-            return self._requirements._create_requirement(project_id, requirement_input)
         else:
-            return self._requirements._update_requirement(
-                requirement_id, requirement_input
-            )
+            return requirement_id, requirement_input
 
     def _bulk_create_update_requirements(
         self, project_id: int, data: Iterator[tuple[int | None, RequirementInput]]
@@ -487,7 +481,9 @@ class RequirementsExcelView(ExcelView):
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> Iterator[RequirementOutput]:
-        return self._process_upload(upload_file, temp_file, project_id)
+        return self._bulk_create_update_requirements(
+            project_id, self._process_upload(upload_file, temp_file)
+        )
 
 
 @cbv(router)
