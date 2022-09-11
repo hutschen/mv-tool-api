@@ -381,6 +381,25 @@ class RequirementsExcelView(ExcelView):
             "Completion": data.completion,
         }
 
+    @router.get(
+        "/projects/{project_id}/requirements/excel",
+        response_class=FileResponse,
+        **kwargs,
+    )
+    def download_requirements_excel(
+        self,
+        project_id: int,
+        sheet_name: str = "Export",
+        filename: str = "export.xlsx",
+        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
+    ) -> FileResponse:
+        return self._process_download(
+            self._requirements.list_requirements(project_id),
+            temp_file,
+            sheet_name=sheet_name,
+            filename=filename,
+        )
+
     def _convert_from_row(
         self, row: dict[str, str], worksheet, row_no: int, project_id: int
     ) -> RequirementInput:
@@ -410,25 +429,6 @@ class RequirementsExcelView(ExcelView):
             return self._requirements._update_requirement(
                 requirement_id, requirement_input
             )
-
-    @router.get(
-        "/projects/{project_id}/requirements/excel",
-        response_class=FileResponse,
-        **kwargs,
-    )
-    def download_requirements_excel(
-        self,
-        project_id: int,
-        sheet_name: str = "Export",
-        filename: str = "export.xlsx",
-        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
-    ) -> FileResponse:
-        return self._process_download(
-            self._requirements.list_requirements(project_id),
-            temp_file,
-            sheet_name=sheet_name,
-            filename=filename,
-        )
 
     @router.post(
         "/projects/{project_id}/requirements/excel",
