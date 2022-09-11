@@ -274,8 +274,10 @@ def measures_excel_view(crud, jira_issues_view, measures_view):
 
 
 @pytest.fixture
-def requirements_excel_view(requirements_view):
-    return Mock(wraps=RequirementsExcelView(requirements_view))
+def requirements_excel_view(crud, projects_view, requirements_view):
+    return Mock(
+        wraps=RequirementsExcelView(crud.session, projects_view, requirements_view)
+    )
 
 
 @pytest.fixture

@@ -48,6 +48,7 @@ from .jira_ import JiraIssuesView
 from .measures import MeasuresView
 from .requirements import RequirementsView
 from .documents import DocumentsView
+from .projects import ProjectsView
 
 
 def get_excel_temp_file():
@@ -345,7 +346,12 @@ class MeasuresExcelView(ExcelView):
 class RequirementsExcelView(ExcelView):
     kwargs = RequirementsView.kwargs
 
-    def __init__(self, requirements: RequirementsView = Depends(RequirementsView)):
+    def __init__(
+        self,
+        session: Session = Depends(get_session),
+        projects: ProjectsView = Depends(ProjectsView),
+        requirements: RequirementsView = Depends(RequirementsView),
+    ):
         ExcelView.__init__(
             self,
             [
@@ -363,6 +369,8 @@ class RequirementsExcelView(ExcelView):
                 ExcelHeader("Completion", ExcelHeader.WRITE_ONLY, True),
             ],
         )
+        self._session = session
+        self._projects = projects
         self._requirements = requirements
 
     def _convert_to_row(self, data: Requirement) -> dict[str, str]:
@@ -426,12 +434,8 @@ class RequirementsExcelView(ExcelView):
     def _bulk_create_update_requirements(
         self, project_id: int, data: Iterator[tuple[int | None, RequirementInput]]
     ) -> list[RequirementOutput]:
-        # TODO: Make these variables to attributes when finally implementing this method
-        session = self._requirements._crud.session
-        projects = self._requirements._projects
-
         # Get project from database and retrieve data
-        project = projects.get_project(project_id)
+        project = self._projects.get_project(project_id)
         data = list(data)
 
         # Read requirements to be updated from database
@@ -439,7 +443,7 @@ class RequirementsExcelView(ExcelView):
             Requirement.id.in_({id for id, _ in data if id is not None}),
             Requirement.project_id == project_id,
         )
-        read_requirements = dict((r.id, r) for r in session.exec(query).all())
+        read_requirements = dict((r.id, r) for r in self._session.exec(query).all())
 
         # Create or update requirements
         written_requirements = []
@@ -448,7 +452,7 @@ class RequirementsExcelView(ExcelView):
                 # Create requirement
                 requirement = Requirement.from_orm(requirement_input)
                 requirement.project = project
-                session.add(requirement)
+                self._session.add(requirement)
             else:
                 # Update requirement
                 requirement = read_requirements.get(requirement_id)
@@ -459,9 +463,9 @@ class RequirementsExcelView(ExcelView):
                     )
                 for key, value in requirement_input.dict().items():
                     setattr(requirement, key, value)
-                session.add(requirement)
+                self._session.add(requirement)
             written_requirements.append(requirement)
-        session.flush()
+        self._session.flush()
 
         # Convert to requirement outputs and return
         return [
