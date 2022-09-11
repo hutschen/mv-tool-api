@@ -559,6 +559,52 @@ class DocumentsExcelView(ExcelView):
             # FIXME: Check if the document belongs to the project
             return self._documents._update_document(document_id, document_input)
 
+    def _bulk_create_update_documents(
+        self, project_id: int, data: Iterator[tuple[int | None, DocumentInput]]
+    ) -> list[DocumentOutput]:
+        # TODO: Initialize this attributes in constructor
+        self._session = self._documents._crud.session
+        self._projects = self._documents._projects
+
+        # Get project from database and retrieve data
+        project = self._projects.get_project(project_id)
+        data = list(data)
+
+        # Read documents to be updated from database
+        query = select(Document).where(
+            Document.id.in_({id for id, _ in data if id is not None}),
+            Document.project_id == project_id,
+        )
+        read_documents = dict((r.id, r) for r in self._session.exec(query).all())
+
+        # Create or update documents
+        written_documents = []
+        for document_id, document_input in data:
+            if document_id is None:
+                # Create document
+                document = Document.from_orm(document_input)
+                document.project = project
+                self._session.add(document)
+            else:
+                # Update document
+                document = read_documents.get(document_id)
+                if document is None:
+                    raise errors.NotFoundError(
+                        "Document with ID %d not part of project with ID %d"
+                        % (document_id, project_id)
+                    )
+                for key, value in document_input.dict().items():
+                    setattr(document, key, value)
+                self._session.add(document)
+            written_documents.append(document)
+        self._session.flush()
+
+        # Convert to document outputs and return
+        return [
+            DocumentOutput.from_orm(d, update=dict(project=project))
+            for d in written_documents
+        ]
+
     @router.post(
         "/projects/{project_id}/documents/excel",
         status_code=201,

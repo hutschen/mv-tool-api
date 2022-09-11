@@ -23,6 +23,8 @@ import pytest
 
 from mvtool.models import (
     Document,
+    DocumentInput,
+    DocumentOutput,
     Measure,
     Project,
     Requirement,
@@ -289,6 +291,27 @@ def test_download_documents_excel(
         result.media_type
         == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
+
+def test_bulk_create_update_documents(
+    documents_excel_view: DocumentsExcelView,
+    create_project: Project,
+    create_document: Document,
+):
+    data = [
+        (create_document.id, DocumentInput(title="update")),
+        (None, DocumentInput(title="create")),
+    ]
+
+    results = documents_excel_view._bulk_create_update_documents(
+        create_project.id, data
+    )
+
+    assert len(results) == 2
+    assert isinstance(results[0], DocumentOutput)
+    assert results[0].title == "update"
+    assert isinstance(results[1], DocumentOutput)
+    assert results[1].title == "create"
 
 
 def test_upload_documents_excel(
