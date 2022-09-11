@@ -26,6 +26,8 @@ from mvtool.models import (
     Measure,
     Project,
     Requirement,
+    RequirementInput,
+    RequirementOutput,
 )
 from mvtool.views.excel import (
     DocumentsExcelView,
@@ -232,6 +234,27 @@ def test_download_requirements_excel(
         result.media_type
         == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
+
+def test_bulk_create_update_requirements(
+    requirements_excel_view: RequirementsExcelView,
+    create_project: Project,
+    create_requirement: Requirement,
+):
+    data = [
+        (create_requirement.id, RequirementInput(summary="update")),
+        (None, RequirementInput(summary="create")),
+    ]
+
+    results = requirements_excel_view._bulk_create_update_requirements(
+        create_project.id, data
+    )
+
+    assert len(results) == 2
+    assert isinstance(results[0], RequirementOutput)
+    assert results[0].summary == "update"
+    assert isinstance(results[1], RequirementOutput)
+    assert results[1].summary == "create"
 
 
 def test_upload_requirements_excel(

@@ -381,36 +381,6 @@ class RequirementsExcelView(ExcelView):
             "Completion": data.completion,
         }
 
-    def _convert_from_row(
-        self, row: dict[str, str], worksheet, row_no: int, project_id: int
-    ) -> RequirementInput:
-        try:
-            requirement_id = IdModel(id=row["ID"]).id
-            requirement_input = RequirementInput(
-                reference=row["Reference"] or None,
-                summary=row["Summary"],
-                description=row["Description"] or None,
-                target_object=row["Target Object"] or None,
-                compliance_status=row["Compliance Status"] or None,
-                compliance_comment=row["Compliance Comment"] or None,
-            )
-        except ValidationError as error:
-            detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
-                worksheet.title,
-                row_no + 1,
-                error,
-            )
-            raise errors.ValueHttpError(detail)
-
-        # Create or update requirement
-        if requirement_id is None:
-            return self._requirements._create_requirement(project_id, requirement_input)
-        else:
-            # FIXME: Check if requirement belongs to project
-            return self._requirements._update_requirement(
-                requirement_id, requirement_input
-            )
-
     @router.get(
         "/projects/{project_id}/requirements/excel",
         response_class=FileResponse,
@@ -430,6 +400,75 @@ class RequirementsExcelView(ExcelView):
             filename=filename,
         )
 
+    def _convert_from_row(
+        self, row: dict[str, str], worksheet, row_no: int
+    ) -> tuple[int | None, RequirementInput]:
+        try:
+            requirement_id = IdModel(id=row["ID"]).id
+            requirement_input = RequirementInput(
+                reference=row["Reference"] or None,
+                summary=row["Summary"],
+                description=row["Description"] or None,
+                target_object=row["Target Object"] or None,
+                compliance_status=row["Compliance Status"] or None,
+                compliance_comment=row["Compliance Comment"] or None,
+            )
+        except ValidationError as error:
+            detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
+                worksheet.title,
+                row_no + 1,
+                error,
+            )
+            raise errors.ValueHttpError(detail)
+        else:
+            return requirement_id, requirement_input
+
+    def _bulk_create_update_requirements(
+        self, project_id: int, data: Iterator[tuple[int | None, RequirementInput]]
+    ) -> list[RequirementOutput]:
+        # TODO: Make these variables to attributes when finally implementing this method
+        session = self._requirements._crud.session
+        projects = self._requirements._projects
+
+        # Get project from database and retrieve data
+        project = projects.get_project(project_id)
+        data = list(data)
+
+        # Read requirements to be updated from database
+        query = select(Requirement).where(
+            Requirement.id.in_({id for id, _ in data if id is not None}),
+            Requirement.project_id == project_id,
+        )
+        read_requirements = dict((r.id, r) for r in session.exec(query).all())
+
+        # Create or update requirements
+        written_requirements = []
+        for requirement_id, requirement_input in data:
+            if requirement_id is None:
+                # Create requirement
+                requirement = Requirement.from_orm(requirement_input)
+                requirement.project = project
+                session.add(requirement)
+            else:
+                # Update requirement
+                requirement = read_requirements.get(requirement_id)
+                if requirement is None:
+                    raise errors.NotFoundError(
+                        "Requirement with ID %d not part of project with ID %d"
+                        % (requirement_id, project_id)
+                    )
+                for key, value in requirement_input.dict().items():
+                    setattr(requirement, key, value)
+                session.add(requirement)
+            written_requirements.append(requirement)
+        session.flush()
+
+        # Convert to requirement outputs and return
+        return [
+            RequirementOutput.from_orm(r, update=dict(project=project))
+            for r in written_requirements
+        ]
+
     @router.post(
         "/projects/{project_id}/requirements/excel",
         status_code=201,
@@ -442,7 +481,9 @@ class RequirementsExcelView(ExcelView):
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> Iterator[RequirementOutput]:
-        return self._process_upload(upload_file, temp_file, project_id)
+        return self._bulk_create_update_requirements(
+            project_id, self._process_upload(upload_file, temp_file)
+        )
 
 
 @cbv(router)
