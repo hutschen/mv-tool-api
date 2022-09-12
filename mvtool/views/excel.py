@@ -303,8 +303,8 @@ class MeasuresExcelView(ExcelView):
         )
 
     def _convert_from_row(
-        self, row: dict[str, str], worksheet, row_no: int, requirement_id: int
-    ) -> MeasureInput:
+        self, row: dict[str, str], worksheet, row_no: int
+    ) -> tuple[int | None, MeasureInput]:
         try:
             measure_id = IdModel(id=row["ID"]).id
             measure_input = MeasureInput(
@@ -319,13 +319,8 @@ class MeasuresExcelView(ExcelView):
                 error,
             )
             raise errors.ValueHttpError(detail)
-
-        # Create of update measure
-        if measure_id is None:
-            return self._measures._create_measure(requirement_id, measure_input)
         else:
-            # FIXME: Check if measure belongs to requirement
-            return self._measures._update_measure(measure_id, measure_input)
+            return measure_id, measure_input
 
     def _bulk_create_patch_measures(
         self, requirement_id: int, data: Iterator[tuple[int | None, MeasureInput]]
@@ -398,7 +393,9 @@ class MeasuresExcelView(ExcelView):
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> Iterator[MeasureOutput]:
-        return self._process_upload(upload_file, temp_file, requirement_id)
+        return self._bulk_create_patch_measures(
+            requirement_id, self._process_upload(upload_file, temp_file)
+        )
 
 
 @cbv(router)
