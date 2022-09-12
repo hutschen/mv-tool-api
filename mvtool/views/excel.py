@@ -327,6 +327,49 @@ class MeasuresExcelView(ExcelView):
             # FIXME: Check if measure belongs to requirement
             return self._measures._update_measure(measure_id, measure_input)
 
+    def _bulk_create_patch_measures(
+        self, requirement_id: int, data: Iterator[tuple[int | None, MeasureInput]]
+    ) -> Iterator[MeasureOutput]:
+        # TODO: Define this attribute in constructor
+        self._requirements = self._measures._requirements
+        self._documents = self._measures._documents
+
+        # Get requirement from database and retrieve data
+        requirement = self._requirements.get_requirement(requirement_id)
+        data = list(data)
+
+        # Read measures to be updated from database
+        query = select(Measure).where(
+            Measure.id.in_({id for id, _ in data if id is not None}),
+            Measure.requirement_id == requirement_id,
+        )
+        read_measures = dict((m.id, m) for m in self._session.exec(query).all())
+
+        # Create or update measures
+        written_measures = []
+        for measure_id, measure_input in data:
+            if measure_id is None:
+                # Create measure
+                measure = Measure.from_orm(measure_input)
+                measure.requirement = requirement
+            else:
+                # Update measure
+                measure = read_measures.get(measure_id)
+                if measure is None:
+                    raise errors.NotFoundError(
+                        "Measure with ID %d not part of requirement with ID %d"
+                        % (measure_id, requirement_id)
+                    )
+                for key, value in measure_input.dict(exclude_unset=True).items():
+                    setattr(measure, key, value)
+
+            self._documents.check_document_id(measure.document_id)
+            self._session.add(measure)
+            written_measures.append(measure)
+        self._session.flush()
+
+        # TODO: Convert to measure outputs and return
+
     @router.post(
         "/requirements/{requirement_id}/measures/excel",
         status_code=201,
