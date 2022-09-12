@@ -266,31 +266,6 @@ class MeasuresExcelView(ExcelView):
             "JIRA Issue Key": jira_issue.key if jira_issue else None,
         }
 
-    def _convert_from_row(
-        self, row: dict[str, str], worksheet, row_no: int, requirement_id: int
-    ) -> MeasureInput:
-        try:
-            measure_id = IdModel(id=row["ID"]).id
-            measure_input = MeasureInput(
-                summary=row["Summary"],
-                description=row["Description"] or None,
-                completed=row["Completed"] or False,
-            )
-        except ValidationError as error:
-            detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
-                worksheet.title,
-                row_no + 1,
-                error,
-            )
-            raise errors.ValueHttpError(detail)
-
-        # Create of update measure
-        if measure_id is None:
-            return self._measures._create_measure(requirement_id, measure_input)
-        else:
-            # FIXME: Check if measure belongs to requirement
-            return self._measures._update_measure(measure_id, measure_input)
-
     @router.get(
         "/projects/{project_id}/measures/excel", response_class=FileResponse, **kwargs
     )
@@ -326,6 +301,31 @@ class MeasuresExcelView(ExcelView):
             sheet_name=sheet_name,
             filename=filename,
         )
+
+    def _convert_from_row(
+        self, row: dict[str, str], worksheet, row_no: int, requirement_id: int
+    ) -> MeasureInput:
+        try:
+            measure_id = IdModel(id=row["ID"]).id
+            measure_input = MeasureInput(
+                summary=row["Summary"],
+                description=row["Description"] or None,
+                completed=row["Completed"] or False,
+            )
+        except ValidationError as error:
+            detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
+                worksheet.title,
+                row_no + 1,
+                error,
+            )
+            raise errors.ValueHttpError(detail)
+
+        # Create of update measure
+        if measure_id is None:
+            return self._measures._create_measure(requirement_id, measure_input)
+        else:
+            # FIXME: Check if measure belongs to requirement
+            return self._measures._update_measure(measure_id, measure_input)
 
     @router.post(
         "/requirements/{requirement_id}/measures/excel",
