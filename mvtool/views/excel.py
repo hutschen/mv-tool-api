@@ -336,6 +336,7 @@ class MeasuresExcelView(ExcelView):
 
         # Get requirement from database and retrieve data
         requirement = self._requirements.get_requirement(requirement_id)
+        requirement_output = self._requirements._get_requirement(requirement_id)
         data = list(data)
 
         # Read measures to be updated from database
@@ -368,7 +369,22 @@ class MeasuresExcelView(ExcelView):
             written_measures.append(measure)
         self._session.flush()
 
-        # TODO: Convert to measure outputs and return
+        # Convert to measure outputs and return
+        measure_outputs = []
+        for measure in written_measures:
+            document_output = self._documents._try_to_get_document(measure.document_id)
+            jira_issue = self._jira_issues.try_to_get_jira_issue(measure.jira_issue_id)
+            measure_outputs.append(
+                MeasureOutput.from_orm(
+                    measure,
+                    update=dict(
+                        requirement=requirement_output,
+                        document=document_output,
+                        jira_issue=jira_issue,
+                    ),
+                )
+            )
+        return measure_outputs
 
     @router.post(
         "/requirements/{requirement_id}/measures/excel",
