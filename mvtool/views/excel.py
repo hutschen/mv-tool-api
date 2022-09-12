@@ -266,31 +266,6 @@ class MeasuresExcelView(ExcelView):
             "JIRA Issue Key": jira_issue.key if jira_issue else None,
         }
 
-    def _convert_from_row(
-        self, row: dict[str, str], worksheet, row_no: int, requirement_id: int
-    ) -> MeasureInput:
-        try:
-            measure_id = IdModel(id=row["ID"]).id
-            measure_input = MeasureInput(
-                summary=row["Summary"],
-                description=row["Description"] or None,
-                completed=row["Completed"] or False,
-            )
-        except ValidationError as error:
-            detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
-                worksheet.title,
-                row_no + 1,
-                error,
-            )
-            raise errors.ValueHttpError(detail)
-
-        # Create of update measure
-        if measure_id is None:
-            return self._measures._create_measure(requirement_id, measure_input)
-        else:
-            # FIXME: Check if measure belongs to requirement
-            return self._measures._update_measure(measure_id, measure_input)
-
     @router.get(
         "/projects/{project_id}/measures/excel", response_class=FileResponse, **kwargs
     )
@@ -327,6 +302,85 @@ class MeasuresExcelView(ExcelView):
             filename=filename,
         )
 
+    def _convert_from_row(
+        self, row: dict[str, str], worksheet, row_no: int
+    ) -> tuple[int | None, MeasureInput]:
+        try:
+            measure_id = IdModel(id=row["ID"]).id
+            measure_input = MeasureInput(
+                summary=row["Summary"],
+                description=row["Description"] or None,
+                completed=row["Completed"] or False,
+            )
+        except ValidationError as error:
+            detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
+                worksheet.title,
+                row_no + 1,
+                error,
+            )
+            raise errors.ValueHttpError(detail)
+        else:
+            return measure_id, measure_input
+
+    def _bulk_create_patch_measures(
+        self, requirement_id: int, data: Iterator[tuple[int | None, MeasureInput]]
+    ) -> Iterator[MeasureOutput]:
+        # TODO: Define this attribute in constructor
+        self._requirements = self._measures._requirements
+        self._documents = self._measures._documents
+
+        # Get requirement from database and retrieve data
+        requirement = self._requirements.get_requirement(requirement_id)
+        requirement_output = self._requirements._get_requirement(requirement_id)
+        data = list(data)
+
+        # Read measures to be updated from database
+        query = select(Measure).where(
+            Measure.id.in_({id for id, _ in data if id is not None}),
+            Measure.requirement_id == requirement_id,
+        )
+        read_measures = dict((m.id, m) for m in self._session.exec(query).all())
+
+        # Create or update measures
+        written_measures = []
+        for measure_id, measure_input in data:
+            if measure_id is None:
+                # Create measure
+                measure = Measure.from_orm(measure_input)
+                measure.requirement = requirement
+            else:
+                # Update measure
+                measure = read_measures.get(measure_id)
+                if measure is None:
+                    raise errors.NotFoundError(
+                        "Measure with ID %d not part of requirement with ID %d"
+                        % (measure_id, requirement_id)
+                    )
+                for key, value in measure_input.dict(exclude_unset=True).items():
+                    setattr(measure, key, value)
+
+            self._documents.check_document_id(measure.document_id)
+            self._session.add(measure)
+            written_measures.append(measure)
+        self._session.flush()
+
+        # Convert to measure outputs and return
+        measure_outputs = []
+        for measure in written_measures:
+            document_output = self._documents._try_to_get_document(measure.document_id)
+            jira_issue = self._jira_issues.try_to_get_jira_issue(measure.jira_issue_id)
+            measure_outputs.append(
+                MeasureOutput.from_orm(
+                    measure,
+                    update=dict(
+                        requirement=requirement_output,
+                        document=document_output,
+                        jira_issue=jira_issue,
+                    ),
+                )
+            )
+        return measure_outputs
+
     @router.post(
         "/requirements/{requirement_id}/measures/excel",
         status_code=201,
@@ -339,7 +393,9 @@ class MeasuresExcelView(ExcelView):
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> Iterator[MeasureOutput]:
-        return self._process_upload(upload_file, temp_file, requirement_id)
+        return self._bulk_create_patch_measures(
+            requirement_id, self._process_upload(upload_file, temp_file)
+        )
 
 
 @cbv(router)

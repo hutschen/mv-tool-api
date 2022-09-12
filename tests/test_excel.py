@@ -26,6 +26,8 @@ from mvtool.models import (
     DocumentInput,
     DocumentOutput,
     Measure,
+    MeasureInput,
+    MeasureOutput,
     Project,
     Requirement,
     RequirementInput,
@@ -202,6 +204,28 @@ def test_download_measures_excel_for_requirement(
         result.media_type
         == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
+
+def test_bulk_create_patch_measures(
+    measures_excel_view: MeasuresExcelView,
+    create_project: Project,
+    create_requirement: Requirement,
+    create_measure: Measure,
+):
+    data = [
+        (create_measure.id, MeasureInput(summary="update")),
+        (None, MeasureInput(summary="create")),
+    ]
+
+    results = measures_excel_view._bulk_create_patch_measures(
+        create_requirement.id, data
+    )
+
+    assert len(results) == 2
+    assert isinstance(results[0], MeasureOutput)
+    assert results[0].summary == "update"
+    assert isinstance(results[1], MeasureOutput)
+    assert results[1].summary == "create"
 
 
 def test_upload_measures_excel(
