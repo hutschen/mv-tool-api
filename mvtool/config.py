@@ -32,6 +32,11 @@ class JiraConfig(BaseModel):
     url: str
 
 
+class FastApiConfig(BaseModel):
+    docs_url: str | None = None  # "/docs"
+    redoc_url: str | None = None  # "/redoc"
+
+
 class UvicornConfig(BaseModel):
     host: str = "0.0.0.0"
     port: int = 8000
@@ -69,6 +74,7 @@ class UvicornConfig(BaseModel):
 class Config(BaseModel):
     database: DatabaseConfig
     jira: JiraConfig
+    fastapi: FastApiConfig = FastApiConfig()
     uvicorn: UvicornConfig = UvicornConfig()
 
 
