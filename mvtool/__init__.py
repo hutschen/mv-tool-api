@@ -24,7 +24,12 @@ from . import database
 from .config import load_config
 from .angular import AngularFiles
 
-app = FastAPI(title="MV-Tool")
+config = load_config()
+app = FastAPI(
+    title="MV-Tool",
+    docs_url=config.fastapi.docs_url,
+    redoc_url=config.fastapi.redoc_url,
+)
 app.include_router(jira_.router, prefix="/api")
 app.include_router(projects.router, prefix="/api")
 app.include_router(requirements.router, prefix="/api")
@@ -44,7 +49,6 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup():
-    config = load_config()
     database.setup_engine(config)
     database.create_all()
 
@@ -55,7 +59,6 @@ def on_shutdown():
 
 
 def serve():
-    config = load_config()
     uvicorn.run(
         "mvtool:app",
         host=config.uvicorn.host,
