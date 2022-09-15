@@ -30,6 +30,7 @@ class DatabaseConfig(BaseModel):
 
 class JiraConfig(BaseModel):
     url: str
+    verify_ssl: bool | str = True
 
 
 class UvicornConfig(BaseModel):
