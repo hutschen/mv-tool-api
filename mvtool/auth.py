@@ -15,22 +15,33 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
+from threading import Lock
 from jira import JIRA, JIRAError
-from cachetools import cached, TTLCache
+from cachetools import TTLCache
+from hashlib import sha256
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from .config import load_config
 
 http_basic = HTTPBasic()
+jira_connections_cache = TTLCache(maxsize=1000, ttl=5 * 60)
+jira_connections_cache_lock = Lock()
 
 
-@cached(cache=TTLCache(maxsize=1024, ttl=5 * 60))
 def _get_jira(username, password):
-    config = load_config().jira
-    return JIRA(
-        config.url, dict(verify=config.verify_ssl), basic_auth=(username, password)
-    )
+    cache_key = sha256(f"{username}:{password}".encode("utf-8")).hexdigest()
+    with jira_connections_cache_lock:
+        jira_connection = jira_connections_cache.get(cache_key, None)
+    if jira_connection is None:
+        config = load_config().jira
+        jira_connection = JIRA(
+            config.url,
+            dict(verify=config.verify_ssl),
+            basic_auth=(username, password),
+        )
+        with jira_connections_cache_lock:
+            jira_connections_cache[cache_key] = jira_connection
+    return jira_connection
 
 
 def get_jira(credentials: HTTPBasicCredentials = Depends(http_basic)) -> JIRA:
