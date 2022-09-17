@@ -44,6 +44,7 @@ def setup_engine(config: Config):
             __State.engine = create_engine(
                 config.database.url,
                 echo=config.database.echo,
+                pool_pre_ping=True,  # check connections before using them
             )
     return __State.engine
 
