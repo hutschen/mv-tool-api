@@ -23,7 +23,9 @@ from mvtool.config import Config, DatabaseConfig, JiraConfig
 from mvtool import database
 from mvtool.models import (
     DocumentInput,
+    JiraIssue,
     JiraIssueInput,
+    JiraIssueStatus,
     Measure,
     MeasureInput,
     ProjectInput,
@@ -118,6 +120,31 @@ def jira_issue_input(jira_issue_data):
         summary=jira_issue_data.fields.summary,
         description=jira_issue_data.fields.description,
         issuetype_id=jira_issue_data.fields.issuetype.id,
+    )
+
+
+@pytest.fixture
+def jira_issue_status(jira_issue_data):
+    """Mocks JIRA issue status."""
+    return JiraIssueStatus(
+        name=jira_issue_data.fields.status.name,
+        color_name=jira_issue_data.fields.status.statusCategory.colorName,
+        completed=False,
+    )
+
+
+@pytest.fixture
+def jira_issue(jira_issue_data, jira_issue_status):
+    """Mocks JIRA issue."""
+    return JiraIssue(
+        id=jira_issue_data.id,
+        key=jira_issue_data.key,
+        summary=jira_issue_data.fields.summary,
+        description=jira_issue_data.fields.description,
+        issuetype_id=jira_issue_data.fields.issuetype.id,
+        project_id=jira_issue_data.fields.project.id,
+        status=jira_issue_status,
+        url=f"http://jira-server-url/browse/{jira_issue_data.key}",
     )
 
 

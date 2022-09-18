@@ -15,10 +15,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from venv import create
 import pytest
 from fastapi import HTTPException
 from mvtool.models import (
     Document,
+    JiraIssue,
     JiraIssueInput,
     Measure,
     MeasureInput,
@@ -217,6 +219,34 @@ def test_create_and_link_jira_issue_jira_project_not_set(
 
     with pytest.raises(HTTPException) as excinfo:
         measures_view.create_and_link_jira_issue(create_measure.id, jira_issue_input)
+        assert excinfo.value.status_code == 400
+
+
+def test_link_jira_issue(
+    measures_view: MeasuresView, create_measure: Measure, jira_issue: JiraIssue
+):
+    measures_view.link_jira_issue(create_measure.id, jira_issue.id)
+    assert create_measure.jira_issue_id == jira_issue.id
+
+
+def test_link_jira_issue_jira_project_not_set(
+    measures_view: MeasuresView, create_measure: Measure, jira_issue: JiraIssue
+):
+    create_measure.requirement.project.jira_project_id = None
+
+    with pytest.raises(HTTPException) as excinfo:
+        measures_view.link_jira_issue(create_measure.id, jira_issue.id)
+        assert excinfo.value.status_code == 400
+
+
+def test_link_jira_issue_different_jira_projects(
+    measures_view: MeasuresView, create_measure: Measure, jira_issue: JiraIssue
+):
+    create_measure.requirement.project.jira_project_id = 2
+    assert create_measure.requirement.project.jira_project_id != jira_issue.project_id
+
+    with pytest.raises(HTTPException) as excinfo:
+        measures_view.link_jira_issue(create_measure.id, jira_issue.id)
         assert excinfo.value.status_code == 400
 
 
