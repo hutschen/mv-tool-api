@@ -155,14 +155,14 @@ class JiraIssuesView(JiraBaseView):
     #     '/jira-projects/{jira_project_id}/jira-issues', status_code=201,
     #     response_model=JiraIssue, **kwargs)
     def create_jira_issue(
-        self, jira_project_id: str, jira_issue: JiraIssueInput
+        self, jira_project_id: str, jira_issue_input: JiraIssueInput
     ) -> JiraIssue:
         jira_issue_data = self.jira.create_issue(
             dict(
-                summary=jira_issue.summary,
-                description=jira_issue.description,
+                summary=jira_issue_input.summary,
+                description=jira_issue_input.description,
                 project=dict(id=jira_project_id),
-                issuetype=dict(id=jira_issue.issuetype_id),
+                issuetype=dict(id=jira_issue_input.issuetype_id),
             )
         )
         return self._convert_to_jira_issue(jira_issue_data)
