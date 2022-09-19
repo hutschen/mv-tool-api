@@ -175,6 +175,16 @@ class JiraIssuesView(JiraBaseView):
         jira_issue_data = self.jira.issue(id=jira_issue_id)
         return self._convert_to_jira_issue(jira_issue_data)
 
+    @router.put("/jira-issues/{jira_issue_id}", response_model=JiraIssue, **kwargs)
+    def update_jira_issue(self, jira_issue_id: str, jira_issue_input: JiraIssueInput):
+        jira_issue_data = self.jira.issue(id=jira_issue_id)
+        jira_issue_data.update(
+            summary=jira_issue_input.summary,
+            description=jira_issue_input.description,
+            issuetype=dict(id=jira_issue_input.issuetype_id),
+        )
+        return self._convert_to_jira_issue(jira_issue_data)
+
     def get_jira_issues(
         self,
         jira_issue_ids: tuple[str],
