@@ -18,7 +18,7 @@
 
 from jira import JIRA, Issue, Project, JIRAError
 from pydantic import conint
-from fastapi import Depends, APIRouter
+from fastapi import Depends, APIRouter, Response
 from fastapi_utils.cbv import cbv
 
 from ..auth import get_jira
@@ -184,6 +184,16 @@ class JiraIssuesView(JiraBaseView):
             issuetype=dict(id=jira_issue_input.issuetype_id),
         )
         return self._convert_to_jira_issue(jira_issue_data)
+
+    @router.delete(
+        "/jira-issues/{jira_issue_id}",
+        status_code=204,
+        response_class=Response,
+        **kwargs,
+    )
+    def delete_jira_issue(self, jira_issue_id: str):
+        jira_issue_data = self.jira.issue(id=jira_issue_id)
+        jira_issue_data.delete()
 
     def get_jira_issues(
         self,
