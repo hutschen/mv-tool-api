@@ -218,3 +218,9 @@ def test_update_jira_issue(jira, jira_issue_data, jira_issue_input):
         description=jira_issue_input.description,
         issuetype={"id": jira_issue_input.issuetype_id},
     )
+
+
+def test_delete_jira_issue(jira, jira_issue_data):
+    JiraIssuesView(jira).delete_jira_issue(jira_issue_data.id)
+    jira.issue.assert_called_once_with(id=jira_issue_data.id)
+    jira_issue_data.delete.assert_called_once_with()
