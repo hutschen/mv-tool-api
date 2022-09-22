@@ -109,6 +109,8 @@ def jira_issue_data(jira_project_data, jira_issue_type_data):
         id = "1"
         key = "key"
         fields = JiraIssueFieldsMock()
+        update = Mock()
+        delete = Mock()
 
     return JiraIssueMock
 

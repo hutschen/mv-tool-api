@@ -18,7 +18,7 @@
 
 from jira import JIRA, Issue, Project, JIRAError
 from pydantic import conint
-from fastapi import Depends, APIRouter
+from fastapi import Depends, APIRouter, Response
 from fastapi_utils.cbv import cbv
 
 from ..auth import get_jira
@@ -151,18 +151,21 @@ class JiraIssuesView(JiraBaseView):
         )
         return [self._convert_to_jira_issue(d) for d in jira_issues_data]
 
-    # @router.post(
-    #     '/jira-projects/{jira_project_id}/jira-issues', status_code=201,
-    #     response_model=JiraIssue, **kwargs)
+    @router.post(
+        "/jira-projects/{jira_project_id}/jira-issues",
+        status_code=201,
+        response_model=JiraIssue,
+        **kwargs,
+    )
     def create_jira_issue(
-        self, jira_project_id: str, jira_issue: JiraIssueInput
+        self, jira_project_id: str, jira_issue_input: JiraIssueInput
     ) -> JiraIssue:
         jira_issue_data = self.jira.create_issue(
             dict(
-                summary=jira_issue.summary,
-                description=jira_issue.description,
+                summary=jira_issue_input.summary,
+                description=jira_issue_input.description,
                 project=dict(id=jira_project_id),
-                issuetype=dict(id=jira_issue.issuetype_id),
+                issuetype=dict(id=jira_issue_input.issuetype_id),
             )
         )
         return self._convert_to_jira_issue(jira_issue_data)
@@ -171,6 +174,26 @@ class JiraIssuesView(JiraBaseView):
     def get_jira_issue(self, jira_issue_id: str):
         jira_issue_data = self.jira.issue(id=jira_issue_id)
         return self._convert_to_jira_issue(jira_issue_data)
+
+    @router.put("/jira-issues/{jira_issue_id}", response_model=JiraIssue, **kwargs)
+    def update_jira_issue(self, jira_issue_id: str, jira_issue_input: JiraIssueInput):
+        jira_issue_data = self.jira.issue(id=jira_issue_id)
+        jira_issue_data.update(
+            summary=jira_issue_input.summary,
+            description=jira_issue_input.description,
+            issuetype=dict(id=jira_issue_input.issuetype_id),
+        )
+        return self._convert_to_jira_issue(jira_issue_data)
+
+    @router.delete(
+        "/jira-issues/{jira_issue_id}",
+        status_code=204,
+        response_class=Response,
+        **kwargs,
+    )
+    def delete_jira_issue(self, jira_issue_id: str):
+        jira_issue_data = self.jira.issue(id=jira_issue_id)
+        jira_issue_data.delete()
 
     def get_jira_issues(
         self,

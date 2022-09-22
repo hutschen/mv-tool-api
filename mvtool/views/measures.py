@@ -111,6 +111,7 @@ class MeasuresView:
     def create_measure(self, requirement_id: int, measure: MeasureInput) -> Measure:
         measure = Measure.from_orm(measure)
         measure.requirement = self._requirements.get_requirement(requirement_id)
+        self._jira_issues.check_jira_issue_id(measure.jira_issue_id)
         self._documents.check_document_id(measure.document_id)
         return self._crud.create_in_db(measure)
 
@@ -155,11 +156,9 @@ class MeasuresView:
         measure_current = self._crud.read_from_db(Measure, measure_id)
         measure_update = Measure.from_orm(
             measure_update,
-            update=dict(
-                requirement_id=measure_current.requirement_id,
-                jira_issue_id=measure_current.jira_issue_id,
-            ),
+            update=dict(requirement_id=measure_current.requirement_id),
         )
+        self._jira_issues.check_jira_issue_id(measure_update.jira_issue_id)
         self._documents.check_document_id(measure_update.document_id)
         return self._crud.update_in_db(measure_id, measure_update)
 
@@ -201,60 +200,3 @@ class MeasuresView:
         measure.jira_issue_id = jira_issue.id
         self._crud.update_in_db(measure_id, measure)
         return jira_issue
-
-    @router.put(
-        "/measures/{measure_id}/jira-issue/{jira_issue_id}",
-        status_code=200,
-        response_model=JiraIssue,
-        **JiraIssuesView.kwargs,
-    )
-    def link_jira_issue(self, measure_id: int, jira_issue_id: str) -> JiraIssue:
-        measure = self.get_measure(measure_id)
-
-        # check if jira issue exists
-        jira_issue = self._jira_issues.get_jira_issue(jira_issue_id)
-
-        # check if jira issue is assigned to the correct jira project
-        project = measure.requirement.project
-        if project.jira_project_id is None:
-            detail = f"No Jira project is assigned to project {project.id}"
-            raise ClientError(detail)
-        elif project.jira_project_id != jira_issue.project_id:
-            detail = (
-                f"Jira issue {jira_issue_id} is assigned to Jira project "
-                f"{jira_issue.project_id} and not to {project.jira_project_id}"
-            )
-            raise ClientError(detail)
-
-        # link Jira issue
-        measure.jira_issue_id = jira_issue_id
-        self._crud.update_in_db(measure_id, measure)
-        return jira_issue
-
-    @router.get(
-        "/measures/{measure_id}/jira-issue",
-        response_model=JiraIssue,
-        **JiraIssuesView.kwargs,
-    )
-    def get_linked_jira_issue(self, measure_id: int) -> JiraIssue:
-        measure = self.get_measure(measure_id)
-        if measure.jira_issue_id is None:
-            detail = f"Measure with id {measure_id} is not linked to Jira issue"
-            raise NotFoundError(detail)
-        return self._jira_issues.get_jira_issue(measure.jira_issue_id)
-
-    @router.delete(
-        "/measures/{measure_id}/jira-issue",
-        status_code=204,
-        response_class=Response,
-        **JiraIssuesView.kwargs,
-    )
-    def unlink_jira_issue(self, measure_id: int) -> None:
-        measure = self.get_measure(measure_id)
-        if measure.jira_issue_id is None:
-            detail = "Measure %d is not linked to a Jira issue" % measure_id
-            raise NotFoundError(detail)
-
-        # unlink Jira issue
-        measure.jira_issue_id = None
-        self._crud.update_in_db(measure_id, measure)
