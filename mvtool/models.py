@@ -62,11 +62,11 @@ class MeasureInput(SQLModel):
     description: str | None
     completed: bool = False
     document_id: int | None
+    jira_issue_id: str | None
 
 
 class Measure(MeasureInput, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    jira_issue_id: str | None
     requirement_id: int | None = Field(default=None, foreign_key="requirement.id")
     requirement: "Requirement" = Relationship(back_populates="measures")
     document_id: int | None = Field(default=None, foreign_key="document.id")
