@@ -319,35 +319,6 @@ def test_create_and_link_jira_issue(client, create_measure, jira_issue_input):
     assert jira_issue["summary"] == jira_issue_input.summary
 
 
-def test_link_jira_issue(client, create_measure, jira_issue):
-    response = client.put(
-        f"/api/measures/{create_measure.id}/jira-issue/{jira_issue.id}",
-        auth=("u", "p"),
-    )
-    assert response.status_code == 200
-    jira_issue_ = response.json()
-    assert type(jira_issue_) == dict
-    assert jira_issue_["key"] == jira_issue.key
-
-
-def test_get_linked_jira_issue(client, create_measure_with_jira_issue):
-    response = client.get(
-        f"/api/measures/{create_measure_with_jira_issue.id}/jira-issue", auth=("u", "p")
-    )
-    assert response.status_code == 200
-    jira_issue = response.json()
-    assert type(jira_issue) == dict
-    assert jira_issue["id"] == create_measure_with_jira_issue.jira_issue_id
-
-
-def test_unlink_jira_issue(client, create_measure_with_jira_issue):
-    response = client.delete(
-        f"/api/measures/{create_measure_with_jira_issue.id}/jira-issue", auth=("u", "p")
-    )
-    assert response.status_code == 204
-    assert create_measure_with_jira_issue.jira_issue_id is None
-
-
 def test_download_measures(client, create_project, create_measure):
     response = client.get(
         f"/api/projects/{create_project.id}/measures/excel", auth=("u", "p")
