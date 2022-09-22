@@ -15,12 +15,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from venv import create
 import pytest
+from jira import JIRAError
 from fastapi import HTTPException
 from mvtool.models import (
     Document,
-    JiraIssue,
     JiraIssueInput,
     Measure,
     MeasureInput,
@@ -71,6 +70,17 @@ def test_create_measure_output(
     assert isinstance(measure_output, MeasureOutput)
     assert measure_output.requirement.id == create_requirement.id
     assert measure_output.document.id == create_document.id
+
+
+def test_update_create_measure_invalid_jira_issue_id(
+    measures_view: MeasuresView,
+    create_requirement: Requirement,
+    measure_input: MeasureInput,
+):
+    measure_input.jira_issue_id = "invalid"
+    with pytest.raises(JIRAError) as excinfo:
+        measures_view._create_measure(create_requirement.id, measure_input)
+        assert excinfo.value.status_code == 404
 
 
 def test_create_measure_invalid_document_id(
@@ -130,7 +140,6 @@ def test_update_measure_output(
     measures_view: MeasuresView,
     create_requirement: Requirement,
     create_document: Document,
-    jira_issue_data,
     create_measure: Measure,
     measure_input: MeasureInput,
 ):
@@ -145,22 +154,13 @@ def test_update_measure_output(
     assert measure_output.document.id == create_document.id
 
 
-def test_update_measure_output_with_jira_issue(
-    measures_view: MeasuresView,
-    create_measure_with_jira_issue: Measure,
-    jira_issue_data,
-    measure_input: MeasureInput,
+def test_update_measure_output_invalid_jira_issue_id(
+    measures_view: MeasuresView, create_measure: Measure, measure_input: MeasureInput
 ):
-    orig_summary = create_measure_with_jira_issue.summary
-    measure_input.summary = orig_summary + " (updated)"
-    measure_output = measures_view._update_measure(
-        create_measure_with_jira_issue.id, measure_input
-    )
-
-    assert measure_output.id == create_measure_with_jira_issue.id
-    assert measure_output.summary != orig_summary
-    assert measure_output.jira_issue_id == jira_issue_data.id
-    assert measure_output.jira_issue.id == jira_issue_data.id
+    measure_input.jira_issue_id = "invalid"
+    with pytest.raises(JIRAError) as excinfo:
+        measures_view._update_measure(create_measure.id, measure_input)
+        assert excinfo.value.status_code == 404
 
 
 def test_update_measure_output_invalid_document_id(
