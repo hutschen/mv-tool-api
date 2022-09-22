@@ -20,6 +20,7 @@ from jira import JIRAError
 from fastapi import HTTPException
 from mvtool.models import (
     Document,
+    JiraIssue,
     JiraIssueInput,
     Measure,
     MeasureInput,
@@ -220,3 +221,26 @@ def test_create_and_link_jira_issue_jira_project_not_set(
     with pytest.raises(HTTPException) as excinfo:
         measures_view.create_and_link_jira_issue(create_measure.id, jira_issue_input)
         assert excinfo.value.status_code == 400
+
+
+def test_link_jira_issue(
+    measures_view: MeasuresView,
+    create_measure: Measure,
+    measure_input: MeasureInput,
+    jira_issue: JiraIssue,
+):
+    measure_input.jira_issue_id = jira_issue.id
+    measure_output = measures_view._update_measure(create_measure.id, measure_input)
+    assert measure_output.jira_issue_id == jira_issue.id
+
+
+def test_unlink_jira_issue(
+    measures_view: MeasuresView,
+    create_measure_with_jira_issue: Measure,
+    measure_input: MeasureInput,
+):
+    measure_input.jira_issue_id = None
+    measure_output = measures_view._update_measure(
+        create_measure_with_jira_issue.id, measure_input
+    )
+    assert measure_output.jira_issue_id is None
