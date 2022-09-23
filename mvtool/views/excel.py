@@ -217,7 +217,7 @@ class MeasuresExcelView(ExcelView):
                 ExcelHeader("Completed", optional=True),
                 ExcelHeader("Document Reference", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Document Title", ExcelHeader.WRITE_ONLY, True),
-                ExcelHeader("JIRA Issue Key", ExcelHeader.WRITE_ONLY, True),
+                ExcelHeader("JIRA Issue Key", optional=True),
             ],
         )
         self._session = session
@@ -304,9 +304,10 @@ class MeasuresExcelView(ExcelView):
 
     def _convert_from_row(
         self, row: dict[str, str], worksheet, row_no: int
-    ) -> tuple[int | None, MeasureInput]:
+    ) -> tuple[int | None, str | None, MeasureInput]:
         try:
             measure_id = IdModel(id=row["ID"]).id
+            jira_issue_key = row["JIRA Issue Key"] or None
             measure_input = MeasureInput(
                 summary=row["Summary"],
                 description=row["Description"] or None,
@@ -320,10 +321,12 @@ class MeasuresExcelView(ExcelView):
             )
             raise errors.ValueHttpError(detail)
         else:
-            return measure_id, measure_input
+            return measure_id, jira_issue_key, measure_input
 
     def _bulk_create_patch_measures(
-        self, requirement_id: int, data: Iterator[tuple[int | None, MeasureInput]]
+        self,
+        requirement_id: int,
+        data: Iterator[tuple[int | None, str | None, MeasureInput]],
     ) -> Iterator[MeasureOutput]:
         # TODO: Define this attribute in constructor
         self._requirements = self._measures._requirements
@@ -334,23 +337,36 @@ class MeasuresExcelView(ExcelView):
         requirement_output = self._requirements._get_requirement(requirement_id)
         data = list(data)
 
+        # Retrieve jira issues to be linked to measures
+        jira_issues = self._jira_issues.get_jira_issues(
+            [ji_key for _, ji_key, _ in data if ji_key]
+        )
+        jira_issue_map = {ji.key: ji for ji in jira_issues}
+
         # Read measures to be updated from database
         query = select(Measure).where(
-            Measure.id.in_({id for id, _ in data if id is not None}),
+            Measure.id.in_({id for id, _, _ in data if id is not None}),
             Measure.requirement_id == requirement_id,
         )
-        read_measures = dict((m.id, m) for m in self._session.exec(query).all())
+        measure_map = dict((m.id, m) for m in self._session.exec(query).all())
 
         # Create or update measures
         written_measures = []
-        for measure_id, measure_input in data:
+        for measure_id, jira_issue_key, measure_input in data:
+            # Set jira issue id
+            if jira_issue_key:
+                jira_issue = jira_issue_map.get(jira_issue_key)
+                if jira_issue is None:
+                    raise errors.NotFoundError(f"JIRA issue {jira_issue_key} not found")
+                measure_input.jira_issue_id = jira_issue.id
+
             if measure_id is None:
                 # Create measure
                 measure = Measure.from_orm(measure_input)
                 measure.requirement = requirement
             else:
                 # Update measure
-                measure = read_measures.get(measure_id)
+                measure = measure_map.get(measure_id)
                 if measure is None:
                     raise errors.NotFoundError(
                         "Measure with ID %d not part of requirement with ID %d"
@@ -359,6 +375,7 @@ class MeasuresExcelView(ExcelView):
                 for key, value in measure_input.dict(exclude_unset=True).items():
                     setattr(measure, key, value)
 
+            # TODO: Checking document id should be done more efficiently
             self._documents.check_document_id(measure.document_id)
             self._session.add(measure)
             written_measures.append(measure)
