@@ -25,6 +25,7 @@ from mvtool.models import (
     Document,
     DocumentInput,
     DocumentOutput,
+    JiraIssue,
     Measure,
     MeasureInput,
     MeasureOutput,
@@ -211,10 +212,11 @@ def test_bulk_create_patch_measures(
     create_project: Project,
     create_requirement: Requirement,
     create_measure: Measure,
+    jira_issue: JiraIssue,
 ):
     data = [
-        (create_measure.id, MeasureInput(summary="update")),
-        (None, MeasureInput(summary="create")),
+        (create_measure.id, None, MeasureInput(summary="update")),
+        (None, jira_issue.key, MeasureInput(summary="create")),
     ]
 
     results = measures_excel_view._bulk_create_patch_measures(
