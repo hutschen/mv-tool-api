@@ -354,8 +354,10 @@ class MeasuresExcelView(ExcelView):
         written_measures = []
         for measure_id, jira_issue_key, measure_input in data:
             # Set jira issue id
-            jira_issue = jira_issue_map.get(jira_issue_key)
-            if jira_issue:
+            if jira_issue_key:
+                jira_issue = jira_issue_map.get(jira_issue_key)
+                if jira_issue is None:
+                    raise errors.NotFoundError(f"JIRA issue {jira_issue_key} not found")
                 measure_input.jira_issue_id = jira_issue.id
 
             if measure_id is None:
