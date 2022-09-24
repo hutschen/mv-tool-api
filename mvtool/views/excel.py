@@ -23,7 +23,7 @@ from typing import Any, Collection, Generic, TypeVar
 from fastapi import APIRouter, Depends, UploadFile
 from fastapi.responses import FileResponse
 from fastapi_utils.cbv import cbv
-from pydantic import ValidationError, BaseModel
+from pydantic import ValidationError, BaseModel, constr
 from pyparsing import Iterator
 from sqlmodel import Session, select
 from openpyxl.worksheet.worksheet import Worksheet
@@ -62,6 +62,10 @@ T = TypeVar("T")
 
 class IdModel(BaseModel):
     id: int | None
+
+
+class JiraIssueKeyModel(BaseModel):
+    key: constr(regex=r"^[A-Za-z0-9\-]+$") | None
 
 
 class ExcelHeader:
@@ -307,7 +311,7 @@ class MeasuresExcelView(ExcelView):
     ) -> tuple[int | None, str | None, MeasureInput]:
         try:
             measure_id = IdModel(id=row["ID"]).id
-            jira_issue_key = row["JIRA Issue Key"] or None
+            jira_issue_key = JiraIssueKeyModel(key=row["JIRA Issue Key"]).key
             measure_input = MeasureInput(
                 summary=row["Summary"],
                 description=row["Description"] or None,

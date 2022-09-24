@@ -19,8 +19,10 @@ import io
 from unittest.mock import Mock
 from fastapi import HTTPException
 from fastapi.responses import FileResponse
+from openpyxl import Workbook
 import pytest
 
+from mvtool.errors import ValueHttpError
 from mvtool.models import (
     Document,
     DocumentInput,
@@ -41,7 +43,6 @@ from mvtool.views.excel import (
     MeasuresExcelView,
     RequirementsExcelView,
 )
-from openpyxl import Workbook
 
 
 @pytest.fixture
@@ -228,6 +229,43 @@ def test_bulk_create_patch_measures(
     assert results[0].summary == "update"
     assert isinstance(results[1], MeasureOutput)
     assert results[1].summary == "create"
+
+
+def test_convert_row_to_measure(
+    empty_worksheet, measures_excel_view: MeasuresExcelView
+):
+    row = {
+        "ID": "1",
+        "JIRA Issue Key": "TEST-1",
+        "Summary": "test",
+        "Description": "test",
+        "Completed": False,
+    }
+
+    measure_id, jira_issue_key, measure_input = measures_excel_view._convert_from_row(
+        row, empty_worksheet, 1
+    )
+    assert measure_id == 1
+    assert jira_issue_key == "TEST-1"
+    assert measure_input.summary == "test"
+    assert measure_input.description == "test"
+    assert measure_input.completed == False
+
+
+def test_convert_row_to_measure_invalid_jira_issue_key(
+    empty_worksheet, measures_excel_view: MeasuresExcelView
+):
+    row = {
+        "ID": "1",
+        "JIRA Issue Key": " INVALID ",
+        "Summary": "test",
+        "Description": "test",
+        "Completed": False,
+    }
+
+    with pytest.raises(ValueHttpError) as error_info:
+        measures_excel_view._convert_from_row(row, empty_worksheet, 1)
+        assert error_info.value.detail.startswith("Invalid data on worksheet")
 
 
 def test_upload_measures_excel(
