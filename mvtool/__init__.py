@@ -66,4 +66,11 @@ def serve():
         reload=config.uvicorn.reload,
         log_level=config.uvicorn.log_level,
         log_config=config.uvicorn.log_config,
+        ssl_keyfile=config.uvicorn.ssl_keyfile,
+        ssl_certfile=config.uvicorn.ssl_certfile,
+        ssl_keyfile_password=config.uvicorn.ssl_keyfile_password,
+        ssl_version=config.uvicorn.ssl_version,
+        ssl_cert_reqs=config.uvicorn.ssl_cert_reqs,
+        ssl_ca_certs=config.uvicorn.ssl_ca_certs,
+        ssl_ciphers=config.uvicorn.ssl_ciphers,
     )
