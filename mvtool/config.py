@@ -44,7 +44,7 @@ class UvicornConfig(BaseModel):
     port: int = 8000
     reload: bool = False
     log_level: str = "error"
-    log_filename: str | None = "mvtool.log"
+    log_filename: str | None = None
     ssl_keyfile: str | None = None
     ssl_certfile: str | None = None
     ssl_keyfile_password: str | None = None
