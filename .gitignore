@@ -39,3 +39,6 @@ tests/data/gs_bausteine/*.docx
 
 # Licenses
 licenses.md
+
+# SSL certificates and keys
+*.pem

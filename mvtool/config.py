@@ -17,10 +17,11 @@
 
 
 from functools import lru_cache
+import ssl
 import yaml
 import pathlib
 from pydantic import BaseModel
-from uvicorn.config import LOGGING_CONFIG
+from uvicorn.config import LOGGING_CONFIG, SSL_PROTOCOL_VERSION
 
 
 class DatabaseConfig(BaseModel):
@@ -43,7 +44,14 @@ class UvicornConfig(BaseModel):
     port: int = 8000
     reload: bool = False
     log_level: str = "error"
-    log_filename: str | None = "mvtool.log"
+    log_filename: str | None = None
+    ssl_keyfile: str | None = None
+    ssl_certfile: str | None = None
+    ssl_keyfile_password: str | None = None
+    ssl_version: int = SSL_PROTOCOL_VERSION
+    ssl_cert_reqs: int = ssl.CERT_NONE
+    ssl_ca_certs: str | None = None
+    ssl_ciphers: str = "TLSv1"
 
     @property
     def log_config(self) -> dict:
