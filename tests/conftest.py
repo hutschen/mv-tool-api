@@ -23,7 +23,9 @@ from mvtool.config import Config, DatabaseConfig, JiraConfig
 from mvtool import database
 from mvtool.models import (
     DocumentInput,
+    JiraIssue,
     JiraIssueInput,
+    JiraIssueStatus,
     Measure,
     MeasureInput,
     ProjectInput,
@@ -33,9 +35,9 @@ from mvtool.models import (
 )
 from mvtool.views.documents import DocumentsView
 from mvtool.views.excel import (
-    ExportDocumentsView,
-    ExportMeasuresView,
-    ExportRequirementsView,
+    DocumentsExcelView,
+    MeasuresExcelView,
+    RequirementsExcelView,
     get_excel_temp_file,
 )
 from mvtool.views.gs import get_word_temp_file
@@ -107,6 +109,8 @@ def jira_issue_data(jira_project_data, jira_issue_type_data):
         id = "1"
         key = "key"
         fields = JiraIssueFieldsMock()
+        update = Mock()
+        delete = Mock()
 
     return JiraIssueMock
 
@@ -118,6 +122,31 @@ def jira_issue_input(jira_issue_data):
         summary=jira_issue_data.fields.summary,
         description=jira_issue_data.fields.description,
         issuetype_id=jira_issue_data.fields.issuetype.id,
+    )
+
+
+@pytest.fixture
+def jira_issue_status(jira_issue_data):
+    """Mocks JIRA issue status."""
+    return JiraIssueStatus(
+        name=jira_issue_data.fields.status.name,
+        color_name=jira_issue_data.fields.status.statusCategory.colorName,
+        completed=False,
+    )
+
+
+@pytest.fixture
+def jira_issue(jira_issue_data, jira_issue_status):
+    """Mocks JIRA issue."""
+    return JiraIssue(
+        id=jira_issue_data.id,
+        key=jira_issue_data.key,
+        summary=jira_issue_data.fields.summary,
+        description=jira_issue_data.fields.description,
+        issuetype_id=jira_issue_data.fields.issuetype.id,
+        project_id=jira_issue_data.fields.project.id,
+        status=jira_issue_status,
+        url=f"http://jira-server-url/browse/{jira_issue_data.key}",
     )
 
 
@@ -269,18 +298,20 @@ def excel_temp_file():
 
 
 @pytest.fixture
-def export_measures_view(crud, jira_issues_view):
-    return Mock(wraps=ExportMeasuresView(crud.session, jira_issues_view))
+def measures_excel_view(crud, jira_issues_view, measures_view):
+    return Mock(wraps=MeasuresExcelView(crud.session, jira_issues_view, measures_view))
 
 
 @pytest.fixture
-def export_requirements_view(requirements_view):
-    return Mock(wraps=ExportRequirementsView(requirements_view))
+def requirements_excel_view(crud, projects_view, requirements_view):
+    return Mock(
+        wraps=RequirementsExcelView(crud.session, projects_view, requirements_view)
+    )
 
 
 @pytest.fixture
-def export_documents_view(documents_view):
-    return Mock(wraps=ExportDocumentsView(documents_view))
+def documents_excel_view(crud, projects_view, documents_view):
+    return Mock(wraps=DocumentsExcelView(crud.session, projects_view, documents_view))
 
 
 @pytest.fixture

@@ -96,7 +96,7 @@ class CRUDOperations(Generic[T]):
         if item:
             return item
         else:
-            item_name = item.__class__.__name__
+            item_name = sqlmodel.__name__
             raise HTTPException(404, f"No {item_name} with id={id}.")
 
     def update_in_db(self, id: int, item_update: T) -> T:

@@ -204,3 +204,23 @@ def test_try_to_get_jira_issue_succeeds(jira, jira_issue_data):
     assert result.id == jira_issue_data.id
     assert isinstance(result, JiraIssue)
     jira.issue.assert_called_once_with(id=jira_issue_data.id)
+
+
+def test_update_jira_issue(jira, jira_issue_data, jira_issue_input):
+    result = JiraIssuesView(jira).update_jira_issue(
+        jira_issue_data.id, jira_issue_input
+    )
+    assert isinstance(result, JiraIssue)
+    assert result.id == jira_issue_data.id
+    jira.issue.assert_called_once_with(id=jira_issue_data.id)
+    jira_issue_data.update.assert_called_once_with(
+        summary=jira_issue_input.summary,
+        description=jira_issue_input.description,
+        issuetype={"id": jira_issue_input.issuetype_id},
+    )
+
+
+def test_delete_jira_issue(jira, jira_issue_data):
+    JiraIssuesView(jira).delete_jira_issue(jira_issue_data.id)
+    jira.issue.assert_called_once_with(id=jira_issue_data.id)
+    jira_issue_data.delete.assert_called_once_with()

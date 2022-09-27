@@ -21,7 +21,7 @@ from fastapi import Depends, HTTPException
 from fastapi.testclient import TestClient
 from mvtool import app
 from mvtool.auth import http_basic, get_jira
-from mvtool.database import CRUDOperations
+from mvtool.database import get_session
 
 
 @pytest.fixture
@@ -37,7 +37,7 @@ def client(jira, crud):
     app.router.on_shutdown = []
 
     with TestClient(app) as client:
-        app.dependency_overrides[CRUDOperations] = lambda: crud
+        app.dependency_overrides[get_session] = lambda: crud.session
         app.dependency_overrides[get_jira] = get_jira_override
         yield client
 
@@ -317,24 +317,6 @@ def test_create_and_link_jira_issue(client, create_measure, jira_issue_input):
     jira_issue = response.json()
     assert type(jira_issue) == dict
     assert jira_issue["summary"] == jira_issue_input.summary
-
-
-def test_get_linked_jira_issue(client, create_measure_with_jira_issue):
-    response = client.get(
-        f"/api/measures/{create_measure_with_jira_issue.id}/jira-issue", auth=("u", "p")
-    )
-    assert response.status_code == 200
-    jira_issue = response.json()
-    assert type(jira_issue) == dict
-    assert jira_issue["id"] == create_measure_with_jira_issue.jira_issue_id
-
-
-def test_unlink_jira_issue(client, create_measure_with_jira_issue):
-    response = client.delete(
-        f"/api/measures/{create_measure_with_jira_issue.id}/jira-issue", auth=("u", "p")
-    )
-    assert response.status_code == 204
-    assert create_measure_with_jira_issue.jira_issue_id is None
 
 
 def test_download_measures(client, create_project, create_measure):
