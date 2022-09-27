@@ -25,3 +25,9 @@ dependencies-licenses:
 		fastapi pydantic jira pyyaml fastapi-utils sqlalchemy sqlmodel \
 		cachetools openpyxl python-multipart python-docx \
 		--with-authors --with-urls --format=md > licenses.md
+
+alembic-revision:
+	pipenv run alembic revision --autogenerate -m "$(m)"
+
+alembic-upgrade:
+	pipenv run alembic upgrade head
