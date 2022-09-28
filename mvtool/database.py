@@ -20,7 +20,7 @@ from fastapi import Depends, HTTPException
 from sqlmodel import create_engine, Session, SQLModel, select
 from sqlmodel.sql.expression import Select, SelectOfScalar
 from sqlmodel.pool import StaticPool
-from .config import Config
+from .config import DatabaseConfig
 
 # workaround for https://github.com/tiangolo/sqlmodel/issues/189
 SelectOfScalar.inherit_cache = True
@@ -31,19 +31,19 @@ class __State:
     engine = None
 
 
-def setup_engine(config: Config):
+def setup_engine(database_config: DatabaseConfig):
     if __State.engine is None:
-        if config.database.url.startswith("sqlite"):
+        if database_config.url.startswith("sqlite"):
             __State.engine = create_engine(
-                config.database.url,
+                database_config.url,
                 connect_args={"check_same_thread": False},  # Needed for SQLite
-                echo=config.database.echo,
+                echo=database_config.echo,
                 poolclass=StaticPool,  # Maintain a single connection for all threads
             )
         else:
             __State.engine = create_engine(
-                config.database.url,
-                echo=config.database.echo,
+                database_config.url,
+                echo=database_config.echo,
                 pool_pre_ping=True,  # check connections before using them
             )
     return __State.engine

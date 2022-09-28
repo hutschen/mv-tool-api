@@ -15,6 +15,7 @@ cachetools = "*"
 openpyxl = "*"
 python-multipart = "*"
 python-docx = "*"
+alembic = "*"
 
 [dev-packages]
 pytest = "*"

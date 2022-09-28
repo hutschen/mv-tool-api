@@ -20,7 +20,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .views import jira_, projects, requirements, measures, documents, excel, gs
-from . import database
+from . import database, migration
 from .config import load_config
 from .angular import AngularFiles
 
@@ -49,8 +49,8 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup():
-    database.setup_engine(config)
-    database.create_all()
+    migration.migrate(config.database)
+    database.setup_engine(config.database)
 
 
 @app.on_event("shutdown")
