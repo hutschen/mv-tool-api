@@ -49,7 +49,7 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup():
-    migration.migrate()
+    migration.migrate(config)
     database.setup_engine(config)
 
 

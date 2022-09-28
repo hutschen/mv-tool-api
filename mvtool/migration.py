@@ -73,9 +73,7 @@ def get_current_revision(engine):
         return context.get_current_revision()
 
 
-def migrate():
-    config = load_config()
-
+def migrate(config):
     # configure alembic
     alembic_config = Config("alembic.ini")
     alembic_config.set_main_option("sqlalchemy.url", config.database.url)
