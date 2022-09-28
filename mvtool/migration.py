@@ -66,20 +66,22 @@ def is_initial_revision(engine) -> bool:
     return current_layout == INITIAL_LAYOUT
 
 
+def get_current_revision(engine):
+    """Returns the current revision of the database."""
+    with engine.connect() as connection:
+        context = MigrationContext.configure(connection)
+        return context.get_current_revision()
+
+
 def migrate():
     config = load_config()
 
     alembic_config = Config("alembic.ini")
     alembic_config.set_main_option("sqlalchemy.url", config.database.url)
 
-    # get current revision of the database
-    engine = create_engine(config.database.url)
-    with engine.connect() as connection:
-        context = MigrationContext.configure(connection)
-        current_rev = context.get_current_revision()
-
     # stamp the database when upgrading from a version before 0.5.0
-    if current_rev is None and is_initial_revision(engine):
+    engine = create_engine(config.database.url)
+    if get_current_revision(engine) is None and is_initial_revision(engine):
         command.stamp(alembic_config, INITIAL_REV)
 
     # upgrade database to the latest revision
