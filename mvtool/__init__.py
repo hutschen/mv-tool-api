@@ -49,8 +49,8 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup():
-    migration.migrate(config)
-    database.setup_engine(config)
+    migration.migrate(config.database)
+    database.setup_engine(config.database)
 
 
 @app.on_event("shutdown")

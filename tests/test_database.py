@@ -34,16 +34,16 @@ class Item(SQLModel, table=True):
 
 
 def test_setup_engine(config):
-    engine = setup_engine(config)
+    engine = setup_engine(config.database)
     assert engine is not None
 
-    engine_2 = setup_engine(config)
+    engine_2 = setup_engine(config.database)
     assert engine is engine_2
     dispose_engine()
 
 
 def test_session_commit(config):
-    setup_engine(config)
+    setup_engine(config.database)
     create_all()
 
     for session in get_session():
@@ -62,7 +62,7 @@ def test_session_commit(config):
 
 
 def test_session_rollback(config):
-    setup_engine(config)
+    setup_engine(config.database)
     create_all()
 
     # create a new item and rollback the session by raising an exception

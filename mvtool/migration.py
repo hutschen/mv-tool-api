@@ -19,7 +19,7 @@ from alembic.config import Config
 from alembic.migration import MigrationContext
 from alembic import command
 from sqlalchemy import create_engine, inspect
-from .config import load_config
+from .config import DatabaseConfig
 
 INITIAL_REV = "aaf70fa9151e"
 INITIAL_LAYOUT = {
@@ -73,14 +73,14 @@ def get_current_revision(engine):
         return context.get_current_revision()
 
 
-def migrate(config):
+def migrate(database_config: DatabaseConfig):
     # configure alembic
     alembic_config = Config("alembic.ini")
-    alembic_config.set_main_option("sqlalchemy.url", config.database.url)
+    alembic_config.set_main_option("sqlalchemy.url", database_config.url)
     alembic_config.attributes["configure_logger"] = False
 
     # stamp the database when upgrading from a version before 0.5.0
-    engine = create_engine(config.database.url)
+    engine = create_engine(database_config.url)
     if get_current_revision(engine) is None and is_initial_revision(engine):
         command.stamp(alembic_config, INITIAL_REV)
 

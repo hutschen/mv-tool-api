@@ -197,7 +197,7 @@ def jira_issues_view(jira):
 
 @pytest.fixture
 def crud(config):
-    database.setup_engine(config)
+    database.setup_engine(config.database)
     database.create_all()
 
     for session in database.get_session():
