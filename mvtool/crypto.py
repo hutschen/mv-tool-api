@@ -31,12 +31,12 @@ def _encode_message(message, block_size=16, encoding="utf-8", delimiter=b";"):
     return prefix + delimiter + postfix
 
 
-def _decode_message(message: bytes, block_size=16, encoding="utf-8", delimiter=b";"):
+def _decode_message(message: bytes, encoding="utf-8", delimiter=b";"):
     prefix, _, _ = message.rpartition(delimiter)
     return prefix.decode(encoding)
 
 
-def encrypt(message, key, block_size=16, encoding="utf-8"):
+def encrypt(message: str, key: bytes, block_size=16, encoding="utf-8"):
     plaintext = _encode_message(message, block_size, encoding)
     initialization_vector = urandom(block_size)
     cipher = Cipher(algorithms.AES(key), modes.CBC(initialization_vector))
@@ -45,10 +45,10 @@ def encrypt(message, key, block_size=16, encoding="utf-8"):
     return initialization_vector + ciphertext
 
 
-def decrypt(message, key, block_size=16, encoding="utf-8"):
+def decrypt(message: str, key: bytes, block_size=16, encoding="utf-8"):
     initialization_vector = message[:block_size]
     ciphertext = message[block_size:]
     cipher = Cipher(algorithms.AES(key), modes.CBC(initialization_vector))
     decryptor = cipher.decryptor()
     plaintext = decryptor.update(ciphertext) + decryptor.finalize()
-    return _decode_message(plaintext, block_size, encoding)
+    return _decode_message(plaintext, encoding)
