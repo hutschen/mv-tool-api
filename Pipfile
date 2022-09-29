@@ -16,6 +16,7 @@ openpyxl = "*"
 python-multipart = "*"
 python-docx = "*"
 alembic = "*"
+cryptography = "*"
 
 [dev-packages]
 pytest = "*"
