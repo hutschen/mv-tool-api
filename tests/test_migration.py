@@ -17,4 +17,4 @@ from mvtool import migration
 
 
 def test_migration(config):
-    migration.migrate(config)
+    migration.migrate(config.database)
