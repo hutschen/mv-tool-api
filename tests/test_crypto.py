@@ -17,7 +17,7 @@
 
 from base64 import b64encode
 import pytest
-from mvtool.crypto import encrypt, decrypt, derive_key
+from mvtool.utils.crypto import encrypt, decrypt, derive_key
 
 
 def get_random_key_and_message():
