@@ -51,6 +51,29 @@ def test_encrypt_decrypt_randomized():
         assert decrypted == message
 
 
-def test_derive_key():
-    key = derive_key("password", 16, b"29nC4dp24Jp7pIlP", 10000, "utf-8")
-    assert key == b".\x18\x97 qH\x19\xe3\xd3\x1b\xa6\xb6\xecx\xf1J"
+def test_decrypt_nonsense():
+    with pytest.raises(ValueError):
+        decrypt("nonsense", b"1234567890123456")
+
+
+def test_decrypt_wrong_key():
+    key, message = (b"1234567890123456", "Hello World")
+    encrypted = encrypt(message, key)
+    decrypted = decrypt(encrypted, b"8901234561234567")
+    assert decrypted != message
+
+
+@pytest.mark.parametrize(
+    "password, key",
+    [
+        ("äüöß", b"!\r\x05\x04\xebr\x93\xac\xff\x8b\xfaL\xc9\xaf\xc6P"),
+        ("1234567890", b"\xb3roN\xe0\x82\xcb.\xa4\xa8q\xa6\xf1DK\xd1"),
+        (
+            "12345678901234567890123456789012",
+            b"\xad\xb0J\x87\x80\x1b\xf1=\xdb\xfb\xf2\xd7\x14K\x9e\xe0",
+        ),
+    ],
+)
+def test_derive_key(password, key):
+    result = derive_key(password, 16, b"29nC4dp24Jp7pIlP", 10000, "utf-8")
+    assert result == key
