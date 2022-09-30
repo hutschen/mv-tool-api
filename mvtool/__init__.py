@@ -19,8 +19,8 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from . import auth, database, migration
 from .views import jira_, projects, requirements, measures, documents, excel, gs
-from . import database, migration
 from .config import load_config
 from .angular import AngularFiles
 
@@ -30,6 +30,7 @@ app = FastAPI(
     docs_url=config.fastapi.docs_url,
     redoc_url=config.fastapi.redoc_url,
 )
+app.include_router(auth.router)
 app.include_router(jira_.router, prefix="/api")
 app.include_router(projects.router, prefix="/api")
 app.include_router(requirements.router, prefix="/api")
