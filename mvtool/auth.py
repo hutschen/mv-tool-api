@@ -15,15 +15,21 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import json
 from threading import Lock
 from jira import JIRA, JIRAError
 from cachetools import TTLCache
 from hashlib import sha256
-from fastapi import Depends, HTTPException
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+
+from .errors import UnauthorizedError
+from .utils.crypto import decrypt, encrypt
 from .config import load_config
 
-http_basic = HTTPBasic()
+router = APIRouter(prefix="/auth", tags=["auth"])
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+
 jira_connections_cache = TTLCache(maxsize=1000, ttl=5 * 60)
 jira_connections_cache_lock = Lock()
 
@@ -44,9 +50,19 @@ def _get_jira(username, password):
     return jira_connection
 
 
-def get_jira(credentials: HTTPBasicCredentials = Depends(http_basic)) -> JIRA:
+def get_user_credentials(token: str = Depends(oauth2_scheme)):
+    # decrypt user credentials from token and return it
     try:
-        yield _get_jira(credentials.username, credentials.password)
+        decrypted_token = decrypt(token, load_config().auth.derived_key)
+    except (ValueError, UnicodeDecodeError) as error:
+        raise UnauthorizedError("Invalid token") from error
+    return json.loads(decrypted_token)
+
+
+def get_jira(credentials: dict = Depends(get_user_credentials)) -> JIRA:
+    username, password = credentials
+    try:
+        yield _get_jira(username, password)
     except JIRAError as error:
         detail = None
         if error.text:
@@ -54,3 +70,25 @@ def get_jira(credentials: HTTPBasicCredentials = Depends(http_basic)) -> JIRA:
         if error.url:
             detail += f" at url={error.url}"
         raise HTTPException(error.status_code, detail)
+
+
+@router.post("/token")
+def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    # check user credentials
+    try:
+        jira = _get_jira(form_data.username, form_data.password)
+        jira.myself()
+    except JIRAError as error:
+        detail = None
+        if error.text:
+            detail = f"JIRAError: {error.text}"
+        if error.url:
+            detail += f" at url={error.url}"
+        raise HTTPException(error.status_code, detail)
+
+    # encrypt user credentials and return them as token
+    token = encrypt(
+        json.dumps((form_data.username, form_data.password)),
+        load_config().auth.derived_key,
+    )
+    return {"access_token": token, "token_type": "bearer"}
