@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from base64 import b64encode
 import pytest
 from mvtool.crypto import encrypt, decrypt
 
@@ -43,7 +44,7 @@ def test_encrypt_decrypt(key, message):
 
 
 def test_encrypt_decrypt_randomized():
-    for _ in range(100):
+    for _ in range(1000):
         key, message = get_random_key_and_message()
         encrypted = encrypt(message, key)
         decrypted = decrypt(encrypted, key)
