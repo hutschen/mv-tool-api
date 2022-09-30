@@ -17,7 +17,7 @@
 
 from base64 import b64encode
 import pytest
-from mvtool.crypto import encrypt, decrypt
+from mvtool.crypto import encrypt, decrypt, derive_key
 
 
 def get_random_key_and_message():
@@ -49,3 +49,8 @@ def test_encrypt_decrypt_randomized():
         encrypted = encrypt(message, key)
         decrypted = decrypt(encrypted, key)
         assert decrypted == message
+
+
+def test_derive_key():
+    key = derive_key("password", 16, b"29nC4dp24Jp7pIlP", 10000, "utf-8")
+    assert key == b".\x18\x97 qH\x19\xe3\xd3\x1b\xa6\xb6\xecx\xf1J"

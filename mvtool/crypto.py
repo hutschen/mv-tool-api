@@ -18,7 +18,26 @@
 
 import base64
 from os import urandom
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+
+
+def derive_key(
+    password: str,
+    key_length: int = 16,
+    salt: bytes = b"29nC4dp24Jp7pIlP",
+    iterations: int = 10000,
+    password_encoding: str = "utf-8",
+) -> bytes:
+    # derive key from password using PBKDF2
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=key_length,
+        salt=salt,
+        iterations=iterations,
+    )
+    return kdf.derive(password.encode(password_encoding))
 
 
 def _message_unpadder(
