@@ -23,6 +23,8 @@ import pathlib
 from pydantic import BaseModel
 from uvicorn.config import LOGGING_CONFIG, SSL_PROTOCOL_VERSION
 
+from mvtool.utils.crypto import derive_key
+
 
 class DatabaseConfig(BaseModel):
     url: str = "sqlite://"
@@ -80,11 +82,20 @@ class UvicornConfig(BaseModel):
         return custom_logging_config
 
 
+class AuthConfig(BaseModel):
+    secret: str = "CdyRC09WthDhMvaT"
+
+    @property
+    def derived_key(self) -> bytes:
+        return derive_key(self.secret)
+
+
 class Config(BaseModel):
     database: DatabaseConfig
     jira: JiraConfig
     fastapi: FastApiConfig = FastApiConfig()
     uvicorn: UvicornConfig = UvicornConfig()
+    auth: AuthConfig = AuthConfig()
 
 
 CONFIG_FILENAME = "config.yml"
