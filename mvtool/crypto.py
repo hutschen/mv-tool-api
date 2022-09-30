@@ -21,44 +21,46 @@ from os import urandom
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 
-def _encode_message(message, block_size=16, encoding="utf-8", delimiter=b";"):
+def _message_unpadder(
+    message: str, block_size=16, encoding="utf-8", delimiter=b"0"
+) -> bytes:
     prefix = message.encode(encoding)
+    # padding: generate a random postfix which does not contain the delimiter
     postfix_size = block_size - (len(prefix) % block_size)
     postfix_size = postfix_size if postfix_size else block_size
     postfix = delimiter
-    # generate a random postfix which does not contain the delimiter
     while delimiter in postfix:
         postfix = urandom(postfix_size - 1)
     return prefix + delimiter + postfix
 
 
-def _decode_message(message: bytes, encoding="utf-8", delimiter=b";"):
+def _message_padder(message: bytes, encoding="utf-8", delimiter=b"0"):
     prefix, _, _ = message.rpartition(delimiter)
     return prefix.decode(encoding)
 
 
-def _decode_encrypted_message(message: bytes, encoding="utf-8") -> str:
+def _decode_encrypted(message: bytes, encoding="utf-8") -> str:
     return base64.b64encode(message).decode(encoding)
 
 
-def _encode_encrypted_message(message: str, encoding="utf-8") -> bytes:
+def _encode_encrypted(message: str, encoding="utf-8") -> bytes:
     return base64.b64decode(message.encode(encoding))
 
 
 def encrypt(message: str, key: bytes, block_size=16, encoding="utf-8"):
-    plaintext = _encode_message(message, block_size, encoding)
+    plaintext = _message_unpadder(message, block_size, encoding)
     initialization_vector = urandom(block_size)
     cipher = Cipher(algorithms.AES(key), modes.CBC(initialization_vector))
     encryptor = cipher.encryptor()
     ciphertext = encryptor.update(plaintext) + encryptor.finalize()
-    return _decode_encrypted_message(initialization_vector + ciphertext, encoding)
+    return _decode_encrypted(initialization_vector + ciphertext, encoding)
 
 
 def decrypt(message: str, key: bytes, block_size=16, encoding="utf-8"):
-    message = _encode_encrypted_message(message, encoding)
+    message = _encode_encrypted(message, encoding)
     initialization_vector = message[:block_size]
     ciphertext = message[block_size:]
     cipher = Cipher(algorithms.AES(key), modes.CBC(initialization_vector))
     decryptor = cipher.decryptor()
     plaintext = decryptor.update(ciphertext) + decryptor.finalize()
-    return _decode_message(plaintext, encoding)
+    return _message_padder(plaintext, encoding)
