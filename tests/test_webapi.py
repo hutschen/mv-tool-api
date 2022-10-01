@@ -17,16 +17,16 @@
 
 import pytest
 from jira import JIRAError, Project
-from fastapi import Depends, HTTPException
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from mvtool import app
-from mvtool.auth import http_basic, get_jira
+from mvtool.auth import get_jira
 from mvtool.database import get_session
 
 
 @pytest.fixture
 def client(jira, crud):
-    def get_jira_override(credentials=Depends(http_basic)):
+    def get_jira_override():
         try:
             yield jira
         except JIRAError as error:
@@ -44,14 +44,14 @@ def client(jira, crud):
 
 def test_get_user(client, jira, jira_user_data):
     jira.myself.return_value = jira_user_data
-    response = client.get("/api/jira-user", auth=("u", "p"))
+    response = client.get("/api/jira-user")
     assert response.status_code == 200
     assert type(response.json()) == dict
 
 
 def test_list_jira_projects(client, jira, jira_project_data):
     jira.projects.return_value = [jira_project_data]
-    response = client.get("/api/jira-projects", auth=("u", "p"))
+    response = client.get("/api/jira-projects")
     response_body = response.json()
     assert response.status_code == 200
     assert type(response_body) == list
@@ -60,7 +60,7 @@ def test_list_jira_projects(client, jira, jira_project_data):
 
 def test_get_jira_project(client, jira, jira_project_data):
     jira.project.return_value = jira_project_data
-    response = client.get(f"/api/jira-projects/{jira_project_data.id}", auth=("u", "p"))
+    response = client.get(f"/api/jira-projects/{jira_project_data.id}")
     response_body = response.json()
     assert response.status_code == 200
     assert response_body["id"] == jira_project_data.id
@@ -68,9 +68,7 @@ def test_get_jira_project(client, jira, jira_project_data):
 
 def test_get_jira_issuetypes(client, jira, jira_project_data, jira_issue_type_data):
     jira.project.return_value = jira_project_data
-    response = client.get(
-        f"/api/jira-projects/{jira_project_data.id}/jira-issuetypes", auth=("u", "p")
-    )
+    response = client.get(f"/api/jira-projects/{jira_project_data.id}/jira-issuetypes")
     response_body = response.json()
     assert response.status_code == 200
     assert type(response_body) == list
@@ -80,9 +78,7 @@ def test_get_jira_issuetypes(client, jira, jira_project_data, jira_issue_type_da
 
 def test_list_jira_issues(client, jira, jira_project_data, jira_issue_data):
     jira.search_issues.return_value = [jira_issue_data]
-    response = client.get(
-        f"/api/jira-projects/{jira_project_data.id}/jira-issues", auth=("u", "p")
-    )
+    response = client.get(f"/api/jira-projects/{jira_project_data.id}/jira-issues")
     response_body = response.json()
     assert response.status_code == 200
     assert type(response_body) == list
@@ -92,7 +88,7 @@ def test_list_jira_issues(client, jira, jira_project_data, jira_issue_data):
 
 def test_get_jira_issue(client, jira, jira_issue_data):
     jira.issue.return_value = jira_issue_data
-    response = client.get(f"/api/jira-issues/{jira_issue_data.id}", auth=("u", "p"))
+    response = client.get(f"/api/jira-issues/{jira_issue_data.id}")
     assert response.status_code == 200
     response_body = response.json()
     assert type(response_body) == dict
@@ -100,14 +96,14 @@ def test_get_jira_issue(client, jira, jira_issue_data):
 
 def test_list_projects(client, jira):
     jira.projects.return_value = []
-    response = client.get("/api/projects", auth=("u", "p"))
+    response = client.get("/api/projects")
     assert response.status_code == 200
     response_body = response.json()
     assert type(response_body) == list
 
 
 def test_create_project(client, project_input):
-    response = client.post("/api/projects", json=project_input.dict(), auth=("u", "p"))
+    response = client.post("/api/projects", json=project_input.dict())
     assert response.status_code == 201
     response_body = response.json()
     assert type(response_body) == dict
@@ -115,7 +111,7 @@ def test_create_project(client, project_input):
 
 
 def test_create_project_valid_jira_project_id(client, project_input):
-    response = client.post("/api/projects", json=project_input.dict(), auth=("u", "p"))
+    response = client.post("/api/projects", json=project_input.dict())
     assert response.status_code == 201
     response_body = response.json()
     assert type(response_body) == dict
@@ -133,7 +129,7 @@ def test_create_project_invalid_jira_project_id(client, jira):
 
 
 def test_get_project(client, create_project: Project):
-    response = client.get(f"/api/projects/{create_project.id}", auth=("u", "p"))
+    response = client.get(f"/api/projects/{create_project.id}")
     assert response.status_code == 200
     assert type(response.json()) == dict
 
@@ -154,16 +150,14 @@ def test_update_project(client, create_project: Project):
 
 
 def test_delete_project(client, create_project: Project):
-    response = client.delete(f"/api/projects/{create_project.id}", auth=("u", "p"))
+    response = client.delete(f"/api/projects/{create_project.id}")
     assert response.status_code == 204
-    response = client.get(f"/api/projects/{create_project.id}", auth=("u", "p"))
+    response = client.get(f"/api/projects/{create_project.id}")
     assert response.status_code == 404
 
 
 def test_list_documents(client, create_project: Project):
-    response = client.get(
-        f"/api/projects/{create_project.id}/documents", auth=("u", "p")
-    )
+    response = client.get(f"/api/projects/{create_project.id}/documents")
     assert response.status_code == 200
     assert type(response.json()) == list
 
@@ -180,7 +174,7 @@ def test_create_document(client, create_project: Project):
 
 
 def test_get_document(client, create_document):
-    response = client.get(f"/api/documents/{create_document.id}", auth=("u", "p"))
+    response = client.get(f"/api/documents/{create_document.id}")
     assert response.status_code == 200
     document = response.json()
     assert type(document) == dict
@@ -202,16 +196,14 @@ def test_update_document(client, create_document):
 
 
 def test_delete_document(client, create_document):
-    response = client.delete(f"/api/documents/{create_document.id}", auth=("u", "p"))
+    response = client.delete(f"/api/documents/{create_document.id}")
     assert response.status_code == 204
-    response = client.get(f"/api/documents/{create_document.id}", auth=("u", "p"))
+    response = client.get(f"/api/documents/{create_document.id}")
     assert response.status_code == 404
 
 
 def test_list_requirements(client, create_project: Project):
-    response = client.get(
-        f"/api/projects/{create_project.id}/requirements", auth=("u", "p")
-    )
+    response = client.get(f"/api/projects/{create_project.id}/requirements")
     assert response.status_code == 200
     assert type(response.json()) == list
 
@@ -229,7 +221,7 @@ def test_create_requirement(client, create_project: Project):
 
 
 def test_get_requirement(client, create_requirement):
-    response = client.get(f"/api/requirements/{create_requirement.id}", auth=("u", "p"))
+    response = client.get(f"/api/requirements/{create_requirement.id}")
     assert response.status_code == 200
     assert type(response.json()) == dict
 
@@ -250,18 +242,14 @@ def test_update_requirement(client, create_requirement):
 
 
 def test_delete_requirement(client, create_requirement):
-    response = client.delete(
-        f"/api/requirements/{create_requirement.id}", auth=("u", "p")
-    )
+    response = client.delete(f"/api/requirements/{create_requirement.id}")
     assert response.status_code == 204
-    response = client.get(f"/api/requirements/{create_requirement.id}", auth=("u", "p"))
+    response = client.get(f"/api/requirements/{create_requirement.id}")
     assert response.status_code == 404
 
 
 def test_list_measures(client, create_requirement):
-    response = client.get(
-        f"/api/requirements/{create_requirement.id}/measures", auth=("u", "p")
-    )
+    response = client.get(f"/api/requirements/{create_requirement.id}/measures")
     assert response.status_code == 200
     assert type(response.json()) == list
 
@@ -279,7 +267,7 @@ def test_create_measure(client, create_requirement):
 
 
 def test_get_measure(client, create_measure):
-    response = client.get(f"/api/measures/{create_measure.id}", auth=("u", "p"))
+    response = client.get(f"/api/measures/{create_measure.id}")
     assert response.status_code == 200
     assert type(response.json()) == dict
 
@@ -300,9 +288,9 @@ def test_update_measure(client, create_measure):
 
 
 def test_delete_measure(client, create_measure):
-    response = client.delete(f"/api/measures/{create_measure.id}", auth=("u", "p"))
+    response = client.delete(f"/api/measures/{create_measure.id}")
     assert response.status_code == 204
-    response = client.get(f"/api/measures/{create_measure.id}", auth=("u", "p"))
+    response = client.get(f"/api/measures/{create_measure.id}")
     assert response.status_code == 404
 
 
@@ -320,23 +308,17 @@ def test_create_and_link_jira_issue(client, create_measure, jira_issue_input):
 
 
 def test_download_measures(client, create_project, create_measure):
-    response = client.get(
-        f"/api/projects/{create_project.id}/measures/excel", auth=("u", "p")
-    )
+    response = client.get(f"/api/projects/{create_project.id}/measures/excel")
     assert response.status_code == 200
 
 
 def test_download_requirements(client, create_project, create_requirement):
-    response = client.get(
-        f"/api/projects/{create_project.id}/requirements/excel", auth=("u", "p")
-    )
+    response = client.get(f"/api/projects/{create_project.id}/requirements/excel")
     assert response.status_code == 200
 
 
 def test_download_documents(client, create_project, create_document):
-    response = client.get(
-        f"/api/projects/{create_project.id}/documents/excel", auth=("u", "p")
-    )
+    response = client.get(f"/api/projects/{create_project.id}/documents/excel")
     assert response.status_code == 200
 
 
