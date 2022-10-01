@@ -25,7 +25,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 from .errors import UnauthorizedError
 from .utils.crypto import decrypt, encrypt
-from .config import load_config
+from .config import load_config, Config, JiraConfig
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
@@ -34,15 +34,14 @@ jira_connections_cache = TTLCache(maxsize=1000, ttl=5 * 60)
 jira_connections_cache_lock = Lock()
 
 
-def _get_jira_connection(username, password):
+def _get_jira_connection(username: str, password: str, jira_config: JiraConfig):
     cache_key = sha256(f"{username}:{password}".encode("utf-8")).hexdigest()
     with jira_connections_cache_lock:
         jira_connection = jira_connections_cache.get(cache_key, None)
     if jira_connection is None:
-        config = load_config().jira
         jira_connection = JIRA(
-            config.url,
-            dict(verify=config.verify_ssl),
+            jira_config.url,
+            dict(verify=jira_config.verify_ssl),
             basic_auth=(username, password),
         )
         with jira_connections_cache_lock:
@@ -50,19 +49,24 @@ def _get_jira_connection(username, password):
     return jira_connection
 
 
-def get_user_credentials(token: str = Depends(oauth2_scheme)):
+def get_user_credentials(
+    token: str = Depends(oauth2_scheme), config: Config = Depends(load_config)
+):
     # decrypt user credentials from token and return it
     try:
-        decrypted_token = decrypt(token, load_config().auth.derived_key)
+        decrypted_token = decrypt(token, config.auth.derived_key)
     except (ValueError, UnicodeDecodeError) as error:
         raise UnauthorizedError("Invalid token") from error
     return json.loads(decrypted_token)
 
 
-def get_jira(credentials: dict = Depends(get_user_credentials)) -> JIRA:
+def get_jira(
+    credentials: dict = Depends(get_user_credentials),
+    config: Config = Depends(load_config),
+) -> JIRA:
     username, password = credentials
     try:
-        yield _get_jira_connection(username, password)
+        yield _get_jira_connection(username, password, config.jira)
     except JIRAError as error:
         detail = None
         if error.text:
@@ -73,10 +77,13 @@ def get_jira(credentials: dict = Depends(get_user_credentials)) -> JIRA:
 
 
 @router.post("/token")
-def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+def login_for_access_token(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    config: Config = Depends(load_config),
+):
     # check user credentials
     try:
-        jira = _get_jira_connection(form_data.username, form_data.password)
+        jira = _get_jira_connection(form_data.username, form_data.password, config.jira)
         jira.myself()
     except JIRAError as error:
         detail = None
