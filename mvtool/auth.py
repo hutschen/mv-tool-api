@@ -34,7 +34,7 @@ jira_connections_cache = TTLCache(maxsize=1000, ttl=5 * 60)
 jira_connections_cache_lock = Lock()
 
 
-def _get_jira(username, password):
+def _get_jira_connection(username, password):
     cache_key = sha256(f"{username}:{password}".encode("utf-8")).hexdigest()
     with jira_connections_cache_lock:
         jira_connection = jira_connections_cache.get(cache_key, None)
@@ -62,7 +62,7 @@ def get_user_credentials(token: str = Depends(oauth2_scheme)):
 def get_jira(credentials: dict = Depends(get_user_credentials)) -> JIRA:
     username, password = credentials
     try:
-        yield _get_jira(username, password)
+        yield _get_jira_connection(username, password)
     except JIRAError as error:
         detail = None
         if error.text:
@@ -76,7 +76,7 @@ def get_jira(credentials: dict = Depends(get_user_credentials)) -> JIRA:
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     # check user credentials
     try:
-        jira = _get_jira(form_data.username, form_data.password)
+        jira = _get_jira_connection(form_data.username, form_data.password)
         jira.myself()
     except JIRAError as error:
         detail = None
