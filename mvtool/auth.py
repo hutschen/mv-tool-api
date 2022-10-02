@@ -20,6 +20,7 @@ from threading import Lock
 from jira import JIRA, JIRAError
 from cachetools import TTLCache
 from hashlib import sha256
+from cryptography.fernet import InvalidToken
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
@@ -55,7 +56,7 @@ def get_user_credentials(
     # decrypt user credentials from token and return it
     try:
         decrypted_token = decrypt(token, config.auth.derived_key)
-    except (ValueError, UnicodeDecodeError) as error:
+    except InvalidToken as error:
         raise UnauthorizedError("Invalid token") from error
     return json.loads(decrypted_token)
 

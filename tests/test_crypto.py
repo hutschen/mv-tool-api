@@ -15,29 +15,27 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from base64 import b64encode
+from random import randint
+from cryptography.fernet import Fernet, InvalidToken
 import pytest
 from mvtool.utils.crypto import encrypt, decrypt, derive_key
 
 
 def get_random_key_and_message():
-    from os import urandom
-    from random import randint
-
-    key = urandom(16)
-    # generate random string
+    key = Fernet.generate_key()
     message = "".join(chr(randint(32, 126)) for _ in range(randint(10, 150)))
     return key, message
 
 
 @pytest.mark.parametrize(
-    "key, message",
+    "password, message",
     [
-        (b"1234567890123456", "Hello World"),
-        (b"1234567890123456", "äüöß"),
+        ("1234567890123456", "Hello World"),
+        ("1234567890123456", "äüöß"),
     ],
 )
-def test_encrypt_decrypt(key, message):
+def test_encrypt_decrypt(password, message):
+    key = derive_key(password)
     encrypted = encrypt(message, key)
     decrypted = decrypt(encrypted, key)
     assert message == decrypted
@@ -52,28 +50,31 @@ def test_encrypt_decrypt_randomized():
 
 
 def test_decrypt_nonsense():
-    with pytest.raises(ValueError):
-        decrypt("nonsense", b"1234567890123456")
+    key = derive_key("1234567890123456")
+    with pytest.raises(InvalidToken):
+        decrypt("nonsense", key)
 
 
 def test_decrypt_wrong_key():
-    key, message = (b"1234567890123456", "Hello World")
+    password, message = ("1234567890123456", "Hello World")
+    key = derive_key(password)
     encrypted = encrypt(message, key)
-    decrypted = decrypt(encrypted, b"8901234561234567")
-    assert decrypted != message
+    wrong_key = derive_key(password + "wrong")
+    with pytest.raises(InvalidToken):
+        decrypt(encrypted, wrong_key)
 
 
 @pytest.mark.parametrize(
     "password, key",
     [
-        ("äüöß", b"!\r\x05\x04\xebr\x93\xac\xff\x8b\xfaL\xc9\xaf\xc6P"),
-        ("1234567890", b"\xb3roN\xe0\x82\xcb.\xa4\xa8q\xa6\xf1DK\xd1"),
+        ("äüöß", b"IQ0FBOtyk6z_i_pMya_GUMCMwFDA-boZv1Ov29sOSY8="),
+        ("1234567890", b"s3JvTuCCyy6kqHGm8URL0Ql44xP0QpmxhkQ8Q-errSc="),
         (
             "12345678901234567890123456789012",
-            b"\xad\xb0J\x87\x80\x1b\xf1=\xdb\xfb\xf2\xd7\x14K\x9e\xe0",
+            b"rbBKh4Ab8T3b-_LXFEue4JOoX0vgxKjMmW7egbUBGGg=",
         ),
     ],
 )
 def test_derive_key(password, key):
-    result = derive_key(password, 16, b"29nC4dp24Jp7pIlP", 10000, "utf-8")
+    result = derive_key(password, b"29nC4dp24Jp7pIlP", 10000, "utf-8")
     assert result == key
