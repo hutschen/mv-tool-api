@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from unittest.mock import Mock, patch
+from unittest.mock import DEFAULT, Mock, patch
 from fastapi import HTTPException
 from cryptography.fernet import InvalidToken
 
@@ -110,18 +110,53 @@ def test_get_credentials_from_token_invalid_token(config):
         assert error_info.value.status_code == 401
 
 
-@pytest.mark.skip("TODO")
 def test_get_jira(config):
-    pass
+    with patch.multiple(
+        "mvtool.auth",
+        _get_cached_jira=DEFAULT,
+        _get_credentials_from_token=DEFAULT,
+        _connect_to_jira=DEFAULT,
+        _cache_jira=DEFAULT,
+    ) as mocks:
+        mocks["_get_cached_jira"].return_value = None
+        mocks["_get_credentials_from_token"].return_value = ("user", "password")
+        jira_mock = Mock()
+        mocks["_connect_to_jira"].return_value = jira_mock
+
+        for result in get_jira("token", config):
+            break
+
+        assert result is jira_mock
+        mocks["_get_cached_jira"].assert_called_once_with("token")
+        mocks["_get_credentials_from_token"].assert_called_once_with(
+            "token", config.auth
+        )
+        mocks["_connect_to_jira"].assert_called_once_with(
+            "user", "password", config.jira
+        )
+        mocks["_cache_jira"].assert_called_once_with("token", jira_mock)
 
 
-@pytest.mark.skip("TODO")
-def test_login_for_access_token(config, jira):
+def test_login_for_access_token(config):
     form_data_mock = Mock()
     form_data_mock.username = "user"
     form_data_mock.password = "password"
 
-    with patch("mvtool.auth._get_jira_connection") as get_jira_connection_mock:
-        get_jira_connection_mock.return_value = jira
-        token = login_for_access_token(form_data_mock, config)
-        assert isinstance(token, dict)
+    with patch.multiple(
+        "mvtool.auth",
+        _connect_to_jira=DEFAULT,
+        _create_token=DEFAULT,
+        _cache_jira=DEFAULT,
+    ) as mocks:
+        mocks["_create_token"].return_value = "token"
+        jira_mock = Mock()
+        mocks["_connect_to_jira"].return_value = jira_mock
+
+        result = login_for_access_token(form_data_mock, config)
+
+        assert result == {"access_token": "token", "token_type": "bearer"}
+        mocks["_connect_to_jira"].assert_called_once_with(
+            "user", "password", config.jira, validate_credentials=True
+        )
+        mocks["_create_token"].assert_called_once_with("user", "password", config.auth)
+        mocks["_cache_jira"].assert_called_once_with("token", jira_mock)
