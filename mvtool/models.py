@@ -16,8 +16,19 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+from datetime import datetime
 from pydantic import confloat, constr, validator
 from sqlmodel import SQLModel, Field, Relationship, Session, select, func, or_
+
+
+class CommonFieldsMixin(SQLModel):
+    id: int = Field(default=None, primary_key=True)
+    created: datetime = Field(default_factory=datetime.utcnow, index=True)
+    updated: datetime = Field(
+        default_factory=datetime.utcnow,
+        index=True,
+        sa_column_kwargs=dict(onupdate=datetime.utcnow),
+    )
 
 
 class JiraUser(SQLModel):
