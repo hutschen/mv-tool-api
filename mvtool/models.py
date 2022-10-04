@@ -23,10 +23,9 @@ from sqlmodel import SQLModel, Field, Relationship, Session, select, func, or_
 
 class CommonFieldsMixin(SQLModel):
     id: int = Field(default=None, primary_key=True)
-    created: datetime = Field(default_factory=datetime.utcnow, index=True)
+    created: datetime = Field(default_factory=datetime.utcnow)
     updated: datetime = Field(
         default_factory=datetime.utcnow,
-        index=True,
         sa_column_kwargs=dict(onupdate=datetime.utcnow),
     )
 
