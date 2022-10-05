@@ -73,11 +73,16 @@ def get_current_revision(engine):
         return context.get_current_revision()
 
 
-def migrate(database_config: DatabaseConfig):
+def get_alembic_config(database_config: DatabaseConfig):
     # configure alembic
     alembic_config = Config("alembic.ini")
     alembic_config.set_main_option("sqlalchemy.url", database_config.url)
     alembic_config.attributes["configure_logger"] = False
+    return alembic_config
+
+
+def migrate(database_config: DatabaseConfig):
+    alembic_config = get_alembic_config(database_config)
 
     # stamp the database when upgrading from a version before 0.5.0
     engine = create_engine(database_config.url)

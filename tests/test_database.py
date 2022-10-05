@@ -25,12 +25,7 @@ from mvtool.database import (
     get_session,
     setup_engine,
 )
-from sqlmodel import SQLModel, Field
-
-
-class Item(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    name: str
+from mvtool.models import Project
 
 
 def test_setup_engine(config):
@@ -48,13 +43,13 @@ def test_session_commit(config):
 
     for session in get_session():
         crud = CRUDOperations(session)
-        item = Item(name="test")
+        item = Project(name="test")
         crud.create_in_db(item)
         item_id = item.id
 
     for session in get_session():
         crud = CRUDOperations(session)
-        item = crud.read_from_db(Item, item_id)
+        item = crud.read_from_db(Project, item_id)
         assert item.name == "test"
 
     drop_all()
@@ -69,7 +64,7 @@ def test_session_rollback(config):
     with pytest.raises(Exception) as error_info:
         for session in get_session():
             crud = CRUDOperations(session)
-            item = Item(name="test")
+            item = Project(name="test")
             crud.create_in_db(item)
             item_id = item.id
             raise Exception("rollback")
@@ -79,7 +74,7 @@ def test_session_rollback(config):
     for session in get_session():
         crud = CRUDOperations(session)
         with pytest.raises(HTTPException):
-            crud.read_from_db(Item, item_id)
+            crud.read_from_db(Project, item_id)
 
     drop_all()
     dispose_engine()

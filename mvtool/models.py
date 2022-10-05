@@ -16,8 +16,18 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+from datetime import datetime
 from pydantic import confloat, constr, validator
 from sqlmodel import SQLModel, Field, Relationship, Session, select, func, or_
+
+
+class CommonFieldsMixin(SQLModel):
+    id: int = Field(default=None, primary_key=True)
+    created: datetime = Field(default_factory=datetime.utcnow)
+    updated: datetime = Field(
+        default_factory=datetime.utcnow,
+        sa_column_kwargs=dict(onupdate=datetime.utcnow),
+    )
 
 
 class JiraUser(SQLModel):
@@ -65,8 +75,7 @@ class MeasureInput(SQLModel):
     jira_issue_id: str | None
 
 
-class Measure(MeasureInput, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+class Measure(MeasureInput, CommonFieldsMixin, table=True):
     requirement_id: int | None = Field(default=None, foreign_key="requirement.id")
     requirement: "Requirement" = Relationship(back_populates="measures")
     document_id: int | None = Field(default=None, foreign_key="document.id")
@@ -94,8 +103,7 @@ class RequirementInput(SQLModel):
         return v
 
 
-class Requirement(RequirementInput, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+class Requirement(RequirementInput, CommonFieldsMixin, table=True):
     project_id: int | None = Field(default=None, foreign_key="project.id")
     project: "Project" = Relationship(back_populates="requirements")
     measures: list[Measure] = Relationship(
@@ -134,9 +142,8 @@ class Requirement(RequirementInput, table=True):
         return completed / total if total else 0.0
 
 
-class GSBaustein(SQLModel, table=True):
+class GSBaustein(CommonFieldsMixin, table=True):
     __tablename__ = "gs_baustein"
-    id: int | None = Field(default=None, primary_key=True)
     reference: str
     title: str
     requirements: list[Requirement] = Relationship(back_populates="gs_baustein")
@@ -148,8 +155,7 @@ class DocumentInput(SQLModel):
     description: str | None
 
 
-class Document(DocumentInput, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+class Document(DocumentInput, CommonFieldsMixin, table=True):
     project_id: int | None = Field(default=None, foreign_key="project.id")
     project: "Project" = Relationship(back_populates="documents")
     measures: list[Measure] = Relationship(back_populates="document")
@@ -161,8 +167,7 @@ class ProjectInput(SQLModel):
     jira_project_id: str | None
 
 
-class Project(ProjectInput, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+class Project(ProjectInput, CommonFieldsMixin, table=True):
     requirements: list[Requirement] = Relationship(
         back_populates="project",
         sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
