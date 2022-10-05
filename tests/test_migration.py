@@ -20,7 +20,7 @@ from pytest_alembic.tests import (
     test_single_head_revision,
     test_upgrade,
     test_up_down_consistency,
-    # test_model_definitions_match_ddl,
+    test_model_definitions_match_ddl,
 )
 from mvtool.migration import migrate, get_alembic_config
 
