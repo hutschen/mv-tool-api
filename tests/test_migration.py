@@ -13,8 +13,45 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from mvtool import migration
+import pytest
+import sqlalchemy as sa
+from pytest_alembic import MigrationContext
+from pytest_alembic.tests import (
+    test_single_head_revision,
+    test_upgrade,
+    test_up_down_consistency,
+    # test_model_definitions_match_ddl,
+)
+from mvtool.migration import migrate, get_alembic_config
 
 
-def test_migration(config):
-    migration.migrate(config.database)
+@pytest.fixture
+def alembic_config(config):
+    return get_alembic_config(config.database)
+
+
+def test_migrate(config):
+    migrate(config.database)
+
+
+def test_migrate_52864629f869_add_common_fields(
+    alembic_runner: MigrationContext, alembic_engine
+):
+    alembic_runner.migrate_up_before("52864629f869")
+    alembic_runner.insert_into("project", {"id": 1, "name": "test"})
+    alembic_runner.insert_into(
+        "requirement", {"id": 1, "summary": "test", "project_id": 1}
+    )
+    alembic_runner.insert_into(
+        "measure", {"id": 1, "summary": "test", "requirement_id": 1, "completed": False}
+    )
+    alembic_runner.insert_into("document", {"id": 1, "title": "test", "project_id": 1})
+    alembic_runner.migrate_up_one()
+
+    # check project has a timestamp
+    with alembic_engine.connect() as conn:
+        project = conn.execute(
+            sa.select(["*"]).select_from(sa.table("project"))
+        ).fetchone()
+        assert project["created"] is not None
+        assert project["updated"] is not None
