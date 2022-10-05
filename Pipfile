@@ -23,6 +23,7 @@ pytest = "*"
 pytest-cov = "*"
 psycopg2-binary = "*"
 pip-licenses = "*"
+pytest-alembic = "*"
 
 [requires]
 python_version = "3.10"
