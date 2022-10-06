@@ -35,7 +35,7 @@ def test_migrate(config):
 
 
 def test_migrate_52864629f869_add_common_fields(
-    alembic_runner: MigrationContext, alembic_engine
+    alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
 ):
     alembic_runner.migrate_up_before("52864629f869")
     alembic_runner.insert_into("project", {"id": 1, "name": "test"})
