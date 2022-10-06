@@ -115,8 +115,8 @@ class Requirement(RequirementInput, CommonFieldsMixin, table=True):
     gs_anforderung_reference: str | None
     gs_absicherung: constr(regex=r"^(B|S|H)$") | None
     gs_verantwortliche: str | None
-    gs_baustein_id: int | None = Field(default=None, foreign_key="gs_baustein.id")
-    gs_baustein: "CatalogModule" = Relationship(
+    catalog_module_id: int | None = Field(default=None, foreign_key="catalog_module.id")
+    catalog_module: "CatalogModule" = Relationship(
         back_populates="requirements", sa_relationship_kwargs={"cascade": "all,delete"}
     )
 
@@ -152,7 +152,8 @@ class CatalogModuleInput(SQLModel):
 
 
 class CatalogModule(CatalogModuleInput, CommonFieldsMixin, table=True):
-    requirements: list[Requirement] = Relationship(back_populates="gs_baustein")
+    __tablename__ = "catalog_module"
+    requirements: list[Requirement] = Relationship(back_populates="catalog_module")
 
 
 class DocumentInput(SQLModel):
@@ -229,7 +230,7 @@ class RequirementOutput(RequirementInput):
     gs_anforderung_reference: str | None
     gs_absicherung: constr(regex=r"^(B|S|H)$") | None
     gs_verantwortliche: str | None
-    gs_baustein: CatalogModule | None
+    catalog_module: CatalogModule | None
 
 
 class MeasureOutput(SQLModel):

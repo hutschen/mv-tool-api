@@ -111,7 +111,7 @@ class RequirementsView:
                 gs_anforderung_reference=requirement.gs_anforderung_reference,
                 gs_absicherung=requirement.gs_absicherung,
                 gs_verantwortliche=requirement.gs_verantwortliche,
-                gs_baustein_id=requirement.gs_baustein_id,
+                catalog_module_id=requirement.catalog_module_id,
             ),
         )
         return self._crud.update_in_db(requirement_id, updated_requirement)

@@ -435,7 +435,7 @@ class RequirementsExcelView(ExcelView):
                 ExcelHeader("ID", optional=True),
                 ExcelHeader("Reference", optional=True),
                 ExcelHeader("GS ID", ExcelHeader.WRITE_ONLY, True),
-                ExcelHeader("GS Baustein", ExcelHeader.WRITE_ONLY, True),
+                ExcelHeader("Catalog Module", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Summary"),
                 ExcelHeader("Description", optional=True),
                 ExcelHeader("GS Absicherung", ExcelHeader.WRITE_ONLY, True),
@@ -455,7 +455,9 @@ class RequirementsExcelView(ExcelView):
             "ID": data.id,
             "Reference": data.reference,
             "GS ID": data.gs_anforderung_reference,
-            "GS Baustein": data.gs_baustein.title if data.gs_baustein else None,
+            "Catalog Module": (
+                data.catalog_module.title if data.catalog_module else None
+            ),
             "Summary": data.summary,
             "Description": data.description,
             "GS Absicherung": data.gs_absicherung,
