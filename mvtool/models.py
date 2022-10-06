@@ -142,10 +142,16 @@ class Requirement(RequirementInput, CommonFieldsMixin, table=True):
         return completed / total if total else 0.0
 
 
-class CatalogModule(CommonFieldsMixin, table=True):
-    __tablename__ = "gs_baustein"
+class CatalogModuleInput(SQLModel):
     reference: str
     title: str
+    description: str | None
+
+    # Special fields for IT Grundschutz Kompendium
+    gs_reference: str | None
+
+
+class CatalogModule(CatalogModuleInput, CommonFieldsMixin, table=True):
     requirements: list[Requirement] = Relationship(back_populates="gs_baustein")
 
 
