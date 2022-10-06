@@ -25,7 +25,7 @@ import docx
 from .projects import ProjectsView
 from .requirements import RequirementsView
 from ..database import CRUDOperations
-from ..models import GSBaustein, Requirement
+from ..models import CatalogModule, Requirement
 from .. import errors
 
 
@@ -163,7 +163,7 @@ class GSBausteinParser:
             if paragraphs.current.style.name == "Title":
                 match = cls._gs_baustein_title_re.match(paragraphs.current.text)
                 if match:
-                    return GSBaustein(reference=match.group(1), title=match.group(3))
+                    return CatalogModule(reference=match.group(1), title=match.group(3))
                 else:
                     raise errors.ValueHttpError(
                         f"Could not parse GS baustein title: {paragraphs.current.text}"
@@ -200,7 +200,7 @@ class ImportGSBausteinView:
     def __init__(
         self,
         projects: ProjectsView = Depends(ProjectsView),
-        crud: CRUDOperations[GSBaustein] = Depends(CRUDOperations),
+        crud: CRUDOperations[CatalogModule] = Depends(CRUDOperations),
     ):
         self._projects = projects
         self._crud = crud

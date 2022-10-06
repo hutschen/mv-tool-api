@@ -116,7 +116,7 @@ class Requirement(RequirementInput, CommonFieldsMixin, table=True):
     gs_absicherung: constr(regex=r"^(B|S|H)$") | None
     gs_verantwortliche: str | None
     gs_baustein_id: int | None = Field(default=None, foreign_key="gs_baustein.id")
-    gs_baustein: "GSBaustein" = Relationship(
+    gs_baustein: "CatalogModule" = Relationship(
         back_populates="requirements", sa_relationship_kwargs={"cascade": "all,delete"}
     )
 
@@ -142,7 +142,7 @@ class Requirement(RequirementInput, CommonFieldsMixin, table=True):
         return completed / total if total else 0.0
 
 
-class GSBaustein(CommonFieldsMixin, table=True):
+class CatalogModule(CommonFieldsMixin, table=True):
     __tablename__ = "gs_baustein"
     reference: str
     title: str
@@ -223,7 +223,7 @@ class RequirementOutput(RequirementInput):
     gs_anforderung_reference: str | None
     gs_absicherung: constr(regex=r"^(B|S|H)$") | None
     gs_verantwortliche: str | None
-    gs_baustein: GSBaustein | None
+    gs_baustein: CatalogModule | None
 
 
 class MeasureOutput(SQLModel):
