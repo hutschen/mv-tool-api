@@ -41,7 +41,7 @@ def upgrade() -> None:
         sa.Column("description", AutoString(), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("project_id", sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(["project_id"], ["project.id"]),
+        sa.ForeignKeyConstraint(["project_id"], ["project.id"], "fk_document_project"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
@@ -58,8 +58,12 @@ def upgrade() -> None:
         sa.Column("gs_absicherung", AutoString(), nullable=True),
         sa.Column("gs_verantwortliche", AutoString(), nullable=True),
         sa.Column("gs_baustein_id", sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(["gs_baustein_id"], ["gs_baustein.id"]),
-        sa.ForeignKeyConstraint(["project_id"], ["project.id"]),
+        sa.ForeignKeyConstraint(
+            ["gs_baustein_id"], ["gs_baustein.id"], "fk_requirement_gs_baustein"
+        ),
+        sa.ForeignKeyConstraint(
+            ["project_id"], ["project.id"], "fk_requirement_project"
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
@@ -71,8 +75,12 @@ def upgrade() -> None:
         sa.Column("jira_issue_id", AutoString(), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("requirement_id", sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(["document_id"], ["document.id"]),
-        sa.ForeignKeyConstraint(["requirement_id"], ["requirement.id"]),
+        sa.ForeignKeyConstraint(
+            ["document_id"], ["document.id"], "fk_measure_document"
+        ),
+        sa.ForeignKeyConstraint(
+            ["requirement_id"], ["requirement.id"], "fk_measure_requirement"
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     # ### end Alembic commands ###
