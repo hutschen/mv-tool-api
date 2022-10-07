@@ -30,16 +30,39 @@ def upgrade() -> None:
         sa.Column("gs_reference", AutoString(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.drop_table("gs_baustein")
+
+    # copy data from gs_baustein to catalog_module
+    op.execute(
+        """
+        INSERT INTO catalog_module (id, created, updated, title, gs_reference)
+        SELECT id, created, updated, title, reference FROM gs_baustein
+        """
+    )
+
+    # add column requirement.catalog_module_id
     with op.batch_alter_table("requirement", schema=None) as batch_op:
         batch_op.add_column(sa.Column("catalog_module_id", sa.Integer(), nullable=True))
-        batch_op.drop_constraint(None, type_="foreignkey")
         batch_op.create_foreign_key(
-            None, "catalog_module", ["catalog_module_id"], ["id"]
+            "fk_requirement_catalog_module",
+            "catalog_module",
+            ["catalog_module_id"],
+            ["id"],
         )
+
+    # copy data from requirement.gs_baustein_id to requirement.catalog_module_id
+    op.execute(
+        """
+        UPDATE requirement SET catalog_module_id = gs_baustein_id
+        """
+    )
+
+    # drop column requirement.gs_baustein_id
+    with op.batch_alter_table("requirement", schema=None) as batch_op:
+        batch_op.drop_constraint("fk_requirement_gs_baustein", type_="foreignkey")
         batch_op.drop_column("gs_baustein_id")
 
-    # ### end Alembic commands ###
+    # drop table gs_baustein
+    op.drop_table("gs_baustein")
 
 
 def downgrade() -> None:
