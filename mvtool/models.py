@@ -143,7 +143,7 @@ class Requirement(RequirementInput, CommonFieldsMixin, table=True):
 
 
 class CatalogModuleInput(SQLModel):
-    reference: str
+    reference: str | None
     title: str
     description: str | None
 
