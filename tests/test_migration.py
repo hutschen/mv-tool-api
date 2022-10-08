@@ -46,6 +46,24 @@ def test_migrate_from_empty_database(config: Config, alembic_runner: MigrationCo
     test_model_definitions_match_ddl(alembic_runner)
 
 
+def test_migrate_4757e455dd37_apply_naming_conventions(
+    alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
+):
+    alembic_runner.migrate_up_before("4757e455dd37")
+    alembic_runner.migrate_up_one()
+
+    # check names of foreign key constraints
+    inspector = sa.inspect(alembic_engine)
+    for table_name in inspector.get_table_names():
+        for fk in inspector.get_foreign_keys(table_name):
+            expected_name = "fk_%s_%s" % (table_name, fk["referred_table"])
+            assert fk["name"] == expected_name
+
+        pk = inspector.get_pk_constraint(table_name)
+        expected_name = "pk_%s" % table_name
+        assert pk["name"] == expected_name
+
+
 def test_migrate_52864629f869_add_common_fields(
     alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
 ):
