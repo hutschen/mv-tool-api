@@ -154,6 +154,22 @@ class CatalogModuleInput(SQLModel):
 class CatalogModule(CatalogModuleInput, CommonFieldsMixin, table=True):
     __tablename__ = "catalog_module"
     requirements: list[Requirement] = Relationship(back_populates="catalog_module")
+    catalog_id: int | None = Field(default=None, foreign_key="catalog.id")
+    catalog: "Catalog" = Relationship(back_populates="catalog_modules")
+
+
+class CatalogInput(SQLModel):
+    reference: str | None
+    title: str
+    description: str | None
+
+
+class Catalog(CatalogInput, CommonFieldsMixin, table=True):
+    __tablename__ = "catalog"
+    catalog_modules: list[CatalogModule] = Relationship(
+        back_populates="catalog",
+        sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
+    )
 
 
 class DocumentInput(SQLModel):
