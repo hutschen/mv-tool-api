@@ -23,6 +23,7 @@ from pytest_alembic.tests import (
     test_up_down_consistency,
     test_model_definitions_match_ddl,
 )
+from mvtool.config import Config
 from mvtool.migration import migrate, get_alembic_config
 
 
@@ -31,8 +32,40 @@ def alembic_config(config):
     return get_alembic_config(config.database)
 
 
-def test_migrate(config):
+def test_migrate_from_before_version_0_5_0(
+    config: Config, alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
+):
+    alembic_runner.migrate_up_to("aaf70fa9151e")
+    with alembic_engine.connect() as conn:
+        conn.execute("DROP TABLE alembic_version")
     migrate(config.database)
+
+
+def test_migrate_from_empty_database(config: Config, alembic_runner: MigrationContext):
+    migrate(config.database)
+    test_model_definitions_match_ddl(alembic_runner)
+
+
+def test_migrate_4757e455dd37_apply_naming_conventions(
+    alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
+):
+    alembic_runner.migrate_up_before("4757e455dd37")
+    alembic_runner.migrate_up_one()
+
+    # check names of foreign key constraints
+    inspector = sa.inspect(alembic_engine)
+    for table_name in inspector.get_table_names():
+        for fk in inspector.get_foreign_keys(table_name):
+            expected_name = "fk_%s_%s_%s" % (
+                table_name,
+                fk["constrained_columns"][0],
+                fk["referred_table"],
+            )
+            assert fk["name"] == expected_name
+
+        pk = inspector.get_pk_constraint(table_name)
+        expected_name = "pk_%s" % table_name
+        assert pk["name"] == expected_name
 
 
 def test_migrate_52864629f869_add_common_fields(

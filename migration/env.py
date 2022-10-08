@@ -22,8 +22,10 @@ if (
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 from mvtool.models import SQLModel
+from mvtool.database import naming_convention
 
 target_metadata = SQLModel.metadata
+target_metadata.naming_convention = naming_convention
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
