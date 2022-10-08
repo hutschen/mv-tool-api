@@ -20,22 +20,24 @@ def upgrade() -> None:
     # inspect database and get table_names
     inspector = sa.inspect(op.get_bind())
 
-    for table_name in inspector.get_table_names():
+    for table_name in ("gs_baustein", "project", "document", "requirement", "measure"):
         with op.batch_alter_table(table_name, schema=None) as batch_op:
 
             # rename foreign key constraints using naming convention
             for fk_info in inspector.get_foreign_keys(table_name):
-                batch_op.drop_constraint(fk_info["name"], "foreignkey")
+                if fk_info["name"]:
+                    batch_op.drop_constraint(fk_info["name"], type_="foreignkey")
                 batch_op.create_foreign_key(
                     None,
                     fk_info["referred_table"],
-                    [fk_info["constrained_columns"][0]],
-                    [fk_info["referred_columns"][0]],
+                    fk_info["constrained_columns"],
+                    fk_info["referred_columns"],
                 )
 
             # rename primary key constraint using naming convention
             pk_info = inspector.get_pk_constraint(table_name)
-            batch_op.drop_constraint(pk_info["name"], type_="primary")
+            if pk_info["name"]:
+                batch_op.drop_constraint(pk_info["name"], type_="primary")
             batch_op.create_primary_key(None, pk_info["constrained_columns"])
 
 
