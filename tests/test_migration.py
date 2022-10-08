@@ -56,7 +56,11 @@ def test_migrate_4757e455dd37_apply_naming_conventions(
     inspector = sa.inspect(alembic_engine)
     for table_name in inspector.get_table_names():
         for fk in inspector.get_foreign_keys(table_name):
-            expected_name = "fk_%s_%s" % (table_name, fk["referred_table"])
+            expected_name = "fk_%s_%s_%s" % (
+                table_name,
+                fk["constrained_columns"][0],
+                fk["referred_table"],
+            )
             assert fk["name"] == expected_name
 
         pk = inspector.get_pk_constraint(table_name)
