@@ -133,3 +133,36 @@ def test_migrate_ad9f6e7bc41b_add_catalog_module(
         assert requirement["catalog_module_id"] == gs_baustein_id
         with pytest.raises(sa.exc.NoSuchColumnError):
             requirement["gs_baustein_id"]
+
+
+def test_migration_ab13bba14886_add_catalog(
+    alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
+):
+    timestamp = datetime.utcnow()
+    catalog_module_ids = list(range(1, 5))
+    alembic_runner.migrate_up_before("ab13bba14886")
+    for catalog_module_id in catalog_module_ids:
+        alembic_runner.insert_into(
+            "catalog_module",
+            {
+                "id": catalog_module_id,
+                "created": timestamp,
+                "updated": timestamp,
+                "title": "title %d" % catalog_module_id,
+            },
+        )
+    alembic_runner.migrate_up_one()
+
+    # check if default catalog exists
+    with alembic_engine.connect() as conn:
+        catalog = conn.execute("SELECT * FROM catalog").fetchone()
+        catalog_id = catalog["id"]
+        assert isinstance(catalog_id, int)
+        assert isinstance(catalog["created"], str)
+        assert isinstance(catalog["updated"], str)
+        assert isinstance(catalog["title"], str)
+
+        # check if catalog links catalog_module
+        assert conn.execute(
+            "SELECT COUNT(*) FROM catalog_module WHERE catalog_id IS %d" % catalog_id
+        ).scalar() == len(catalog_module_ids)
