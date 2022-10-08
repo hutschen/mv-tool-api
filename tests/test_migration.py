@@ -23,6 +23,7 @@ from pytest_alembic.tests import (
     test_up_down_consistency,
     test_model_definitions_match_ddl,
 )
+from mvtool.config import Config
 from mvtool.migration import migrate, get_alembic_config
 
 
@@ -31,8 +32,18 @@ def alembic_config(config):
     return get_alembic_config(config.database)
 
 
-def test_migrate(config):
+def test_migrate_from_before_version_0_5_0(
+    config: Config, alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
+):
+    alembic_runner.migrate_up_to("aaf70fa9151e")
+    with alembic_engine.connect() as conn:
+        conn.execute("DROP TABLE alembic_version")
     migrate(config.database)
+
+
+def test_migrate_from_empty_database(config: Config, alembic_runner: MigrationContext):
+    migrate(config.database)
+    test_model_definitions_match_ddl(alembic_runner)
 
 
 def test_migrate_52864629f869_add_common_fields(
