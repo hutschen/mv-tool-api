@@ -19,6 +19,7 @@ from alembic.config import Config
 from alembic.migration import MigrationContext
 from alembic import command
 from sqlalchemy import create_engine, inspect
+from sqlmodel import SQLModel
 from .config import DatabaseConfig
 
 INITIAL_REV = "aaf70fa9151e"
@@ -83,11 +84,20 @@ def get_alembic_config(database_config: DatabaseConfig):
 
 def migrate(database_config: DatabaseConfig):
     alembic_config = get_alembic_config(database_config)
-
-    # stamp the database when upgrading from a version before 0.5.0
     engine = create_engine(database_config.url)
-    if get_current_revision(engine) is None and is_initial_revision(engine):
-        command.stamp(alembic_config, INITIAL_REV)
+    current_revision = get_current_revision(engine)
 
-    # upgrade database to the latest revision
-    command.upgrade(alembic_config, "head")
+    if current_revision is None:
+        if is_initial_revision(engine):
+            # stamp the database when upgrading from a version before 0.5.0
+            command.stamp(alembic_config, INITIAL_REV)
+            command.upgrade(alembic_config, "head")
+        else:
+            # assume that the database is empty, so use sqlalchemy.create_all()
+            with engine.connect() as connection:
+                engine = connection.engine
+                SQLModel.metadata.create_all(engine)
+            command.stamp(alembic_config, "head")
+    else:
+        # upgrade database to the latest revision
+        command.upgrade(alembic_config, "head")
