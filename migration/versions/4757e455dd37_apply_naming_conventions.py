@@ -16,7 +16,7 @@ branch_labels = None
 depends_on = None
 
 
-def upgrade() -> None:
+def upgrade_non_postgresql() -> None:
     # inspect database and get table_names
     inspector = sa.inspect(op.get_bind())
 
@@ -39,6 +39,45 @@ def upgrade() -> None:
             if pk_info["name"]:
                 batch_op.drop_constraint(pk_info["name"], type_="primary")
             batch_op.create_primary_key(None, pk_info["constrained_columns"])
+
+
+def upgrade_postgresql() -> None:
+    # inspect database and get table_names
+    inspector = sa.inspect(op.get_bind())
+
+    for table_name in ("gs_baustein", "project", "document", "requirement", "measure"):
+        for fk_info in inspector.get_foreign_keys(table_name):
+            # rename foreign key constraints using naming convention
+            fk_name = fk_info["name"]
+            fk_name_new = "fk_%s_%s_%s" % (
+                table_name,
+                fk_info["constrained_columns"][0],
+                fk_info["referred_table"],
+            )
+            op.execute(
+                f"""
+                ALTER TABLE {table_name}
+                RENAME CONSTRAINT "{fk_name}" TO "{fk_name_new}"
+                """
+            )
+
+        # rename primary key constraint using naming convention
+        pk_info = inspector.get_pk_constraint(table_name)
+        pk_name = pk_info["name"]
+        pk_name_new = "pk_%s" % table_name
+        op.execute(
+            f"""
+            ALTER TABLE {table_name}
+            RENAME CONSTRAINT "{pk_name}" TO "{pk_name_new}"
+            """
+        )
+
+
+def upgrade() -> None:
+    if op.get_context().dialect.name == "postgresql":
+        upgrade_postgresql()
+    else:
+        upgrade_non_postgresql()
 
 
 def downgrade() -> None:
