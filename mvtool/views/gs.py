@@ -22,6 +22,8 @@ from fastapi import APIRouter, Depends, Response, UploadFile
 from fastapi_utils.cbv import cbv
 import docx
 
+from mvtool.views.catalog_modules import CatalogModulesView
+
 from .projects import ProjectsView
 from .requirements import RequirementsView
 from ..database import CRUDOperations
@@ -195,7 +197,7 @@ router = APIRouter()
 
 @cbv(router)
 class ImportGSBausteinView:
-    kwargs = RequirementsView.kwargs
+    kwargs = CatalogModulesView.kwargs
 
     def __init__(
         self,
@@ -206,18 +208,19 @@ class ImportGSBausteinView:
         self._crud = crud
 
     @router.post(
-        "/projects/{project_id}/requirements/gs-baustein",
+        "/catalogs/{catalog_id}/catalog-modules/gs-baustein",
         status_code=201,
         response_class=Response,
         **kwargs,
     )
     def upload_gs_baustein(
         self,
-        project_id: int,
+        catalog_id: int,
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_word_temp_file),
-    ):
-        project = self._projects.get_project(project_id)
+    ) -> CatalogModule:
+        # TODO: create catalog module and return it as response
+        project = self._projects.get_project(catalog_id)
         shutil.copyfileobj(upload_file.file, temp_file.file)
 
         # Parse GS Baustein and save it and its requirements in the database
