@@ -29,6 +29,7 @@ from .views import (
     excel,
     gs,
     catalogs,
+    catalog_modules,
 )
 from .config import load_config
 from .angular import AngularFiles
@@ -42,6 +43,7 @@ app = FastAPI(
 app.include_router(auth.router)
 app.include_router(jira_.router, prefix="/api")
 app.include_router(catalogs.router, prefix="/api")
+app.include_router(catalog_modules.router, prefix="/api")
 app.include_router(projects.router, prefix="/api")
 app.include_router(requirements.router, prefix="/api")
 app.include_router(measures.router, prefix="/api")
