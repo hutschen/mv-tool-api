@@ -1,0 +1,59 @@
+# coding: utf-8
+#
+# Copyright (C) 2022 Helmar Hutschenreuter
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+from fastapi import APIRouter, Depends
+from fastapi_utils.cbv import cbv
+
+from ..auth import get_jira
+from ..models import Catalog, CatalogInput
+from ..database import CRUDOperations
+
+router = APIRouter()
+
+
+@cbv(router)
+class CatalogsView:
+    kwargs = dict(tags=["catalog"])
+
+    def __init__(
+        self,
+        crud: CRUDOperations[Catalog] = Depends(CRUDOperations),
+        _=Depends(get_jira),  # get jira to enforce login
+    ):
+        self._crud = crud
+
+    @router.get("/catalogs", response_model=list[Catalog], **kwargs)
+    def list_catalogs(self) -> list[Catalog]:
+        return self._crud.read_all_from_db(Catalog)
+
+    @router.post("/catalogs", status_code=201, response_model=Catalog, **kwargs)
+    def create_catalog(self, catalog_input: CatalogInput) -> Catalog:
+        catalog = Catalog.from_orm(catalog_input)
+        return self._crud.create_in_db(catalog)
+
+    @router.get("/catalogs/{catalog_id}", response_model=Catalog, **kwargs)
+    def get_catalog(self, catalog_id: int) -> Catalog:
+        return self._crud.read_from_db(Catalog, catalog_id)
+
+    @router.put("/catalogs/{catalog_id}", response_model=Catalog, **kwargs)
+    def update_catalog(self, catalog_id: int, catalog_input: CatalogInput) -> Catalog:
+        catalog = Catalog.from_orm(catalog_input)
+        return self._crud.update_in_db(catalog_id, catalog)
+
+    @router.delete("/catalogs/{catalog_id}", status_code=204, **kwargs)
+    def delete_catalog(self, catalog_id: int) -> None:
+        return self._crud.delete_from_db(Catalog, catalog_id)
