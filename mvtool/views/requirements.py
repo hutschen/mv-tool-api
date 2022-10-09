@@ -45,6 +45,7 @@ class RequirementsView:
         **kwargs
     )
     def _list_requirements(self, project_id: int) -> Iterator[RequirementOutput]:
+        # TODO: rename route to list_project_requirements
         project_output = self._projects._get_project(project_id)
         for requirement in self.list_requirements(project_id):
             yield RequirementOutput.from_orm(
@@ -53,6 +54,15 @@ class RequirementsView:
 
     def list_requirements(self, project_id: int) -> list[Requirement]:
         return self._crud.read_all_from_db(Requirement, project_id=project_id)
+
+    @router.get(
+        "/catalog-modules/{catalog_module_id}/requirements",
+        response_model=list[RequirementOutput],
+        **kwargs
+    )
+    def list_catalog_requirements(self, catalog_module_id: int) -> list[Requirement]:
+        # TODO: implement route
+        pass
 
     @router.post(
         "/projects/{project_id}/requirements",
@@ -63,6 +73,7 @@ class RequirementsView:
     def _create_requirement(
         self, project_id: int, requirement_input: RequirementInput
     ) -> RequirementOutput:
+        # TODO: rename route to create_project_requirement
         return RequirementOutput.from_orm(
             self.create_requirement(project_id, requirement_input),
             update=dict(project=self._projects._get_project(project_id)),
@@ -74,6 +85,42 @@ class RequirementsView:
         requirement = Requirement.from_orm(requirement_input)
         requirement.project = self._projects.get_project(project_id)
         return self._crud.create_in_db(requirement)
+
+    @router.post(
+        "/catalog-modules/{catalog_module_id}/requirements",
+        status_code=201,
+        response_model=Requirement,
+        **kwargs
+    )
+    def create_catalog_requirement(
+        self, catalog_module_id: int, requirement_input: RequirementInput
+    ) -> Requirement:
+        # TODO: Implement route
+        pass
+
+    @router.post(
+        "/projects/{project_id}/requirements/{requirement_id}",
+        status_code=201,
+        response_model=Requirement,
+        **kwargs
+    )
+    def copy_requirement_to_project(
+        self, project_id: int, requirement_id: int
+    ) -> Requirement:
+        # TODO: Implement route
+        pass
+
+    @router.post(
+        "/catalog-modules/{catalog_module_id}/requirements/{requirement_id}",
+        status_code=201,
+        response_model=Requirement,
+        **kwargs
+    )
+    def copy_requirement_to_catalog(
+        self, catalog_module_id: int, requirement_id: int
+    ) -> Requirement:
+        # TODO: Implement route
+        pass
 
     @router.get(
         "/requirements/{requirement_id}", response_model=RequirementOutput, **kwargs
