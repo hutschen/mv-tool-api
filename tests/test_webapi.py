@@ -327,7 +327,6 @@ def test_upload_requirements(client, create_project):
         response = client.post(
             f"/api/projects/{create_project.id}/requirements/excel",
             files=dict(upload_file=excel_file),
-            auth=("u", "p"),
         )
     assert response.status_code == 201
 
@@ -337,7 +336,6 @@ def test_upload_requirements_invalid_file(client, create_project):
         response = client.post(
             f"/api/projects/{create_project.id}/requirements/excel",
             files=dict(upload_file=excel_file),
-            auth=("u", "p"),
         )
     assert response.status_code == 400
 
@@ -347,7 +345,6 @@ def test_upload_requirements_corrupted_file(client, create_project):
         response = client.post(
             f"/api/projects/{create_project.id}/requirements/excel",
             files=dict(upload_file=excel_file),
-            auth=("u", "p"),
         )
     assert response.status_code == 400
     assert len(create_project.requirements) == 0
@@ -358,7 +355,6 @@ def test_upload_measures(client, create_requirement):
         response = client.post(
             f"/api/requirements/{create_requirement.id}/measures/excel",
             files=dict(upload_file=excel_file),
-            auth=("u", "p"),
         )
     assert response.status_code == 201
 
@@ -368,7 +364,6 @@ def test_upload_measures_corrupted_file(client, create_requirement):
         response = client.post(
             f"/api/requirements/{create_requirement.id}/measures/excel",
             files=dict(upload_file=excel_file),
-            auth=("u", "p"),
         )
     assert response.status_code == 400
 
@@ -378,7 +373,6 @@ def test_upload_documents(client, create_project):
         response = client.post(
             f"/api/projects/{create_project.id}/documents/excel",
             files=dict(upload_file=excel_file),
-            auth=("u", "p"),
         )
     assert response.status_code == 201
 
@@ -388,7 +382,6 @@ def test_upload_documents_corrupted_file(client, create_project):
         response = client.post(
             f"/api/projects/{create_project.id}/documents/excel",
             files=dict(upload_file=excel_file),
-            auth=("u", "p"),
         )
     assert response.status_code == 400
 
