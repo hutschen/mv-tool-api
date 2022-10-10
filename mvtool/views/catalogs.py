@@ -35,6 +35,7 @@ class CatalogsView:
         _=Depends(get_jira),  # get jira to enforce login
     ):
         self._crud = crud
+        self._session = self._crud.session
 
     @router.get("/catalogs", response_model=list[CatalogOutput], **kwargs)
     def list_catalogs(self) -> list[Catalog]:
@@ -51,8 +52,11 @@ class CatalogsView:
 
     @router.put("/catalogs/{catalog_id}", response_model=CatalogOutput, **kwargs)
     def update_catalog(self, catalog_id: int, catalog_input: CatalogInput) -> Catalog:
-        catalog = Catalog.from_orm(catalog_input)
-        return self._crud.update_in_db(catalog_id, catalog)
+        catalog = self._session.get(Catalog, catalog_id)
+        for key, value in catalog_input.dict().items():
+            setattr(catalog, key, value)
+        self._session.flush()
+        return catalog
 
     @router.delete("/catalogs/{catalog_id}", status_code=204, **kwargs)
     def delete_catalog(self, catalog_id: int) -> None:
