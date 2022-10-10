@@ -18,14 +18,12 @@
 import re
 import shutil
 from tempfile import NamedTemporaryFile
-from fastapi import APIRouter, Depends, Response, UploadFile
+from fastapi import APIRouter, Depends, UploadFile
 from fastapi_utils.cbv import cbv
 import docx
 
-from mvtool.views.catalog_modules import CatalogModulesView
-
-from .projects import ProjectsView
-from .requirements import RequirementsView
+from .catalogs import CatalogsView
+from .catalog_modules import CatalogModulesView
 from ..database import CRUDOperations
 from ..models import CatalogModule, Requirement
 from .. import errors
@@ -77,8 +75,8 @@ class GSBausteinParser:
         except docx.opc.exceptions.PackageNotFoundError:
             raise errors.ValueHttpError("Word file seems to be corrupted")
         paragraphs = ParagraphsWrapper(word_document.paragraphs)
-        gs_baustein = cls._parse_baustein(paragraphs)
-        return gs_baustein
+        catalog_module = cls._parse_baustein(paragraphs)
+        return catalog_module
 
     @classmethod
     def _parse_requirement_texts(cls, paragraphs, requirement):
@@ -165,7 +163,9 @@ class GSBausteinParser:
             if paragraphs.current.style.name == "Title":
                 match = cls._gs_baustein_title_re.match(paragraphs.current.text)
                 if match:
-                    return CatalogModule(reference=match.group(1), title=match.group(3))
+                    return CatalogModule(
+                        gs_reference=match.group(1), title=match.group(3)
+                    )
                 else:
                     raise errors.ValueHttpError(
                         f"Could not parse GS baustein title: {paragraphs.current.text}"
@@ -182,9 +182,9 @@ class GSBausteinParser:
 
     @classmethod
     def _parse_baustein(cls, paragraphs):
-        gs_baustein = cls._parse_gs_baustein_title(paragraphs)
-        gs_baustein.requirements = cls._parse_requirements_from_baustein(paragraphs)
-        return gs_baustein
+        catalog_module = cls._parse_gs_baustein_title(paragraphs)
+        catalog_module.requirements = cls._parse_requirements_from_baustein(paragraphs)
+        return catalog_module
 
 
 def get_word_temp_file():
@@ -201,16 +201,16 @@ class ImportGSBausteinView:
 
     def __init__(
         self,
-        projects: ProjectsView = Depends(ProjectsView),
+        catalogs: CatalogsView = Depends(CatalogsView),
         crud: CRUDOperations[CatalogModule] = Depends(CRUDOperations),
     ):
-        self._projects = projects
+        self._catalogs = catalogs
         self._crud = crud
 
     @router.post(
         "/catalogs/{catalog_id}/catalog-modules/gs-baustein",
         status_code=201,
-        response_class=Response,
+        response_model=CatalogModule,
         **kwargs,
     )
     def upload_gs_baustein(
@@ -219,12 +219,10 @@ class ImportGSBausteinView:
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_word_temp_file),
     ) -> CatalogModule:
-        # TODO: create catalog module and return it as response
-        project = self._projects.get_project(catalog_id)
+        catalog = self._catalogs.get_catalog(catalog_id)
         shutil.copyfileobj(upload_file.file, temp_file.file)
 
         # Parse GS Baustein and save it and its requirements in the database
-        gs_baustein = GSBausteinParser.parse(temp_file.name)
-        for requirement in gs_baustein.requirements:
-            requirement.project = project
-        self._crud.create_in_db(gs_baustein)
+        catalog_module = GSBausteinParser.parse(temp_file.name)
+        catalog_module.catalog = catalog
+        return self._crud.create_in_db(catalog_module)
