@@ -22,6 +22,7 @@ from unittest.mock import Mock
 from mvtool.config import Config, DatabaseConfig, JiraConfig
 from mvtool import database
 from mvtool.models import (
+    CatalogInput,
     DocumentInput,
     JiraIssue,
     JiraIssueInput,
@@ -33,6 +34,7 @@ from mvtool.models import (
     Requirement,
     RequirementInput,
 )
+from mvtool.views.catalogs import CatalogsView
 from mvtool.views.documents import DocumentsView
 from mvtool.views.excel import (
     DocumentsExcelView,
@@ -208,6 +210,11 @@ def crud(config):
 
 
 @pytest.fixture
+def catalog_input():
+    return CatalogInput(title="title")
+
+
+@pytest.fixture
 def project_input(jira_project_data):
     return ProjectInput(name="name", jira_project_id=jira_project_data.id)
 
@@ -225,6 +232,16 @@ def requirement_input():
 @pytest.fixture()
 def measure_input(create_document):
     return MeasureInput(summary="summary", document_id=create_document.id)
+
+
+@pytest.fixture
+def catalogs_view(crud, jira):
+    return Mock(wraps=CatalogsView(crud, jira))
+
+
+@pytest.fixture
+def create_catalog(catalogs_view: CatalogsView, catalog_input: CatalogInput):
+    return catalogs_view.create_catalog(catalog_input)
 
 
 @pytest.fixture
