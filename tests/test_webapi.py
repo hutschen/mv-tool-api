@@ -393,11 +393,10 @@ def test_upload_documents_corrupted_file(client, create_project):
     assert response.status_code == 400
 
 
-def test_upload_gs_baustein(client, create_project):
+def test_upload_gs_baustein(client, create_catalog):
     with open("tests/data/gs_bausteine/_valid.docx", "rb") as gs_baustein_file:
         response = client.post(
-            f"/api/projects/{create_project.id}/requirements/gs-baustein",
+            f"/api/catalogs/{create_catalog.id}/catalog-modules/gs-baustein",
             files=dict(upload_file=gs_baustein_file),
-            auth=("u", "p"),
         )
     assert response.status_code == 201
