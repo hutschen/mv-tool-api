@@ -54,7 +54,7 @@ def test_migrate_4757e455dd37_apply_naming_conventions(
 
     # check names of foreign key constraints
     inspector = sa.inspect(alembic_engine)
-    for table_name in inspector.get_table_names():
+    for table_name in ("gs_baustein", "project", "document", "requirement", "measure"):
         for fk in inspector.get_foreign_keys(table_name):
             expected_name = "fk_%s_%s_%s" % (
                 table_name,
