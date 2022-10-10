@@ -226,6 +226,15 @@ class Project(ProjectInput, CommonFieldsMixin, table=True):
         return completed / total if total else None
 
 
+class CatalogOutput(CatalogInput):
+    id: int
+
+
+class CatalogModuleOutput(CatalogModuleInput):
+    id: int
+    catalog: CatalogOutput
+
+
 class ProjectOutput(ProjectInput):
     id: int
     jira_project: JiraProject | None
