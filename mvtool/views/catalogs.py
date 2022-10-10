@@ -19,7 +19,7 @@ from fastapi import APIRouter, Depends
 from fastapi_utils.cbv import cbv
 
 from ..auth import get_jira
-from ..models import Catalog, CatalogInput
+from ..models import Catalog, CatalogInput, CatalogOutput
 from ..database import CRUDOperations
 
 router = APIRouter()
@@ -36,20 +36,20 @@ class CatalogsView:
     ):
         self._crud = crud
 
-    @router.get("/catalogs", response_model=list[Catalog], **kwargs)
+    @router.get("/catalogs", response_model=list[CatalogOutput], **kwargs)
     def list_catalogs(self) -> list[Catalog]:
         return self._crud.read_all_from_db(Catalog)
 
-    @router.post("/catalogs", status_code=201, response_model=Catalog, **kwargs)
+    @router.post("/catalogs", status_code=201, response_model=CatalogOutput, **kwargs)
     def create_catalog(self, catalog_input: CatalogInput) -> Catalog:
         catalog = Catalog.from_orm(catalog_input)
         return self._crud.create_in_db(catalog)
 
-    @router.get("/catalogs/{catalog_id}", response_model=Catalog, **kwargs)
+    @router.get("/catalogs/{catalog_id}", response_model=CatalogOutput, **kwargs)
     def get_catalog(self, catalog_id: int) -> Catalog:
         return self._crud.read_from_db(Catalog, catalog_id)
 
-    @router.put("/catalogs/{catalog_id}", response_model=Catalog, **kwargs)
+    @router.put("/catalogs/{catalog_id}", response_model=CatalogOutput, **kwargs)
     def update_catalog(self, catalog_id: int, catalog_input: CatalogInput) -> Catalog:
         catalog = Catalog.from_orm(catalog_input)
         return self._crud.update_in_db(catalog_id, catalog)
