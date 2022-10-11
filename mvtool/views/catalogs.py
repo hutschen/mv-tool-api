@@ -18,6 +18,7 @@
 from fastapi import APIRouter, Depends
 from fastapi_utils.cbv import cbv
 
+from ..errors import NotFoundError
 from ..auth import get_jira
 from ..models import Catalog, CatalogInput, CatalogOutput
 from ..database import CRUDOperations
@@ -53,6 +54,9 @@ class CatalogsView:
     @router.put("/catalogs/{catalog_id}", response_model=CatalogOutput, **kwargs)
     def update_catalog(self, catalog_id: int, catalog_input: CatalogInput) -> Catalog:
         catalog = self._session.get(Catalog, catalog_id)
+        if not catalog:
+            cls_name = Catalog.__name__
+            raise NotFoundError(f"No {cls_name} with id={id}.")
         for key, value in catalog_input.dict().items():
             setattr(catalog, key, value)
         self._session.flush()
