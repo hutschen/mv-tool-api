@@ -83,7 +83,7 @@ T = TypeVar("T", bound=SQLModel)
 
 
 class CRUDOperations(Generic[T]):
-    def __init__(self, session=Depends(get_session)):
+    def __init__(self, session: Session = Depends(get_session)):
         self.session = session
 
     def read_all_from_db(self, sqlmodel: Type[T], **filters) -> list[T]:
