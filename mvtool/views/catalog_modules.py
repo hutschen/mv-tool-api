@@ -15,11 +15,18 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from typing import Iterator
 from fastapi import APIRouter, Depends
 from fastapi_utils.cbv import cbv
+from sqlmodel.sql.expression import select
+
+from mvtool.errors import NotFoundError
 
 from .catalogs import CatalogsView
-from ..models import CatalogModule, CatalogModuleInput
+from ..models import (
+    CatalogModule,
+    CatalogModuleInput,
+)
 from ..database import CRUDOperations
 
 router = APIRouter()
@@ -36,11 +43,12 @@ class CatalogModulesView:
     ):
         self._catalogs = catalogs
         self._crud = crud
+        self._session = self._crud.session
 
     @router.get(
         "/catalogs/{catalog_id}/catalog-modules",
         response_model=list[CatalogModule],
-        **kwargs
+        **kwargs,
     )
     def list_catalog_modules(self, catalog_id: int) -> list[CatalogModule]:
         return self._crud.read_all_from_db(CatalogModule, catalog_id=catalog_id)
@@ -49,7 +57,7 @@ class CatalogModulesView:
         "/catalogs/{catalog_id}/catalog-modules",
         status_code=201,
         response_model=CatalogModule,
-        **kwargs
+        **kwargs,
     )
     def create_catalog_module(
         self, catalog_id: int, catalog_module_input: CatalogModuleInput
@@ -70,8 +78,14 @@ class CatalogModulesView:
     def update_catalog_module(
         self, catalog_module_id: int, catalog_module_input: CatalogModuleInput
     ) -> CatalogModule:
-        catalog_module = CatalogModule.from_orm(catalog_module_input)
-        return self._crud.update_in_db(catalog_module_id, catalog_module)
+        catalog_module = self._session.get(CatalogModule, catalog_module_id)
+        if not catalog_module:
+            cls_name = CatalogModule.__name__
+            raise NotFoundError(f"No {cls_name} with id={id}.")
+        for key, value in catalog_module_input.dict().items():
+            setattr(catalog_module, key, value)
+        self._session.flush()
+        return catalog_module
 
     @router.delete("/catalog-modules/{catalog_module_id}", status_code=204, **kwargs)
     def delete_catalog_module(self, catalog_module_id: int) -> None:
