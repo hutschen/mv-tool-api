@@ -24,6 +24,7 @@ from mvtool import database
 from mvtool.models import (
     Catalog,
     CatalogInput,
+    CatalogModule,
     CatalogModuleInput,
     DocumentInput,
     JiraIssue,
@@ -279,8 +280,10 @@ def create_project(projects_view: ProjectsView, project_input: ProjectInput):
 
 
 @pytest.fixture
-def requirements_view(projects_view, crud):
-    return Mock(wraps=RequirementsView(projects_view, crud))
+def requirements_view(
+    projects_view: ProjectsView, catalog_modules_view: CatalogModulesView, crud
+):
+    return Mock(wraps=RequirementsView(projects_view, catalog_modules_view, crud))
 
 
 @pytest.fixture
@@ -290,6 +293,17 @@ def create_requirement(
     requirement_input: RequirementInput,
 ):
     return requirements_view.create_requirement(create_project.id, requirement_input)
+
+
+@pytest.fixture
+def create_catalog_requirement(
+    requirements_view: RequirementsView,
+    create_catalog_module: CatalogModule,
+    requirement_input: RequirementInput,
+):
+    return requirements_view.create_catalog_requirement(
+        create_catalog_module.id, requirement_input
+    )
 
 
 @pytest.fixture
