@@ -137,11 +137,27 @@ class RequirementsView:
         response_model=Requirement,
         **kwargs
     )
+    def _copy_requirement_to_project(
+        self, project_id: int, requirement_id: int
+    ) -> RequirementOutput:
+        requirement = self.copy_requirement_to_project(project_id, requirement_id)
+        if requirement.project:
+            project_output = self._projects._get_project(requirement.project.id)
+        if requirement.catalog_module:
+            catalog_module_output = self._catalog_modules._get_catalog_module(
+                requirement.catalog_module.id
+            )
+        return RequirementOutput.from_orm(
+            requirement,
+            update=dict(project=project_output, catalog_module=catalog_module_output),
+        )
+
     def copy_requirement_to_project(
         self, project_id: int, requirement_id: int
     ) -> Requirement:
-        # TODO: Implement route
-        pass
+        requirement = self.get_requirement(requirement_id).copy(exclude={"id"})
+        requirement.project = self._projects.get_project(project_id)
+        return self._crud.create_in_db(requirement)
 
     @router.post(
         "/catalog-modules/{catalog_module_id}/requirements/{requirement_id}",
