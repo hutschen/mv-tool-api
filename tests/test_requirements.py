@@ -71,6 +71,7 @@ def test_create_requirement_output(
     assert isinstance(requirement_output, RequirementOutput)
     assert requirement_output.summary == requirement_input.summary
     assert requirement_output.project.id == create_project.id
+    assert requirement_output.catalog_module == None
 
 
 def test_create_requirement_output_invalid_project_id(
@@ -78,7 +79,29 @@ def test_create_requirement_output_invalid_project_id(
 ):
     with pytest.raises(HTTPException) as excinfo:
         requirements_view._create_requirement(-1, requirement_input)
-        excinfo.value.status_code == 404
+    excinfo.value.status_code == 404
+
+
+def test_create_catalog_requirement_output(
+    requirements_view: RequirementsView,
+    create_catalog_module: CatalogModule,
+    requirement_input: RequirementInput,
+):
+    requirement_output = requirements_view._create_catalog_requirement(
+        create_catalog_module.id, requirement_input
+    )
+    assert isinstance(requirement_output, RequirementOutput)
+    assert requirement_output.summary == requirement_input.summary
+    assert requirement_output.project == None
+    assert requirement_output.catalog_module.id == create_catalog_module.id
+
+
+def test_create_catalog_requirement_output_invalid_catalog_module_id(
+    requirements_view: RequirementsView, requirement_input: RequirementInput
+):
+    with pytest.raises(HTTPException) as excinfo:
+        requirements_view._create_catalog_requirement(-1, requirement_input)
+    excinfo.value.status_code == 404
 
 
 def test_get_requirement_output(
