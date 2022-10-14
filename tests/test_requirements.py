@@ -104,6 +104,36 @@ def test_create_catalog_requirement_output_invalid_catalog_module_id(
     excinfo.value.status_code == 404
 
 
+def test_copy_requirement_to_project(
+    requirements_view: RequirementsView,
+    create_requirement: Requirement,
+    create_project: Project,
+):
+    requirement_output = requirements_view._copy_requirement_to_project(
+        create_project.id, create_requirement.id
+    )
+    assert isinstance(requirement_output, RequirementOutput)
+    assert requirement_output.id != create_requirement.id
+    assert requirement_output.project.id == create_project.id
+
+
+def test_copy_catalog_requirement_to_project(
+    requirements_view: RequirementsView,
+    create_catalog_requirement: Requirement,
+    create_project: Project,
+):
+    requirement_output = requirements_view._copy_requirement_to_project(
+        create_project.id, create_catalog_requirement.id
+    )
+    assert isinstance(requirement_output, RequirementOutput)
+    assert requirement_output.id != create_catalog_requirement.id
+    assert requirement_output.project.id == create_project.id
+    assert (
+        requirement_output.catalog_module.id
+        == create_catalog_requirement.catalog_module.id
+    )
+
+
 def test_get_requirement_output(
     requirements_view: RequirementsView, create_requirement: Requirement
 ):
