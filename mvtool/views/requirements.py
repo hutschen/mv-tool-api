@@ -141,6 +141,8 @@ class RequirementsView:
         self, project_id: int, requirement_id: int
     ) -> RequirementOutput:
         requirement = self.copy_requirement_to_project(project_id, requirement_id)
+        project_output = None
+        catalog_module_output = None
         if requirement.project:
             project_output = self._projects._get_project(requirement.project.id)
         if requirement.catalog_module:
@@ -155,7 +157,10 @@ class RequirementsView:
     def copy_requirement_to_project(
         self, project_id: int, requirement_id: int
     ) -> Requirement:
-        requirement = self.get_requirement(requirement_id).copy(exclude={"id"})
+        requirement_data = self.get_requirement(requirement_id).dict(
+            exclude={"id", "created", "modified"}
+        )
+        requirement = Requirement(**requirement_data)
         requirement.project = self._projects.get_project(project_id)
         return self._crud.create_in_db(requirement)
 
