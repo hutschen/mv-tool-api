@@ -18,6 +18,7 @@
 import pytest
 from fastapi import HTTPException
 from mvtool.models import (
+    CatalogModule,
     Measure,
     Project,
     Requirement,
@@ -39,6 +40,23 @@ def test_list_requirement_outputs(
     assert isinstance(requirement_output, RequirementOutput)
     assert requirement_output.id == create_requirement.id
     assert requirement_output.project.id == create_project.id
+
+
+def test_list_catalog_requirement_outputs(
+    requirements_view: RequirementsView,
+    create_catalog_module: CatalogModule,
+    create_catalog_requirement: Requirement,
+    create_requirement: Requirement,
+):
+    results = list(
+        requirements_view._list_catalog_requirements(create_catalog_module.id)
+    )
+    assert len(results) == 1
+    requirement_output = results[0]
+    assert isinstance(requirement_output, RequirementOutput)
+    assert requirement_output.id == create_catalog_requirement.id
+    assert requirement_output.project == None
+    assert requirement_output.catalog_module.id == create_catalog_module.id
 
 
 def test_create_requirement_output(
