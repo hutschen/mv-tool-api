@@ -248,7 +248,7 @@ class DocumentOutput(DocumentInput):
 
 class RequirementOutput(RequirementInput):
     id: int
-    project: ProjectOutput
+    project: ProjectOutput | None
     completion: confloat(ge=0, le=1) | None
 
     # Special fields for IT Grundschutz Kompendium
