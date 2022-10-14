@@ -19,9 +19,11 @@
 from typing import Iterator
 from fastapi import APIRouter, Depends, Response
 from fastapi_utils.cbv import cbv
+from sqlmodel import select
 
 from ..database import CRUDOperations
 from .projects import ProjectsView
+from .catalog_modules import CatalogModulesView
 from ..models import RequirementInput, Requirement, RequirementOutput
 
 router = APIRouter()
@@ -34,10 +36,13 @@ class RequirementsView:
     def __init__(
         self,
         projects: ProjectsView = Depends(ProjectsView),
+        catalog_modules: CatalogModulesView = Depends(CatalogModulesView),
         crud: CRUDOperations[Requirement] = Depends(CRUDOperations),
     ):
         self._projects = projects
+        self._catalog_modules = catalog_modules
         self._crud = crud
+        self._session = self._crud.session
 
     @router.get(
         "/projects/{project_id}/requirements",
@@ -60,9 +65,23 @@ class RequirementsView:
         response_model=list[RequirementOutput],
         **kwargs
     )
+    def _list_catalog_requirements(
+        self, catalog_module_id: int
+    ) -> Iterator[RequirementOutput]:
+        catalog_module_output = self._catalog_modules._get_catalog_module(
+            catalog_module_id
+        )
+        for requirement in self.list_catalog_requirements(catalog_module_id):
+            yield RequirementOutput.from_orm(
+                requirement, update=dict(catalog_module=catalog_module_output)
+            )
+
     def list_catalog_requirements(self, catalog_module_id: int) -> list[Requirement]:
-        # TODO: implement route
-        pass
+        query = select(Requirement).where(
+            Requirement.catalog_module_id == catalog_module_id,
+            Requirement.project_id == None,
+        )
+        return self._session.exec(query).all()
 
     @router.post(
         "/projects/{project_id}/requirements",
@@ -95,7 +114,6 @@ class RequirementsView:
     def create_catalog_requirement(
         self, catalog_module_id: int, requirement_input: RequirementInput
     ) -> Requirement:
-        # TODO: Implement route
         pass
 
     @router.post(
