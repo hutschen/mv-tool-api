@@ -108,7 +108,7 @@ class RequirementsView:
     @router.post(
         "/catalog-modules/{catalog_module_id}/requirements",
         status_code=201,
-        response_model=Requirement,
+        response_model=RequirementOutput,
         **kwargs
     )
     def _create_catalog_requirement(
