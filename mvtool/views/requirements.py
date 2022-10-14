@@ -111,10 +111,25 @@ class RequirementsView:
         response_model=Requirement,
         **kwargs
     )
+    def _create_catalog_requirement(
+        self, catalog_module_id: int, requirement_input: RequirementInput
+    ) -> RequirementOutput:
+        return RequirementOutput.from_orm(
+            self.create_catalog_requirement(catalog_module_id, requirement_input),
+            update=dict(
+                catalog_module=self._catalog_modules._get_catalog_module(
+                    catalog_module_id
+                )
+            ),
+        )
+
     def create_catalog_requirement(
         self, catalog_module_id: int, requirement_input: RequirementInput
     ) -> Requirement:
-        pass
+        catalog_module = self._catalog_modules.get_catalog_module(catalog_module_id)
+        requirement = Requirement.from_orm(requirement_input)
+        requirement.catalog_module = catalog_module
+        return self._crud.create_in_db(requirement)
 
     @router.post(
         "/projects/{project_id}/requirements/{requirement_id}",
