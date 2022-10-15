@@ -15,13 +15,15 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from urllib import response
 import pytest
-from jira import JIRAError, Project
+from jira import JIRAError
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from mvtool import app
 from mvtool.auth import get_jira
 from mvtool.database import get_session
+from mvtool.models import Project, CatalogModule, Requirement
 
 
 @pytest.fixture
@@ -218,6 +220,40 @@ def test_create_requirement(client, create_project: Project):
     requirement = response.json()
     assert type(requirement) == dict
     assert requirement["project"]["id"] == create_project.id
+
+
+def test_list_catalog_requirements(client, create_catalog_module: CatalogModule):
+    response = client.get(
+        f"/api/catalog-modules/{create_catalog_module.id}/requirements"
+    )
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)
+
+
+def test_copy_requirement_to_project(
+    client,
+    create_project: Project,
+    create_catalog_requirement: Requirement,
+):
+    response = client.post(
+        f"/api/projects/{create_project.id}/requirements/{create_catalog_requirement.id}"
+    )
+    assert response.status_code == 201
+    requirement = response.json()
+    assert isinstance(requirement, dict)
+    assert requirement["id"] != create_catalog_requirement.id
+
+
+def test_copy_requirement_to_catalog(
+    client, create_catalog_module: CatalogModule, create_requirement: Requirement
+):
+    response = client.post(
+        f"/api/catalog-modules/{create_catalog_module.id}/requirements/{create_requirement.id}"
+    )
+    assert response.status_code == 201
+    requirement = response.json()
+    assert isinstance(requirement, dict)
+    assert requirement["id"] != create_requirement.id
 
 
 def test_get_requirement(client, create_requirement):
