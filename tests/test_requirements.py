@@ -134,6 +134,20 @@ def test_copy_catalog_requirement_to_project(
     )
 
 
+def test_copy_requirement_to_catalog(
+    requirements_view: RequirementsView,
+    create_requirement: Requirement,
+    create_catalog_module: CatalogModule,
+):
+    requirement_output = requirements_view._copy_requirement_to_catalog(
+        create_catalog_module.id, create_requirement.id
+    )
+    assert isinstance(requirement_output, RequirementOutput)
+    assert requirement_output.id != create_requirement.id
+    assert requirement_output.project == None
+    assert requirement_output.catalog_module.id == create_catalog_module.id
+
+
 def test_get_requirement_output(
     requirements_view: RequirementsView, create_requirement: Requirement
 ):
