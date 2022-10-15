@@ -50,7 +50,6 @@ class RequirementsView:
         **kwargs
     )
     def _list_requirements(self, project_id: int) -> Iterator[RequirementOutput]:
-        # TODO: rename route to list_project_requirements
         project_output = self._projects._get_project(project_id)
         for requirement in self.list_requirements(project_id):
             yield RequirementOutput.from_orm(
@@ -92,7 +91,6 @@ class RequirementsView:
     def _create_requirement(
         self, project_id: int, requirement_input: RequirementInput
     ) -> RequirementOutput:
-        # TODO: rename route to create_project_requirement
         return RequirementOutput.from_orm(
             self.create_requirement(project_id, requirement_input),
             update=dict(project=self._projects._get_project(project_id)),
