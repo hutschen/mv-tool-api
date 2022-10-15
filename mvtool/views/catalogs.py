@@ -75,7 +75,7 @@ class CatalogsView:
         catalog = self._session.get(Catalog, catalog_id)
         if not catalog:
             cls_name = Catalog.__name__
-            raise NotFoundError(f"No {cls_name} with id={id}.")
+            raise NotFoundError(f"No {cls_name} with id={catalog_id}.")
         for key, value in catalog_input.dict().items():
             setattr(catalog, key, value)
         self._session.flush()

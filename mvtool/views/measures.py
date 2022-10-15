@@ -51,6 +51,7 @@ class MeasuresView:
         self._requirements = requirements
         self._documents = documents
         self._crud = crud
+        self._session = self._crud.session
 
     @router.get(
         "/requirements/{requirement_id}/measures",
@@ -152,15 +153,17 @@ class MeasuresView:
             ),
         )
 
-    def update_measure(self, measure_id: int, measure_update: MeasureInput) -> Measure:
-        measure_current = self._crud.read_from_db(Measure, measure_id)
-        measure_update = Measure.from_orm(
-            measure_update,
-            update=dict(requirement_id=measure_current.requirement_id),
-        )
-        self._jira_issues.check_jira_issue_id(measure_update.jira_issue_id)
-        self._documents.check_document_id(measure_update.document_id)
-        return self._crud.update_in_db(measure_id, measure_update)
+    def update_measure(self, measure_id: int, measure_input: MeasureInput) -> Measure:
+        measure = self._session.get(Measure, measure_id)
+        if measure is None:
+            cls_name = Measure.__name__
+            raise NotFoundError(f"No {cls_name} with id={measure_id}.")
+        self._jira_issues.check_jira_issue_id(measure_input.jira_issue_id)
+        self._documents.check_document_id(measure_input.document_id)
+        for key, value in measure_input.dict().items():
+            setattr(measure, key, value)
+        self._session.flush()
+        return measure
 
     @router.delete(
         "/measures/{measure_id}", status_code=204, response_class=Response, **kwargs

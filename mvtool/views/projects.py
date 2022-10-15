@@ -20,6 +20,8 @@ from typing import Iterator
 from fastapi import APIRouter, Depends, Response
 from fastapi_utils.cbv import cbv
 
+from mvtool.errors import NotFoundError
+
 from ..database import CRUDOperations
 from .jira_ import JiraProjectsView
 from ..models import ProjectInput, Project, ProjectOutput
@@ -38,6 +40,7 @@ class ProjectsView:
     ):
         self._jira_projects = jira_projects
         self._crud = crud
+        self._session = self._crud.session
 
     @router.get("/projects", response_model=list[ProjectOutput], **kwargs)
     def _list_projects(self) -> Iterator[ProjectOutput]:
@@ -91,12 +94,17 @@ class ProjectsView:
         )
         return project
 
-    def update_project(self, project_id: int, project_update: ProjectInput) -> Project:
-        project_update = Project.from_orm(project_update)
-        project_current = self.get_project(project_id)
-        if project_update.jira_project_id != project_current.jira_project_id:
-            self._jira_projects.check_jira_project_id(project_update.jira_project_id)
-        return self._crud.update_in_db(project_id, project_update)
+    def update_project(self, project_id: int, project_input: ProjectInput) -> Project:
+        project = self._session.get(Project, project_id)
+        if not project:
+            cls_name = Project.__name__
+            raise NotFoundError(f"No {cls_name} with id={project_id}.")
+        if project_input.jira_project_id != project.jira_project_id:
+            self._jira_projects.check_jira_project_id(project_input.jira_project_id)
+        for key, value in project_input.dict().items():
+            setattr(project, key, value)
+        self._session.flush()
+        return project
 
     @router.delete(
         "/projects/{project_id}", status_code=204, response_class=Response, **kwargs
