@@ -22,6 +22,10 @@ from unittest.mock import Mock
 from mvtool.config import Config, DatabaseConfig, JiraConfig
 from mvtool import database
 from mvtool.models import (
+    Catalog,
+    CatalogInput,
+    CatalogModule,
+    CatalogModuleInput,
     DocumentInput,
     JiraIssue,
     JiraIssueInput,
@@ -33,6 +37,8 @@ from mvtool.models import (
     Requirement,
     RequirementInput,
 )
+from mvtool.views.catalog_modules import CatalogModulesView
+from mvtool.views.catalogs import CatalogsView
 from mvtool.views.documents import DocumentsView
 from mvtool.views.excel import (
     DocumentsExcelView,
@@ -208,6 +214,16 @@ def crud(config):
 
 
 @pytest.fixture
+def catalog_input():
+    return CatalogInput(title="title")
+
+
+@pytest.fixture
+def catalog_module_input():
+    return CatalogModuleInput(title="title")
+
+
+@pytest.fixture
 def project_input(jira_project_data):
     return ProjectInput(name="name", jira_project_id=jira_project_data.id)
 
@@ -228,6 +244,32 @@ def measure_input(create_document):
 
 
 @pytest.fixture
+def catalogs_view(crud, jira):
+    return Mock(wraps=CatalogsView(crud, jira))
+
+
+@pytest.fixture
+def create_catalog(catalogs_view: CatalogsView, catalog_input: CatalogInput):
+    return catalogs_view.create_catalog(catalog_input)
+
+
+@pytest.fixture
+def catalog_modules_view(catalogs_view, crud):
+    return Mock(wraps=CatalogModulesView(catalogs_view, crud))
+
+
+@pytest.fixture
+def create_catalog_module(
+    catalog_modules_view: CatalogModulesView,
+    create_catalog: Catalog,
+    catalog_module_input: CatalogModuleInput,
+):
+    return catalog_modules_view.create_catalog_module(
+        create_catalog.id, catalog_module_input
+    )
+
+
+@pytest.fixture
 def projects_view(jira_projects_view, crud):
     return Mock(wraps=ProjectsView(jira_projects_view, crud))
 
@@ -238,8 +280,10 @@ def create_project(projects_view: ProjectsView, project_input: ProjectInput):
 
 
 @pytest.fixture
-def requirements_view(projects_view, crud):
-    return Mock(wraps=RequirementsView(projects_view, crud))
+def requirements_view(
+    projects_view: ProjectsView, catalog_modules_view: CatalogModulesView, crud
+):
+    return Mock(wraps=RequirementsView(projects_view, catalog_modules_view, crud))
 
 
 @pytest.fixture
@@ -249,6 +293,17 @@ def create_requirement(
     requirement_input: RequirementInput,
 ):
     return requirements_view.create_requirement(create_project.id, requirement_input)
+
+
+@pytest.fixture
+def create_catalog_requirement(
+    requirements_view: RequirementsView,
+    create_catalog_module: CatalogModule,
+    requirement_input: RequirementInput,
+):
+    return requirements_view.create_catalog_requirement(
+        create_catalog_module.id, requirement_input
+    )
 
 
 @pytest.fixture
