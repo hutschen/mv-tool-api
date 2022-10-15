@@ -158,7 +158,7 @@ class RequirementsView:
         self, project_id: int, requirement_id: int
     ) -> Requirement:
         requirement_data = self.get_requirement(requirement_id).dict(
-            exclude={"id", "created", "modified"}
+            exclude={"id", "created", "updated"}
         )
         requirement = Requirement(**requirement_data)
         requirement.project = self._projects.get_project(project_id)
@@ -170,11 +170,30 @@ class RequirementsView:
         response_model=Requirement,
         **kwargs
     )
+    def _copy_requirement_to_catalog(
+        self, catalog_module_id: int, requirement_id: int
+    ) -> RequirementOutput:
+        return RequirementOutput.from_orm(
+            self.copy_requirement_to_catalog(catalog_module_id, requirement_id),
+            update=dict(
+                catalog_module=self._catalog_modules._get_catalog_module(
+                    catalog_module_id
+                )
+            ),
+        )
+
     def copy_requirement_to_catalog(
         self, catalog_module_id: int, requirement_id: int
     ) -> Requirement:
-        # TODO: Implement route
-        pass
+        requirement_data = self.get_requirement(requirement_id).dict(
+            exclude={"id", "created", "updated"}
+        )
+        requirement = Requirement(**requirement_data)
+        requirement.project = None
+        requirement.catalog_module = self._catalog_modules.get_catalog_module(
+            catalog_module_id
+        )
+        return self._crud.create_in_db(requirement)
 
     @router.get(
         "/requirements/{requirement_id}", response_model=RequirementOutput, **kwargs
