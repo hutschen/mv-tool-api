@@ -20,6 +20,8 @@ from typing import Iterator
 from fastapi import APIRouter, Depends, Response
 from fastapi_utils.cbv import cbv
 
+from mvtool.errors import NotFoundError
+
 from ..database import CRUDOperations
 from .projects import ProjectsView
 from ..models import DocumentInput, Document, DocumentOutput
@@ -38,11 +40,12 @@ class DocumentsView:
     ):
         self._projects = projects
         self._crud = crud
+        self._session = self._crud.session
 
     @router.get(
         "/projects/{project_id}/documents",
         response_model=list[DocumentOutput],
-        **kwargs
+        **kwargs,
     )
     def _list_documents(self, project_id: int) -> Iterator[DocumentOutput]:
         project_output = self._projects._get_project(project_id)
@@ -56,7 +59,7 @@ class DocumentsView:
         "/projects/{project_id}/documents",
         status_code=201,
         response_model=DocumentOutput,
-        **kwargs
+        **kwargs,
     )
     def _create_document(
         self, project_id: int, document_input: DocumentInput
@@ -103,13 +106,16 @@ class DocumentsView:
         )
 
     def update_document(
-        self, document_id: int, document_update: DocumentInput
+        self, document_id: int, document_input: DocumentInput
     ) -> Document:
-        document = self._crud.read_from_db(Document, document_id)
-        document_update = Document.from_orm(
-            document_update, update=dict(project_id=document.project_id)
-        )
-        return self._crud.update_in_db(document_id, document_update)
+        document = self._session.get(Document, document_id)
+        if not document:
+            cls_name = Document.__name__
+            raise NotFoundError(f"No {cls_name} with id={document_id}.")
+        for key, value in document_input.dict().items():
+            setattr(document, key, value)
+        self._session.flush()
+        return document
 
     @router.delete(
         "/documents/{document_id}", status_code=204, response_class=Response, **kwargs
