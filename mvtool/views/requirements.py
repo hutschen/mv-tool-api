@@ -21,6 +21,8 @@ from fastapi import APIRouter, Depends, Response
 from fastapi_utils.cbv import cbv
 from sqlmodel import select
 
+from mvtool.errors import NotFoundError
+
 from ..database import CRUDOperations
 from .projects import ProjectsView
 from .catalog_modules import CatalogModulesView
@@ -47,7 +49,7 @@ class RequirementsView:
     @router.get(
         "/projects/{project_id}/requirements",
         response_model=list[RequirementOutput],
-        **kwargs
+        **kwargs,
     )
     def _list_requirements(self, project_id: int) -> Iterator[RequirementOutput]:
         project_output = self._projects._get_project(project_id)
@@ -62,7 +64,7 @@ class RequirementsView:
     @router.get(
         "/catalog-modules/{catalog_module_id}/requirements",
         response_model=list[RequirementOutput],
-        **kwargs
+        **kwargs,
     )
     def _list_catalog_requirements(
         self, catalog_module_id: int
@@ -86,7 +88,7 @@ class RequirementsView:
         "/projects/{project_id}/requirements",
         status_code=201,
         response_model=RequirementOutput,
-        **kwargs
+        **kwargs,
     )
     def _create_requirement(
         self, project_id: int, requirement_input: RequirementInput
@@ -107,7 +109,7 @@ class RequirementsView:
         "/catalog-modules/{catalog_module_id}/requirements",
         status_code=201,
         response_model=RequirementOutput,
-        **kwargs
+        **kwargs,
     )
     def _create_catalog_requirement(
         self, catalog_module_id: int, requirement_input: RequirementInput
@@ -133,7 +135,7 @@ class RequirementsView:
         "/projects/{project_id}/requirements/{requirement_id}",
         status_code=201,
         response_model=Requirement,
-        **kwargs
+        **kwargs,
     )
     def _copy_requirement_to_project(
         self, project_id: int, requirement_id: int
@@ -166,7 +168,7 @@ class RequirementsView:
         "/catalog-modules/{catalog_module_id}/requirements/{requirement_id}",
         status_code=201,
         response_model=Requirement,
-        **kwargs
+        **kwargs,
     )
     def _copy_requirement_to_catalog(
         self, catalog_module_id: int, requirement_id: int
@@ -221,24 +223,20 @@ class RequirementsView:
     def update_requirement(
         self, requirement_id: int, requirement_input: RequirementInput
     ) -> Requirement:
-        requirement = self._crud.read_from_db(Requirement, requirement_id)
-        updated_requirement = Requirement.from_orm(
-            requirement_input,
-            update=dict(
-                project_id=requirement.project_id,
-                gs_anforderung_reference=requirement.gs_anforderung_reference,
-                gs_absicherung=requirement.gs_absicherung,
-                gs_verantwortliche=requirement.gs_verantwortliche,
-                catalog_module_id=requirement.catalog_module_id,
-            ),
-        )
-        return self._crud.update_in_db(requirement_id, updated_requirement)
+        requirement = self._session.get(Requirement, requirement_id)
+        if not requirement:
+            cls_name = Requirement.__name__
+            raise NotFoundError(f"No {cls_name} with id={requirement_input}.")
+        for key, value in requirement_input.dict().items():
+            setattr(requirement, key, value)
+        self._session.flush()
+        return requirement
 
     @router.delete(
         "/requirements/{requirement_id}",
         status_code=204,
         response_class=Response,
-        **kwargs
+        **kwargs,
     )
     def delete_requirement(self, requirement_id: int) -> None:
         return self._crud.delete_from_db(Requirement, requirement_id)
