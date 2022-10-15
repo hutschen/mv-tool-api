@@ -114,7 +114,7 @@ class CatalogModulesView:
         catalog_module = self._session.get(CatalogModule, catalog_module_id)
         if not catalog_module:
             cls_name = CatalogModule.__name__
-            raise NotFoundError(f"No {cls_name} with id={id}.")
+            raise NotFoundError(f"No {cls_name} with id={catalog_module_id}.")
         for key, value in catalog_module_input.dict().items():
             setattr(catalog_module, key, value)
         self._session.flush()
