@@ -47,7 +47,7 @@ class CatalogModulesView:
 
     @router.get(
         "/catalogs/{catalog_id}/catalog-modules",
-        response_model=list[CatalogModule],
+        response_model=list[CatalogModuleOutput],
         **kwargs,
     )
     def _list_catalog_modules(self, catalog_id: int) -> Iterator[CatalogModuleOutput]:
@@ -63,7 +63,7 @@ class CatalogModulesView:
     @router.post(
         "/catalogs/{catalog_id}/catalog-modules",
         status_code=201,
-        response_model=CatalogModule,
+        response_model=CatalogModuleOutput,
         **kwargs,
     )
     def _create_catalog_module(
@@ -82,7 +82,9 @@ class CatalogModulesView:
         return self._crud.create_in_db(catalog_module)
 
     @router.get(
-        "/catalog-modules/{catalog_module_id}", response_model=CatalogModule, **kwargs
+        "/catalog-modules/{catalog_module_id}",
+        response_model=CatalogModuleOutput,
+        **kwargs,
     )
     def _get_catalog_module(self, catalog_module_id: int) -> CatalogModuleOutput:
         catalog_module = self.get_catalog_module(catalog_module_id)
@@ -95,7 +97,9 @@ class CatalogModulesView:
         return self._crud.read_from_db(CatalogModule, catalog_module_id)
 
     @router.put(
-        "/catalog-modules/{catalog_module_id}", response_model=CatalogModule, **kwargs
+        "/catalog-modules/{catalog_module_id}",
+        response_model=CatalogModuleOutput,
+        **kwargs,
     )
     def _update_catalog_module(
         self, catalog_module_id: int, catalog_module_input: CatalogModuleInput
