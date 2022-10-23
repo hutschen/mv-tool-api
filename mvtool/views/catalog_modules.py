@@ -18,7 +18,6 @@
 from typing import Iterator
 from fastapi import APIRouter, Depends
 from fastapi_utils.cbv import cbv
-from sqlmodel.sql.expression import select
 
 from .catalogs import CatalogsView
 from ..errors import NotFoundError
