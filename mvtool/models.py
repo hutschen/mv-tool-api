@@ -255,7 +255,7 @@ class RequirementOutput(RequirementInput):
     gs_anforderung_reference: str | None
     gs_absicherung: constr(regex=r"^(B|S|H)$") | None
     gs_verantwortliche: str | None
-    catalog_module: CatalogModule | None
+    catalog_module: CatalogModuleOutput | None
 
 
 class MeasureOutput(SQLModel):
