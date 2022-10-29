@@ -116,9 +116,7 @@ class Requirement(RequirementInput, CommonFieldsMixin, table=True):
     gs_absicherung: constr(regex=r"^(B|S|H)$") | None
     gs_verantwortliche: str | None
     catalog_module_id: int | None = Field(default=None, foreign_key="catalog_module.id")
-    catalog_module: "CatalogModule" = Relationship(
-        back_populates="requirements", sa_relationship_kwargs={"cascade": "all,delete"}
-    )
+    catalog_module: "CatalogModule" = Relationship(back_populates="requirements")
 
     @property
     def completion(self) -> float | None:
@@ -153,7 +151,10 @@ class CatalogModuleInput(SQLModel):
 
 class CatalogModule(CatalogModuleInput, CommonFieldsMixin, table=True):
     __tablename__ = "catalog_module"
-    requirements: list[Requirement] = Relationship(back_populates="catalog_module")
+    requirements: list[Requirement] = Relationship(
+        back_populates="catalog_module",
+        sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
+    )
     catalog_id: int | None = Field(default=None, foreign_key="catalog.id")
     catalog: "Catalog" = Relationship(back_populates="catalog_modules")
 
