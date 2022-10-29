@@ -82,10 +82,13 @@ class Measure(MeasureInput, CommonFieldsMixin, table=True):
     document: "Document" = Relationship(back_populates="measures")
 
 
-class RequirementInput(SQLModel):
+class AbstractRequirementInput(SQLModel):
     reference: str | None
     summary: str
     description: str | None
+
+
+class RequirementInput(AbstractRequirementInput):
     target_object: str | None
     compliance_status: constr(regex=r"^(C|PC|NC|N/A)$") | None
     compliance_comment: str | None
@@ -106,17 +109,16 @@ class RequirementInput(SQLModel):
 class Requirement(RequirementInput, CommonFieldsMixin, table=True):
     project_id: int | None = Field(default=None, foreign_key="project.id")
     project: "Project" = Relationship(back_populates="requirements")
+    catalog_requirement_id: int | None = Field(
+        default=None, foreign_key="catalog_requirement.id"
+    )
+    catalog_requirement: "CatalogRequirement" = Relationship(
+        back_populates="requirements"
+    )
     measures: list[Measure] = Relationship(
         back_populates="requirement",
         sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
     )
-
-    # Special fields for IT Grundschutz Kompendium
-    gs_anforderung_reference: str | None
-    gs_absicherung: constr(regex=r"^(B|S|H)$") | None
-    gs_verantwortliche: str | None
-    catalog_module_id: int | None = Field(default=None, foreign_key="catalog_module.id")
-    catalog_module: "CatalogModule" = Relationship(back_populates="requirements")
 
     @property
     def completion(self) -> float | None:
@@ -140,6 +142,21 @@ class Requirement(RequirementInput, CommonFieldsMixin, table=True):
         return completed / total if total else 0.0
 
 
+class CatalogRequirementInput(AbstractRequirementInput):
+    # Special fields for IT Grundschutz Kompendium
+    gs_anforderung_reference: str | None
+    gs_absicherung: constr(regex=r"^(B|S|H)$") | None
+    gs_verantwortliche: str | None
+
+
+class CatalogRequirement(CatalogRequirementInput, CommonFieldsMixin, table=True):
+    __tablename__ = "catalog_requirement"
+    catalog_module_id: int | None = Field(default=None, foreign_key="catalog_module.id")
+    catalog_module: "CatalogModule" = Relationship(
+        back_populates="catalog_requirements"
+    )
+
+
 class CatalogModuleInput(SQLModel):
     reference: str | None
     title: str
@@ -151,7 +168,7 @@ class CatalogModuleInput(SQLModel):
 
 class CatalogModule(CatalogModuleInput, CommonFieldsMixin, table=True):
     __tablename__ = "catalog_module"
-    requirements: list[Requirement] = Relationship(
+    catalog_requirements: list[CatalogRequirement] = Relationship(
         back_populates="catalog_module",
         sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
     )
@@ -247,16 +264,21 @@ class DocumentOutput(DocumentInput):
     project: ProjectOutput
 
 
-class RequirementOutput(RequirementInput):
+class CatalogRequirementOutput(CatalogRequirementInput):
     id: int
-    project: ProjectOutput | None
-    completion: confloat(ge=0, le=1) | None
+    catalog_module: CatalogModuleOutput
 
     # Special fields for IT Grundschutz Kompendium
     gs_anforderung_reference: str | None
     gs_absicherung: constr(regex=r"^(B|S|H)$") | None
     gs_verantwortliche: str | None
-    catalog_module: CatalogModuleOutput | None
+
+
+class RequirementOutput(RequirementInput):
+    id: int
+    project: ProjectOutput
+    catalog_requirement: CatalogRequirementOutput | None
+    completion: confloat(ge=0, le=1) | None
 
 
 class MeasureOutput(SQLModel):
