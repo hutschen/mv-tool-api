@@ -42,7 +42,10 @@ def upgrade() -> None:
         batch_op.add_column(
             sa.Column("catalog_requirement_id", sa.Integer(), nullable=True)
         )
-        batch_op.drop_constraint("fk_requirement_catalog_module", type_="foreignkey")
+        batch_op.drop_constraint(
+            batch_op.f("fk_requirement_catalog_module_id_catalog_module"),
+            type_="foreignkey",
+        )
         batch_op.create_foreign_key(
             batch_op.f("fk_requirement_catalog_requirement_id_catalog_requirement"),
             "catalog_requirement",
@@ -73,7 +76,7 @@ def downgrade() -> None:
             type_="foreignkey",
         )
         batch_op.create_foreign_key(
-            "fk_requirement_catalog_module",
+            batch_op.f("fk_requirement_catalog_module_id_catalog_module"),
             "catalog_module",
             ["catalog_module_id"],
             ["id"],
