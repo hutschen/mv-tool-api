@@ -155,6 +155,7 @@ class CatalogRequirement(CatalogRequirementInput, CommonFieldsMixin, table=True)
     catalog_module: "CatalogModule" = Relationship(
         back_populates="catalog_requirements"
     )
+    requirements: list[Requirement] = Relationship(back_populates="catalog_requirement")
 
 
 class CatalogModuleInput(SQLModel):
