@@ -199,3 +199,68 @@ def test_migration_ab13bba14886_add_catalog(
         assert conn.execute(
             "SELECT COUNT(*) FROM catalog_module WHERE catalog_id IS %d" % catalog_id
         ).scalar() == len(catalog_module_ids)
+
+
+def test_migration_4cd3702a9e46_add_catalog_requirement(
+    alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
+):
+    timestamp = datetime.utcnow()
+    catalog_module_id = 1
+    catalog_requirement_ids = set(range(1, 5))
+    requirement_ids = set(
+        range(
+            1 + len(catalog_requirement_ids),
+            5 + len(catalog_requirement_ids),
+        )
+    )
+
+    alembic_runner.migrate_up_before("4cd3702a9e46")
+    alembic_runner.insert_into(
+        "catalog_module",
+        {
+            "id": catalog_module_id,
+            "created": timestamp,
+            "updated": timestamp,
+            "title": "title %d" % catalog_module_id,
+        },
+    )
+    for catalog_requirement_id in catalog_requirement_ids:
+        alembic_runner.insert_into(
+            "requirement",
+            {
+                "id": catalog_requirement_id,
+                "created": timestamp,
+                "updated": timestamp,
+                "summary": "summary %d" % catalog_requirement_id,
+                "catalog_module_id": catalog_module_id,
+            },
+        )
+    for requirement_id in requirement_ids:
+        alembic_runner.insert_into(
+            "requirement",
+            {
+                "id": requirement_id,
+                "created": timestamp,
+                "updated": timestamp,
+                "summary": "summary %d" % requirement_id,
+            },
+        )
+    alembic_runner.migrate_up_one()
+
+    with alembic_engine.connect() as conn:
+        # check if catalog requirements are created from requirements
+        catalog_requirements = conn.execute(
+            "SELECT * FROM catalog_requirement"
+        ).fetchall()
+        assert len(catalog_requirements) == len(catalog_requirement_ids)
+        for catalog_requirement in catalog_requirements:
+            assert catalog_requirement["catalog_module_id"] == catalog_module_id
+        assert {cr["id"] for cr in catalog_requirements} == catalog_requirement_ids
+
+        # check if catalog requirements are linked to requirements
+        requirements = conn.execute(
+            "SELECT * FROM requirement WHERE catalog_requirement_id IS NOT NULL"
+        ).fetchall()
+        assert len(requirements) == len(catalog_requirement_ids)
+        for requirement in requirements:
+            assert requirement["catalog_requirement_id"] == requirement["id"]
