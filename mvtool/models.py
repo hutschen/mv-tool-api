@@ -109,12 +109,14 @@ class RequirementInput(AbstractRequirementInput):
 
 class Requirement(RequirementInput, CommonFieldsMixin, table=True):
     project_id: int | None = Field(default=None, foreign_key="project.id")
-    project: "Project" = Relationship(back_populates="requirements")
+    project: "Project" = Relationship(
+        back_populates="requirements", sa_relationship_kwargs=dict(lazy="joined")
+    )
     catalog_requirement_id: int | None = Field(
         default=None, foreign_key="catalog_requirement.id"
     )
     catalog_requirement: "CatalogRequirement" = Relationship(
-        back_populates="requirements"
+        back_populates="requirements", sa_relationship_kwargs=dict(lazy="joined")
     )
     measures: list[Measure] = Relationship(
         back_populates="requirement",
