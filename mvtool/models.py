@@ -153,7 +153,8 @@ class CatalogRequirement(CatalogRequirementInput, CommonFieldsMixin, table=True)
     __tablename__ = "catalog_requirement"
     catalog_module_id: int | None = Field(default=None, foreign_key="catalog_module.id")
     catalog_module: "CatalogModule" = Relationship(
-        back_populates="catalog_requirements"
+        back_populates="catalog_requirements",
+        sa_relationship_kwargs=dict(lazy="joined"),
     )
     requirements: list[Requirement] = Relationship(back_populates="catalog_requirement")
 
@@ -174,7 +175,9 @@ class CatalogModule(CatalogModuleInput, CommonFieldsMixin, table=True):
         sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
     )
     catalog_id: int | None = Field(default=None, foreign_key="catalog.id")
-    catalog: "Catalog" = Relationship(back_populates="catalog_modules")
+    catalog: "Catalog" = Relationship(
+        back_populates="catalog_modules", sa_relationship_kwargs=dict(lazy="joined")
+    )
 
 
 class CatalogInput(SQLModel):
