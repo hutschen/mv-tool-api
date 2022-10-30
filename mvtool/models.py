@@ -17,7 +17,8 @@
 
 
 from datetime import datetime
-from pydantic import confloat, constr, validator
+from typing import Callable
+from pydantic import PrivateAttr, confloat, constr, validator
 from sqlmodel import SQLModel, Field, Relationship, Session, select, func, or_
 
 
@@ -221,6 +222,20 @@ class Project(ProjectInput, CommonFieldsMixin, table=True):
         back_populates="project",
         sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
     )
+
+    _get_jira_project: Callable = PrivateAttr()
+    _jira_project: JiraProject = PrivateAttr()
+
+    @property
+    def jira_project(self) -> JiraProject | None:
+        if self.jira_project_id is None:
+            return None
+
+        get_jira_project = getattr(self, "_get_jira_project", lambda _: None)
+        if getattr(self, "_jira_project", None) is None:
+            self._jira_project = get_jira_project(self.jira_project_id)
+
+        return self._jira_project
 
     @property
     def completion(self) -> float | None:
