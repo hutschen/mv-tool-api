@@ -226,7 +226,7 @@ class RequirementsView:
         requirement = self._session.get(Requirement, requirement_id)
         if not requirement:
             cls_name = Requirement.__name__
-            raise NotFoundError(f"No {cls_name} with id={requirement_input}.")
+            raise NotFoundError(f"No {cls_name} with id={requirement_id}.")
         for key, value in requirement_input.dict().items():
             setattr(requirement, key, value)
         self._session.flush()
