@@ -120,6 +120,25 @@ def test_delete_project(projects_view: ProjectsView, create_project: Project):
         assert exception_info.value.status_code == 404
 
 
+def test_project_jira_project_without_getter_and_cache():
+    project = Project(name="test")
+    assert project.jira_project is None
+
+
+def test_project_jira_project_with_cache():
+    jira_project_dummy = object()
+    project = Project(name="test", jira_project_id="test")
+    project._jira_project = jira_project_dummy
+    assert project.jira_project is jira_project_dummy
+
+
+def test_project_jira_project_with_getter():
+    jira_project_dummy = object()
+    project = Project(name="test", jira_project_id="test")
+    project._get_jira_project = lambda _: jira_project_dummy
+    assert project.jira_project is jira_project_dummy
+
+
 def test_project_completion_no_requirements(create_project: Project):
     assert create_project.completion == None
 
