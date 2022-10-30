@@ -20,7 +20,11 @@ from fastapi_utils.cbv import cbv
 
 from ..errors import NotFoundError
 from ..database import CRUDOperations
-from ..models import CatalogRequirement, CatalogRequirementInput
+from ..models import (
+    CatalogRequirement,
+    CatalogRequirementInput,
+    CatalogRequirementOutput,
+)
 from .catalog_modules import CatalogModulesView
 
 router = APIRouter()
@@ -28,7 +32,7 @@ router = APIRouter()
 
 @cbv(router)
 class CatalogRequirementsView:
-    kwargs = dict(tags=["catalog_requirement"])
+    kwargs = dict(tags=["catalog-requirement"])
 
     def __init__(
         self,
@@ -39,6 +43,11 @@ class CatalogRequirementsView:
         self._crud = crud
         self._session = self._crud.session
 
+    @router.get(
+        "/catalog-modules/{catalog_module_id}/catalog-requirements",
+        response_model=list[CatalogRequirementOutput],
+        **kwargs,
+    )
     def list_catalog_requirements(
         self, catalog_module_id: int
     ) -> list[CatalogRequirement]:
@@ -46,6 +55,12 @@ class CatalogRequirementsView:
             CatalogRequirement, catalog_module_id=catalog_module_id
         )
 
+    @router.post(
+        "/catalog-modules/{catalog_module_id}/catalog-requirements",
+        response_model=CatalogRequirementOutput,
+        status_code=201,
+        **kwargs,
+    )
     def create_catalog_requirement(
         self, catalog_module_id: int, catalog_requirement_input: CatalogRequirementInput
     ) -> CatalogRequirement:
@@ -55,11 +70,21 @@ class CatalogRequirementsView:
         )
         return self._crud.create_in_db(catalog_requirement)
 
+    @router.get(
+        "/catalog-requirements/{catalog_requirement_id}",
+        response_model=CatalogRequirementOutput,
+        **kwargs,
+    )
     def get_catalog_requirement(
         self, catalog_requirement_id: int
     ) -> CatalogRequirement:
         return self._crud.read_from_db(CatalogRequirement, catalog_requirement_id)
 
+    @router.put(
+        "/catalog-requirements/{catalog_requirement_id}",
+        response_model=CatalogRequirementOutput,
+        **kwargs,
+    )
     def update_catalog_requirement(
         self,
         catalog_requirement_id: int,
@@ -76,5 +101,10 @@ class CatalogRequirementsView:
         self._session.flush()
         return catalog_requirement
 
+    @router.delete(
+        "/catalog-requirements/{catalog_requirement_id}",
+        status_code=204,
+        **kwargs,
+    )
     def delete_catalog_requirement(self, catalog_requirement_id: int) -> None:
         return self._crud.delete_from_db(CatalogRequirement, catalog_requirement_id)
