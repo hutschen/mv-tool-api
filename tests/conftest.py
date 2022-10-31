@@ -26,6 +26,7 @@ from mvtool.models import (
     CatalogInput,
     CatalogModule,
     CatalogModuleInput,
+    CatalogRequirementInput,
     DocumentInput,
     JiraIssue,
     JiraIssueInput,
@@ -38,6 +39,7 @@ from mvtool.models import (
     RequirementInput,
 )
 from mvtool.views.catalog_modules import CatalogModulesView
+from mvtool.views.catalog_requirements import CatalogRequirementsView
 from mvtool.views.catalogs import CatalogsView
 from mvtool.views.documents import DocumentsView
 from mvtool.views.excel import (
@@ -224,6 +226,11 @@ def catalog_module_input():
 
 
 @pytest.fixture
+def catalog_requirement_input():
+    return CatalogRequirementInput(summary="title")
+
+
+@pytest.fixture
 def project_input(jira_project_data):
     return ProjectInput(name="name", jira_project_id=jira_project_data.id)
 
@@ -294,13 +301,18 @@ def create_requirement(
 
 
 @pytest.fixture
+def catalog_requirements_view(catalog_modules_view: CatalogModulesView, crud):
+    return Mock(wraps=CatalogRequirementsView(catalog_modules_view, crud))
+
+
+@pytest.fixture
 def create_catalog_requirement(
-    requirements_view: RequirementsView,
+    catalog_requirements_view: CatalogRequirementsView,
     create_catalog_module: CatalogModule,
-    requirement_input: RequirementInput,
+    catalog_requirement_input: CatalogRequirementInput,
 ):
-    return requirements_view.create_catalog_requirement(
-        create_catalog_module.id, requirement_input
+    return catalog_requirements_view.create_catalog_requirement(
+        create_catalog_module.id, catalog_requirement_input
     )
 
 
