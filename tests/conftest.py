@@ -51,7 +51,7 @@ from mvtool.views.excel import (
 from mvtool.views.gs import get_word_temp_file
 from mvtool.views.jira_ import JiraIssuesView, JiraProjectsView
 from mvtool.views.projects import ProjectsView
-from mvtool.views.requirements import RequirementsView
+from mvtool.views.requirements import ImportCatalogRequirementsView, RequirementsView
 from mvtool.views.measures import MeasuresView
 
 
@@ -313,6 +313,19 @@ def create_catalog_requirement(
 ):
     return catalog_requirements_view.create_catalog_requirement(
         create_catalog_module.id, catalog_requirement_input
+    )
+
+
+@pytest.fixture
+def import_catalog_requirements_view(
+    projects_view: ProjectsView,
+    catalog_requirements_view: CatalogRequirementsView,
+    crud,
+):
+    return Mock(
+        wraps=ImportCatalogRequirementsView(
+            projects_view, catalog_requirements_view, crud
+        )
     )
 
 
