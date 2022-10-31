@@ -151,6 +151,6 @@ def test_requirement_completion_complete(
     assert create_requirement.completion == 1.0
 
 
-def test_requirement_compleation_ignored(create_requirement: Requirement):
+def test_requirement_completion_ignored(create_requirement: Requirement):
     create_requirement.compliance_status = "NC"
     assert create_requirement.completion == None
