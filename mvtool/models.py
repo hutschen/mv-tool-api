@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 from datetime import datetime
 from typing import Callable
 from pydantic import PrivateAttr, confloat, constr, validator
@@ -233,8 +232,14 @@ class Project(ProjectInput, CommonFieldsMixin, table=True):
         if self.jira_project_id is None:
             return None
 
-        get_jira_project = getattr(self, "_get_jira_project", lambda _: None)
-        if getattr(self, "_jira_project", None) is None:
+        get_jira_project: Callable | None = getattr(self, "_get_jira_project", None)
+        jira_project: JiraProject | None = getattr(self, "_jira_project", None)
+        if jira_project is None or jira_project.id != self.jira_project_id:
+            if get_jira_project is None:
+                raise ValueError(
+                    "Cannot get Jira project for project without get_jira_project "
+                    "function"
+                )
             self._jira_project = get_jira_project(self.jira_project_id)
 
         return self._jira_project
