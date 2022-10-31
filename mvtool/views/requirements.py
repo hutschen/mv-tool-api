@@ -36,12 +36,10 @@ class RequirementsView:
 
     def __init__(
         self,
-        jira_projects: JiraProjectsView = Depends(JiraProjectsView),
         projects: ProjectsView = Depends(ProjectsView),
         crud: CRUDOperations[Requirement] = Depends(CRUDOperations),
     ):
         self._projects = projects
-        self._jira_projects = jira_projects
         self._crud = crud
         self._session = self._crud.session
 
@@ -51,18 +49,11 @@ class RequirementsView:
         **kwargs,
     )
     def list_requirements(self, project_id: int) -> Iterator[Requirement]:
-        is_first_requirement = True
-        jira_project = None
-
+        project = self._projects.get_project(project_id)
         for requirement in self._crud.read_all_from_db(
             Requirement, project_id=project_id
         ):
-            if is_first_requirement:
-                jira_project = self._jira_projects.try_to_get_jira_project(
-                    requirement.project.jira_project_id
-                )
-                is_first_requirement = False
-            requirement.project._jira_project = jira_project
+            requirement.project._jira_project = project.jira_project
             yield requirement
 
     @router.post(
@@ -83,9 +74,7 @@ class RequirementsView:
     )
     def get_requirement(self, requirement_id: int) -> Requirement:
         requirement = self._crud.read_from_db(Requirement, requirement_id)
-        requirement.project._get_jira_project = (
-            self._jira_projects.try_to_get_jira_project
-        )
+        self._projects._set_jira_project(requirement.project)
         return requirement
 
     @router.put(
@@ -98,13 +87,12 @@ class RequirementsView:
         if not requirement:
             cls_name = Requirement.__name__
             raise NotFoundError(f"No {cls_name} with id={requirement_id}.")
+
         for key, value in requirement_input.dict().items():
             setattr(requirement, key, value)
         self._session.flush()
 
-        requirement.project._get_jira_project = (
-            self._jira_projects.try_to_get_jira_project
-        )
+        self._projects._set_jira_project(requirement.project)
         return requirement
 
     @router.delete("/requirements/{requirement_id}", status_code=204, **kwargs)

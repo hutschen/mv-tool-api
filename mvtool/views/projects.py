@@ -97,3 +97,6 @@ class ProjectsView:
     @router.delete("/projects/{project_id}", status_code=204, **kwargs)
     def delete_project(self, project_id: int):
         return self._crud.delete_from_db(Project, project_id)
+
+    def _set_jira_project(self, project: Project) -> None:
+        project._get_jira_project = self._jira_projects.try_to_get_jira_project
