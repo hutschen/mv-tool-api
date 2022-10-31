@@ -65,24 +65,6 @@ def test_list_requirements_without_jira_project(
     assert requirement.project.jira_project == None
 
 
-@pytest.mark.skip("no longer part of requirements view")
-def test_list_catalog_requirement_outputs(
-    requirements_view: RequirementsView,
-    create_catalog_module: CatalogModule,
-    create_catalog_requirement: Requirement,
-    create_requirement: Requirement,
-):
-    results = list(
-        requirements_view._list_catalog_requirements(create_catalog_module.id)
-    )
-    assert len(results) == 1
-    requirement_output = results[0]
-    assert isinstance(requirement_output, RequirementOutput)
-    assert requirement_output.id == create_catalog_requirement.id
-    assert requirement_output.project == None
-    assert requirement_output.catalog_module.id == create_catalog_module.id
-
-
 def test_create_requirement(
     requirements_view: RequirementsView,
     create_project: Project,
@@ -104,77 +86,6 @@ def test_create_requirement_with_invalid_project_id(
     with pytest.raises(HTTPException) as excinfo:
         requirements_view.create_requirement(-1, requirement_input)
     excinfo.value.status_code == 404
-
-
-@pytest.mark.skip("no longer part of requirements view")
-def test_create_catalog_requirement_output(
-    requirements_view: RequirementsView,
-    create_catalog_module: CatalogModule,
-    requirement_input: RequirementInput,
-):
-    requirement_output = requirements_view._create_catalog_requirement(
-        create_catalog_module.id, requirement_input
-    )
-    assert isinstance(requirement_output, RequirementOutput)
-    assert requirement_output.summary == requirement_input.summary
-    assert requirement_output.project == None
-    assert requirement_output.catalog_module.id == create_catalog_module.id
-
-
-@pytest.mark.skip("no longer part of requirements view")
-def test_create_catalog_requirement_output_invalid_catalog_module_id(
-    requirements_view: RequirementsView, requirement_input: RequirementInput
-):
-    with pytest.raises(HTTPException) as excinfo:
-        requirements_view._create_catalog_requirement(-1, requirement_input)
-    excinfo.value.status_code == 404
-
-
-@pytest.mark.skip("no longer part of requirements view")
-def test_copy_requirement_to_project(
-    requirements_view: RequirementsView,
-    create_requirement: Requirement,
-    create_project: Project,
-):
-    requirement_output = requirements_view._copy_requirement_to_project(
-        create_project.id, create_requirement.id
-    )
-    assert isinstance(requirement_output, RequirementOutput)
-    assert requirement_output.id != create_requirement.id
-    assert requirement_output.project.id == create_project.id
-
-
-@pytest.mark.skip("no longer part of requirements view")
-def test_copy_catalog_requirement_to_project(
-    requirements_view: RequirementsView,
-    create_catalog_requirement: Requirement,
-    create_project: Project,
-):
-    requirement_output = requirements_view._copy_requirement_to_project(
-        create_project.id, create_catalog_requirement.id
-    )
-    assert isinstance(requirement_output, RequirementOutput)
-    assert requirement_output.id != create_catalog_requirement.id
-    assert requirement_output.project.id == create_project.id
-    assert (
-        requirement_output.catalog_module.id
-        == create_catalog_requirement.catalog_module.id
-    )
-
-
-@pytest.mark.skip("no longer part of requirements view")
-def test_copy_requirement_to_catalog(
-    requirements_view: RequirementsView,
-    create_requirement: Requirement,
-    create_catalog_module: CatalogModule,
-):
-    requirement_output = requirements_view._copy_requirement_to_catalog(
-        create_catalog_module.id, create_requirement.id
-    )
-    assert isinstance(requirement_output, RequirementOutput)
-    assert requirement_output.id != create_requirement.id
-    assert requirement_output.project == None
-    assert requirement_output.catalog_module.id == create_catalog_module.id
 
 
 def test_get_requirement(
