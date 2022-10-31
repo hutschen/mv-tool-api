@@ -15,8 +15,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from typing import Any
 from fastapi import APIRouter, Depends
 from fastapi_utils.cbv import cbv
+from sqlmodel import select
 
 from ..errors import NotFoundError
 from ..database import CRUDOperations
@@ -51,9 +53,18 @@ class CatalogRequirementsView:
     def list_catalog_requirements(
         self, catalog_module_id: int
     ) -> list[CatalogRequirement]:
-        return self._crud.read_all_from_db(
-            CatalogRequirement, catalog_module_id=catalog_module_id
+        return self.query_catalog_requirements(
+            CatalogRequirement.catalog_module_id == catalog_module_id
         )
+
+    def query_catalog_requirements(
+        self, *whereclauses: Any
+    ) -> list[CatalogRequirement]:
+        return self._session.exec(
+            select(CatalogRequirement)
+            .where(*whereclauses)
+            .order_by(CatalogRequirement.id)
+        ).all()
 
     @router.post(
         "/catalog-modules/{catalog_module_id}/catalog-requirements",
