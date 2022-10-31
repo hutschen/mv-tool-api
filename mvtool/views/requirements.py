@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 from typing import Iterator
 from fastapi import APIRouter, Depends
 from fastapi_utils.cbv import cbv
@@ -23,7 +22,13 @@ from fastapi_utils.cbv import cbv
 from ..errors import NotFoundError
 from ..database import CRUDOperations
 from .projects import ProjectsView
-from ..models import RequirementInput, Requirement, RequirementOutput
+from .catalog_requirements import CatalogRequirementsView
+from ..models import (
+    CatalogRequirement,
+    RequirementInput,
+    Requirement,
+    RequirementOutput,
+)
 
 router = APIRouter()
 
@@ -100,3 +105,47 @@ class RequirementsView:
     @router.delete("/requirements/{requirement_id}", status_code=204, **kwargs)
     def delete_requirement(self, requirement_id: int) -> None:
         return self._crud.delete_from_db(Requirement, requirement_id)
+
+
+@cbv(router)
+class ImportCatalogRequirementsView:
+    kwargs = RequirementsView.kwargs
+
+    def __init__(
+        self,
+        projects: ProjectsView = Depends(ProjectsView),
+        catalog_requirements: CatalogRequirementsView = Depends(
+            CatalogRequirementsView
+        ),
+        crud: CRUDOperations[Requirement] = Depends(CRUDOperations),
+    ):
+        self._projects = projects
+        self._catalog_requirements = catalog_requirements
+        self._crud = crud
+        self._session = self._crud.session
+
+    @router.post(
+        "/projects/{project_id}/requirements/import",
+        status_code=201,
+        response_model=list[RequirementOutput],
+        **kwargs,
+    )
+    def import_requirements_from_catalog_modules(
+        self, project_id: int, catalog_module_ids: list[int]
+    ) -> Iterator[Requirement]:
+        project = self._projects.get_project(project_id)
+
+        for (
+            catalog_requirement
+        ) in self._catalog_requirements.query_catalog_requirements(
+            CatalogRequirement.catalog_module_id.in_(catalog_module_ids)
+        ):
+            requirement = Requirement.from_orm(
+                RequirementInput.from_orm(catalog_requirement)
+            )
+            requirement.catalog_requirement = catalog_requirement
+            requirement.project = project
+            self._session.add(requirement)
+            yield requirement
+
+        self._session.flush()
