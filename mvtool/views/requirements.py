@@ -20,9 +20,7 @@ from typing import Iterator
 from fastapi import APIRouter, Depends
 from fastapi_utils.cbv import cbv
 
-from mvtool.errors import NotFoundError
-from mvtool.views.jira_ import JiraProjectsView
-
+from ..errors import NotFoundError
 from ..database import CRUDOperations
 from .projects import ProjectsView
 from ..models import RequirementInput, Requirement, RequirementOutput
@@ -49,10 +47,14 @@ class RequirementsView:
         **kwargs,
     )
     def list_requirements(self, project_id: int) -> Iterator[Requirement]:
-        project = self._projects.get_project(project_id)
+        project = None
         for requirement in self._crud.read_all_from_db(
             Requirement, project_id=project_id
         ):
+            if project is None:
+                project = requirement.project
+                self._projects._set_jira_project(project)
+
             requirement.project._jira_project = project.jira_project
             yield requirement
 
