@@ -125,11 +125,10 @@ def test_project_jira_project_without_getter_and_cache():
     assert project.jira_project is None
 
 
-def test_project_jira_project_with_cache():
-    jira_project_dummy = object()
-    project = Project(name="test", jira_project_id="test")
-    project._jira_project = jira_project_dummy
-    assert project.jira_project is jira_project_dummy
+def test_project_jira_project_with_cache(jira_project_data):
+    project = Project(name="test", jira_project_id=jira_project_data.id)
+    project._jira_project = jira_project_data
+    assert project.jira_project is jira_project_data
 
 
 def test_project_jira_project_with_getter():
