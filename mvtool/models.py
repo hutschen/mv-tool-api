@@ -236,13 +236,11 @@ class Project(ProjectInput, CommonFieldsMixin, table=True):
         jira_project: JiraProject | None = getattr(self, "_jira_project", None)
         if jira_project is None or jira_project.id != self.jira_project_id:
             if get_jira_project is None:
-                raise ValueError(
-                    "Cannot get Jira project for project without get_jira_project "
-                    "function"
-                )
-            self._jira_project = get_jira_project(self.jira_project_id)
+                raise RuntimeError("get_jira_project not set")
+            jira_project = get_jira_project(self.jira_project_id)
+            self._jira_project = jira_project
 
-        return self._jira_project
+        return jira_project
 
     @property
     def completion(self) -> float | None:
