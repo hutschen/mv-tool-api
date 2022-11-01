@@ -24,7 +24,6 @@ from mvtool.models import (
     Project,
     Requirement,
     RequirementInput,
-    RequirementOutput,
 )
 from mvtool.views.requirements import ImportCatalogRequirementsView, RequirementsView
 
