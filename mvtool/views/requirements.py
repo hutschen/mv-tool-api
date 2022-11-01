@@ -25,6 +25,7 @@ from .projects import ProjectsView
 from .catalog_requirements import CatalogRequirementsView
 from ..models import (
     CatalogRequirement,
+    JiraProject,
     RequirementInput,
     Requirement,
     RequirementOutput,
@@ -58,9 +59,9 @@ class RequirementsView:
         ):
             if project is None:
                 project = requirement.project
-                self._projects._set_jira_project(project)
+                self._set_jira_project(requirement)
 
-            requirement.project._jira_project = project.jira_project
+            self._set_jira_project(requirement, project.jira_project)
             yield requirement
 
     @router.post(
@@ -81,7 +82,7 @@ class RequirementsView:
     )
     def get_requirement(self, requirement_id: int) -> Requirement:
         requirement = self._crud.read_from_db(Requirement, requirement_id)
-        self._projects._set_jira_project(requirement.project)
+        self._set_jira_project(requirement)
         return requirement
 
     @router.put(
@@ -99,12 +100,17 @@ class RequirementsView:
             setattr(requirement, key, value)
         self._session.flush()
 
-        self._projects._set_jira_project(requirement.project)
+        self._set_jira_project(requirement)
         return requirement
 
     @router.delete("/requirements/{requirement_id}", status_code=204, **kwargs)
     def delete_requirement(self, requirement_id: int) -> None:
         return self._crud.delete_from_db(Requirement, requirement_id)
+
+    def _set_jira_project(
+        self, requirement: Requirement, jira_project: JiraProject | None = None
+    ) -> None:
+        self._projects._set_jira_project(requirement.project, jira_project)
 
 
 @cbv(router)
