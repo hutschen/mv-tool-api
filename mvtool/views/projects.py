@@ -15,13 +15,14 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from typing import Iterator
 from fastapi import APIRouter, Depends
 from fastapi_utils.cbv import cbv
 
 from ..errors import NotFoundError
 from ..database import CRUDOperations
 from .jira_ import JiraProjectsView
-from ..models import ProjectInput, Project, ProjectOutput
+from ..models import JiraProject, ProjectInput, Project, ProjectOutput
 
 router = APIRouter()
 
@@ -40,14 +41,17 @@ class ProjectsView:
         self._session = self._crud.session
 
     @router.get("/projects", response_model=list[ProjectOutput], **kwargs)
-    def list_projects(self) -> list[Project]:
+    def list_projects(self) -> Iterator[Project]:
         projects = self._crud.read_all_from_db(Project)
         jira_projects_map = {
             jp.id: jp for jp in self._jira_projects.list_jira_projects()
         }
+
         for project in projects:
-            project._get_jira_project = lambda jp_id: jira_projects_map.get(jp_id, None)
-        return projects
+            self._set_jira_project(
+                project, jira_projects_map.get(project.jira_project_id, None)
+            )
+            yield project
 
     @router.post("/projects", status_code=201, response_model=ProjectOutput, **kwargs)
     def create_project(self, project_input: ProjectInput) -> Project:
@@ -59,13 +63,13 @@ class ProjectsView:
             )
 
         project = self._crud.create_in_db(Project.from_orm(project_input))
-        project._jira_project = jira_project
+        self._set_jira_project(project, jira_project)
         return project
 
     @router.get("/projects/{project_id}", response_model=ProjectOutput, **kwargs)
     def get_project(self, project_id: int) -> Project:
         project = self._crud.read_from_db(Project, project_id)
-        project._get_jira_project = self._jira_projects.try_to_get_jira_project
+        self._set_jira_project(project)
         return project
 
     @router.put("/projects/{project_id}", response_model=ProjectOutput, **kwargs)
@@ -88,15 +92,15 @@ class ProjectsView:
             setattr(project, key, value)
         self._session.flush()
 
-        # set _jira_project to cached jira project
-        # set also _get_jira_project if no jira project was cached
-        project._get_jira_project = self._jira_projects.try_to_get_jira_project
-        project._jira_project = jira_project
+        self._set_jira_project(project, jira_project)
         return project
 
     @router.delete("/projects/{project_id}", status_code=204, **kwargs)
     def delete_project(self, project_id: int):
         return self._crud.delete_from_db(Project, project_id)
 
-    def _set_jira_project(self, project: Project) -> None:
+    def _set_jira_project(
+        self, project: Project, jira_project: JiraProject | None = None
+    ) -> None:
+        project._jira_project = jira_project
         project._get_jira_project = self._jira_projects.try_to_get_jira_project
