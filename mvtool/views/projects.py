@@ -55,6 +55,7 @@ class ProjectsView:
 
     @router.post("/projects", status_code=201, response_model=ProjectOutput, **kwargs)
     def create_project(self, project_input: ProjectInput) -> Project:
+        # check jira project id and cache loaded jira project
         if project_input.jira_project_id is None:
             jira_project = None
         else:
