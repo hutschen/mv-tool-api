@@ -226,7 +226,9 @@ class DocumentInput(SQLModel):
 
 class Document(DocumentInput, CommonFieldsMixin, table=True):
     project_id: int | None = Field(default=None, foreign_key="project.id")
-    project: "Project" = Relationship(back_populates="documents")
+    project: "Project" = Relationship(
+        back_populates="documents", sa_relationship_kwargs=dict(lazy="joined")
+    )
     measures: list[Measure] = Relationship(back_populates="document")
 
 
