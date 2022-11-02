@@ -16,9 +16,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from typing import Iterator
+from typing import Any, Iterator
 from fastapi import APIRouter, Depends, Response
 from fastapi_utils.cbv import cbv
+from sqlmodel import select
 
 from mvtool.views.documents import DocumentsView
 from mvtool.views.jira_ import JiraIssuesView
@@ -60,22 +61,29 @@ class MeasuresView:
         **kwargs,
     )
     def list_measures(self, requirement_id: int) -> Iterator[Measure]:
-        measures = self._crud.read_all_from_db(Measure, requirement_id=requirement_id)
+        requirement = None
+        for measure in self.query_measures(Measure.requirement_id == requirement_id):
+            if requirement is None:
+                requirement = measure.requirement
+                self._set_jira_project(measure)
 
-        # get jira issues linked to measures
+            self._set_jira_project(measure, requirement.project.jira_project)
+            yield measure
+
+    def query_measures(self, *whereclauses: Any) -> Iterator[Measure]:
+        measures = self._session.exec(
+            select(Measure).where(*whereclauses).order_by(Measure.id)
+        ).all()
+
+        # query jira issues
         jira_issue_ids = [m.jira_issue_id for m in measures if m.jira_issue_id]
         jira_issues = self._jira_issues.get_jira_issues(jira_issue_ids)
         jira_issue_map = {ji.id: ji for ji in jira_issues}
 
-        requirement = None
+        # assign jira issue to measure and yield results
         for measure in measures:
-            if requirement is None:
-                requirement = measure.requirement
-                self._set_jira_project_and_issue(measure)
-
             jira_issue = jira_issue_map.get(measure.jira_issue_id, None)
-            jira_project = requirement.project.jira_project
-            self._set_jira_project_and_issue(measure, jira_project, jira_issue)
+            self._set_jira_issue(measure, jira_issue)
             yield measure
 
     @router.post(
@@ -179,14 +187,24 @@ class MeasuresView:
         self._crud.update_in_db(measure_id, measure)
         return jira_issue
 
+    def _set_jira_project(
+        self, measure: Measure, jira_project: JiraProject | None = None
+    ) -> None:
+        self._requirements._set_jira_project(measure.requirement, jira_project)
+        if measure.document is not None:
+            self._documents._set_jira_project(measure.document, jira_project)
+
+    def _set_jira_issue(
+        self, measure: Measure, jira_issue: JiraIssue | None = None
+    ) -> None:
+        measure._jira_issue = jira_issue
+        measure._get_jira_issue = self._jira_issues.try_to_get_jira_issue
+
     def _set_jira_project_and_issue(
         self,
         measure: Measure,
         jira_project: JiraProject | None = None,
         jira_issue: JiraIssue | None = None,
     ) -> None:
-        self._requirements._set_jira_project(measure.requirement, jira_project)
-        if measure.document is not None:
-            self._documents._set_jira_project(measure.document, jira_project)
-        measure._jira_issue = jira_issue
-        measure._get_jira_issue = self._jira_issues.try_to_get_jira_issue
+        self._set_jira_project(measure, jira_project)
+        self._set_jira_issue(measure, jira_issue)
