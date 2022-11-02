@@ -186,5 +186,7 @@ class MeasuresView:
         jira_issue: JiraIssue | None = None,
     ) -> None:
         self._requirements._set_jira_project(measure.requirement, jira_project)
+        if measure.document is not None:
+            self._documents._set_jira_project(measure.document, jira_project)
         measure._jira_issue = jira_issue
         measure._get_jira_issue = self._jira_issues.try_to_get_jira_issue
