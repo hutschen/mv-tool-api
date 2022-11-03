@@ -155,27 +155,6 @@ def test_determine_headers_to_write(empty_worksheet, worksheet_headers):
     assert headers == ("str", "bool")
 
 
-def test_query_measure_data(
-    measures_excel_view: MeasuresExcelView,
-    create_project: Project,
-    create_measure: Measure,
-):
-    results = list(
-        measures_excel_view._query_measure_data(
-            Requirement.project_id == create_project.id
-        )
-    )
-
-    assert len(results) == 1
-    result = results[0]
-    assert isinstance(result, tuple)
-    measure, requirement, document, jira_issue = result
-    assert isinstance(measure, Measure)
-    assert isinstance(requirement, Requirement)
-    assert document == create_measure.document
-    assert jira_issue == None
-
-
 def test_download_measures_excel_for_project(
     measures_excel_view: MeasuresExcelView,
     excel_temp_file,
