@@ -228,46 +228,22 @@ class MeasuresExcelView(ExcelView):
         self._jira_issues = jira_issues
         self._measures = measures
 
-    def _query_measure_data(
-        self, *whereclause: Any
-    ) -> Iterator[tuple[Measure, Requirement, Document, JiraIssue]]:
-        query = (
-            select(Measure, Requirement, Document)
-            .join(Requirement)
-            .join(Document, isouter=True)
-            .where(*whereclause)
-            .order_by(Measure.id)
-        )
-        results = self._session.exec(query).all()
-
-        # query jira issues
-        jira_issue_ids = [m.jira_issue_id for m, _, _ in results if m.jira_issue_id]
-        jira_issues = self._jira_issues.get_jira_issues(jira_issue_ids)
-        jira_issue_map = {ji.id: ji for ji in jira_issues}
-
-        # assign jira issue to measure and yield results
-        for measure, requirement, document in results:
-            try:
-                jira_issue = jira_issue_map[measure.jira_issue_id]
-            except KeyError:
-                jira_issue = None
-            yield measure, requirement, document, jira_issue
-
-    def _convert_to_row(
-        self, data: tuple[Measure, Requirement, Document, JiraIssue], *args
-    ) -> dict[str, str]:
-        measure, requirement, document, jira_issue = data
+    def _convert_to_row(self, data: Measure, *args) -> dict[str, str]:
         return {
-            "Requirement Reference": requirement.reference,
-            "Requirement GS ID": requirement.gs_anforderung_reference,
-            "Requirement Summary": requirement.summary,
-            "ID": measure.id,
-            "Summary": measure.summary,
-            "Description": measure.description,
-            "Completed": measure.completed,
-            "Document Reference": document.reference if document else None,
-            "Document Title": document.title if document else None,
-            "JIRA Issue Key": jira_issue.key if jira_issue else None,
+            "Requirement Reference": data.requirement.reference,
+            "Requirement GS ID": (
+                data.requirement.catalog_requirement.gs_anforderung_reference
+                if data.requirement.catalog_requirement
+                else None
+            ),
+            "Requirement Summary": data.requirement.summary,
+            "ID": data.id,
+            "Summary": data.summary,
+            "Description": data.description,
+            "Completed": data.completed,
+            "Document Reference": data.document.reference if data.document else None,
+            "Document Title": data.document.title if data.document else None,
+            "JIRA Issue Key": data.jira_issue.key if data.jira_issue else None,
         }
 
     @router.get(
@@ -281,7 +257,7 @@ class MeasuresExcelView(ExcelView):
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> FileResponse:
         return self._process_download(
-            self._query_measure_data(Requirement.project_id == project_id),
+            self._measures.list_measures_of_project(project_id),
             temp_file,
             sheet_name=sheet_name,
             filename=filename,
@@ -300,7 +276,7 @@ class MeasuresExcelView(ExcelView):
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> FileResponse:
         return self._process_download(
-            self._query_measure_data(Requirement.id == requirement_id),
+            self._measures.list_measures(requirement_id),
             temp_file,
             sheet_name=sheet_name,
             filename=filename,
@@ -331,14 +307,13 @@ class MeasuresExcelView(ExcelView):
         self,
         requirement_id: int,
         data: Iterator[tuple[int | None, str | None, MeasureInput]],
-    ) -> Iterator[MeasureOutput]:
+    ) -> Iterator[Measure]:
         # TODO: Define this attribute in constructor
         self._requirements = self._measures._requirements
         self._documents = self._measures._documents
 
         # Get requirement from database and retrieve data
         requirement = self._requirements.get_requirement(requirement_id)
-        requirement_output = self._requirements._get_requirement(requirement_id)
         data = list(data)
 
         # Retrieve jira issues to be linked to measures
@@ -355,8 +330,9 @@ class MeasuresExcelView(ExcelView):
         measure_map = dict((m.id, m) for m in self._session.exec(query).all())
 
         # Create or update measures
-        written_measures = []
         for measure_id, jira_issue_key, measure_input in data:
+            jira_issue = None
+
             # Set jira issue id
             if jira_issue_key:
                 jira_issue = jira_issue_map.get(jira_issue_key)
@@ -379,28 +355,14 @@ class MeasuresExcelView(ExcelView):
                 for key, value in measure_input.dict(exclude_unset=True).items():
                     setattr(measure, key, value)
 
+            # set jira project and issue
+            self._measures._set_jira_project_and_issue(measure, jira_issue=jira_issue)
+
             # TODO: Checking document id should be done more efficiently
             self._documents.check_document_id(measure.document_id)
             self._session.add(measure)
-            written_measures.append(measure)
+            yield measure
         self._session.flush()
-
-        # Convert to measure outputs and return
-        measure_outputs = []
-        for measure in written_measures:
-            document_output = self._documents._try_to_get_document(measure.document_id)
-            jira_issue = self._jira_issues.try_to_get_jira_issue(measure.jira_issue_id)
-            measure_outputs.append(
-                MeasureOutput.from_orm(
-                    measure,
-                    update=dict(
-                        requirement=requirement_output,
-                        document=document_output,
-                        jira_issue=jira_issue,
-                    ),
-                )
-            )
-        return measure_outputs
 
     @router.post(
         "/requirements/{requirement_id}/measures/excel",
