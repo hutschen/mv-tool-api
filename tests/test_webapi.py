@@ -223,7 +223,7 @@ def test_create_requirement(client, create_project: Project):
 
 def test_list_catalog_requirements(client, create_catalog_module: CatalogModule):
     response = client.get(
-        f"/api/catalog-modules/{create_catalog_module.id}/requirements"
+        f"/api/catalog-modules/{create_catalog_module.id}/catalog-requirements"
     )
     assert response.status_code == 200
     assert isinstance(response.json(), list)
