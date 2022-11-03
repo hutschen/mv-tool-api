@@ -140,9 +140,7 @@ def test_update_project(client, create_project: Project):
     updated_name = create_project.name + " (updated)"
 
     update_response = client.put(
-        f"/api/projects/{create_project.id}",
-        json=dict(name=updated_name),
-        auth=("u", "p"),
+        f"/api/projects/{create_project.id}", json=dict(name=updated_name)
     )
     assert update_response.status_code == 200
     updated_project = update_response.json()
