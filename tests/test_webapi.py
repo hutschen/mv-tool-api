@@ -229,32 +229,6 @@ def test_list_catalog_requirements(client, create_catalog_module: CatalogModule)
     assert isinstance(response.json(), list)
 
 
-def test_copy_requirement_to_project(
-    client,
-    create_project: Project,
-    create_catalog_requirement: Requirement,
-):
-    response = client.post(
-        f"/api/projects/{create_project.id}/requirements/{create_catalog_requirement.id}"
-    )
-    assert response.status_code == 201
-    requirement = response.json()
-    assert isinstance(requirement, dict)
-    assert requirement["id"] != create_catalog_requirement.id
-
-
-def test_copy_requirement_to_catalog(
-    client, create_catalog_module: CatalogModule, create_requirement: Requirement
-):
-    response = client.post(
-        f"/api/catalog-modules/{create_catalog_module.id}/requirements/{create_requirement.id}"
-    )
-    assert response.status_code == 201
-    requirement = response.json()
-    assert isinstance(requirement, dict)
-    assert requirement["id"] != create_requirement.id
-
-
 def test_get_requirement(client, create_requirement):
     response = client.get(f"/api/requirements/{create_requirement.id}")
     assert response.status_code == 200
