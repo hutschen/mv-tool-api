@@ -33,6 +33,7 @@ from ..models import (
     MeasureInput,
     Measure,
     MeasureOutput,
+    Requirement,
 )
 
 router = APIRouter()
@@ -70,9 +71,23 @@ class MeasuresView:
             self._set_jira_project(measure, requirement.project.jira_project)
             yield measure
 
+    def list_measures_of_project(self, project_id: int) -> Iterator[Measure]:
+        project = None
+        for measure in self.query_measures(Requirement.project_id == project_id):
+            if project is None:
+                project = measure.requirement.project
+                self._set_jira_project(measure)
+
+            self._set_jira_project(measure, project.jira_project)
+            yield measure
+
     def query_measures(self, *whereclauses: Any) -> Iterator[Measure]:
         measures = self._session.exec(
-            select(Measure).where(*whereclauses).order_by(Measure.id)
+            select(Measure)
+            .join(Requirement)
+            # .join(Document, isouter=True)
+            .where(*whereclauses)
+            .order_by(Measure.id)
         ).all()
 
         # query jira issues
