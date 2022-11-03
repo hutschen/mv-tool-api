@@ -16,7 +16,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from mvtool.database import CRUDOperations
-from mvtool.models import Document, CatalogModule, Measure, Project, Requirement
+from mvtool.models import (
+    CatalogRequirement,
+    Document,
+    CatalogModule,
+    Measure,
+    Project,
+    Requirement,
+)
 
 
 def test_delete_requirements_of_project(crud: CRUDOperations):
@@ -71,9 +78,9 @@ def test_keep_document_of_when_delete_measure(crud: CRUDOperations):
     assert crud.session.query(Document).count() == 1
 
 
-def test_delete_requirements_of_catalog_module(crud: CRUDOperations):
+def test_delete_catalog_requirements_of_catalog_module(crud: CRUDOperations):
     catalog_module = CatalogModule(title="test")
-    catalog_module.requirements = [Requirement(summary="test")]
+    catalog_module.catalog_requirements = [CatalogRequirement(summary="test")]
     crud.create_in_db(catalog_module)
     crud.session.commit()
 
@@ -81,4 +88,4 @@ def test_delete_requirements_of_catalog_module(crud: CRUDOperations):
     crud.session.commit()
 
     assert crud.session.query(CatalogModule).count() == 0
-    assert crud.session.query(Requirement).count() == 0
+    assert crud.session.query(CatalogRequirement).count() == 0
