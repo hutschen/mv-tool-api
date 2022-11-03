@@ -327,7 +327,7 @@ class MeasuresExcelView(ExcelView):
             Measure.id.in_({id for id, _, _ in data if id is not None}),
             Measure.requirement_id == requirement_id,
         )
-        measure_map = dict((m.id, m) for m in self._session.exec(query).all())
+        read_measures = dict((m.id, m) for m in self._session.exec(query).all())
 
         # Create or update measures
         for measure_id, jira_issue_key, measure_input in data:
@@ -346,7 +346,7 @@ class MeasuresExcelView(ExcelView):
                 measure.requirement = requirement
             else:
                 # Update measure
-                measure = measure_map.get(measure_id)
+                measure = read_measures.get(measure_id)
                 if measure is None:
                     raise errors.NotFoundError(
                         "Measure with ID %d not part of requirement with ID %d"
@@ -416,14 +416,28 @@ class RequirementsExcelView(ExcelView):
         return {
             "ID": data.id,
             "Reference": data.reference,
-            "GS ID": data.gs_anforderung_reference,
+            "GS ID": (
+                data.catalog_requirement.gs_anforderung_reference
+                if data.catalog_requirement
+                else None
+            ),
             "Catalog Module": (
-                data.catalog_module.title if data.catalog_module else None
+                data.catalog_requirement.catalog_module.title
+                if data.catalog_requirement
+                else None
             ),
             "Summary": data.summary,
             "Description": data.description,
-            "GS Absicherung": data.gs_absicherung,
-            "GS Verantwortliche": data.gs_verantwortliche,
+            "GS Absicherung": (
+                data.catalog_requirement.gs_absicherung
+                if data.catalog_requirement
+                else None
+            ),
+            "GS Verantwortliche": (
+                data.catalog_requirement.gs_verantwortliche
+                if data.catalog_requirement
+                else None
+            ),
             "Target Object": data.target_object,
             "Compliance Status": data.compliance_status,
             "Compliance Comment": data.compliance_comment,
@@ -474,7 +488,7 @@ class RequirementsExcelView(ExcelView):
 
     def _bulk_create_update_requirements(
         self, project_id: int, data: Iterator[tuple[int | None, RequirementInput]]
-    ) -> list[RequirementOutput]:
+    ) -> Iterator[Requirement]:
         # Get project from database and retrieve data
         project = self._projects.get_project(project_id)
         data = list(data)
@@ -487,13 +501,11 @@ class RequirementsExcelView(ExcelView):
         read_requirements = dict((r.id, r) for r in self._session.exec(query).all())
 
         # Create or update requirements
-        written_requirements = []
         for requirement_id, requirement_input in data:
             if requirement_id is None:
                 # Create requirement
                 requirement = Requirement.from_orm(requirement_input)
                 requirement.project = project
-                self._session.add(requirement)
             else:
                 # Update requirement
                 requirement = read_requirements.get(requirement_id)
@@ -504,15 +516,11 @@ class RequirementsExcelView(ExcelView):
                     )
                 for key, value in requirement_input.dict().items():
                     setattr(requirement, key, value)
-                self._session.add(requirement)
-            written_requirements.append(requirement)
-        self._session.flush()
 
-        # Convert to requirement outputs and return
-        return [
-            RequirementOutput.from_orm(r, update=dict(project=project))
-            for r in written_requirements
-        ]
+            self._requirements._set_jira_project(requirement)
+            self._session.add(requirement)
+            yield requirement
+        self._session.flush()
 
     @router.post(
         "/projects/{project_id}/requirements/excel",
@@ -525,7 +533,7 @@ class RequirementsExcelView(ExcelView):
         project_id: int,
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
-    ) -> Iterator[RequirementOutput]:
+    ) -> Iterator[Requirement]:
         return self._bulk_create_update_requirements(
             project_id, self._process_upload(upload_file, temp_file)
         )
@@ -604,7 +612,7 @@ class DocumentsExcelView(ExcelView):
 
     def _bulk_create_update_documents(
         self, project_id: int, data: Iterator[tuple[int | None, DocumentInput]]
-    ) -> list[DocumentOutput]:
+    ) -> Iterator[Document]:
         # Get project from database and retrieve data
         project = self._projects.get_project(project_id)
         data = list(data)
@@ -617,13 +625,11 @@ class DocumentsExcelView(ExcelView):
         read_documents = dict((r.id, r) for r in self._session.exec(query).all())
 
         # Create or update documents
-        written_documents = []
         for document_id, document_input in data:
             if document_id is None:
                 # Create document
                 document = Document.from_orm(document_input)
                 document.project = project
-                self._session.add(document)
             else:
                 # Update document
                 document = read_documents.get(document_id)
@@ -634,15 +640,11 @@ class DocumentsExcelView(ExcelView):
                     )
                 for key, value in document_input.dict().items():
                     setattr(document, key, value)
-                self._session.add(document)
-            written_documents.append(document)
-        self._session.flush()
 
-        # Convert to document outputs and return
-        return [
-            DocumentOutput.from_orm(d, update=dict(project=project))
-            for d in written_documents
-        ]
+            self._documents._set_jira_project(document)
+            self._session.add(document)
+            yield document
+        self._session.flush()
 
     @router.post(
         "/projects/{project_id}/documents/excel",
@@ -655,7 +657,7 @@ class DocumentsExcelView(ExcelView):
         project_id: int,
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
-    ) -> Iterator[DocumentOutput]:
+    ) -> Iterator[Document]:
         return self._bulk_create_update_documents(
             project_id, self._process_upload(upload_file, temp_file)
         )
