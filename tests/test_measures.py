@@ -24,7 +24,6 @@ from mvtool.models import (
     JiraIssueInput,
     Measure,
     MeasureInput,
-    MeasureOutput,
     Project,
     Requirement,
 )
@@ -69,6 +68,22 @@ def test_list_measures_without_jira_issue(
     assert isinstance(measure, Measure)
     assert measure.id == create_measure.id
     assert measure.jira_issue is None
+
+
+def test_list_measures_of_project(
+    measures_view: MeasuresView,
+    create_project: Project,
+    create_measure: Measure,
+):
+    results = list(measures_view.list_measures_of_project(create_project.id))
+
+    assert len(results) == 1
+    measure = results[0]
+    assert isinstance(measure, Measure)
+    assert measure.id == create_measure.id
+    assert measure.requirement.project.id == create_project.id
+    assert measure.jira_issue.id == create_measure.jira_issue_id
+    assert measure.requirement.project.jira_project.id == create_project.jira_project_id
 
 
 def test_create_measure(
