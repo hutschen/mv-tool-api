@@ -194,20 +194,27 @@ def test_bulk_create_patch_measures(
     create_measure: Measure,
     jira_issue: JiraIssue,
 ):
+    create_measure.jira_issue_id = None
     data = [
         (create_measure.id, None, MeasureInput(summary="update")),
         (None, jira_issue.key, MeasureInput(summary="create")),
     ]
 
-    results = measures_excel_view._bulk_create_patch_measures(
-        create_requirement.id, data
+    results = list(
+        measures_excel_view._bulk_create_patch_measures(create_requirement.id, data)
     )
 
     assert len(results) == 2
-    assert isinstance(results[0], MeasureOutput)
-    assert results[0].summary == "update"
-    assert isinstance(results[1], MeasureOutput)
-    assert results[1].summary == "create"
+    m1, m2 = results
+    assert isinstance(m1, Measure)
+    assert m1.summary == "update"
+    assert m1.jira_issue == None
+    assert m2.requirement.project.jira_project.id == create_project.jira_project.id
+
+    assert isinstance(m2, Measure)
+    assert m2.summary == "create"
+    assert m2.jira_issue.id == jira_issue.id
+    assert m2.requirement.project.jira_project.id == create_project.jira_project.id
 
 
 def test_convert_row_to_measure(
