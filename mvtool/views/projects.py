@@ -81,7 +81,10 @@ class ProjectsView:
             raise NotFoundError(f"No {cls_name} with id={project_id}.")
 
         # check jira project id and cache loaded jira project
-        if project_input.jira_project_id != project.jira_project_id:
+        if (
+            project_input.jira_project_id is not None
+            and project_input.jira_project_id != project.jira_project_id
+        ):
             jira_project = self._jira_projects.get_jira_project(
                 project_input.jira_project_id
             )
