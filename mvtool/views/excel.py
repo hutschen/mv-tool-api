@@ -19,7 +19,7 @@
 from collections import OrderedDict
 import shutil
 from tempfile import NamedTemporaryFile
-from typing import Any, Collection, Generic, TypeVar
+from typing import Collection, Generic, TypeVar
 from fastapi import APIRouter, Depends, UploadFile
 from fastapi.responses import FileResponse
 from fastapi_utils.cbv import cbv
@@ -307,7 +307,7 @@ class MeasuresExcelView(ExcelView):
         self,
         requirement_id: int,
         data: Iterator[tuple[int | None, str | None, MeasureInput]],
-    ) -> Iterator[Measure]:
+    ) -> list[Measure]:
         # TODO: Define this attribute in constructor
         self._requirements = self._measures._requirements
         self._documents = self._measures._documents
@@ -330,6 +330,7 @@ class MeasuresExcelView(ExcelView):
         read_measures = dict((m.id, m) for m in self._session.exec(query).all())
 
         # Create or update measures
+        written_measures = []
         for measure_id, jira_issue_key, measure_input in data:
             jira_issue = None
 
@@ -361,8 +362,10 @@ class MeasuresExcelView(ExcelView):
             # TODO: Checking document id should be done more efficiently
             self._documents.check_document_id(measure.document_id)
             self._session.add(measure)
-            yield measure
+            written_measures.append(measure)
+
         self._session.flush()
+        return written_measures
 
     @router.post(
         "/requirements/{requirement_id}/measures/excel",
@@ -488,7 +491,7 @@ class RequirementsExcelView(ExcelView):
 
     def _bulk_create_update_requirements(
         self, project_id: int, data: Iterator[tuple[int | None, RequirementInput]]
-    ) -> Iterator[Requirement]:
+    ) -> list[Requirement]:
         # Get project from database and retrieve data
         project = self._projects.get_project(project_id)
         data = list(data)
@@ -501,6 +504,7 @@ class RequirementsExcelView(ExcelView):
         read_requirements = dict((r.id, r) for r in self._session.exec(query).all())
 
         # Create or update requirements
+        written_requirements = []
         for requirement_id, requirement_input in data:
             if requirement_id is None:
                 # Create requirement
@@ -519,8 +523,10 @@ class RequirementsExcelView(ExcelView):
 
             self._requirements._set_jira_project(requirement)
             self._session.add(requirement)
-            yield requirement
+            written_requirements.append(requirement)
+
         self._session.flush()
+        return written_requirements
 
     @router.post(
         "/projects/{project_id}/requirements/excel",
@@ -612,7 +618,7 @@ class DocumentsExcelView(ExcelView):
 
     def _bulk_create_update_documents(
         self, project_id: int, data: Iterator[tuple[int | None, DocumentInput]]
-    ) -> Iterator[Document]:
+    ) -> list[Document]:
         # Get project from database and retrieve data
         project = self._projects.get_project(project_id)
         data = list(data)
@@ -625,6 +631,7 @@ class DocumentsExcelView(ExcelView):
         read_documents = dict((r.id, r) for r in self._session.exec(query).all())
 
         # Create or update documents
+        written_documents = []
         for document_id, document_input in data:
             if document_id is None:
                 # Create document
@@ -643,8 +650,10 @@ class DocumentsExcelView(ExcelView):
 
             self._documents._set_jira_project(document)
             self._session.add(document)
-            yield document
+            written_documents.append(document)
+
         self._session.flush()
+        return written_documents
 
     @router.post(
         "/projects/{project_id}/documents/excel",
