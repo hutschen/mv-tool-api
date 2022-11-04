@@ -155,27 +155,6 @@ def test_determine_headers_to_write(empty_worksheet, worksheet_headers):
     assert headers == ("str", "bool")
 
 
-def test_query_measure_data(
-    measures_excel_view: MeasuresExcelView,
-    create_project: Project,
-    create_measure: Measure,
-):
-    results = list(
-        measures_excel_view._query_measure_data(
-            Requirement.project_id == create_project.id
-        )
-    )
-
-    assert len(results) == 1
-    result = results[0]
-    assert isinstance(result, tuple)
-    measure, requirement, document, jira_issue = result
-    assert isinstance(measure, Measure)
-    assert isinstance(requirement, Requirement)
-    assert document == create_measure.document
-    assert jira_issue == None
-
-
 def test_download_measures_excel_for_project(
     measures_excel_view: MeasuresExcelView,
     excel_temp_file,
@@ -215,20 +194,27 @@ def test_bulk_create_patch_measures(
     create_measure: Measure,
     jira_issue: JiraIssue,
 ):
+    create_measure.jira_issue_id = None
     data = [
         (create_measure.id, None, MeasureInput(summary="update")),
         (None, jira_issue.key, MeasureInput(summary="create")),
     ]
 
-    results = measures_excel_view._bulk_create_patch_measures(
-        create_requirement.id, data
+    results = list(
+        measures_excel_view._bulk_create_patch_measures(create_requirement.id, data)
     )
 
     assert len(results) == 2
-    assert isinstance(results[0], MeasureOutput)
-    assert results[0].summary == "update"
-    assert isinstance(results[1], MeasureOutput)
-    assert results[1].summary == "create"
+    m1, m2 = results
+    assert isinstance(m1, Measure)
+    assert m1.summary == "update"
+    assert m1.jira_issue == None
+    assert m2.requirement.project.jira_project.id == create_project.jira_project.id
+
+    assert isinstance(m2, Measure)
+    assert m2.summary == "create"
+    assert m2.jira_issue.id == jira_issue.id
+    assert m2.requirement.project.jira_project.id == create_project.jira_project.id
 
 
 def test_convert_row_to_measure(
@@ -312,15 +298,21 @@ def test_bulk_create_update_requirements(
         (None, RequirementInput(summary="create")),
     ]
 
-    results = requirements_excel_view._bulk_create_update_requirements(
-        create_project.id, data
+    results = list(
+        requirements_excel_view._bulk_create_update_requirements(
+            create_project.id, data
+        )
     )
 
     assert len(results) == 2
-    assert isinstance(results[0], RequirementOutput)
-    assert results[0].summary == "update"
-    assert isinstance(results[1], RequirementOutput)
-    assert results[1].summary == "create"
+    r1, r2 = results
+    assert isinstance(r1, Requirement)
+    assert r1.summary == "update"
+    assert r1.project.jira_project.id == create_project.jira_project_id
+
+    assert isinstance(r2, Requirement)
+    assert r2.summary == "create"
+    assert r2.project.jira_project.id == create_project.jira_project_id
 
 
 def test_upload_requirements_excel(
@@ -367,15 +359,19 @@ def test_bulk_create_update_documents(
         (None, DocumentInput(title="create")),
     ]
 
-    results = documents_excel_view._bulk_create_update_documents(
-        create_project.id, data
+    results = list(
+        documents_excel_view._bulk_create_update_documents(create_project.id, data)
     )
 
     assert len(results) == 2
-    assert isinstance(results[0], DocumentOutput)
-    assert results[0].title == "update"
-    assert isinstance(results[1], DocumentOutput)
-    assert results[1].title == "create"
+    d1, d2 = results
+    assert isinstance(d1, Document)
+    assert d1.title == "update"
+    assert d1.project.jira_project.id == create_project.jira_project_id
+
+    assert isinstance(d2, Document)
+    assert d2.title == "create"
+    assert d2.project.jira_project.id == create_project.jira_project_id
 
 
 def test_upload_documents_excel(

@@ -22,93 +22,93 @@ from mvtool.models import Project, ProjectInput, ProjectOutput, Requirement, Mea
 from mvtool.views.projects import ProjectsView
 
 
-def test_list_project_outputs(projects_view: ProjectsView, create_project: Project):
-    results = list(projects_view._list_projects())
+def test_list_project(projects_view: ProjectsView, create_project: Project):
+    results = list(projects_view.list_projects())
 
     assert len(results) == 1
-    project_output = results[0]
-    assert isinstance(project_output, ProjectOutput)
-    assert project_output.id == create_project.id
-    assert project_output.jira_project.id == create_project.jira_project_id
+    project = results[0]
+    assert isinstance(project, Project)
+    assert project.id == create_project.id
+    assert project.jira_project.id == create_project.jira_project_id
 
 
-def test_create_project_output_jira_project_id(
+def test_create_project_with_jira_project_id(
     projects_view: ProjectsView, project_input: ProjectInput
 ):
     assert project_input.jira_project_id is not None
-    project_output = projects_view._create_project(project_input)
+    project = projects_view.create_project(project_input)
 
-    assert isinstance(project_output, ProjectOutput)
-    assert project_output.name == project_input.name
-    assert project_output.jira_project.id == project_input.jira_project_id
+    assert isinstance(project, Project)
+    assert project.name == project_input.name
+    assert project.jira_project.id == project_input.jira_project_id
 
 
-def test_create_project_output_no_jira_project_id(
+def test_create_project_without_jira_project_id(
     projects_view: ProjectsView, project_input: ProjectInput
 ):
     project_input.jira_project_id = None
-    project_output = projects_view._create_project(project_input)
+    project = projects_view.create_project(project_input)
 
-    assert isinstance(project_output, ProjectOutput)
-    assert project_output.name == project_input.name
-    assert project_output.jira_project is None
+    assert isinstance(project, Project)
+    assert project.name == project_input.name
+    assert project.jira_project is None
 
 
-def test_create_project_output_invalid_jira_project_id(
+def test_create_project_with_invalid_jira_project_id(
     projects_view: ProjectsView, project_input: ProjectInput
 ):
     project_input.jira_project_id = "invalid"
     with pytest.raises(JIRAError) as exception_info:
-        projects_view._create_project(project_input)
+        projects_view.create_project(project_input)
         assert exception_info.value.status_code == 404
 
 
-def test_get_project_output(projects_view: ProjectsView, create_project: Project):
+def test_get_project(projects_view: ProjectsView, create_project: Project):
     assert create_project.jira_project_id is not None
-    project_output = projects_view._get_project(create_project.id)
+    project = projects_view.get_project(create_project.id)
 
-    assert isinstance(project_output, ProjectOutput)
-    assert project_output.id == create_project.id
-    assert project_output.name == create_project.name
-    assert project_output.jira_project.id == create_project.jira_project_id
+    assert isinstance(project, Project)
+    assert project.id == create_project.id
+    assert project.name == create_project.name
+    assert project.jira_project.id == create_project.jira_project_id
 
 
-def test_get_project_output_invalid_id(projects_view: ProjectsView):
+def test_get_project_using_an_invalid_id(projects_view: ProjectsView):
     with pytest.raises(HTTPException) as exception_info:
-        projects_view._get_project("invalid")
+        projects_view.get_project("invalid")
         assert exception_info.value.status_code == 404
 
 
-def test_update_project_output(
+def test_update_project(
     projects_view: ProjectsView, create_project: Project, project_input: ProjectInput
 ):
     assert create_project.jira_project_id is not None
     orig_name = project_input.name
     project_input.name += " (updated)"
 
-    project_output = projects_view._update_project(create_project.id, project_input)
+    project = projects_view.update_project(create_project.id, project_input)
 
-    assert isinstance(project_output, ProjectOutput)
-    assert project_output.id == create_project.id
-    assert project_output.name != orig_name
-    assert project_output.name == project_input.name
-    assert project_output.jira_project.id == project_input.jira_project_id
+    assert isinstance(project, Project)
+    assert project.id == create_project.id
+    assert project.name != orig_name
+    assert project.name == project_input.name
+    assert project.jira_project.id == project_input.jira_project_id
 
 
-def test_update_project_output_invalid_jira_project_id(
+def test_update_project_with_invalid_jira_project_id(
     projects_view: ProjectsView, create_project: Project, project_input: ProjectInput
 ):
     project_input.jira_project_id = "invalid"
     with pytest.raises(JIRAError) as exception_info:
-        projects_view._update_project(create_project.id, project_input)
+        projects_view.update_project(create_project.id, project_input)
         assert exception_info.value.status_code == 404
 
 
-def test_update_project_output_invalid_id(
+def test_update_project_using_an_invalid_id(
     projects_view: ProjectsView, project_input: ProjectInput
 ):
     with pytest.raises(HTTPException) as exception_info:
-        projects_view._update_project("invalid", project_input)
+        projects_view.update_project("invalid", project_input)
         assert exception_info.value.status_code == 404
 
 
@@ -118,6 +118,24 @@ def test_delete_project(projects_view: ProjectsView, create_project: Project):
     with pytest.raises(HTTPException) as exception_info:
         projects_view.get_project(create_project.id)
         assert exception_info.value.status_code == 404
+
+
+def test_project_jira_project_without_getter_and_cache():
+    project = Project(name="test")
+    assert project.jira_project is None
+
+
+def test_project_jira_project_with_cache(jira_project_data):
+    project = Project(name="test", jira_project_id=jira_project_data.id)
+    project._jira_project = jira_project_data
+    assert project.jira_project is jira_project_data
+
+
+def test_project_jira_project_with_getter():
+    jira_project_dummy = object()
+    project = Project(name="test", jira_project_id="test")
+    project._get_jira_project = lambda _: jira_project_dummy
+    assert project.jira_project is jira_project_dummy
 
 
 def test_project_completion_no_requirements(create_project: Project):

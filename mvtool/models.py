@@ -15,9 +15,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 from datetime import datetime
-from pydantic import confloat, constr, validator
+from typing import Callable
+from pydantic import PrivateAttr, confloat, constr, validator
 from sqlmodel import SQLModel, Field, Relationship, Session, select, func, or_
 
 
@@ -77,9 +77,31 @@ class MeasureInput(SQLModel):
 
 class Measure(MeasureInput, CommonFieldsMixin, table=True):
     requirement_id: int | None = Field(default=None, foreign_key="requirement.id")
-    requirement: "Requirement" = Relationship(back_populates="measures")
+    requirement: "Requirement" = Relationship(
+        back_populates="measures", sa_relationship_kwargs=dict(lazy="joined")
+    )
     document_id: int | None = Field(default=None, foreign_key="document.id")
-    document: "Document" = Relationship(back_populates="measures")
+    document: "Document" = Relationship(
+        back_populates="measures", sa_relationship_kwargs=dict(lazy="joined")
+    )
+
+    _get_jira_issue: Callable = PrivateAttr()
+    _jira_issue: JiraIssue = PrivateAttr()
+
+    @property
+    def jira_issue(self) -> JiraIssue | None:
+        if self.jira_issue_id is None:
+            return None
+
+        get_jira_issue: Callable | None = getattr(self, "_get_jira_issue", None)
+        jira_issue: JiraIssue | None = getattr(self, "_jira_issue", None)
+        if jira_issue is None or jira_issue.id != self.jira_issue_id:
+            if get_jira_issue is None:
+                raise RuntimeError("get_jira_issue not set")
+            jira_issue = get_jira_issue(self.jira_issue_id)
+            self._jira_issue = jira_issue
+
+        return jira_issue
 
 
 class AbstractRequirementInput(SQLModel):
@@ -108,12 +130,14 @@ class RequirementInput(AbstractRequirementInput):
 
 class Requirement(RequirementInput, CommonFieldsMixin, table=True):
     project_id: int | None = Field(default=None, foreign_key="project.id")
-    project: "Project" = Relationship(back_populates="requirements")
+    project: "Project" = Relationship(
+        back_populates="requirements", sa_relationship_kwargs=dict(lazy="joined")
+    )
     catalog_requirement_id: int | None = Field(
         default=None, foreign_key="catalog_requirement.id"
     )
     catalog_requirement: "CatalogRequirement" = Relationship(
-        back_populates="requirements"
+        back_populates="requirements", sa_relationship_kwargs=dict(lazy="joined")
     )
     measures: list[Measure] = Relationship(
         back_populates="requirement",
@@ -202,7 +226,9 @@ class DocumentInput(SQLModel):
 
 class Document(DocumentInput, CommonFieldsMixin, table=True):
     project_id: int | None = Field(default=None, foreign_key="project.id")
-    project: "Project" = Relationship(back_populates="documents")
+    project: "Project" = Relationship(
+        back_populates="documents", sa_relationship_kwargs=dict(lazy="joined")
+    )
     measures: list[Measure] = Relationship(back_populates="document")
 
 
@@ -221,6 +247,24 @@ class Project(ProjectInput, CommonFieldsMixin, table=True):
         back_populates="project",
         sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
     )
+
+    _get_jira_project: Callable = PrivateAttr()
+    _jira_project: JiraProject = PrivateAttr()
+
+    @property
+    def jira_project(self) -> JiraProject | None:
+        if self.jira_project_id is None:
+            return None
+
+        get_jira_project: Callable | None = getattr(self, "_get_jira_project", None)
+        jira_project: JiraProject | None = getattr(self, "_jira_project", None)
+        if jira_project is None or jira_project.id != self.jira_project_id:
+            if get_jira_project is None:
+                raise RuntimeError("get_jira_project not set")
+            jira_project = get_jira_project(self.jira_project_id)
+            self._jira_project = jira_project
+
+        return jira_project
 
     @property
     def completion(self) -> float | None:

@@ -25,7 +25,7 @@ import docx
 from .catalogs import CatalogsView
 from .catalog_modules import CatalogModulesView
 from ..database import CRUDOperations
-from ..models import CatalogModule, Requirement
+from ..models import CatalogModule, CatalogRequirement
 from .. import errors
 
 
@@ -95,7 +95,7 @@ class GSBausteinParser:
     def _parse_requirement_title(cls, text):
         match = cls._requirement_title_re_1.match(text)
         if match:
-            return Requirement(
+            return CatalogRequirement(
                 gs_anforderung_reference=match.group(1),
                 summary=match.group(3),
                 gs_absicherung=match.group(6),
@@ -104,7 +104,7 @@ class GSBausteinParser:
         else:
             match = cls._requirement_title_re_2.match(text)
             if match:
-                return Requirement(
+                return CatalogRequirement(
                     gs_anforderung_reference=match.group(1),
                     summary=match.group(3),
                     gs_absicherung=match.group(4),
@@ -183,7 +183,9 @@ class GSBausteinParser:
     @classmethod
     def _parse_baustein(cls, paragraphs):
         catalog_module = cls._parse_gs_baustein_title(paragraphs)
-        catalog_module.requirements = cls._parse_requirements_from_baustein(paragraphs)
+        catalog_module.catalog_requirements = cls._parse_requirements_from_baustein(
+            paragraphs
+        )
         return catalog_module
 
 

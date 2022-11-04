@@ -26,6 +26,7 @@ from mvtool.models import (
     CatalogInput,
     CatalogModule,
     CatalogModuleInput,
+    CatalogRequirementInput,
     DocumentInput,
     JiraIssue,
     JiraIssueInput,
@@ -38,6 +39,7 @@ from mvtool.models import (
     RequirementInput,
 )
 from mvtool.views.catalog_modules import CatalogModulesView
+from mvtool.views.catalog_requirements import CatalogRequirementsView
 from mvtool.views.catalogs import CatalogsView
 from mvtool.views.documents import DocumentsView
 from mvtool.views.excel import (
@@ -49,7 +51,7 @@ from mvtool.views.excel import (
 from mvtool.views.gs import get_word_temp_file
 from mvtool.views.jira_ import JiraIssuesView, JiraProjectsView
 from mvtool.views.projects import ProjectsView
-from mvtool.views.requirements import RequirementsView
+from mvtool.views.requirements import ImportCatalogRequirementsView, RequirementsView
 from mvtool.views.measures import MeasuresView
 
 
@@ -224,6 +226,11 @@ def catalog_module_input():
 
 
 @pytest.fixture
+def catalog_requirement_input():
+    return CatalogRequirementInput(summary="title")
+
+
+@pytest.fixture
 def project_input(jira_project_data):
     return ProjectInput(name="name", jira_project_id=jira_project_data.id)
 
@@ -239,8 +246,12 @@ def requirement_input():
 
 
 @pytest.fixture()
-def measure_input(create_document):
-    return MeasureInput(summary="summary", document_id=create_document.id)
+def measure_input(create_document, jira_issue_data):
+    return MeasureInput(
+        summary="summary",
+        document_id=create_document.id,
+        jira_issue_id=jira_issue_data.id,
+    )
 
 
 @pytest.fixture
@@ -280,10 +291,8 @@ def create_project(projects_view: ProjectsView, project_input: ProjectInput):
 
 
 @pytest.fixture
-def requirements_view(
-    projects_view: ProjectsView, catalog_modules_view: CatalogModulesView, crud
-):
-    return Mock(wraps=RequirementsView(projects_view, catalog_modules_view, crud))
+def requirements_view(projects_view: ProjectsView, crud):
+    return Mock(wraps=RequirementsView(projects_view, crud))
 
 
 @pytest.fixture
@@ -296,13 +305,31 @@ def create_requirement(
 
 
 @pytest.fixture
+def catalog_requirements_view(catalog_modules_view: CatalogModulesView, crud):
+    return Mock(wraps=CatalogRequirementsView(catalog_modules_view, crud))
+
+
+@pytest.fixture
 def create_catalog_requirement(
-    requirements_view: RequirementsView,
+    catalog_requirements_view: CatalogRequirementsView,
     create_catalog_module: CatalogModule,
-    requirement_input: RequirementInput,
+    catalog_requirement_input: CatalogRequirementInput,
 ):
-    return requirements_view.create_catalog_requirement(
-        create_catalog_module.id, requirement_input
+    return catalog_requirements_view.create_catalog_requirement(
+        create_catalog_module.id, catalog_requirement_input
+    )
+
+
+@pytest.fixture
+def import_catalog_requirements_view(
+    projects_view: ProjectsView,
+    catalog_requirements_view: CatalogRequirementsView,
+    crud,
+):
+    return Mock(
+        wraps=ImportCatalogRequirementsView(
+            projects_view, catalog_requirements_view, crud
+        )
     )
 
 
@@ -334,16 +361,6 @@ def create_measure(
     measure_input: MeasureInput,
 ):
     return measures_view.create_measure(create_requirement.id, measure_input)
-
-
-@pytest.fixture
-def create_measure_with_jira_issue(
-    measures_view: MeasuresView,
-    create_measure: Measure,
-    jira_issue_input: JiraIssueInput,
-):
-    measures_view.create_and_link_jira_issue(create_measure.id, jira_issue_input)
-    return create_measure
 
 
 @pytest.fixture

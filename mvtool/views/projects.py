@@ -15,16 +15,14 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 from typing import Iterator
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends
 from fastapi_utils.cbv import cbv
 
-from mvtool.errors import NotFoundError
-
+from ..errors import NotFoundError
 from ..database import CRUDOperations
 from .jira_ import JiraProjectsView
-from ..models import ProjectInput, Project, ProjectOutput
+from ..models import JiraProject, ProjectInput, Project, ProjectOutput
 
 router = APIRouter()
 
@@ -43,71 +41,70 @@ class ProjectsView:
         self._session = self._crud.session
 
     @router.get("/projects", response_model=list[ProjectOutput], **kwargs)
-    def _list_projects(self) -> Iterator[ProjectOutput]:
+    def list_projects(self) -> Iterator[Project]:
+        projects = self._crud.read_all_from_db(Project)
         jira_projects_map = {
             jp.id: jp for jp in self._jira_projects.list_jira_projects()
         }
-        for project in self.list_projects():
-            project = ProjectOutput.from_orm(project)
-            try:
-                project.jira_project = jira_projects_map[project.jira_project_id]
-            except KeyError:
-                pass
+
+        for project in projects:
+            self._set_jira_project(
+                project, jira_projects_map.get(project.jira_project_id, None)
+            )
             yield project
 
-    def list_projects(self) -> list[Project]:
-        return self._crud.read_all_from_db(Project)
-
     @router.post("/projects", status_code=201, response_model=ProjectOutput, **kwargs)
-    def _create_project(self, project: ProjectInput) -> ProjectOutput:
-        project = ProjectOutput.from_orm(self.create_project(project))
-        project.jira_project = self._jira_projects.try_to_get_jira_project(
-            project.jira_project_id
-        )
-        return project
+    def create_project(self, project_input: ProjectInput) -> Project:
+        # check jira project id and cache loaded jira project
+        if project_input.jira_project_id is None:
+            jira_project = None
+        else:
+            jira_project = self._jira_projects.get_jira_project(
+                project_input.jira_project_id
+            )
 
-    def create_project(self, new_project: ProjectInput) -> Project:
-        new_project = Project.from_orm(new_project)
-        self._jira_projects.check_jira_project_id(new_project.jira_project_id)
-        return self._crud.create_in_db(new_project)
+        project = self._crud.create_in_db(Project.from_orm(project_input))
+        self._set_jira_project(project, jira_project)
+        return project
 
     @router.get("/projects/{project_id}", response_model=ProjectOutput, **kwargs)
-    def _get_project(self, project_id: int) -> ProjectOutput:
-        project = ProjectOutput.from_orm(self.get_project(project_id))
-        project.jira_project = self._jira_projects.try_to_get_jira_project(
-            project.jira_project_id
-        )
-        return project
-
     def get_project(self, project_id: int) -> Project:
-        return self._crud.read_from_db(Project, project_id)
+        project = self._crud.read_from_db(Project, project_id)
+        self._set_jira_project(project)
+        return project
 
     @router.put("/projects/{project_id}", response_model=ProjectOutput, **kwargs)
-    def _update_project(
-        self, project_id: int, project_update: ProjectInput
-    ) -> ProjectOutput:
-        project = ProjectOutput.from_orm(
-            self.update_project(project_id, project_update)
-        )
-        project.jira_project = self._jira_projects.try_to_get_jira_project(
-            project.jira_project_id
-        )
-        return project
-
     def update_project(self, project_id: int, project_input: ProjectInput) -> Project:
         project = self._session.get(Project, project_id)
         if not project:
             cls_name = Project.__name__
             raise NotFoundError(f"No {cls_name} with id={project_id}.")
-        if project_input.jira_project_id != project.jira_project_id:
-            self._jira_projects.check_jira_project_id(project_input.jira_project_id)
+
+        # check jira project id and cache loaded jira project
+        if (
+            project_input.jira_project_id is not None
+            and project_input.jira_project_id != project.jira_project_id
+        ):
+            jira_project = self._jira_projects.get_jira_project(
+                project_input.jira_project_id
+            )
+        else:
+            jira_project = None
+
+        # update project in database
         for key, value in project_input.dict().items():
             setattr(project, key, value)
         self._session.flush()
+
+        self._set_jira_project(project, jira_project)
         return project
 
-    @router.delete(
-        "/projects/{project_id}", status_code=204, response_class=Response, **kwargs
-    )
+    @router.delete("/projects/{project_id}", status_code=204, **kwargs)
     def delete_project(self, project_id: int):
         return self._crud.delete_from_db(Project, project_id)
+
+    def _set_jira_project(
+        self, project: Project, jira_project: JiraProject | None = None
+    ) -> None:
+        project._jira_project = jira_project
+        project._get_jira_project = self._jira_projects.try_to_get_jira_project

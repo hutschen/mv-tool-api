@@ -41,7 +41,7 @@ def test_parse_gs_baustein(filename):
     gs_baustein = GSBausteinParser.parse(filename)
     assert gs_baustein is not None
     assert gs_baustein.title is not None
-    assert gs_baustein.requirements is not None
+    assert gs_baustein.catalog_requirements is not None
 
 
 def test_parse_gs_baustein_invalid():
