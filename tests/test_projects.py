@@ -18,7 +18,7 @@
 import pytest
 from fastapi import HTTPException
 from jira import JIRAError
-from mvtool.models import Project, ProjectInput, ProjectOutput, Requirement, Measure
+from mvtool.models import Project, ProjectInput, Requirement, Measure
 from mvtool.views.projects import ProjectsView
 
 
@@ -120,15 +120,10 @@ def test_delete_project(projects_view: ProjectsView, create_project: Project):
         assert exception_info.value.status_code == 404
 
 
-def test_project_jira_project_without_getter_and_cache():
-    project = Project(name="test")
-    assert project.jira_project is None
-
-
-def test_project_jira_project_with_cache(jira_project_data):
-    project = Project(name="test", jira_project_id=jira_project_data.id)
-    project._jira_project = jira_project_data
-    assert project.jira_project is jira_project_data
+def test_project_jira_project_without_getter():
+    project = Project(name="test", jira_project_id="test")
+    with pytest.raises(AttributeError):
+        project.jira_project
 
 
 def test_project_jira_project_with_getter():
