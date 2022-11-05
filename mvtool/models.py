@@ -86,22 +86,13 @@ class Measure(MeasureInput, CommonFieldsMixin, table=True):
     )
 
     _get_jira_issue: Callable = PrivateAttr()
-    _jira_issue: JiraIssue = PrivateAttr()
 
     @property
     def jira_issue(self) -> JiraIssue | None:
         if self.jira_issue_id is None:
             return None
 
-        get_jira_issue: Callable | None = getattr(self, "_get_jira_issue", None)
-        jira_issue: JiraIssue | None = getattr(self, "_jira_issue", None)
-        if jira_issue is None or jira_issue.id != self.jira_issue_id:
-            if get_jira_issue is None:
-                raise RuntimeError("get_jira_issue not set")
-            jira_issue = get_jira_issue(self.jira_issue_id)
-            self._jira_issue = jira_issue
-
-        return jira_issue
+        return getattr(self, "_get_jira_issue")(self.jira_issue_id)
 
 
 class AbstractRequirementInput(SQLModel):
@@ -249,22 +240,13 @@ class Project(ProjectInput, CommonFieldsMixin, table=True):
     )
 
     _get_jira_project: Callable = PrivateAttr()
-    _jira_project: JiraProject = PrivateAttr()
 
     @property
-    def jira_project(self) -> JiraProject | None:
+    def jira_project(self) -> JiraProject:
         if self.jira_project_id is None:
             return None
 
-        get_jira_project: Callable | None = getattr(self, "_get_jira_project", None)
-        jira_project: JiraProject | None = getattr(self, "_jira_project", None)
-        if jira_project is None or jira_project.id != self.jira_project_id:
-            if get_jira_project is None:
-                raise RuntimeError("get_jira_project not set")
-            jira_project = get_jira_project(self.jira_project_id)
-            self._jira_project = jira_project
-
-        return jira_project
+        return getattr(self, "_get_jira_project")(self.jira_project_id)
 
     @property
     def completion(self) -> float | None:
