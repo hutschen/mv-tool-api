@@ -46,6 +46,31 @@ def test_get_jira_user(jira, jira_user_data):
     assert result.email_address == jira_user_data["emailAddress"]
 
 
+def test_lookup_or_try_to_get_jira_project(jira, jira_project_data):
+    jira.project.return_value = jira_project_data
+    jira_projects_view = JiraProjectsView(jira)
+
+    result = jira_projects_view.lookup_jira_project(
+        jira_project_data.id, try_to_get=True
+    )
+
+    assert isinstance(result, JiraProject)
+    assert result.id == jira_project_data.id
+    assert jira_projects_view._jira_projects_cache == {jira_project_data.id: result}
+
+
+def test_lookup_jira_project(jira, jira_project_data):
+    jira.project.return_value = jira_project_data
+    jira_projects_view = JiraProjectsView(jira)
+
+    result = jira_projects_view.lookup_jira_project(
+        jira_project_data.id, try_to_get=False
+    )
+
+    assert result is None
+    assert jira_projects_view._jira_projects_cache == {}
+
+
 def test_list_jira_projects(jira, jira_project_data):
     jira.projects.return_value = [jira_project_data]
     results = list(JiraProjectsView(jira).list_jira_projects())
