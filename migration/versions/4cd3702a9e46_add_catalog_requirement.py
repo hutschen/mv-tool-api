@@ -52,6 +52,16 @@ def upgrade() -> None:
         """
     )
 
+    if op.get_context().dialect.name == "postgresql":
+        op.execute(
+            """
+            SELECT setval(
+                pg_get_serial_sequence('catalog_requirement', 'id'),
+                (SELECT MAX(id) FROM catalog_requirement)
+            )
+            """
+        )
+
     with op.batch_alter_table("requirement", schema=None) as batch_op:
         batch_op.add_column(
             sa.Column("catalog_requirement_id", sa.Integer(), nullable=True)
