@@ -145,6 +145,27 @@ def test_convert_to_jira_issue(jira, jira_issue_data):
     )
 
 
+def test_lookup_or_try_to_get_jira_issue(jira, jira_issue_data):
+    jira.issue.return_value = jira_issue_data
+    jira_issues_view = JiraIssuesView(jira)
+
+    result = jira_issues_view.lookup_jira_issue(jira_issue_data.id, try_to_get=True)
+
+    assert isinstance(result, JiraIssue)
+    assert result.id == jira_issue_data.id
+    assert jira_issues_view._jira_issues_cache == {jira_issue_data.id: result}
+
+
+def test_lookup_jira_issue(jira, jira_issue_data):
+    jira.issue.return_value = jira_issue_data
+    jira_issues_view = JiraIssuesView(jira)
+
+    result = jira_issues_view.lookup_jira_issue(jira_issue_data.id, try_to_get=False)
+
+    assert result is None
+    assert jira_issues_view._jira_issues_cache == {}
+
+
 def test_list_jira_issues(jira, jira_project_data, jira_issue_data):
     jira.search_issues.return_value = [jira_issue_data]
     jira_issues = list(JiraIssuesView(jira).list_jira_issues(jira_project_data.id))
