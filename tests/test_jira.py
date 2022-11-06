@@ -46,6 +46,31 @@ def test_get_jira_user(jira, jira_user_data):
     assert result.email_address == jira_user_data["emailAddress"]
 
 
+def test_lookup_or_try_to_get_jira_project(jira, jira_project_data):
+    jira.project.return_value = jira_project_data
+    jira_projects_view = JiraProjectsView(jira)
+
+    result = jira_projects_view.lookup_jira_project(
+        jira_project_data.id, try_to_get=True
+    )
+
+    assert isinstance(result, JiraProject)
+    assert result.id == jira_project_data.id
+    assert jira_projects_view._jira_projects_cache == {jira_project_data.id: result}
+
+
+def test_lookup_jira_project(jira, jira_project_data):
+    jira.project.return_value = jira_project_data
+    jira_projects_view = JiraProjectsView(jira)
+
+    result = jira_projects_view.lookup_jira_project(
+        jira_project_data.id, try_to_get=False
+    )
+
+    assert result is None
+    assert jira_projects_view._jira_projects_cache == {}
+
+
 def test_list_jira_projects(jira, jira_project_data):
     jira.projects.return_value = [jira_project_data]
     results = list(JiraProjectsView(jira).list_jira_projects())
@@ -120,6 +145,27 @@ def test_convert_to_jira_issue(jira, jira_issue_data):
     )
 
 
+def test_lookup_or_try_to_get_jira_issue(jira, jira_issue_data):
+    jira.issue.return_value = jira_issue_data
+    jira_issues_view = JiraIssuesView(jira)
+
+    result = jira_issues_view.lookup_jira_issue(jira_issue_data.id, try_to_get=True)
+
+    assert isinstance(result, JiraIssue)
+    assert result.id == jira_issue_data.id
+    assert jira_issues_view._jira_issues_cache == {jira_issue_data.id: result}
+
+
+def test_lookup_jira_issue(jira, jira_issue_data):
+    jira.issue.return_value = jira_issue_data
+    jira_issues_view = JiraIssuesView(jira)
+
+    result = jira_issues_view.lookup_jira_issue(jira_issue_data.id, try_to_get=False)
+
+    assert result is None
+    assert jira_issues_view._jira_issues_cache == {}
+
+
 def test_list_jira_issues(jira, jira_project_data, jira_issue_data):
     jira.search_issues.return_value = [jira_issue_data]
     jira_issues = list(JiraIssuesView(jira).list_jira_issues(jira_project_data.id))
@@ -145,7 +191,7 @@ def test_get_jira_issue(jira, jira_issue_data):
 
 def test_get_jira_issues_single_issue(jira, jira_issue_data):
     jira.search_issues.return_value = [jira_issue_data]
-    results = JiraIssuesView(jira).get_jira_issues((jira_issue_data.id,))
+    results = list(JiraIssuesView(jira).get_jira_issues((jira_issue_data.id,)))
     assert isinstance(results[0], JiraIssue)
     assert results[0].id == jira_issue_data.id
     jira.search_issues.assert_called_once_with(
@@ -155,7 +201,7 @@ def test_get_jira_issues_single_issue(jira, jira_issue_data):
 
 def test_get_jira_issues_multiple_issues(jira):
     jira.search_issues.return_value = []
-    result = JiraIssuesView(jira).get_jira_issues(("1", "2"))
+    result = list(JiraIssuesView(jira).get_jira_issues(("1", "2")))
     assert result == []
     jira.search_issues.assert_called_once_with(
         "id = 1 OR id = 2", validate_query=False, startAt=0, maxResults=None
@@ -164,7 +210,7 @@ def test_get_jira_issues_multiple_issues(jira):
 
 def test_get_jira_issues_no_issues(jira):
     jira.search_issues.return_value = []
-    result = JiraIssuesView(jira).get_jira_issues([])
+    result = list(JiraIssuesView(jira).get_jira_issues([]))
     assert result == []
     jira.search_issues.assert_not_called()
 
@@ -178,7 +224,7 @@ def test_check_jira_issue_id_fails(jira):
 def test_check_jira_issue_id_success(jira, jira_issue_data):
     jira.issue.return_value = jira_issue_data
     JiraIssuesView(jira).check_jira_issue_id(jira_issue_data.id)
-    jira.issue.assert_called_once_with(id=jira_issue_data.id)
+    jira.issue.assert_called_once_with(jira_issue_data.id)
 
 
 def test_check_jira_issue_id_gets_none(jira):
@@ -203,7 +249,7 @@ def test_try_to_get_jira_issue_succeeds(jira, jira_issue_data):
     result = JiraIssuesView(jira).try_to_get_jira_issue(jira_issue_data.id)
     assert result.id == jira_issue_data.id
     assert isinstance(result, JiraIssue)
-    jira.issue.assert_called_once_with(id=jira_issue_data.id)
+    jira.issue.assert_called_once_with(jira_issue_data.id)
 
 
 def test_update_jira_issue(jira, jira_issue_data, jira_issue_input):
@@ -212,7 +258,7 @@ def test_update_jira_issue(jira, jira_issue_data, jira_issue_input):
     )
     assert isinstance(result, JiraIssue)
     assert result.id == jira_issue_data.id
-    jira.issue.assert_called_once_with(id=jira_issue_data.id)
+    jira.issue.assert_called_once_with(jira_issue_data.id)
     jira_issue_data.update.assert_called_once_with(
         summary=jira_issue_input.summary,
         description=jira_issue_input.description,
@@ -222,5 +268,5 @@ def test_update_jira_issue(jira, jira_issue_data, jira_issue_input):
 
 def test_delete_jira_issue(jira, jira_issue_data):
     JiraIssuesView(jira).delete_jira_issue(jira_issue_data.id)
-    jira.issue.assert_called_once_with(id=jira_issue_data.id)
+    jira.issue.assert_called_once_with(jira_issue_data.id)
     jira_issue_data.delete.assert_called_once_with()

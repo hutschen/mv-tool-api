@@ -29,7 +29,6 @@ from ..errors import ClientError, NotFoundError
 from ..models import (
     JiraIssue,
     JiraIssueInput,
-    JiraProject,
     MeasureInput,
     Measure,
     MeasureOutput,
@@ -62,24 +61,10 @@ class MeasuresView:
         **kwargs,
     )
     def list_measures(self, requirement_id: int) -> Iterator[Measure]:
-        requirement = None
-        for measure in self.query_measures(Measure.requirement_id == requirement_id):
-            if requirement is None:
-                requirement = measure.requirement
-                self._set_jira_project(measure)
-
-            self._set_jira_project(measure, requirement.project.jira_project)
-            yield measure
+        return self.query_measures(Measure.requirement_id == requirement_id)
 
     def list_measures_of_project(self, project_id: int) -> Iterator[Measure]:
-        project = None
-        for measure in self.query_measures(Requirement.project_id == project_id):
-            if project is None:
-                project = measure.requirement.project
-                self._set_jira_project(measure)
-
-            self._set_jira_project(measure, project.jira_project)
-            yield measure
+        return self.query_measures(Requirement.project_id == project_id)
 
     def query_measures(self, *whereclauses: Any) -> Iterator[Measure]:
         measures = self._session.exec(
@@ -90,15 +75,15 @@ class MeasuresView:
             .order_by(Measure.id)
         ).all()
 
-        # query jira issues
-        jira_issue_ids = [m.jira_issue_id for m in measures if m.jira_issue_id]
-        jira_issues = self._jira_issues.get_jira_issues(jira_issue_ids)
-        jira_issue_map = {ji.id: ji for ji in jira_issues}
+        # cache jira issues
+        self._jira_issues.get_jira_issues(
+            [m.jira_issue_id for m in measures if m.jira_issue_id]
+        )
 
         # assign jira issue to measure and yield results
         for measure in measures:
-            jira_issue = jira_issue_map.get(measure.jira_issue_id, None)
-            self._set_jira_issue(measure, jira_issue)
+            self._set_jira_issue(measure, try_to_get=False)
+            self._set_jira_project(measure)
             yield measure
 
     @router.post(
@@ -110,30 +95,28 @@ class MeasuresView:
     def create_measure(
         self, requirement_id: int, measure_input: MeasureInput
     ) -> Measure:
+
+        # check ids of dependencies
         requirement = self._requirements.get_requirement(requirement_id)
+        document = self._documents.check_document_id(measure_input.document_id)
+        self._jira_issues.check_jira_issue_id(measure_input.jira_issue_id)
 
-        # check document id and cache loaded document
-        if measure_input.document_id is None:
-            document = None
-        else:
-            document = self._documents.get_document(measure_input.document_id)
-
-        # check jira issue id and cache loaded jira issue
-        if measure_input.jira_issue_id is None:
-            jira_issue = None
-        else:
-            jira_issue = self._jira_issues.get_jira_issue(measure_input.jira_issue_id)
-
+        # create measure
         measure = Measure.from_orm(measure_input)
         measure.requirement = requirement
         measure.document = document
-        self._set_jira_project_and_issue(measure, jira_issue=jira_issue)
+
+        # set jira lookup functions
+        self._set_jira_issue(measure, try_to_get=False)
+        self._set_jira_project(measure)
+
         return self._crud.create_in_db(measure)
 
     @router.get("/measures/{measure_id}", response_model=MeasureOutput, **kwargs)
     def get_measure(self, measure_id: int) -> Measure:
         measure = self._crud.read_from_db(Measure, measure_id)
-        self._set_jira_project_and_issue(measure)
+        self._set_jira_issue(measure)
+        self._set_jira_project(measure)
         return measure
 
     @router.put("/measures/{measure_id}", response_model=MeasureOutput, **kwargs)
@@ -144,23 +127,18 @@ class MeasuresView:
             raise NotFoundError(f"No {cls_name} with id={measure_id}.")
 
         # check jira issue id and cache loaded jira issue
-        if (
-            measure_input.jira_issue_id is not None
-            and measure_input.jira_issue_id != measure.jira_issue_id
-        ):
-            jira_issue = self._jira_issues.get_jira_issue(measure_input.jira_issue_id)
-        else:
-            jira_issue = None
+        if measure_input.jira_issue_id != measure.jira_issue_id:
+            self._jira_issues.check_jira_issue_id(measure_input.jira_issue_id)
 
         for key, value in measure_input.dict().items():
             setattr(measure, key, value)
 
         # check document id and set loaded document
-        if measure_input.document_id is not None:
-            measure.document = self._documents.get_document(measure_input.document_id)
+        measure.document = self._documents.check_document_id(measure_input.document_id)
 
         self._session.flush()
-        self._set_jira_project_and_issue(measure, jira_issue=jira_issue)
+        self._set_jira_issue(measure)
+        self._set_jira_project(measure)
         return measure
 
     @router.delete(
@@ -202,24 +180,14 @@ class MeasuresView:
         self._crud.update_in_db(measure_id, measure)
         return jira_issue
 
-    def _set_jira_project(
-        self, measure: Measure, jira_project: JiraProject | None = None
-    ) -> None:
-        self._requirements._set_jira_project(measure.requirement, jira_project)
+    def _set_jira_project(self, measure: Measure, try_to_get: bool = True) -> None:
+        self._requirements._set_jira_project(measure.requirement, try_to_get)
         if measure.document is not None:
-            self._documents._set_jira_project(measure.document, jira_project)
+            self._documents._set_jira_project(measure.document, try_to_get)
 
-    def _set_jira_issue(
-        self, measure: Measure, jira_issue: JiraIssue | None = None
-    ) -> None:
-        measure._jira_issue = jira_issue
-        measure._get_jira_issue = self._jira_issues.try_to_get_jira_issue
-
-    def _set_jira_project_and_issue(
-        self,
-        measure: Measure,
-        jira_project: JiraProject | None = None,
-        jira_issue: JiraIssue | None = None,
-    ) -> None:
-        self._set_jira_project(measure, jira_project)
-        self._set_jira_issue(measure, jira_issue)
+    def _set_jira_issue(self, measure: Measure, try_to_get: bool = True) -> None:
+        measure._get_jira_issue = (
+            lambda jira_issue_id: self._jira_issues.lookup_jira_issue(
+                jira_issue_id, try_to_get
+            )
+        )

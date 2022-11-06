@@ -42,29 +42,21 @@ class ProjectsView:
 
     @router.get("/projects", response_model=list[ProjectOutput], **kwargs)
     def list_projects(self) -> Iterator[Project]:
-        projects = self._crud.read_all_from_db(Project)
-        jira_projects_map = {
-            jp.id: jp for jp in self._jira_projects.list_jira_projects()
-        }
+        jira_projects_cached = False
 
-        for project in projects:
-            self._set_jira_project(
-                project, jira_projects_map.get(project.jira_project_id, None)
-            )
+        for project in self._crud.read_all_from_db(Project):
+            if not jira_projects_cached:
+                self._jira_projects.list_jira_projects()
+                jira_projects_cached = True
+
+            self._set_jira_project(project, try_to_get=False)
             yield project
 
     @router.post("/projects", status_code=201, response_model=ProjectOutput, **kwargs)
     def create_project(self, project_input: ProjectInput) -> Project:
-        # check jira project id and cache loaded jira project
-        if project_input.jira_project_id is None:
-            jira_project = None
-        else:
-            jira_project = self._jira_projects.get_jira_project(
-                project_input.jira_project_id
-            )
-
+        self._jira_projects.check_jira_project_id(project_input.jira_project_id)
         project = self._crud.create_in_db(Project.from_orm(project_input))
-        self._set_jira_project(project, jira_project)
+        self._set_jira_project(project, try_to_get=False)
         return project
 
     @router.get("/projects/{project_id}", response_model=ProjectOutput, **kwargs)
@@ -81,30 +73,24 @@ class ProjectsView:
             raise NotFoundError(f"No {cls_name} with id={project_id}.")
 
         # check jira project id and cache loaded jira project
-        if (
-            project_input.jira_project_id is not None
-            and project_input.jira_project_id != project.jira_project_id
-        ):
-            jira_project = self._jira_projects.get_jira_project(
-                project_input.jira_project_id
-            )
-        else:
-            jira_project = None
+        if project_input.jira_project_id != project.jira_project_id:
+            self._jira_projects.check_jira_project_id(project_input.jira_project_id)
 
         # update project in database
         for key, value in project_input.dict().items():
             setattr(project, key, value)
         self._session.flush()
 
-        self._set_jira_project(project, jira_project)
+        self._set_jira_project(project)
         return project
 
     @router.delete("/projects/{project_id}", status_code=204, **kwargs)
     def delete_project(self, project_id: int):
         return self._crud.delete_from_db(Project, project_id)
 
-    def _set_jira_project(
-        self, project: Project, jira_project: JiraProject | None = None
-    ) -> None:
-        project._jira_project = jira_project
-        project._get_jira_project = self._jira_projects.try_to_get_jira_project
+    def _set_jira_project(self, project: Project, try_to_get: bool = True) -> None:
+        project._get_jira_project = (
+            lambda jira_project_id: self._jira_projects.lookup_jira_project(
+                jira_project_id, try_to_get
+            )
+        )

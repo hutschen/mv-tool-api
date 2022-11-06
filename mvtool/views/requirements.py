@@ -25,7 +25,6 @@ from .projects import ProjectsView
 from .catalog_requirements import CatalogRequirementsView
 from ..models import (
     CatalogRequirement,
-    JiraProject,
     RequirementInput,
     Requirement,
     RequirementOutput,
@@ -53,15 +52,10 @@ class RequirementsView:
         **kwargs,
     )
     def list_requirements(self, project_id: int) -> Iterator[Requirement]:
-        project = None
         for requirement in self._crud.read_all_from_db(
             Requirement, project_id=project_id
         ):
-            if project is None:
-                project = requirement.project
-                self._set_jira_project(requirement)
-
-            self._set_jira_project(requirement, project.jira_project)
+            self._set_jira_project(requirement)
             yield requirement
 
     @router.post(
@@ -108,9 +102,9 @@ class RequirementsView:
         return self._crud.delete_from_db(Requirement, requirement_id)
 
     def _set_jira_project(
-        self, requirement: Requirement, jira_project: JiraProject | None = None
+        self, requirement: Requirement, try_to_get: bool = True
     ) -> None:
-        self._projects._set_jira_project(requirement.project, jira_project)
+        self._projects._set_jira_project(requirement.project, try_to_get)
 
 
 @cbv(router)
@@ -138,8 +132,9 @@ class ImportCatalogRequirementsView:
     )
     def import_requirements_from_catalog_modules(
         self, project_id: int, catalog_module_ids: list[int]
-    ) -> Iterator[Requirement]:
+    ) -> list[Requirement]:
         project = self._projects.get_project(project_id)
+        created_requirements = []
 
         for (
             catalog_requirement
@@ -152,6 +147,7 @@ class ImportCatalogRequirementsView:
             requirement.catalog_requirement = catalog_requirement
             requirement.project = project
             self._session.add(requirement)
-            yield requirement
+            created_requirements.append(requirement)
 
         self._session.flush()
+        return created_requirements

@@ -316,18 +316,24 @@ class MeasuresExcelView(ExcelView):
         requirement = self._requirements.get_requirement(requirement_id)
         data = list(data)
 
-        # Retrieve jira issues to be linked to measures
-        jira_issues = self._jira_issues.get_jira_issues(
-            [ji_key for _, ji_key, _ in data if ji_key]
-        )
-        jira_issue_map = {ji.key: ji for ji in jira_issues}
-
         # Read measures to be updated from database
         query = select(Measure).where(
             Measure.id.in_({id for id, _, _ in data if id is not None}),
             Measure.requirement_id == requirement_id,
         )
         read_measures = dict((m.id, m) for m in self._session.exec(query).all())
+
+        # Retrieve jira issues to be linked to measures and
+        # jira issues currently linked to measures to cache them
+        jira_issues = self._jira_issues.get_jira_issues(
+            [ji_key for _, ji_key, _ in data if ji_key]
+            + [
+                m.jira_issue_id
+                for m in read_measures.values()
+                if m.jira_issue_id is not None
+            ]
+        )
+        jira_issue_map = {ji.key: ji for ji in jira_issues}
 
         # Create or update measures
         written_measures = []
@@ -357,7 +363,8 @@ class MeasuresExcelView(ExcelView):
                     setattr(measure, key, value)
 
             # set jira project and issue
-            self._measures._set_jira_project_and_issue(measure, jira_issue=jira_issue)
+            self._measures._set_jira_project(measure)
+            self._measures._set_jira_issue(measure, try_to_get=False)
 
             # TODO: Checking document id should be done more efficiently
             self._documents.check_document_id(measure.document_id)

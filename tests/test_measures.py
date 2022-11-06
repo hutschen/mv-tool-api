@@ -311,3 +311,16 @@ def test_unlink_jira_issue(
     measure_input.jira_issue_id = None
     measure = measures_view.update_measure(create_measure.id, measure_input)
     assert measure.jira_issue_id is None
+
+
+def test_measure_jira_issue_without_getter():
+    measure = Measure(summary="test", jira_issue_id="test")
+    with pytest.raises(AttributeError):
+        measure.jira_issue
+
+
+def test_measure_jira_issue_with_getter():
+    jira_issue_dummy = object()
+    measure = Measure(summary="test", jira_issue_id="test")
+    measure._get_jira_issue = lambda _: jira_issue_dummy
+    assert measure.jira_issue == jira_issue_dummy

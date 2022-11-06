@@ -47,13 +47,8 @@ class DocumentsView:
         **kwargs,
     )
     def list_documents(self, project_id: int) -> Iterator[Document]:
-        project = None
         for document in self._crud.read_all_from_db(Document, project_id=project_id):
-            if project is None:
-                project = document.project
-                self._set_jira_project(document)
-
-            self._set_jira_project(document, project.jira_project)
+            self._set_jira_project(document)
             yield document
 
     @router.post(
@@ -75,15 +70,10 @@ class DocumentsView:
         self._set_jira_project(document)
         return document
 
-    def try_to_get_document(self, document_id: int | None) -> Document | None:
-        """Returns a document if document_id is not None."""
-        if document_id is not None:
-            return self.get_document(document_id)
-
-    def check_document_id(self, document_id: int | None) -> None:
+    def check_document_id(self, document_id: int | None) -> Document | None:
         """Raises an Exception if document ID is not existing or not None."""
         if document_id is not None:
-            self.get_document(document_id)
+            return self.get_document(document_id)
 
     @router.put("/documents/{document_id}", response_model=DocumentOutput, **kwargs)
     def update_document(
@@ -107,7 +97,5 @@ class DocumentsView:
     def delete_document(self, document_id: int) -> None:
         return self._crud.delete_from_db(Document, document_id)
 
-    def _set_jira_project(
-        self, document: Document, jira_project: JiraProject | None = None
-    ) -> None:
-        self._projects._set_jira_project(document.project, jira_project)
+    def _set_jira_project(self, document: Document, try_to_get: bool = True) -> None:
+        self._projects._set_jira_project(document.project, try_to_get)
