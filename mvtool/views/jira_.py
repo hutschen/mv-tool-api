@@ -69,7 +69,7 @@ class JiraProjectsView(JiraBaseView):
         self._jira_projects_cache[jira_project.id] = jira_project
 
     def lookup_jira_project(
-        self, jira_project_id: str | None, try_to_get: bool = False
+        self, jira_project_id: str | None, try_to_get: bool = True
     ) -> JiraProject | None:
         """Returns JIRA project from cache or tries to get it from JIRA."""
         try:
