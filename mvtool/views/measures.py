@@ -76,8 +76,10 @@ class MeasuresView:
         ).all()
 
         # cache jira issues
-        self._jira_issues.get_jira_issues(
-            [m.jira_issue_id for m in measures if m.jira_issue_id]
+        list(
+            self._jira_issues.get_jira_issues(
+                [m.jira_issue_id for m in measures if m.jira_issue_id]
+            )
         )
 
         # assign jira issue to measure and yield results

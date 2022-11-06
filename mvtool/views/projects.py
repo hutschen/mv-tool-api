@@ -46,7 +46,7 @@ class ProjectsView:
 
         for project in self._crud.read_all_from_db(Project):
             if not jira_projects_cached:
-                self._jira_projects.list_jira_projects()
+                list(self._jira_projects.list_jira_projects())
                 jira_projects_cached = True
 
             self._set_jira_project(project, try_to_get=False)
