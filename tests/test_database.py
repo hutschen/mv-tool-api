@@ -25,36 +25,31 @@ from mvtool.database import (
     get_session,
     setup_engine,
 )
-from sqlmodel import SQLModel, Field
-
-
-class Item(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    name: str
+from mvtool.models import Project
 
 
 def test_setup_engine(config):
-    engine = setup_engine(config)
+    engine = setup_engine(config.database)
     assert engine is not None
 
-    engine_2 = setup_engine(config)
+    engine_2 = setup_engine(config.database)
     assert engine is engine_2
     dispose_engine()
 
 
 def test_session_commit(config):
-    setup_engine(config)
+    setup_engine(config.database)
     create_all()
 
     for session in get_session():
         crud = CRUDOperations(session)
-        item = Item(name="test")
+        item = Project(name="test")
         crud.create_in_db(item)
         item_id = item.id
 
     for session in get_session():
         crud = CRUDOperations(session)
-        item = crud.read_from_db(Item, item_id)
+        item = crud.read_from_db(Project, item_id)
         assert item.name == "test"
 
     drop_all()
@@ -62,14 +57,14 @@ def test_session_commit(config):
 
 
 def test_session_rollback(config):
-    setup_engine(config)
+    setup_engine(config.database)
     create_all()
 
     # create a new item and rollback the session by raising an exception
     with pytest.raises(Exception) as error_info:
         for session in get_session():
             crud = CRUDOperations(session)
-            item = Item(name="test")
+            item = Project(name="test")
             crud.create_in_db(item)
             item_id = item.id
             raise Exception("rollback")
@@ -79,7 +74,7 @@ def test_session_rollback(config):
     for session in get_session():
         crud = CRUDOperations(session)
         with pytest.raises(HTTPException):
-            crud.read_from_db(Item, item_id)
+            crud.read_from_db(Project, item_id)
 
     drop_all()
     dispose_engine()

@@ -9,18 +9,21 @@ pydantic = "*"
 jira = "*"
 pyyaml = "*"
 fastapi-utils = "*"
-sqlalchemy = "==1.4.35"
-sqlmodel = "==0.0.6"
+sqlalchemy = "*"
+sqlmodel = "*"
 cachetools = "*"
 openpyxl = "*"
 python-multipart = "*"
 python-docx = "*"
+alembic = "*"
+cryptography = "*"
 
 [dev-packages]
 pytest = "*"
 pytest-cov = "*"
 psycopg2-binary = "*"
 pip-licenses = "*"
+pytest-alembic = "*"
 
 [requires]
 python_version = "3.10"

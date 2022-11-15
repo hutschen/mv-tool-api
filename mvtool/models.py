@@ -15,9 +15,19 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-from pydantic import confloat, constr, validator
+from datetime import datetime
+from typing import Callable
+from pydantic import PrivateAttr, confloat, constr, validator
 from sqlmodel import SQLModel, Field, Relationship, Session, select, func, or_
+
+
+class CommonFieldsMixin(SQLModel):
+    id: int = Field(default=None, primary_key=True)
+    created: datetime = Field(default_factory=datetime.utcnow)
+    updated: datetime = Field(
+        default_factory=datetime.utcnow,
+        sa_column_kwargs=dict(onupdate=datetime.utcnow),
+    )
 
 
 class JiraUser(SQLModel):
@@ -65,18 +75,33 @@ class MeasureInput(SQLModel):
     jira_issue_id: str | None
 
 
-class Measure(MeasureInput, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+class Measure(MeasureInput, CommonFieldsMixin, table=True):
     requirement_id: int | None = Field(default=None, foreign_key="requirement.id")
-    requirement: "Requirement" = Relationship(back_populates="measures")
+    requirement: "Requirement" = Relationship(
+        back_populates="measures", sa_relationship_kwargs=dict(lazy="joined")
+    )
     document_id: int | None = Field(default=None, foreign_key="document.id")
-    document: "Document" = Relationship(back_populates="measures")
+    document: "Document" = Relationship(
+        back_populates="measures", sa_relationship_kwargs=dict(lazy="joined")
+    )
+
+    _get_jira_issue: Callable = PrivateAttr()
+
+    @property
+    def jira_issue(self) -> JiraIssue | None:
+        if self.jira_issue_id is None:
+            return None
+
+        return getattr(self, "_get_jira_issue")(self.jira_issue_id)
 
 
-class RequirementInput(SQLModel):
+class AbstractRequirementInput(SQLModel):
     reference: str | None
     summary: str
     description: str | None
+
+
+class RequirementInput(AbstractRequirementInput):
     target_object: str | None
     compliance_status: constr(regex=r"^(C|PC|NC|N/A)$") | None
     compliance_comment: str | None
@@ -94,22 +119,20 @@ class RequirementInput(SQLModel):
         return v
 
 
-class Requirement(RequirementInput, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+class Requirement(RequirementInput, CommonFieldsMixin, table=True):
     project_id: int | None = Field(default=None, foreign_key="project.id")
-    project: "Project" = Relationship(back_populates="requirements")
+    project: "Project" = Relationship(
+        back_populates="requirements", sa_relationship_kwargs=dict(lazy="joined")
+    )
+    catalog_requirement_id: int | None = Field(
+        default=None, foreign_key="catalog_requirement.id"
+    )
+    catalog_requirement: "CatalogRequirement" = Relationship(
+        back_populates="requirements", sa_relationship_kwargs=dict(lazy="joined")
+    )
     measures: list[Measure] = Relationship(
         back_populates="requirement",
         sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
-    )
-
-    # Special fields for IT Grundschutz Kompendium
-    gs_anforderung_reference: str | None
-    gs_absicherung: constr(regex=r"^(B|S|H)$") | None
-    gs_verantwortliche: str | None
-    gs_baustein_id: int | None = Field(default=None, foreign_key="gs_baustein.id")
-    gs_baustein: "GSBaustein" = Relationship(
-        back_populates="requirements", sa_relationship_kwargs={"cascade": "all,delete"}
     )
 
     @property
@@ -134,12 +157,56 @@ class Requirement(RequirementInput, table=True):
         return completed / total if total else 0.0
 
 
-class GSBaustein(SQLModel, table=True):
-    __tablename__ = "gs_baustein"
-    id: int | None = Field(default=None, primary_key=True)
-    reference: str
+class CatalogRequirementInput(AbstractRequirementInput):
+    # Special fields for IT Grundschutz Kompendium
+    gs_anforderung_reference: str | None
+    gs_absicherung: constr(regex=r"^(B|S|H)$") | None
+    gs_verantwortliche: str | None
+
+
+class CatalogRequirement(CatalogRequirementInput, CommonFieldsMixin, table=True):
+    __tablename__ = "catalog_requirement"
+    catalog_module_id: int | None = Field(default=None, foreign_key="catalog_module.id")
+    catalog_module: "CatalogModule" = Relationship(
+        back_populates="catalog_requirements",
+        sa_relationship_kwargs=dict(lazy="joined"),
+    )
+    requirements: list[Requirement] = Relationship(back_populates="catalog_requirement")
+
+
+class CatalogModuleInput(SQLModel):
+    reference: str | None
     title: str
-    requirements: list[Requirement] = Relationship(back_populates="gs_baustein")
+    description: str | None
+
+    # Special fields for IT Grundschutz Kompendium
+    gs_reference: str | None
+
+
+class CatalogModule(CatalogModuleInput, CommonFieldsMixin, table=True):
+    __tablename__ = "catalog_module"
+    catalog_requirements: list[CatalogRequirement] = Relationship(
+        back_populates="catalog_module",
+        sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
+    )
+    catalog_id: int | None = Field(default=None, foreign_key="catalog.id")
+    catalog: "Catalog" = Relationship(
+        back_populates="catalog_modules", sa_relationship_kwargs=dict(lazy="joined")
+    )
+
+
+class CatalogInput(SQLModel):
+    reference: str | None
+    title: str
+    description: str | None
+
+
+class Catalog(CatalogInput, CommonFieldsMixin, table=True):
+    __tablename__ = "catalog"
+    catalog_modules: list[CatalogModule] = Relationship(
+        back_populates="catalog",
+        sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
+    )
 
 
 class DocumentInput(SQLModel):
@@ -148,10 +215,11 @@ class DocumentInput(SQLModel):
     description: str | None
 
 
-class Document(DocumentInput, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+class Document(DocumentInput, CommonFieldsMixin, table=True):
     project_id: int | None = Field(default=None, foreign_key="project.id")
-    project: "Project" = Relationship(back_populates="documents")
+    project: "Project" = Relationship(
+        back_populates="documents", sa_relationship_kwargs=dict(lazy="joined")
+    )
     measures: list[Measure] = Relationship(back_populates="document")
 
 
@@ -161,8 +229,7 @@ class ProjectInput(SQLModel):
     jira_project_id: str | None
 
 
-class Project(ProjectInput, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+class Project(ProjectInput, CommonFieldsMixin, table=True):
     requirements: list[Requirement] = Relationship(
         back_populates="project",
         sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
@@ -171,6 +238,15 @@ class Project(ProjectInput, table=True):
         back_populates="project",
         sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
     )
+
+    _get_jira_project: Callable = PrivateAttr()
+
+    @property
+    def jira_project(self) -> JiraProject:
+        if self.jira_project_id is None:
+            return None
+
+        return getattr(self, "_get_jira_project")(self.jira_project_id)
 
     @property
     def completion(self) -> float | None:
@@ -198,6 +274,15 @@ class Project(ProjectInput, table=True):
         return completed / total if total else None
 
 
+class CatalogOutput(CatalogInput):
+    id: int
+
+
+class CatalogModuleOutput(CatalogModuleInput):
+    id: int
+    catalog: CatalogOutput
+
+
 class ProjectOutput(ProjectInput):
     id: int
     jira_project: JiraProject | None
@@ -209,16 +294,21 @@ class DocumentOutput(DocumentInput):
     project: ProjectOutput
 
 
-class RequirementOutput(RequirementInput):
+class CatalogRequirementOutput(CatalogRequirementInput):
     id: int
-    project: ProjectOutput
-    completion: confloat(ge=0, le=1) | None
+    catalog_module: CatalogModuleOutput
 
     # Special fields for IT Grundschutz Kompendium
     gs_anforderung_reference: str | None
     gs_absicherung: constr(regex=r"^(B|S|H)$") | None
     gs_verantwortliche: str | None
-    gs_baustein: GSBaustein | None
+
+
+class RequirementOutput(RequirementInput):
+    id: int
+    project: ProjectOutput
+    catalog_requirement: CatalogRequirementOutput | None
+    completion: confloat(ge=0, le=1) | None
 
 
 class MeasureOutput(SQLModel):

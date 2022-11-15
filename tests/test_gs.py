@@ -21,10 +21,10 @@ from tempfile import NamedTemporaryFile
 from unittest.mock import Mock
 import pytest
 from mvtool.database import CRUDOperations
+from mvtool.views.catalogs import CatalogsView
 from mvtool.views.gs import GSBausteinParser, ImportGSBausteinView
-from mvtool.models import Project
+from mvtool.models import Catalog, CatalogModule
 from mvtool import errors
-from mvtool.views.projects import ProjectsView
 
 
 def get_gs_baustein_filenames():
@@ -41,7 +41,7 @@ def test_parse_gs_baustein(filename):
     gs_baustein = GSBausteinParser.parse(filename)
     assert gs_baustein is not None
     assert gs_baustein.title is not None
-    assert gs_baustein.requirements is not None
+    assert gs_baustein.catalog_requirements is not None
 
 
 def test_parse_gs_baustein_invalid():
@@ -60,19 +60,19 @@ def test_parse_gs_baustein_corrupted():
 
 def test_upload_gs_baustein(
     crud: CRUDOperations,
-    projects_view: ProjectsView,
-    create_project: Project,
+    catalogs_view: CatalogsView,
+    create_catalog: Catalog,
     word_temp_file: NamedTemporaryFile,
 ):
     upload_file = Mock()
     upload_file.file = io.FileIO("tests/data/gs_bausteine/_valid.docx", "r")
 
-    sut = ImportGSBausteinView(projects_view, crud)
-    sut.upload_gs_baustein(
-        create_project.id,
+    sut = ImportGSBausteinView(catalogs_view, crud)
+    result = sut.upload_gs_baustein(
+        create_catalog.id,
         upload_file,
         word_temp_file,
     )
 
-    assert create_project.requirements is not None
-    assert len(create_project.requirements) > 0
+    assert isinstance(result, CatalogModule)
+    assert create_catalog.catalog_modules[0] is result

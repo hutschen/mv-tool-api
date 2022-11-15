@@ -19,8 +19,19 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .views import jira_, projects, requirements, measures, documents, excel, gs
-from . import database
+from . import auth, database, migration
+from .views import (
+    jira_,
+    projects,
+    requirements,
+    measures,
+    documents,
+    excel,
+    gs,
+    catalogs,
+    catalog_modules,
+    catalog_requirements,
+)
 from .config import load_config
 from .angular import AngularFiles
 
@@ -30,12 +41,16 @@ app = FastAPI(
     docs_url=config.fastapi.docs_url,
     redoc_url=config.fastapi.redoc_url,
 )
+app.include_router(auth.router)
 app.include_router(jira_.router, prefix="/api")
+app.include_router(catalogs.router, prefix="/api")
+app.include_router(catalog_modules.router, prefix="/api")
+app.include_router(catalog_requirements.router, prefix="/api")
 app.include_router(projects.router, prefix="/api")
+app.include_router(excel.router, prefix="/api")
 app.include_router(requirements.router, prefix="/api")
 app.include_router(measures.router, prefix="/api")
 app.include_router(documents.router, prefix="/api")
-app.include_router(excel.router, prefix="/api")
 app.include_router(gs.router, prefix="/api")
 app.mount("/", AngularFiles(directory="htdocs", html=True))
 app.add_middleware(
@@ -49,8 +64,8 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup():
-    database.setup_engine(config)
-    database.create_all()
+    migration.migrate(config.database)
+    database.setup_engine(config.database)
 
 
 @app.on_event("shutdown")

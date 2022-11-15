@@ -26,15 +26,22 @@ class ValueHttpError(HTTPException, ValueError):
         HTTPException.__init__(self, status_code=400, detail=detail, headers=headers)
 
 
-class NotFoundError(HTTPException):
-    def __init__(
-        self, detail: Any = None, headers: Dict[str, Any] | None = None
-    ) -> None:
-        HTTPException.__init__(self, status_code=404, detail=detail, headers=headers)
-
-
 class ClientError(HTTPException):
     def __init__(
         self, detail: Any = None, headers: Dict[str, Any] | None = None
     ) -> None:
         HTTPException.__init__(self, status_code=400, detail=detail, headers=headers)
+
+
+class UnauthorizedError(HTTPException):
+    def __init__(
+        self, detail: Any = None, headers: Dict[str, Any] | None = None
+    ) -> None:
+        HTTPException.__init__(self, status_code=401, detail=detail, headers=headers)
+
+
+class NotFoundError(HTTPException):
+    def __init__(
+        self, detail: Any = None, headers: Dict[str, Any] | None = None
+    ) -> None:
+        HTTPException.__init__(self, status_code=404, detail=detail, headers=headers)

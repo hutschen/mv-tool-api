@@ -15,14 +15,20 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 from typing import Iterator
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends
 from fastapi_utils.cbv import cbv
 
+from ..errors import NotFoundError
 from ..database import CRUDOperations
 from .projects import ProjectsView
-from ..models import RequirementInput, Requirement, RequirementOutput
+from .catalog_requirements import CatalogRequirementsView
+from ..models import (
+    CatalogRequirement,
+    RequirementInput,
+    Requirement,
+    RequirementOutput,
+)
 
 router = APIRouter()
 
@@ -38,36 +44,26 @@ class RequirementsView:
     ):
         self._projects = projects
         self._crud = crud
+        self._session = self._crud.session
 
     @router.get(
         "/projects/{project_id}/requirements",
         response_model=list[RequirementOutput],
-        **kwargs
+        **kwargs,
     )
-    def _list_requirements(self, project_id: int) -> Iterator[RequirementOutput]:
-        project_output = self._projects._get_project(project_id)
-        for requirement in self.list_requirements(project_id):
-            yield RequirementOutput.from_orm(
-                requirement, update=dict(project=project_output)
-            )
-
-    def list_requirements(self, project_id: int) -> list[Requirement]:
-        return self._crud.read_all_from_db(Requirement, project_id=project_id)
+    def list_requirements(self, project_id: int) -> Iterator[Requirement]:
+        for requirement in self._crud.read_all_from_db(
+            Requirement, project_id=project_id
+        ):
+            self._set_jira_project(requirement)
+            yield requirement
 
     @router.post(
         "/projects/{project_id}/requirements",
         status_code=201,
         response_model=RequirementOutput,
-        **kwargs
+        **kwargs,
     )
-    def _create_requirement(
-        self, project_id: int, requirement_input: RequirementInput
-    ) -> RequirementOutput:
-        return RequirementOutput.from_orm(
-            self.create_requirement(project_id, requirement_input),
-            update=dict(project=self._projects._get_project(project_id)),
-        )
-
     def create_requirement(
         self, project_id: int, requirement_input: RequirementInput
     ) -> Requirement:
@@ -78,49 +74,80 @@ class RequirementsView:
     @router.get(
         "/requirements/{requirement_id}", response_model=RequirementOutput, **kwargs
     )
-    def _get_requirement(self, requirement_id: int) -> RequirementOutput:
-        requirement = self.get_requirement(requirement_id)
-        return RequirementOutput.from_orm(
-            requirement,
-            update=dict(project=self._projects._get_project(requirement.project_id)),
-        )
-
     def get_requirement(self, requirement_id: int) -> Requirement:
-        return self._crud.read_from_db(Requirement, requirement_id)
+        requirement = self._crud.read_from_db(Requirement, requirement_id)
+        self._set_jira_project(requirement)
+        return requirement
 
     @router.put(
         "/requirements/{requirement_id}", response_model=RequirementOutput, **kwargs
     )
-    def _update_requirement(
-        self, requirement_id: int, requirement_input: RequirementInput
-    ) -> RequirementOutput:
-        requirement = self.update_requirement(requirement_id, requirement_input)
-        return RequirementOutput.from_orm(
-            requirement,
-            update=dict(project=self._projects._get_project(requirement.project_id)),
-        )
-
     def update_requirement(
         self, requirement_id: int, requirement_input: RequirementInput
     ) -> Requirement:
-        requirement = self._crud.read_from_db(Requirement, requirement_id)
-        updated_requirement = Requirement.from_orm(
-            requirement_input,
-            update=dict(
-                project_id=requirement.project_id,
-                gs_anforderung_reference=requirement.gs_anforderung_reference,
-                gs_absicherung=requirement.gs_absicherung,
-                gs_verantwortliche=requirement.gs_verantwortliche,
-                gs_baustein_id=requirement.gs_baustein_id,
-            ),
-        )
-        return self._crud.update_in_db(requirement_id, updated_requirement)
+        requirement = self._session.get(Requirement, requirement_id)
+        if not requirement:
+            cls_name = Requirement.__name__
+            raise NotFoundError(f"No {cls_name} with id={requirement_id}.")
 
-    @router.delete(
-        "/requirements/{requirement_id}",
-        status_code=204,
-        response_class=Response,
-        **kwargs
-    )
+        for key, value in requirement_input.dict().items():
+            setattr(requirement, key, value)
+        self._session.flush()
+
+        self._set_jira_project(requirement)
+        return requirement
+
+    @router.delete("/requirements/{requirement_id}", status_code=204, **kwargs)
     def delete_requirement(self, requirement_id: int) -> None:
         return self._crud.delete_from_db(Requirement, requirement_id)
+
+    def _set_jira_project(
+        self, requirement: Requirement, try_to_get: bool = True
+    ) -> None:
+        self._projects._set_jira_project(requirement.project, try_to_get)
+
+
+@cbv(router)
+class ImportCatalogRequirementsView:
+    kwargs = RequirementsView.kwargs
+
+    def __init__(
+        self,
+        projects: ProjectsView = Depends(ProjectsView),
+        catalog_requirements: CatalogRequirementsView = Depends(
+            CatalogRequirementsView
+        ),
+        crud: CRUDOperations[Requirement] = Depends(CRUDOperations),
+    ):
+        self._projects = projects
+        self._catalog_requirements = catalog_requirements
+        self._crud = crud
+        self._session = self._crud.session
+
+    @router.post(
+        "/projects/{project_id}/requirements/import",
+        status_code=201,
+        response_model=list[RequirementOutput],
+        **kwargs,
+    )
+    def import_requirements_from_catalog_modules(
+        self, project_id: int, catalog_module_ids: list[int]
+    ) -> list[Requirement]:
+        project = self._projects.get_project(project_id)
+        created_requirements = []
+
+        for (
+            catalog_requirement
+        ) in self._catalog_requirements.query_catalog_requirements(
+            CatalogRequirement.catalog_module_id.in_(catalog_module_ids)
+        ):
+            requirement = Requirement.from_orm(
+                RequirementInput.from_orm(catalog_requirement)
+            )
+            requirement.catalog_requirement = catalog_requirement
+            requirement.project = project
+            self._session.add(requirement)
+            created_requirements.append(requirement)
+
+        self._session.flush()
+        return created_requirements

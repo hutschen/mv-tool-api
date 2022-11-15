@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+from typing import Iterator
 from jira import JIRA, Issue, Project, JIRAError
 from pydantic import conint
 from fastapi import Depends, APIRouter, Response
@@ -60,6 +61,27 @@ class JiraUserView(JiraBaseView):
 class JiraProjectsView(JiraBaseView):
     kwargs = dict(tags=["jira-project"])
 
+    def __init__(self, jira: JIRA = Depends(get_jira)):
+        super().__init__(jira)
+        self._jira_projects_cache = {}
+
+    def _cache_jira_project(self, jira_project: JiraProject) -> None:
+        self._jira_projects_cache[jira_project.id] = jira_project
+
+    def lookup_jira_project(
+        self, jira_project_id: str | None, try_to_get: bool = True
+    ) -> JiraProject | None:
+        """Returns JIRA project from cache or tries to get it from JIRA."""
+        try:
+            return self._jira_projects_cache[jira_project_id]
+        except KeyError:
+            if try_to_get:
+                jira_project = self.try_to_get_jira_project(jira_project_id)
+                self._jira_projects_cache[jira_project_id] = jira_project
+                return jira_project
+            else:
+                return None
+
     def _convert_to_jira_project(self, jira_project_data: Project) -> JiraProject:
         return JiraProject(
             id=jira_project_data.id,
@@ -69,21 +91,24 @@ class JiraProjectsView(JiraBaseView):
         )
 
     @router.get("/jira-projects", response_model=list[JiraProject], **kwargs)
-    def list_jira_projects(self):
+    def list_jira_projects(self) -> Iterator[JiraProject]:
         for jira_project_data in self.jira.projects():
-            yield self._convert_to_jira_project(jira_project_data)
+            jira_project = self._convert_to_jira_project(jira_project_data)
+            self._cache_jira_project(jira_project)
+            yield jira_project
 
     @router.get(
         "/jira-projects/{jira_project_id}", response_model=JiraProject, **kwargs
     )
     def get_jira_project(self, jira_project_id: str) -> JiraProject:
-        jira_project_data = self.jira.project(jira_project_id)
-        return self._convert_to_jira_project(jira_project_data)
+        jira_project = self._convert_to_jira_project(self.jira.project(jira_project_id))
+        self._cache_jira_project(jira_project)
+        return jira_project
 
-    def check_jira_project_id(self, jira_project_id: str | None) -> None:
+    def check_jira_project_id(self, jira_project_id: str | None) -> JiraProject | None:
         """Raises an Exception if project ID is not existing or not None."""
         if jira_project_id is not None:
-            self.get_jira_project(jira_project_id)
+            return self.get_jira_project(jira_project_id)
 
     def try_to_get_jira_project(self, jira_project_id: str) -> JiraProject | None:
         """Returns JIRA project if it exists. If not, None is returned.
@@ -117,6 +142,33 @@ class JiraIssueTypesView(JiraBaseView):
 class JiraIssuesView(JiraBaseView):
     kwargs = dict(tags=["jira-issues"])
 
+    def __init__(self, jira: JIRA = Depends(get_jira)):
+        super().__init__(jira)
+        self._jira_issues_cache = {}
+
+    def _cache_jira_issue(self, jira_issue: JiraIssue) -> None:
+        self._jira_issues_cache[jira_issue.id] = jira_issue
+
+    def uncache_jira_issue(self, jira_issue_id: str) -> None:
+        try:
+            del self._jira_issues_cache[jira_issue_id]
+        except KeyError:
+            pass
+
+    def lookup_jira_issue(
+        self, jira_issue_id: str | None, try_to_get: bool = False
+    ) -> JiraIssue | None:
+        """Returns JIRA issue from cache or tries to get it from JIRA."""
+        try:
+            return self._jira_issues_cache[jira_issue_id]
+        except KeyError:
+            if try_to_get:
+                jira_issue = self.try_to_get_jira_issue(jira_issue_id)
+                self._jira_issues_cache[jira_issue_id] = jira_issue
+                return jira_issue
+            else:
+                return None
+
     def _convert_to_jira_issue(self, jira_issue_data: Issue) -> JiraIssue:
         return JiraIssue(
             id=jira_issue_data.id,
@@ -144,12 +196,16 @@ class JiraIssuesView(JiraBaseView):
         jira_project_id: str,
         offset: conint(ge=0) = 0,
         size: conint(ge=0) | None = None,
-    ) -> list[JiraIssue]:
+    ) -> Iterator[JiraIssue]:
         jira_query = f"project = {jira_project_id}"
         jira_issues_data = self.jira.search_issues(
             jira_query, startAt=offset, maxResults=size
         )
-        return [self._convert_to_jira_issue(d) for d in jira_issues_data]
+
+        for jira_issue_data in jira_issues_data:
+            jira_issue = self._convert_to_jira_issue(jira_issue_data)
+            self._cache_jira_issue(jira_issue)
+            yield jira_issue
 
     @router.post(
         "/jira-projects/{jira_project_id}/jira-issues",
@@ -168,22 +224,27 @@ class JiraIssuesView(JiraBaseView):
                 issuetype=dict(id=jira_issue_input.issuetype_id),
             )
         )
-        return self._convert_to_jira_issue(jira_issue_data)
+        jira_issue = self._convert_to_jira_issue(jira_issue_data)
+        self._cache_jira_issue(jira_issue)
+        return jira_issue
 
     @router.get("/jira-issues/{jira_issue_id}", response_model=JiraIssue, **kwargs)
     def get_jira_issue(self, jira_issue_id: str):
-        jira_issue_data = self.jira.issue(id=jira_issue_id)
-        return self._convert_to_jira_issue(jira_issue_data)
+        jira_issue = self._convert_to_jira_issue(self.jira.issue(jira_issue_id))
+        self._cache_jira_issue(jira_issue)
+        return jira_issue
 
     @router.put("/jira-issues/{jira_issue_id}", response_model=JiraIssue, **kwargs)
     def update_jira_issue(self, jira_issue_id: str, jira_issue_input: JiraIssueInput):
-        jira_issue_data = self.jira.issue(id=jira_issue_id)
+        jira_issue_data = self.jira.issue(jira_issue_id)
         jira_issue_data.update(
             summary=jira_issue_input.summary,
             description=jira_issue_input.description,
             issuetype=dict(id=jira_issue_input.issuetype_id),
         )
-        return self._convert_to_jira_issue(jira_issue_data)
+        jira_issue = self._convert_to_jira_issue(jira_issue_data)
+        self._cache_jira_issue(jira_issue)
+        return jira_issue
 
     @router.delete(
         "/jira-issues/{jira_issue_id}",
@@ -192,15 +253,16 @@ class JiraIssuesView(JiraBaseView):
         **kwargs,
     )
     def delete_jira_issue(self, jira_issue_id: str):
-        jira_issue_data = self.jira.issue(id=jira_issue_id)
+        jira_issue_data = self.jira.issue(jira_issue_id)
         jira_issue_data.delete()
+        self.uncache_jira_issue(jira_issue_id)
 
     def get_jira_issues(
         self,
         jira_issue_ids: tuple[str],
         offset: conint(ge=0) = 0,
         size: conint(ge=0) | None = None,
-    ) -> list[JiraIssue]:
+    ) -> Iterator[JiraIssue]:
         if not jira_issue_ids:
             return []
 
@@ -208,12 +270,16 @@ class JiraIssuesView(JiraBaseView):
         jira_issues_data = self.jira.search_issues(
             jira_query, validate_query=False, startAt=offset, maxResults=size
         )
-        return [self._convert_to_jira_issue(d) for d in jira_issues_data]
 
-    def check_jira_issue_id(self, jira_issue_id: str | None) -> None:
+        for jira_issue_data in jira_issues_data:
+            jira_issue = self._convert_to_jira_issue(jira_issue_data)
+            self._cache_jira_issue(jira_issue)
+            yield jira_issue
+
+    def check_jira_issue_id(self, jira_issue_id: str | None) -> JiraIssue | None:
         """Raises an Exception if issue ID is not existing or not None."""
         if jira_issue_id is not None:
-            self.get_jira_issue(jira_issue_id)
+            return self.get_jira_issue(jira_issue_id)
 
     def try_to_get_jira_issue(self, jira_issue_id: str) -> JiraIssue | None:
         """Returns JIRA issue if it exists. If not, None is returned.

@@ -16,7 +16,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from mvtool.database import CRUDOperations
-from mvtool.models import Document, GSBaustein, Measure, Project, Requirement
+from mvtool.models import (
+    CatalogRequirement,
+    Document,
+    CatalogModule,
+    Measure,
+    Project,
+    Requirement,
+)
 
 
 def test_delete_requirements_of_project(crud: CRUDOperations):
@@ -71,14 +78,14 @@ def test_keep_document_of_when_delete_measure(crud: CRUDOperations):
     assert crud.session.query(Document).count() == 1
 
 
-def test_delete_gs_baustein_when_delete_requirement(crud: CRUDOperations):
-    requirement = Requirement(summary="test")
-    requirement.gs_baustein = GSBaustein(reference="test", title="test")
-    crud.create_in_db(requirement)
+def test_delete_catalog_requirements_of_catalog_module(crud: CRUDOperations):
+    catalog_module = CatalogModule(title="test")
+    catalog_module.catalog_requirements = [CatalogRequirement(summary="test")]
+    crud.create_in_db(catalog_module)
     crud.session.commit()
 
-    crud.delete_from_db(Requirement, requirement.id)
+    crud.delete_from_db(CatalogModule, catalog_module.id)
     crud.session.commit()
 
-    assert crud.session.query(Requirement).count() == 0
-    assert crud.session.query(GSBaustein).count() == 0
+    assert crud.session.query(CatalogModule).count() == 0
+    assert crud.session.query(CatalogRequirement).count() == 0

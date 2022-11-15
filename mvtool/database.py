@@ -20,30 +20,41 @@ from fastapi import Depends, HTTPException
 from sqlmodel import create_engine, Session, SQLModel, select
 from sqlmodel.sql.expression import Select, SelectOfScalar
 from sqlmodel.pool import StaticPool
-from .config import Config
+from .config import DatabaseConfig
 
 # workaround for https://github.com/tiangolo/sqlmodel/issues/189
 SelectOfScalar.inherit_cache = True
 Select.inherit_cache = True
+
+# configure naming conventions to make migration easier
+# see https://alembic.sqlalchemy.org/en/latest/naming.html#the-importance-of-naming-constraints
+naming_convention = {
+    "ix": "ix_%(column_0_label)s",
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s",
+}
+SQLModel.metadata.naming_convention = naming_convention
 
 
 class __State:
     engine = None
 
 
-def setup_engine(config: Config):
+def setup_engine(database_config: DatabaseConfig):
     if __State.engine is None:
-        if config.database.url.startswith("sqlite"):
+        if database_config.url.startswith("sqlite"):
             __State.engine = create_engine(
-                config.database.url,
+                database_config.url,
                 connect_args={"check_same_thread": False},  # Needed for SQLite
-                echo=config.database.echo,
+                echo=database_config.echo,
                 poolclass=StaticPool,  # Maintain a single connection for all threads
             )
         else:
             __State.engine = create_engine(
-                config.database.url,
-                echo=config.database.echo,
+                database_config.url,
+                echo=database_config.echo,
                 pool_pre_ping=True,  # check connections before using them
             )
     return __State.engine
@@ -72,7 +83,7 @@ T = TypeVar("T", bound=SQLModel)
 
 
 class CRUDOperations(Generic[T]):
-    def __init__(self, session=Depends(get_session)):
+    def __init__(self, session: Session = Depends(get_session)):
         self.session = session
 
     def read_all_from_db(self, sqlmodel: Type[T], **filters) -> list[T]:
