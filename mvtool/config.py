@@ -17,6 +17,7 @@
 
 
 from functools import lru_cache
+import os
 import ssl
 import yaml
 import pathlib
@@ -83,7 +84,7 @@ class UvicornConfig(BaseModel):
 
 
 class AuthConfig(BaseModel):
-    secret: str = "CdyRC09WthDhMvaT"
+    secret: str | bytes = os.urandom(32)
 
     @property
     def derived_key(self) -> bytes:

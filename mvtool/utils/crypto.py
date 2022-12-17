@@ -23,7 +23,7 @@ from cryptography.fernet import Fernet
 
 
 def derive_key(
-    password: str,
+    password: str | bytes,
     salt: bytes = b"29nC4dp24Jp7pIlP",
     iterations: int = 10000,
     password_encoding: str = "utf-8",
@@ -35,7 +35,9 @@ def derive_key(
         salt=salt,
         iterations=iterations,
     )
-    return base64.urlsafe_b64encode(kdf.derive(password.encode(password_encoding)))
+    if isinstance(password, str):
+        password = password.encode(password_encoding)
+    return base64.urlsafe_b64encode(kdf.derive(password))
 
 
 def encrypt(message: str, key: bytes, encoding="utf-8"):
