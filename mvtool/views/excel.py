@@ -19,12 +19,11 @@
 from collections import OrderedDict
 import shutil
 from tempfile import NamedTemporaryFile
-from typing import Collection, Generic, TypeVar
+from typing import Collection, Generic, Iterator, TypeVar
 from fastapi import APIRouter, Depends, UploadFile
 from fastapi.responses import FileResponse
 from fastapi_utils.cbv import cbv
 from pydantic import ValidationError, BaseModel, constr
-from pyparsing import Iterator
 from sqlmodel import Session, select
 from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl import Workbook, load_workbook
@@ -35,7 +34,6 @@ from mvtool.database import get_session
 from mvtool.models import (
     Document,
     DocumentOutput,
-    JiraIssue,
     Measure,
     MeasureInput,
     MeasureOutput,
