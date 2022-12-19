@@ -91,6 +91,12 @@ class CatalogRequirementsView:
     ) -> CatalogRequirement:
         return self._crud.read_from_db(CatalogRequirement, catalog_requirement_id)
 
+    def check_catalog_requirement_id(
+        self, catalog_requirement_id: int | None
+    ) -> CatalogRequirement | None:
+        if catalog_requirement_id is not None:
+            return self.get_catalog_requirement(catalog_requirement_id)
+
     @router.put(
         "/catalog-requirements/{catalog_requirement_id}",
         response_model=CatalogRequirementOutput,
