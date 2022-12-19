@@ -305,10 +305,13 @@ class CatalogRequirementOutput(CatalogRequirementInput):
     gs_verantwortliche: str | None
 
 
-class RequirementOutput(RequirementInput):
+class RequirementOutput(AbstractRequirementInput):
     id: int
     project: ProjectOutput
     catalog_requirement: CatalogRequirementOutput | None
+    target_object: str | None
+    compliance_status: str | None
+    compliance_comment: str | None
     completion: confloat(ge=0, le=1) | None
 
 
