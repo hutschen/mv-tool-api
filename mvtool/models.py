@@ -102,6 +102,7 @@ class AbstractRequirementInput(SQLModel):
 
 
 class RequirementInput(AbstractRequirementInput):
+    catalog_requirement_id: int | None
     target_object: str | None
     compliance_status: constr(regex=r"^(C|PC|NC|N/A)$") | None
     compliance_comment: str | None
