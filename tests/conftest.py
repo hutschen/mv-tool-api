@@ -291,8 +291,12 @@ def create_project(projects_view: ProjectsView, project_input: ProjectInput):
 
 
 @pytest.fixture
-def requirements_view(projects_view: ProjectsView, crud):
-    return Mock(wraps=RequirementsView(projects_view, crud))
+def requirements_view(
+    projects_view: ProjectsView,
+    catalog_requirements_view: CatalogRequirementsView,
+    crud,
+):
+    return Mock(wraps=RequirementsView(projects_view, catalog_requirements_view, crud))
 
 
 @pytest.fixture
