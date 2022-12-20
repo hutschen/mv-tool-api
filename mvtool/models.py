@@ -71,8 +71,22 @@ class MeasureInput(SQLModel):
     summary: str
     description: str | None
     verified: bool = False
+    verification_method: constr(regex=r"^(I|T|R)$") | None
+    verification_comment: str | None
     document_id: int | None
     jira_issue_id: str | None
+
+    @validator("verification_comment")
+    def verification_comment_validator(cls, v, values):
+        if (
+            v
+            and ("verification_method" in values)
+            and (values["verification_method"] is None)
+        ):
+            raise ValueError(
+                "verification_comment cannot be set when verification_method is None"
+            )
+        return v
 
 
 class Measure(MeasureInput, CommonFieldsMixin, table=True):
@@ -115,7 +129,7 @@ class RequirementInput(AbstractRequirementInput):
             and (values["compliance_status"] is None)
         ):
             raise ValueError(
-                "compliance_comment cannot be set if compliance_status is None"
+                "compliance_comment cannot be set when compliance_status is None"
             )
         return v
 
@@ -319,7 +333,9 @@ class MeasureOutput(SQLModel):
     id: int
     summary: str
     description: str | None
-    completed: bool = False
+    verified: bool = False
+    verification_method: str | None
+    verification_comment: str | None
     requirement: RequirementOutput
     jira_issue_id: str | None
     jira_issue: JiraIssue | None
