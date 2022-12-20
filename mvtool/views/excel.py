@@ -213,6 +213,7 @@ class MeasuresExcelView(ExcelView):
                 ExcelHeader("Requirement Reference", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Requirement GS ID", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Requirement Summary", ExcelHeader.WRITE_ONLY, True),
+                ExcelHeader("Reference", optional=True),
                 ExcelHeader("ID", optional=True),
                 ExcelHeader("Summary"),
                 ExcelHeader("Description", optional=True),
@@ -237,6 +238,7 @@ class MeasuresExcelView(ExcelView):
                 else None
             ),
             "Requirement Summary": data.requirement.summary,
+            "Reference": data.reference,
             "ID": data.id,
             "Summary": data.summary,
             "Description": data.description,
@@ -291,6 +293,7 @@ class MeasuresExcelView(ExcelView):
             measure_id = IdModel(id=row["ID"]).id
             jira_issue_key = JiraIssueKeyModel(key=row["JIRA Issue Key"]).key
             measure_input = MeasureInput(
+                reference=row["Reference"] or None,
                 summary=row["Summary"],
                 description=row["Description"] or None,
                 verified=row["Verified"] or False,

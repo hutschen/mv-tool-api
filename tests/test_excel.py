@@ -26,15 +26,12 @@ from mvtool.errors import ValueHttpError
 from mvtool.models import (
     Document,
     DocumentInput,
-    DocumentOutput,
     JiraIssue,
     Measure,
     MeasureInput,
-    MeasureOutput,
     Project,
     Requirement,
     RequirementInput,
-    RequirementOutput,
 )
 from mvtool.views.excel import (
     DocumentsExcelView,
@@ -221,6 +218,7 @@ def test_convert_row_to_measure(
     empty_worksheet, measures_excel_view: MeasuresExcelView
 ):
     row = {
+        "Reference": "",
         "ID": "1",
         "JIRA Issue Key": "TEST-1",
         "Summary": "test",
