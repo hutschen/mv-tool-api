@@ -417,6 +417,7 @@ class RequirementsExcelView(ExcelView):
                 ExcelHeader("GS Absicherung", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("GS Verantwortliche", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Target Object", optional=True),
+                ExcelHeader("Milestone", optional=True),
                 ExcelHeader("Compliance Status", optional=True),
                 ExcelHeader("Compliance Comment", optional=True),
                 ExcelHeader("Completion", ExcelHeader.WRITE_ONLY, True),
@@ -453,6 +454,7 @@ class RequirementsExcelView(ExcelView):
                 else None
             ),
             "Target Object": data.target_object,
+            "Milestone": data.milestone,
             "Compliance Status": data.compliance_status,
             "Compliance Comment": data.compliance_comment,
             "Completion": data.completion,
@@ -487,6 +489,7 @@ class RequirementsExcelView(ExcelView):
                 summary=row["Summary"],
                 description=row["Description"] or None,
                 target_object=row["Target Object"] or None,
+                milestone=row["Milestone"] or None,
                 compliance_status=row["Compliance Status"] or None,
                 compliance_comment=row["Compliance Comment"] or None,
             )
