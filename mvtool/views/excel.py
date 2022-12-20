@@ -217,6 +217,8 @@ class MeasuresExcelView(ExcelView):
                 ExcelHeader("Summary"),
                 ExcelHeader("Description", optional=True),
                 ExcelHeader("Verified", optional=True),
+                ExcelHeader("Verification Method", optional=True),
+                ExcelHeader("Verification Comment", optional=True),
                 ExcelHeader("Document Reference", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Document Title", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("JIRA Issue Key", optional=True),
@@ -239,6 +241,8 @@ class MeasuresExcelView(ExcelView):
             "Summary": data.summary,
             "Description": data.description,
             "Verified": data.verified,
+            "Verification Method": data.verification_method,
+            "Verification Comment": data.verification_comment,
             "Document Reference": data.document.reference if data.document else None,
             "Document Title": data.document.title if data.document else None,
             "JIRA Issue Key": data.jira_issue.key if data.jira_issue else None,
@@ -290,6 +294,8 @@ class MeasuresExcelView(ExcelView):
                 summary=row["Summary"],
                 description=row["Description"] or None,
                 verified=row["Verified"] or False,
+                verification_method=row["Verification Method"] or None,
+                verification_comment=row["Verification Comment"] or None,
             )
         except ValidationError as error:
             detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
