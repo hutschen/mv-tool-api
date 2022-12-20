@@ -222,7 +222,7 @@ def test_requirement_completion_incomplete(create_requirement: Requirement):
 def test_requirement_completion_complete(
     create_requirement: Requirement, create_measure: Measure
 ):
-    create_measure.completed = True
+    create_measure.verified = True
     assert create_requirement.completion == 1.0
 
 

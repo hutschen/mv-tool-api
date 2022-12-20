@@ -225,7 +225,9 @@ def test_convert_row_to_measure(
         "JIRA Issue Key": "TEST-1",
         "Summary": "test",
         "Description": "test",
-        "Completed": False,
+        "Verified": False,
+        "Verification Method": "R",
+        "Verification Comment": "test",
     }
 
     measure_id, jira_issue_key, measure_input = measures_excel_view._convert_from_row(
@@ -235,7 +237,7 @@ def test_convert_row_to_measure(
     assert jira_issue_key == "TEST-1"
     assert measure_input.summary == "test"
     assert measure_input.description == "test"
-    assert measure_input.completed == False
+    assert measure_input.verified == False
 
 
 def test_convert_row_to_measure_invalid_jira_issue_key(
@@ -246,7 +248,9 @@ def test_convert_row_to_measure_invalid_jira_issue_key(
         "JIRA Issue Key": " INVALID ",
         "Summary": "test",
         "Description": "test",
-        "Completed": False,
+        "Verified": False,
+        "Verification Method": "R",
+        "Verification Comment": "test",
     }
 
     with pytest.raises(ValueHttpError) as error_info:
