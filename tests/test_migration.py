@@ -290,3 +290,29 @@ def test_migration_f94ba991ae4e_rename_field_completed_to_verified(
         ).fetchone()
         assert "completed" not in requirement.keys()
         assert bool(requirement["verified"]) is True
+
+
+def test_migration_ba56d996e585_add_verification_fields(
+    alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
+):
+    timestamp = datetime.utcnow()
+    measure_id = 1
+    alembic_runner.migrate_up_before("ba56d996e585")
+    alembic_runner.insert_into(
+        "measure",
+        {
+            "id": measure_id,
+            "created": timestamp,
+            "updated": timestamp,
+            "summary": "summary %d" % measure_id,
+            "verified": True,
+        },
+    )
+    alembic_runner.migrate_up_one()
+
+    with alembic_engine.connect() as conn:
+        requirement = conn.execute(
+            "SELECT * FROM measure WHERE id=%d" % measure_id
+        ).fetchone()
+        assert requirement["verification_method"] is None
+        assert requirement["verification_comment"] is None
