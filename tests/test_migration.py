@@ -264,3 +264,29 @@ def test_migration_4cd3702a9e46_add_catalog_requirement(
         assert len(requirements) == len(catalog_requirement_ids)
         for requirement in requirements:
             assert requirement["catalog_requirement_id"] == requirement["id"]
+
+
+def test_migration_f94ba991ae4e_rename_field_completed_to_verified(
+    alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
+):
+    timestamp = datetime.utcnow()
+    measure_id = 1
+    alembic_runner.migrate_up_before("f94ba991ae4e")
+    alembic_runner.insert_into(
+        "measure",
+        {
+            "id": measure_id,
+            "created": timestamp,
+            "updated": timestamp,
+            "summary": "summary %d" % measure_id,
+            "completed": True,
+        },
+    )
+    alembic_runner.migrate_up_one()
+
+    with alembic_engine.connect() as conn:
+        requirement = conn.execute(
+            "SELECT * FROM measure WHERE id=%d" % measure_id
+        ).fetchone()
+        assert "completed" not in requirement.keys()
+        assert bool(requirement["verified"]) is True
