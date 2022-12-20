@@ -68,6 +68,7 @@ class JiraIssue(JiraIssueInput):
 
 
 class MeasureInput(SQLModel):
+    reference: str | None
     summary: str
     description: str | None
     verified: bool = False
@@ -332,6 +333,7 @@ class RequirementOutput(AbstractRequirementInput):
 
 
 class MeasureOutput(SQLModel):
+    reference: str | None
     id: int
     summary: str
     description: str | None
