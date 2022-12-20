@@ -241,8 +241,10 @@ def document_input():
 
 
 @pytest.fixture
-def requirement_input():
-    return RequirementInput(summary="summary")
+def requirement_input(create_catalog_requirement):
+    return RequirementInput(
+        summary="summary", catalog_requirement_id=create_catalog_requirement.id
+    )
 
 
 @pytest.fixture()
