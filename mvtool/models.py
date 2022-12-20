@@ -70,7 +70,7 @@ class JiraIssue(JiraIssueInput):
 class MeasureInput(SQLModel):
     summary: str
     description: str | None
-    completed: bool = False
+    verified: bool = False
     document_id: int | None
     jira_issue_id: str | None
 
@@ -152,7 +152,7 @@ class Requirement(RequirementInput, CommonFieldsMixin, table=True):
         total = session.execute(total_query).scalar()
 
         # get the number of completed measures subordinated to this requirement
-        completed_query = total_query.where(Measure.completed == True)
+        completed_query = total_query.where(Measure.verified == True)
         completed = session.execute(completed_query).scalar()
 
         return completed / total if total else 0.0
@@ -269,7 +269,7 @@ class Project(ProjectInput, CommonFieldsMixin, table=True):
         total = session.execute(total_query).scalar()
 
         # get the number of completed measures in project
-        completed_query = total_query.where(Measure.completed == True)
+        completed_query = total_query.where(Measure.verified == True)
         completed = session.execute(completed_query).scalar()
 
         return completed / total if total else None

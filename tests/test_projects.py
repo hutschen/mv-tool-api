@@ -149,7 +149,7 @@ def test_project_completion_complete(
     create_measure: Measure,
 ):
     create_requirement.compliance_status = "C"
-    create_measure.completed = True
+    create_measure.verified = True
 
     assert create_requirement.completion == 1.0
     assert create_project.completion == 1.0
@@ -161,7 +161,7 @@ def test_project_completion_incomplete(
     create_measure: Measure,
 ):
     create_requirement.compliance_status = "C"
-    create_measure.completed = False
+    create_measure.verified = False
 
     assert create_requirement.completion == 0.0
     assert create_project.completion == 0.0
