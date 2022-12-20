@@ -316,3 +316,27 @@ def test_migration_ba56d996e585_add_verification_fields(
         ).fetchone()
         assert requirement["verification_method"] is None
         assert requirement["verification_comment"] is None
+
+
+def test_migration_676ab3fb1339_add_milestone_field(
+    alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
+):
+    timestamp = datetime.utcnow()
+    requirement_id = 1
+    alembic_runner.migrate_up_before("676ab3fb1339")
+    alembic_runner.insert_into(
+        "requirement",
+        {
+            "id": requirement_id,
+            "created": timestamp,
+            "updated": timestamp,
+            "summary": "test",
+        },
+    )
+    alembic_runner.migrate_up_one()
+
+    with alembic_engine.connect() as conn:
+        requirement = conn.execute(
+            "SELECT * FROM requirement WHERE id=%d" % requirement_id
+        ).fetchone()
+        assert requirement["milestone"] is None
