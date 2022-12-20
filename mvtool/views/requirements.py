@@ -40,9 +40,13 @@ class RequirementsView:
     def __init__(
         self,
         projects: ProjectsView = Depends(ProjectsView),
+        catalog_requirements: CatalogRequirementsView = Depends(
+            CatalogRequirementsView
+        ),
         crud: CRUDOperations[Requirement] = Depends(CRUDOperations),
     ):
         self._projects = projects
+        self._catalog_requirements = catalog_requirements
         self._crud = crud
         self._session = self._crud.session
 
@@ -69,6 +73,11 @@ class RequirementsView:
     ) -> Requirement:
         requirement = Requirement.from_orm(requirement_input)
         requirement.project = self._projects.get_project(project_id)
+        requirement.catalog_requirement = (
+            self._catalog_requirements.check_catalog_requirement_id(
+                requirement_input.catalog_requirement_id
+            )
+        )
         return self._crud.create_in_db(requirement)
 
     @router.get(
@@ -92,8 +101,15 @@ class RequirementsView:
 
         for key, value in requirement_input.dict().items():
             setattr(requirement, key, value)
-        self._session.flush()
 
+        # check catalog_requirement_id and set catalog_requirement
+        requirement.catalog_requirement = (
+            self._catalog_requirements.check_catalog_requirement_id(
+                requirement_input.catalog_requirement_id
+            )
+        )
+
+        self._session.flush()
         self._set_jira_project(requirement)
         return requirement
 

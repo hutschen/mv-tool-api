@@ -241,8 +241,10 @@ def document_input():
 
 
 @pytest.fixture
-def requirement_input():
-    return RequirementInput(summary="summary")
+def requirement_input(create_catalog_requirement):
+    return RequirementInput(
+        summary="summary", catalog_requirement_id=create_catalog_requirement.id
+    )
 
 
 @pytest.fixture()
@@ -291,8 +293,12 @@ def create_project(projects_view: ProjectsView, project_input: ProjectInput):
 
 
 @pytest.fixture
-def requirements_view(projects_view: ProjectsView, crud):
-    return Mock(wraps=RequirementsView(projects_view, crud))
+def requirements_view(
+    projects_view: ProjectsView,
+    catalog_requirements_view: CatalogRequirementsView,
+    crud,
+):
+    return Mock(wraps=RequirementsView(projects_view, catalog_requirements_view, crud))
 
 
 @pytest.fixture
