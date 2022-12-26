@@ -77,18 +77,6 @@ class MeasureInput(SQLModel):
     document_id: int | None
     jira_issue_id: str | None
 
-    @validator("verification_comment")
-    def verification_comment_validator(cls, v, values):
-        if (
-            v
-            and ("verification_method" in values)
-            and (values["verification_method"] is None)
-        ):
-            raise ValueError(
-                "verification_comment cannot be set when verification_method is None"
-            )
-        return v
-
 
 class Measure(MeasureInput, CommonFieldsMixin, table=True):
     requirement_id: int | None = Field(default=None, foreign_key="requirement.id")
