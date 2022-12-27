@@ -68,9 +68,12 @@ class JiraIssue(JiraIssueInput):
 
 
 class MeasureInput(SQLModel):
+    reference: str | None
     summary: str
     description: str | None
-    completed: bool = False
+    verified: bool = False
+    verification_method: constr(regex=r"^(I|T|R)$") | None
+    verification_comment: str | None
     document_id: int | None
     jira_issue_id: str | None
 
@@ -102,7 +105,9 @@ class AbstractRequirementInput(SQLModel):
 
 
 class RequirementInput(AbstractRequirementInput):
+    catalog_requirement_id: int | None
     target_object: str | None
+    milestone: str | None
     compliance_status: constr(regex=r"^(C|PC|NC|N/A)$") | None
     compliance_comment: str | None
 
@@ -114,7 +119,7 @@ class RequirementInput(AbstractRequirementInput):
             and (values["compliance_status"] is None)
         ):
             raise ValueError(
-                "compliance_comment cannot be set if compliance_status is None"
+                "compliance_comment cannot be set when compliance_status is None"
             )
         return v
 
@@ -151,7 +156,7 @@ class Requirement(RequirementInput, CommonFieldsMixin, table=True):
         total = session.execute(total_query).scalar()
 
         # get the number of completed measures subordinated to this requirement
-        completed_query = total_query.where(Measure.completed == True)
+        completed_query = total_query.where(Measure.verified == True)
         completed = session.execute(completed_query).scalar()
 
         return completed / total if total else 0.0
@@ -268,7 +273,7 @@ class Project(ProjectInput, CommonFieldsMixin, table=True):
         total = session.execute(total_query).scalar()
 
         # get the number of completed measures in project
-        completed_query = total_query.where(Measure.completed == True)
+        completed_query = total_query.where(Measure.verified == True)
         completed = session.execute(completed_query).scalar()
 
         return completed / total if total else None
@@ -304,18 +309,25 @@ class CatalogRequirementOutput(CatalogRequirementInput):
     gs_verantwortliche: str | None
 
 
-class RequirementOutput(RequirementInput):
+class RequirementOutput(AbstractRequirementInput):
     id: int
     project: ProjectOutput
     catalog_requirement: CatalogRequirementOutput | None
+    target_object: str | None
+    milestone: str | None
+    compliance_status: str | None
+    compliance_comment: str | None
     completion: confloat(ge=0, le=1) | None
 
 
 class MeasureOutput(SQLModel):
+    reference: str | None
     id: int
     summary: str
     description: str | None
-    completed: bool = False
+    verified: bool = False
+    verification_method: str | None
+    verification_comment: str | None
     requirement: RequirementOutput
     jira_issue_id: str | None
     jira_issue: JiraIssue | None

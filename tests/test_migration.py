@@ -264,3 +264,104 @@ def test_migration_4cd3702a9e46_add_catalog_requirement(
         assert len(requirements) == len(catalog_requirement_ids)
         for requirement in requirements:
             assert requirement["catalog_requirement_id"] == requirement["id"]
+
+
+def test_migration_f94ba991ae4e_rename_field_completed_to_verified(
+    alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
+):
+    timestamp = datetime.utcnow()
+    measure_id = 1
+    alembic_runner.migrate_up_before("f94ba991ae4e")
+    alembic_runner.insert_into(
+        "measure",
+        {
+            "id": measure_id,
+            "created": timestamp,
+            "updated": timestamp,
+            "summary": "summary %d" % measure_id,
+            "completed": True,
+        },
+    )
+    alembic_runner.migrate_up_one()
+
+    with alembic_engine.connect() as conn:
+        measure = conn.execute(
+            "SELECT * FROM measure WHERE id=%d" % measure_id
+        ).fetchone()
+        assert "completed" not in measure.keys()
+        assert bool(measure["verified"]) is True
+
+
+def test_migration_ba56d996e585_add_verification_fields(
+    alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
+):
+    timestamp = datetime.utcnow()
+    measure_id = 1
+    alembic_runner.migrate_up_before("ba56d996e585")
+    alembic_runner.insert_into(
+        "measure",
+        {
+            "id": measure_id,
+            "created": timestamp,
+            "updated": timestamp,
+            "summary": "summary %d" % measure_id,
+            "verified": True,
+        },
+    )
+    alembic_runner.migrate_up_one()
+
+    with alembic_engine.connect() as conn:
+        measure = conn.execute(
+            "SELECT * FROM measure WHERE id=%d" % measure_id
+        ).fetchone()
+        assert measure["verification_method"] is None
+        assert measure["verification_comment"] is None
+
+
+def test_migration_676ab3fb1339_add_milestone_field(
+    alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
+):
+    timestamp = datetime.utcnow()
+    requirement_id = 1
+    alembic_runner.migrate_up_before("676ab3fb1339")
+    alembic_runner.insert_into(
+        "requirement",
+        {
+            "id": requirement_id,
+            "created": timestamp,
+            "updated": timestamp,
+            "summary": "test",
+        },
+    )
+    alembic_runner.migrate_up_one()
+
+    with alembic_engine.connect() as conn:
+        requirement = conn.execute(
+            "SELECT * FROM requirement WHERE id=%d" % requirement_id
+        ).fetchone()
+        assert requirement["milestone"] is None
+
+
+def test_migration_dea7e0cd1bf9_add_reference_field_to_measure(
+    alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
+):
+    timestamp = datetime.utcnow()
+    measure_id = 1
+    alembic_runner.migrate_up_before("dea7e0cd1bf9")
+    alembic_runner.insert_into(
+        "measure",
+        {
+            "id": measure_id,
+            "created": timestamp,
+            "updated": timestamp,
+            "summary": "summary %d" % measure_id,
+            "verified": True,
+        },
+    )
+    alembic_runner.migrate_up_one()
+
+    with alembic_engine.connect() as conn:
+        measure = conn.execute(
+            "SELECT * FROM measure WHERE id=%d" % measure_id
+        ).fetchone()
+        assert measure["reference"] is None

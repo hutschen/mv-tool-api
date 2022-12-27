@@ -213,10 +213,13 @@ class MeasuresExcelView(ExcelView):
                 ExcelHeader("Requirement Reference", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Requirement GS ID", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Requirement Summary", ExcelHeader.WRITE_ONLY, True),
+                ExcelHeader("Reference", optional=True),
                 ExcelHeader("ID", optional=True),
                 ExcelHeader("Summary"),
                 ExcelHeader("Description", optional=True),
-                ExcelHeader("Completed", optional=True),
+                ExcelHeader("Verified", optional=True),
+                ExcelHeader("Verification Method", optional=True),
+                ExcelHeader("Verification Comment", optional=True),
                 ExcelHeader("Document Reference", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Document Title", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("JIRA Issue Key", optional=True),
@@ -235,10 +238,13 @@ class MeasuresExcelView(ExcelView):
                 else None
             ),
             "Requirement Summary": data.requirement.summary,
+            "Reference": data.reference,
             "ID": data.id,
             "Summary": data.summary,
             "Description": data.description,
-            "Completed": data.completed,
+            "Verified": data.verified,
+            "Verification Method": data.verification_method,
+            "Verification Comment": data.verification_comment,
             "Document Reference": data.document.reference if data.document else None,
             "Document Title": data.document.title if data.document else None,
             "JIRA Issue Key": data.jira_issue.key if data.jira_issue else None,
@@ -287,9 +293,12 @@ class MeasuresExcelView(ExcelView):
             measure_id = IdModel(id=row["ID"]).id
             jira_issue_key = JiraIssueKeyModel(key=row["JIRA Issue Key"]).key
             measure_input = MeasureInput(
+                reference=row["Reference"] or None,
                 summary=row["Summary"],
                 description=row["Description"] or None,
-                completed=row["Completed"] or False,
+                verified=row["Verified"] or False,
+                verification_method=row["Verification Method"] or None,
+                verification_comment=row["Verification Comment"] or None,
             )
         except ValidationError as error:
             detail = 'Invalid data on worksheet "%s" at row %d: %s' % (
@@ -411,6 +420,7 @@ class RequirementsExcelView(ExcelView):
                 ExcelHeader("GS Absicherung", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("GS Verantwortliche", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Target Object", optional=True),
+                ExcelHeader("Milestone", optional=True),
                 ExcelHeader("Compliance Status", optional=True),
                 ExcelHeader("Compliance Comment", optional=True),
                 ExcelHeader("Completion", ExcelHeader.WRITE_ONLY, True),
@@ -447,6 +457,7 @@ class RequirementsExcelView(ExcelView):
                 else None
             ),
             "Target Object": data.target_object,
+            "Milestone": data.milestone,
             "Compliance Status": data.compliance_status,
             "Compliance Comment": data.compliance_comment,
             "Completion": data.completion,
@@ -481,6 +492,7 @@ class RequirementsExcelView(ExcelView):
                 summary=row["Summary"],
                 description=row["Description"] or None,
                 target_object=row["Target Object"] or None,
+                milestone=row["Milestone"] or None,
                 compliance_status=row["Compliance Status"] or None,
                 compliance_comment=row["Compliance Comment"] or None,
             )
