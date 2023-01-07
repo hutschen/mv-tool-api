@@ -121,12 +121,10 @@ class AbstractRequirementInput(SQLModel):
     description: str | None
 
 
-class RequirementInput(AbstractRequirementInput):
+class RequirementInput(AbstractRequirementInput, AbstractComplianceInput):
     catalog_requirement_id: int | None
     target_object: str | None
     milestone: str | None
-    compliance_status: constr(regex=r"^(C|PC|NC|N/A)$") | None
-    compliance_comment: str | None
 
 
 class Requirement(RequirementInput, CommonFieldsMixin, table=True):
