@@ -84,7 +84,7 @@ class AbstractComplianceInput(SQLModel):
         return v
 
 
-class MeasureInput(SQLModel):
+class MeasureInput(AbstractComplianceInput):
     reference: str | None
     summary: str
     description: str | None
