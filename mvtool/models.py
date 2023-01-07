@@ -111,18 +111,6 @@ class RequirementInput(AbstractRequirementInput):
     compliance_status: constr(regex=r"^(C|PC|NC|N/A)$") | None
     compliance_comment: str | None
 
-    @validator("compliance_comment")
-    def compliance_comment_validator(cls, v, values):
-        if (
-            v
-            and ("compliance_status" in values)
-            and (values["compliance_status"] is None)
-        ):
-            raise ValueError(
-                "compliance_comment cannot be set when compliance_status is None"
-            )
-        return v
-
 
 class Requirement(RequirementInput, CommonFieldsMixin, table=True):
     project_id: int | None = Field(default=None, foreign_key="project.id")
