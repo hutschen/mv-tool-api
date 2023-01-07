@@ -144,6 +144,37 @@ class Requirement(RequirementInput, CommonFieldsMixin, table=True):
     )
 
     @property
+    def compliance_status_hint(self):
+        session = Session.object_session(self)
+
+        # get the compliance states of all measures subordinated to this requirement
+        compliance_query = (
+            select([Measure.compliance_status])
+            .select_from(Measure)
+            .where(Measure.requirement_id == self.id)
+        )
+        compliance_states = [
+            c
+            for c in session.execute(compliance_query).scalars().all()
+            if c is not None  # ignore None because it is "neutral"
+        ]
+
+        # compute the compliance status hint
+        exists = lambda x: any(x == c in compliance_states for c in compliance_states)
+        every = lambda x: all(x == c for c in compliance_states)
+
+        if exists("C") and not (exists("PC") or exists("NC")):
+            return "C"
+        elif exists("PC") or (exists("C") and exists("NC")):
+            return "PC"
+        elif exists("NC") and not (exists("C") or exists("PC")):
+            return "NC"
+        elif every("N/A") and len(compliance_states) > 0:
+            return "N/A"
+        else:
+            return self.compliance_status
+
+    @property
     def completion(self) -> float | None:
         if self.compliance_status not in ("C", "PC", None):
             return None
@@ -319,6 +350,7 @@ class RequirementOutput(AbstractRequirementInput):
     target_object: str | None
     milestone: str | None
     compliance_status: str | None
+    compliance_status_hint: str | None
     compliance_comment: str | None
     completion: confloat(ge=0, le=1) | None
 
