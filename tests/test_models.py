@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import pytest
 from mvtool.database import CRUDOperations
 from mvtool.models import (
     CatalogRequirement,
@@ -89,3 +90,38 @@ def test_delete_catalog_requirements_of_catalog_module(crud: CRUDOperations):
 
     assert crud.session.query(CatalogModule).count() == 0
     assert crud.session.query(CatalogRequirement).count() == 0
+
+
+@pytest.mark.parametrize("compliance_status", [None, "C", "PC", "NC", "N/A"])
+def test_requirement_compliance_status_hint(crud: CRUDOperations, compliance_status):
+    requirement = Requirement(summary="test", compliance_status=compliance_status)
+    crud.create_in_db(requirement)
+    crud.session.commit()
+
+    assert requirement.compliance_status_hint == compliance_status
+
+
+@pytest.mark.parametrize(
+    "compliance_states, expected_hint",
+    [
+        (["C"], "C"),
+        (["C", "N/A"], "C"),
+        (["C", "NC"], "PC"),
+        (["C", "PC"], "PC"),
+        (["PC"], "PC"),
+        (["NC"], "NC"),
+        (["NC", "N/A"], "NC"),
+        (["N/A"], "N/A"),
+    ],
+)
+def test_requirement_compliance_status_hint_with_measures(
+    crud: CRUDOperations, compliance_states, expected_hint
+):
+    requirement = Requirement(summary="test")
+    requirement.measures = [
+        Measure(summary="test", compliance_status=c) for c in compliance_states
+    ]
+    crud.create_in_db(requirement)
+    crud.session.commit()
+
+    assert requirement.compliance_status_hint == expected_hint
