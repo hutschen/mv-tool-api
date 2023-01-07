@@ -328,6 +328,8 @@ class MeasureOutput(SQLModel):
     id: int
     summary: str
     description: str | None
+    compliance_status: str | None
+    compliance_comment: str | None
     verified: bool = False
     verification_method: str | None
     verification_comment: str | None
