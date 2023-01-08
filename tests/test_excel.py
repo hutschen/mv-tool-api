@@ -225,6 +225,8 @@ def test_convert_row_to_measure(
         "Description": "test",
         "Compliance Status": "C",
         "Compliance Comment": "test",
+        "Completion Status": "open",
+        "Completion Comment": "test",
         "Verified": False,
         "Verification Method": "R",
         "Verification Comment": "test",
