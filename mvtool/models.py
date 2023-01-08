@@ -88,11 +88,25 @@ class MeasureInput(AbstractComplianceInput):
     reference: str | None
     summary: str
     description: str | None
+    completion_status: constr(regex=r"^(open|in progress|complete)$") | None
+    completion_comment: str | None
     verified: bool = False
     verification_method: constr(regex=r"^(I|T|R)$") | None
     verification_comment: str | None
     document_id: int | None
     jira_issue_id: str | None
+
+    @validator("completion_comment")
+    def completion_comment_validator(cls, v, values):
+        if (
+            v
+            and ("completion_status" in values)
+            and (values["completion_status"] is None)
+        ):
+            raise ValueError(
+                "completion_comment cannot be set when compliance_status is None"
+            )
+        return v
 
 
 class Measure(MeasureInput, CommonFieldsMixin, table=True):
@@ -362,6 +376,8 @@ class MeasureOutput(SQLModel):
     description: str | None
     compliance_status: str | None
     compliance_comment: str | None
+    completion_status: str | None
+    completion_comment: str | None
     verified: bool = False
     verification_method: str | None
     verification_comment: str | None
