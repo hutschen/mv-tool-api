@@ -88,7 +88,7 @@ class MeasureInput(AbstractComplianceInput):
     reference: str | None
     summary: str
     description: str | None
-    completion_status: constr(regex=r"^(open|in progress|complete)$") | None
+    completion_status: constr(regex=r"^(open|in progress|completed)$") | None
     completion_comment: str | None
     verified: bool = False
     verification_method: constr(regex=r"^(I|T|R)$") | None
