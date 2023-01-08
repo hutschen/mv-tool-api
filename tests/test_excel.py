@@ -223,6 +223,8 @@ def test_convert_row_to_measure(
         "JIRA Issue Key": "TEST-1",
         "Summary": "test",
         "Description": "test",
+        "Compliance Status": "C",
+        "Compliance Comment": "test",
         "Verified": False,
         "Verification Method": "R",
         "Verification Comment": "test",
