@@ -305,9 +305,7 @@ def test_bulk_create_update_requirements(
     ]
 
     results = list(
-        requirements_excel_view._bulk_create_update_requirements(
-            create_project.id, data
-        )
+        requirements_excel_view._bulk_create_patch_requirements(create_project.id, data)
     )
 
     assert len(results) == 2
