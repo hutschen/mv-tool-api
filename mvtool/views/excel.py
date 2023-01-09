@@ -426,13 +426,14 @@ class RequirementsExcelView(ExcelView):
                 ExcelHeader("ID", optional=True),
                 ExcelHeader("Reference", optional=True),
                 ExcelHeader("GS ID", ExcelHeader.WRITE_ONLY, True),
+                ExcelHeader("Catalog", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Catalog Module", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Summary"),
                 ExcelHeader("Description", optional=True),
                 ExcelHeader("GS Absicherung", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("GS Verantwortliche", ExcelHeader.WRITE_ONLY, True),
-                ExcelHeader("Target Object", optional=True),
                 ExcelHeader("Milestone", optional=True),
+                ExcelHeader("Target Object", optional=True),
                 ExcelHeader("Compliance Status", optional=True),
                 ExcelHeader("Compliance Comment", optional=True),
                 ExcelHeader("Completion", ExcelHeader.WRITE_ONLY, True),
@@ -448,6 +449,11 @@ class RequirementsExcelView(ExcelView):
             "Reference": data.reference,
             "GS ID": (
                 data.catalog_requirement.gs_anforderung_reference
+                if data.catalog_requirement
+                else None
+            ),
+            "Catalog": (
+                data.catalog_requirement.catalog_module.catalog.title
                 if data.catalog_requirement
                 else None
             ),
