@@ -506,7 +506,7 @@ class RequirementsExcelView(ExcelView):
         else:
             return requirement_id, requirement_input
 
-    def _bulk_create_update_requirements(
+    def _bulk_create_patch_requirements(
         self, project_id: int, data: Iterator[tuple[int | None, RequirementInput]]
     ) -> list[Requirement]:
         # Get project from database and retrieve data
@@ -535,7 +535,7 @@ class RequirementsExcelView(ExcelView):
                         "Requirement with ID %d not part of project with ID %d"
                         % (requirement_id, project_id)
                     )
-                for key, value in requirement_input.dict().items():
+                for key, value in requirement_input.dict(exclude_unset=True).items():
                     setattr(requirement, key, value)
 
             self._requirements._set_jira_project(requirement)
@@ -557,7 +557,7 @@ class RequirementsExcelView(ExcelView):
         upload_file: UploadFile,
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> Iterator[Requirement]:
-        return self._bulk_create_update_requirements(
+        return self._bulk_create_patch_requirements(
             project_id, self._process_upload(upload_file, temp_file)
         )
 
