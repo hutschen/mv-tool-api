@@ -67,15 +67,46 @@ class JiraIssue(JiraIssueInput):
     url: str
 
 
-class MeasureInput(SQLModel):
+class AbstractComplianceInput(SQLModel):
+    compliance_status: constr(regex=r"^(C|PC|NC|N/A)$") | None
+    compliance_comment: str | None
+
+    @validator("compliance_comment")
+    def compliance_comment_validator(cls, v, values):
+        if (
+            v
+            and ("compliance_status" in values)
+            and (values["compliance_status"] is None)
+        ):
+            raise ValueError(
+                "compliance_comment cannot be set when compliance_status is None"
+            )
+        return v
+
+
+class MeasureInput(AbstractComplianceInput):
     reference: str | None
     summary: str
     description: str | None
+    completion_status: constr(regex=r"^(open|in progress|completed)$") | None
+    completion_comment: str | None
     verified: bool = False
     verification_method: constr(regex=r"^(I|T|R)$") | None
     verification_comment: str | None
     document_id: int | None
     jira_issue_id: str | None
+
+    @validator("completion_comment")
+    def completion_comment_validator(cls, v, values):
+        if (
+            v
+            and ("completion_status" in values)
+            and (values["completion_status"] is None)
+        ):
+            raise ValueError(
+                "completion_comment cannot be set when compliance_status is None"
+            )
+        return v
 
 
 class Measure(MeasureInput, CommonFieldsMixin, table=True):
@@ -104,24 +135,10 @@ class AbstractRequirementInput(SQLModel):
     description: str | None
 
 
-class RequirementInput(AbstractRequirementInput):
+class RequirementInput(AbstractRequirementInput, AbstractComplianceInput):
     catalog_requirement_id: int | None
     target_object: str | None
     milestone: str | None
-    compliance_status: constr(regex=r"^(C|PC|NC|N/A)$") | None
-    compliance_comment: str | None
-
-    @validator("compliance_comment")
-    def compliance_comment_validator(cls, v, values):
-        if (
-            v
-            and ("compliance_status" in values)
-            and (values["compliance_status"] is None)
-        ):
-            raise ValueError(
-                "compliance_comment cannot be set when compliance_status is None"
-            )
-        return v
 
 
 class Requirement(RequirementInput, CommonFieldsMixin, table=True):
@@ -139,6 +156,37 @@ class Requirement(RequirementInput, CommonFieldsMixin, table=True):
         back_populates="requirement",
         sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
     )
+
+    @property
+    def compliance_status_hint(self):
+        session = Session.object_session(self)
+
+        # get the compliance states of all measures subordinated to this requirement
+        compliance_query = (
+            select([Measure.compliance_status])
+            .select_from(Measure)
+            .where(Measure.requirement_id == self.id)
+        )
+        compliance_states = [
+            c
+            for c in session.execute(compliance_query).scalars().all()
+            if c is not None  # ignore None because it is "neutral"
+        ]
+
+        # compute the compliance status hint
+        exists = lambda x: any(x == c in compliance_states for c in compliance_states)
+        every = lambda x: all(x == c for c in compliance_states)
+
+        if exists("C") and not (exists("PC") or exists("NC")):
+            return "C"
+        elif exists("PC") or (exists("C") and exists("NC")):
+            return "PC"
+        elif exists("NC") and not (exists("C") or exists("PC")):
+            return "NC"
+        elif every("N/A") and len(compliance_states) > 0:
+            return "N/A"
+        else:
+            return self.compliance_status
 
     @property
     def completion(self) -> float | None:
@@ -316,6 +364,7 @@ class RequirementOutput(AbstractRequirementInput):
     target_object: str | None
     milestone: str | None
     compliance_status: str | None
+    compliance_status_hint: str | None
     compliance_comment: str | None
     completion: confloat(ge=0, le=1) | None
 
@@ -325,6 +374,10 @@ class MeasureOutput(SQLModel):
     id: int
     summary: str
     description: str | None
+    compliance_status: str | None
+    compliance_comment: str | None
+    completion_status: str | None
+    completion_comment: str | None
     verified: bool = False
     verification_method: str | None
     verification_comment: str | None

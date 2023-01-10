@@ -217,6 +217,10 @@ class MeasuresExcelView(ExcelView):
                 ExcelHeader("ID", optional=True),
                 ExcelHeader("Summary"),
                 ExcelHeader("Description", optional=True),
+                ExcelHeader("Compliance Status", optional=True),
+                ExcelHeader("Compliance Comment", optional=True),
+                ExcelHeader("Completion Status", optional=True),
+                ExcelHeader("Completion Comment", optional=True),
                 ExcelHeader("Verified", optional=True),
                 ExcelHeader("Verification Method", optional=True),
                 ExcelHeader("Verification Comment", optional=True),
@@ -242,6 +246,10 @@ class MeasuresExcelView(ExcelView):
             "ID": data.id,
             "Summary": data.summary,
             "Description": data.description,
+            "Compliance Status": data.compliance_status,
+            "Compliance Comment": data.compliance_comment,
+            "Completion Status": data.completion_status,
+            "Completion Comment": data.completion_comment,
             "Verified": data.verified,
             "Verification Method": data.verification_method,
             "Verification Comment": data.verification_comment,
@@ -296,6 +304,10 @@ class MeasuresExcelView(ExcelView):
                 reference=row["Reference"] or None,
                 summary=row["Summary"],
                 description=row["Description"] or None,
+                compliance_status=row["Compliance Status"] or None,
+                compliance_comment=row["Compliance Comment"] or None,
+                completion_status=row["Completion Status"] or None,
+                completion_comment=row["Completion Comment"] or None,
                 verified=row["Verified"] or False,
                 verification_method=row["Verification Method"] or None,
                 verification_comment=row["Verification Comment"] or None,
@@ -414,13 +426,14 @@ class RequirementsExcelView(ExcelView):
                 ExcelHeader("ID", optional=True),
                 ExcelHeader("Reference", optional=True),
                 ExcelHeader("GS ID", ExcelHeader.WRITE_ONLY, True),
+                ExcelHeader("Catalog", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Catalog Module", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Summary"),
                 ExcelHeader("Description", optional=True),
                 ExcelHeader("GS Absicherung", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("GS Verantwortliche", ExcelHeader.WRITE_ONLY, True),
-                ExcelHeader("Target Object", optional=True),
                 ExcelHeader("Milestone", optional=True),
+                ExcelHeader("Target Object", optional=True),
                 ExcelHeader("Compliance Status", optional=True),
                 ExcelHeader("Compliance Comment", optional=True),
                 ExcelHeader("Completion", ExcelHeader.WRITE_ONLY, True),
@@ -436,6 +449,11 @@ class RequirementsExcelView(ExcelView):
             "Reference": data.reference,
             "GS ID": (
                 data.catalog_requirement.gs_anforderung_reference
+                if data.catalog_requirement
+                else None
+            ),
+            "Catalog": (
+                data.catalog_requirement.catalog_module.catalog.title
                 if data.catalog_requirement
                 else None
             ),
