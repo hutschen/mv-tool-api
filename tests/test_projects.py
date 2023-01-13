@@ -143,13 +143,22 @@ def test_project_completion_no_measures(
     assert create_project.completion == 0.0
 
 
+def test_project_completion_nothing_to_complete(
+    create_project: Project, create_requirement: Requirement
+):
+    create_requirement.compliance_status = "NC"
+
+    assert create_requirement.completion == None
+    assert create_project.completion == None
+
+
 def test_project_completion_complete(
     create_project: Project,
     create_requirement: Requirement,
     create_measure: Measure,
 ):
     create_requirement.compliance_status = "C"
-    create_measure.verified = True
+    create_measure.completion_status = "completed"
 
     assert create_requirement.completion == 1.0
     assert create_project.completion == 1.0
@@ -161,7 +170,7 @@ def test_project_completion_incomplete(
     create_measure: Measure,
 ):
     create_requirement.compliance_status = "C"
-    create_measure.verified = False
+    create_measure.completion_status = "open"
 
     assert create_requirement.completion == 0.0
     assert create_project.completion == 0.0
