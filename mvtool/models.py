@@ -198,7 +198,7 @@ class Requirement(RequirementInput, CommonFieldsMixin, table=True):
         total = session.execute(total_query).scalar()
 
         # get the number of completed measures subordinated to this requirement
-        completed_query = total_query.where(Measure.verified == True)
+        completed_query = total_query.where(Measure.completion_status == "completed")
         completed = session.execute(completed_query).scalar()
 
         return completed / total if total else 0.0
@@ -302,7 +302,7 @@ class Project(ProjectInput, CommonFieldsMixin, table=True):
         # get the total number of measures in project
         total_query = (
             select([func.count()])
-            .select_from(Measure, Requirement)
+            .select_from(Requirement)
             .outerjoin(Measure)
             .where(
                 Requirement.project_id == self.id,
@@ -315,7 +315,7 @@ class Project(ProjectInput, CommonFieldsMixin, table=True):
         total = session.execute(total_query).scalar()
 
         # get the number of completed measures in project
-        completed_query = total_query.where(Measure.verified == True)
+        completed_query = total_query.where(Measure.completion_status == "completed")
         completed = session.execute(completed_query).scalar()
 
         return completed / total if total else None
