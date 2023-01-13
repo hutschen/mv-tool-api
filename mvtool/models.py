@@ -162,16 +162,10 @@ class Requirement(RequirementInput, CommonFieldsMixin, table=True):
         session = Session.object_session(self)
 
         # get the compliance states of all measures subordinated to this requirement
-        compliance_query = (
-            select([Measure.compliance_status])
-            .select_from(Measure)
-            .where(Measure.requirement_id == self.id)
+        compliance_query = select([Measure.compliance_status]).where(
+            Measure.requirement_id == self.id, Measure.compliance_status != None
         )
-        compliance_states = [
-            c
-            for c in session.execute(compliance_query).scalars().all()
-            if c is not None  # ignore None because it is "neutral"
-        ]
+        compliance_states = session.execute(compliance_query).scalars().all()
 
         # compute the compliance status hint
         exists = lambda x: any(x == c in compliance_states for c in compliance_states)
