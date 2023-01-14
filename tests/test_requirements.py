@@ -229,3 +229,19 @@ def test_requirement_completion_complete(
 def test_requirement_completion_ignored(create_requirement: Requirement):
     create_requirement.compliance_status = "NC"
     assert create_requirement.completion_progress == None
+
+
+def test_requirement_verification_incomplete(create_requirement: Requirement):
+    assert create_requirement.verification_progress == 0.0
+
+
+def test_requirement_verification_complete(
+    create_requirement: Requirement, create_measure: Measure
+):
+    create_measure.verified = True
+    assert create_requirement.verification_progress == 1.0
+
+
+def test_requirement_verification_ignored(create_requirement: Requirement):
+    create_requirement.compliance_status = "NC"
+    assert create_requirement.verification_progress == None
