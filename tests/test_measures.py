@@ -324,3 +324,31 @@ def test_measure_jira_issue_with_getter():
     measure = Measure(summary="test", jira_issue_id="test")
     measure._get_jira_issue = lambda _: jira_issue_dummy
     assert measure.jira_issue == jira_issue_dummy
+
+
+@pytest.mark.parametrize("compliance_status", ["C", "PC", None])
+def test_measure_completion_status_hint_jira_issue_completed(
+    compliance_status, create_measure: Measure
+):
+    create_measure.compliance_status = compliance_status
+    create_measure.jira_issue.status.completed = True
+    assert create_measure.completion_status_hint == "completed"
+
+
+@pytest.mark.parametrize("completion_status", ["open", "in progress", None])
+def test_measure_completion_status_hint_jira_issue_incomplete(
+    completion_status,
+    create_measure: Measure,
+):
+    create_measure.compliance_status = "C"
+    create_measure.completion_status = completion_status
+    create_measure.jira_issue.status.completed = False
+    assert create_measure.completion_status_hint == completion_status
+
+
+@pytest.mark.parametrize("compliance_status", ["NC", "N/A"])
+def test_measure_completion_status_hint_non_compliant(
+    compliance_status, create_measure: Measure
+):
+    create_measure.compliance_status = compliance_status
+    assert create_measure.completion_status_hint is None
