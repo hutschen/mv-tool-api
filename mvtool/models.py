@@ -183,22 +183,33 @@ class Requirement(RequirementInput, CommonFieldsMixin, table=True):
             return self.compliance_status
 
     @property
-    def completion(self) -> float | None:
+    def _compliant_count_query(self):
+        return (
+            select([func.count()])
+            .select_from(Measure)
+            .where(
+                Measure.requirement_id == self.id,
+                or_(
+                    Measure.compliance_status.in_(("C", "PC")),
+                    Measure.compliance_status.is_(None),
+                ),
+            )
+        )
+
+    @property
+    def completion_progress(self) -> float | None:
         if self.compliance_status not in ("C", "PC", None):
             return None
 
         session = Session.object_session(self)
 
         # get the total number of measures subordinated to this requirement
-        total_query = (
-            select([func.count()])
-            .select_from(Measure)
-            .where(Measure.requirement_id == self.id)
-        )
-        total = session.execute(total_query).scalar()
+        total = session.execute(self._compliant_count_query).scalar()
 
         # get the number of completed measures subordinated to this requirement
-        completed_query = total_query.where(Measure.completion_status == "completed")
+        completed_query = self._compliant_count_query.where(
+            Measure.completion_status == "completed"
+        )
         completed = session.execute(completed_query).scalar()
 
         return completed / total if total else 0.0
@@ -296,11 +307,8 @@ class Project(ProjectInput, CommonFieldsMixin, table=True):
         return getattr(self, "_get_jira_project")(self.jira_project_id)
 
     @property
-    def completion(self) -> float | None:
-        session = Session.object_session(self)
-
-        # get the total number of measures in project
-        total_query = (
+    def _compliant_count_query(self):
+        return (
             select([func.count()])
             .select_from(Requirement)
             .outerjoin(Measure)
@@ -310,12 +318,24 @@ class Project(ProjectInput, CommonFieldsMixin, table=True):
                     Requirement.compliance_status.in_(("C", "PC")),
                     Requirement.compliance_status.is_(None),
                 ),
+                or_(
+                    Measure.compliance_status.in_(("C", "PC")),
+                    Measure.compliance_status.is_(None),
+                ),
             )
         )
-        total = session.execute(total_query).scalar()
+
+    @property
+    def completion_progress(self) -> float | None:
+        session = Session.object_session(self)
+
+        # get the total number of measures in project
+        total = session.execute(self._compliant_count_query).scalar()
 
         # get the number of completed measures in project
-        completed_query = total_query.where(Measure.completion_status == "completed")
+        completed_query = self._compliant_count_query.where(
+            Measure.completion_status == "completed"
+        )
         completed = session.execute(completed_query).scalar()
 
         return completed / total if total else None
@@ -333,7 +353,7 @@ class CatalogModuleOutput(CatalogModuleInput):
 class ProjectOutput(ProjectInput):
     id: int
     jira_project: JiraProject | None
-    completion: confloat(ge=0, le=1) | None
+    completion_progress: confloat(ge=0, le=1) | None
 
 
 class DocumentOutput(DocumentInput):
@@ -360,7 +380,7 @@ class RequirementOutput(AbstractRequirementInput):
     compliance_status: str | None
     compliance_status_hint: str | None
     compliance_comment: str | None
-    completion: confloat(ge=0, le=1) | None
+    completion_progress: float | None
 
 
 class MeasureOutput(SQLModel):
