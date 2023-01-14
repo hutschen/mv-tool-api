@@ -442,8 +442,10 @@ class MeasureOutput(SQLModel):
     compliance_status: str | None
     compliance_comment: str | None
     completion_status: str | None
+    completion_status_hint: str | None
     completion_comment: str | None
-    verified: bool = False
+    verified: bool
+    verified_hint: bool
     verification_method: str | None
     verification_comment: str | None
     requirement: RequirementOutput
