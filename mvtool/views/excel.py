@@ -478,7 +478,7 @@ class RequirementsExcelView(ExcelView):
             "Milestone": data.milestone,
             "Compliance Status": data.compliance_status,
             "Compliance Comment": data.compliance_comment,
-            "Completion": data.completion,
+            "Completion": data.completion_progress,
         }
 
     @router.get(
