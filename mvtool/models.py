@@ -138,6 +138,16 @@ class Measure(MeasureInput, CommonFieldsMixin, table=True):
         else:
             return self.completion_status
 
+    @property
+    def verified_hint(self):
+        if self.compliance_status not in ("C", "PC", None):
+            return False
+
+        if self.completion_status == "completed":
+            return self.verified
+        else:
+            return False
+
 
 class AbstractRequirementInput(SQLModel):
     reference: str | None
