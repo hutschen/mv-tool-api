@@ -128,6 +128,16 @@ class Measure(MeasureInput, CommonFieldsMixin, table=True):
 
         return getattr(self, "_get_jira_issue")(self.jira_issue_id)
 
+    @property
+    def completion_status_hint(self):
+        if self.compliance_status not in ("C", "PC", None):
+            return None
+
+        if self.jira_issue and self.jira_issue.status.completed:
+            return "completed"
+        else:
+            return self.completion_status
+
 
 class AbstractRequirementInput(SQLModel):
     reference: str | None
