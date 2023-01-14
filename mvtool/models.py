@@ -214,6 +214,22 @@ class Requirement(RequirementInput, CommonFieldsMixin, table=True):
 
         return completed / total if total else 0.0
 
+    @property
+    def verification_progress(self) -> float | None:
+        if self.compliance_status not in ("C", "PC", None):
+            return None
+
+        session = Session.object_session(self)
+
+        # get the total number of measures subordinated to this requirement
+        total = session.execute(self._compliant_count_query).scalar()
+
+        # get the number of verified measures subordinated to this requirement
+        verified_query = self._compliant_count_query.where(Measure.verified == True)
+        verified = session.execute(verified_query).scalar()
+
+        return verified / total if total else 0.0
+
 
 class CatalogRequirementInput(AbstractRequirementInput):
     # Special fields for IT Grundschutz Kompendium
@@ -381,6 +397,7 @@ class RequirementOutput(AbstractRequirementInput):
     compliance_status_hint: str | None
     compliance_comment: str | None
     completion_progress: float | None
+    verification_progess: float | None
 
 
 class MeasureOutput(SQLModel):
