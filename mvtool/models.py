@@ -383,6 +383,7 @@ class ProjectOutput(ProjectInput):
     id: int
     jira_project: JiraProject | None
     completion_progress: confloat(ge=0, le=1) | None
+    verification_progress: confloat(ge=0, le=1) | None
 
 
 class DocumentOutput(DocumentInput):
@@ -409,8 +410,8 @@ class RequirementOutput(AbstractRequirementInput):
     compliance_status: str | None
     compliance_status_hint: str | None
     compliance_comment: str | None
-    completion_progress: float | None
-    verification_progess: float | None
+    completion_progress: confloat(ge=0, le=1) | None
+    verification_progress: confloat(ge=0, le=1) | None
 
 
 class MeasureOutput(SQLModel):
