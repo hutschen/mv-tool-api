@@ -63,6 +63,11 @@ class MeasuresView:
     def list_measures(self, requirement_id: int) -> Iterator[Measure]:
         return self.query_measures(Measure.requirement_id == requirement_id)
 
+    @router.get(
+        "/projects/{project_id}/measures",
+        response_model=list[MeasureOutput],
+        **kwargs,
+    )
     def list_measures_of_project(self, project_id: int) -> Iterator[Measure]:
         return self.query_measures(Requirement.project_id == project_id)
 
