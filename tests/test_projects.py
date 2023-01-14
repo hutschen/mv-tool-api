@@ -174,3 +174,46 @@ def test_project_completion_incomplete(
 
     assert create_requirement.completion_progress == 0.0
     assert create_project.completion_progress == 0.0
+
+
+def test_project_verification_no_requirements(create_project: Project):
+    assert create_project.verification_progress == None
+
+
+def test_project_verification_no_measures(
+    create_project: Project, create_requirement: Requirement
+):
+    assert create_project.verification_progress == 0.0
+
+
+def test_project_verification_nothing_to_verify(
+    create_project: Project, create_requirement: Requirement
+):
+    create_requirement.compliance_status = "NC"
+
+    assert create_requirement.verification_progress == None
+    assert create_project.verification_progress == None
+
+
+def test_project_verification_verified(
+    create_project: Project,
+    create_requirement: Requirement,
+    create_measure: Measure,
+):
+    create_requirement.compliance_status = "C"
+    create_measure.verified = True
+
+    assert create_requirement.verification_progress == 1.0
+    assert create_project.verification_progress == 1.0
+
+
+def test_project_verification_unverified(
+    create_project: Project,
+    create_requirement: Requirement,
+    create_measure: Measure,
+):
+    create_requirement.compliance_status = "C"
+    create_measure.verified = False
+
+    assert create_requirement.verification_progress == 0.0
+    assert create_project.verification_progress == 0.0
