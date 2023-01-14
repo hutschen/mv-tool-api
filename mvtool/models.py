@@ -356,6 +356,19 @@ class Project(ProjectInput, CommonFieldsMixin, table=True):
 
         return completed / total if total else None
 
+    @property
+    def verification_progress(self) -> float | None:
+        session = Session.object_session(self)
+
+        # get the total number of measures in project
+        total = session.execute(self._compliant_count_query).scalar()
+
+        # get the number of verified measures in project
+        verified_query = self._compliant_count_query.where(Measure.verified == True)
+        verified = session.execute(verified_query).scalar()
+
+        return verified / total if total else None
+
 
 class CatalogOutput(CatalogInput):
     id: int
