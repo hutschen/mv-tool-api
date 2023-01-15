@@ -19,11 +19,11 @@
 from typing import Any, Iterator
 from fastapi import APIRouter, Depends, Response
 from fastapi_utils.cbv import cbv
-from sqlmodel import select
+from sqlmodel import func, select
 
 from mvtool.views.documents import DocumentsView
 from mvtool.views.jira_ import JiraIssuesView
-from ..utils.pagination import page_params
+from ..utils.pagination import Page, page_params
 from ..database import CRUDOperations
 from .requirements import RequirementsView
 from ..errors import ClientError, NotFoundError
@@ -58,18 +58,22 @@ class MeasuresView:
 
     @router.get(
         "/requirements/{requirement_id}/measures",
-        response_model=list[MeasureOutput],
+        response_model=Page[MeasureOutput],
         **kwargs,
     )
     def get_measures_page(
         self,
         requirement_id: int,
         page_params=Depends(page_params),
-    ) -> Iterator[Measure]:
-        return self.query_measures(
-            where_clauses=[Measure.requirement_id == requirement_id],
+    ) -> Page[MeasureOutput]:
+        where_clauses = [Measure.requirement_id == requirement_id]
+        measures = self.query_measures(
+            where_clauses=where_clauses,
             order_by_clauses=[Measure.id.asc()],
             **page_params,
+        )
+        return Page[MeasureOutput](
+            items=measures, total_count=self.query_measure_count(where_clauses)
         )
 
     def list_measures(self, requirement_id: int) -> Iterator[Measure]:
@@ -80,18 +84,22 @@ class MeasuresView:
 
     @router.get(
         "/projects/{project_id}/measures",
-        response_model=list[MeasureOutput],
+        response_model=Page[MeasureOutput],
         **kwargs,
     )
     def get_measures_of_project_page(
         self,
         project_id: int,
         page_params=Depends(page_params),
-    ) -> Iterator[Measure]:
-        return self.query_measures(
-            where_clauses=[Requirement.project_id == project_id],
+    ) -> Page[MeasureOutput]:
+        where_clauses = [Requirement.project_id == project_id]
+        measures = self.query_measures(
+            where_clauses=where_clauses,
             order_by_clauses=[Measure.id.asc()],
             **page_params,
+        )
+        return Page[MeasureOutput](
+            items=measures, total_count=self.query_measure_count(where_clauses)
         )
 
     def list_measures_of_project(self, project_id: int) -> Iterator[Measure]:
@@ -99,6 +107,15 @@ class MeasuresView:
             where_clauses=[Requirement.project_id == project_id],
             order_by_clauses=[Measure.id.asc()],
         )
+
+    def query_measure_count(self, where_clauses: Any = None) -> int:
+        # construct measures query
+        measures_query = select([func.count()]).select_from(Measure).join(Requirement)
+        if where_clauses:
+            measures_query = measures_query.where(*where_clauses)
+
+        # execute measures query
+        return self._session.execute(measures_query).scalar()
 
     def query_measures(
         self,
