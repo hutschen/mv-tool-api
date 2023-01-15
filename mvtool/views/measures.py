@@ -110,12 +110,12 @@ class MeasuresView:
 
     def query_measure_count(self, where_clauses: Any = None) -> int:
         # construct measures query
-        measures_query = select([func.count()]).select_from(Measure).join(Requirement)
+        query = select([func.count()]).select_from(Measure).join(Requirement)
         if where_clauses:
-            measures_query = measures_query.where(*where_clauses)
+            query = query.where(*where_clauses)
 
         # execute measures query
-        return self._session.execute(measures_query).scalar()
+        return self._session.execute(query).scalar()
 
     def query_measures(
         self,
@@ -125,18 +125,18 @@ class MeasuresView:
         limit: int | None = None,
     ) -> list[Measure]:
         # construct measures query
-        measures_query = select(Measure).join(Requirement)
+        query = select(Measure).join(Requirement)
         if where_clauses:
-            measures_query = measures_query.where(*where_clauses)
+            query = query.where(*where_clauses)
         if order_by_clauses:
-            measures_query = measures_query.order_by(*order_by_clauses)
+            query = query.order_by(*order_by_clauses)
         if offset is not None:
-            measures_query = measures_query.offset(offset)
+            query = query.offset(offset)
         if limit is not None:
-            measures_query = measures_query.limit(limit)
+            query = query.limit(limit)
 
         # execute measures query
-        measures = self._session.exec(measures_query).all()
+        measures = self._session.exec(query).all()
 
         # set jira project and issue on measures
         jira_issue_ids = set()
