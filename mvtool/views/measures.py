@@ -19,10 +19,11 @@
 from typing import Any, Iterator
 from fastapi import APIRouter, Depends, Response
 from fastapi_utils.cbv import cbv
-from sqlmodel import select
+from sqlmodel import func, select
 
 from mvtool.views.documents import DocumentsView
 from mvtool.views.jira_ import JiraIssuesView
+from ..utils.pagination import Page, page_params
 from ..database import CRUDOperations
 from .requirements import RequirementsView
 from ..errors import ClientError, NotFoundError
@@ -57,41 +58,97 @@ class MeasuresView:
 
     @router.get(
         "/requirements/{requirement_id}/measures",
-        response_model=list[MeasureOutput],
+        response_model=Page[MeasureOutput],
         **kwargs,
     )
+    def get_measures_page(
+        self,
+        requirement_id: int,
+        page_params=Depends(page_params),
+    ) -> Page[MeasureOutput]:
+        where_clauses = [Measure.requirement_id == requirement_id]
+        return Page[MeasureOutput](
+            items=self.query_measures(
+                where_clauses=where_clauses,
+                order_by_clauses=[Measure.id.asc()],
+                **page_params,
+            ),
+            total_count=self.query_measure_count(where_clauses),
+        )
+
     def list_measures(self, requirement_id: int) -> Iterator[Measure]:
-        return self.query_measures(Measure.requirement_id == requirement_id)
+        return self.query_measures(
+            where_clauses=[Measure.requirement_id == requirement_id],
+            order_by_clauses=[Measure.id.asc()],
+        )
 
     @router.get(
         "/projects/{project_id}/measures",
-        response_model=list[MeasureOutput],
+        response_model=Page[MeasureOutput],
         **kwargs,
     )
-    def list_measures_of_project(self, project_id: int) -> Iterator[Measure]:
-        return self.query_measures(Requirement.project_id == project_id)
-
-    def query_measures(self, *whereclauses: Any) -> Iterator[Measure]:
-        measures = self._session.exec(
-            select(Measure)
-            .join(Requirement)
-            # .join(Document, isouter=True)
-            .where(*whereclauses)
-            .order_by(Measure.id)
-        ).all()
-
-        # cache jira issues
-        list(
-            self._jira_issues.get_jira_issues(
-                [m.jira_issue_id for m in measures if m.jira_issue_id]
-            )
+    def get_measures_of_project_page(
+        self,
+        project_id: int,
+        page_params=Depends(page_params),
+    ) -> Page[MeasureOutput]:
+        where_clauses = [Requirement.project_id == project_id]
+        return Page[MeasureOutput](
+            items=self.query_measures(
+                where_clauses=where_clauses,
+                order_by_clauses=[Measure.id.asc()],
+                **page_params,
+            ),
+            total_count=self.query_measure_count(where_clauses),
         )
 
-        # assign jira issue to measure and yield results
+    def list_measures_of_project(self, project_id: int) -> Iterator[Measure]:
+        return self.query_measures(
+            where_clauses=[Requirement.project_id == project_id],
+            order_by_clauses=[Measure.id.asc()],
+        )
+
+    def query_measure_count(self, where_clauses: Any = None) -> int:
+        # construct measures query
+        query = select([func.count()]).select_from(Measure).join(Requirement)
+        if where_clauses:
+            query = query.where(*where_clauses)
+
+        # execute measures query
+        return self._session.execute(query).scalar()
+
+    def query_measures(
+        self,
+        where_clauses: Any = None,
+        order_by_clauses: Any = None,
+        offset: int | None = None,
+        limit: int | None = None,
+    ) -> list[Measure]:
+        # construct measures query
+        query = select(Measure).join(Requirement)
+        if where_clauses:
+            query = query.where(*where_clauses)
+        if order_by_clauses:
+            query = query.order_by(*order_by_clauses)
+        if offset is not None:
+            query = query.offset(offset)
+        if limit is not None:
+            query = query.limit(limit)
+
+        # execute measures query
+        measures = self._session.exec(query).all()
+
+        # set jira project and issue on measures
+        jira_issue_ids = set()
         for measure in measures:
+            if measure.jira_issue_id is not None:
+                jira_issue_ids.add(measure.jira_issue_id)
             self._set_jira_issue(measure, try_to_get=False)
             self._set_jira_project(measure)
-            yield measure
+
+        # cache jira issues and return measures
+        list(self._jira_issues.get_jira_issues(jira_issue_ids))
+        return measures
 
     @router.post(
         "/requirements/{requirement_id}/measures",
