@@ -67,13 +67,13 @@ class MeasuresView:
         page_params=Depends(page_params),
     ) -> Page[MeasureOutput]:
         where_clauses = [Measure.requirement_id == requirement_id]
-        measures = self.query_measures(
-            where_clauses=where_clauses,
-            order_by_clauses=[Measure.id.asc()],
-            **page_params,
-        )
         return Page[MeasureOutput](
-            items=measures, total_count=self.query_measure_count(where_clauses)
+            items=self.query_measures(
+                where_clauses=where_clauses,
+                order_by_clauses=[Measure.id.asc()],
+                **page_params,
+            ),
+            total_count=self.query_measure_count(where_clauses),
         )
 
     def list_measures(self, requirement_id: int) -> Iterator[Measure]:
@@ -93,13 +93,13 @@ class MeasuresView:
         page_params=Depends(page_params),
     ) -> Page[MeasureOutput]:
         where_clauses = [Requirement.project_id == project_id]
-        measures = self.query_measures(
-            where_clauses=where_clauses,
-            order_by_clauses=[Measure.id.asc()],
-            **page_params,
-        )
         return Page[MeasureOutput](
-            items=measures, total_count=self.query_measure_count(where_clauses)
+            items=self.query_measures(
+                where_clauses=where_clauses,
+                order_by_clauses=[Measure.id.asc()],
+                **page_params,
+            ),
+            total_count=self.query_measure_count(where_clauses),
         )
 
     def list_measures_of_project(self, project_id: int) -> Iterator[Measure]:
