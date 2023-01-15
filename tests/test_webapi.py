@@ -263,17 +263,19 @@ def test_delete_requirement(client, create_requirement):
 def test_get_measures_page(client, create_requirement, create_measure):
     response = client.get(f"/api/requirements/{create_requirement.id}/measures")
     assert response.status_code == 200
-    assert type(response.json()) == dict
-    assert type(response.json()["items"]) == list
-    assert type(response.json()["total_count"]) == int
+    page = response.json()
+    assert type(page) == dict
+    assert type(page["items"]) == list
+    assert page["total_count"] == 1
 
 
 def test_get_measures_of_project_page(client, create_project, create_measure):
     response = client.get(f"/api/projects/{create_project.id}/measures")
     assert response.status_code == 200
-    assert type(response.json()) == dict
-    assert type(response.json()["items"]) == list
-    assert type(response.json()["total_count"]) == int
+    page = response.json()
+    assert type(page) == dict
+    assert type(page["items"]) == list
+    assert page["total_count"] == 1
 
 
 def test_create_measure(client, create_requirement):
