@@ -23,6 +23,7 @@ from sqlmodel import select
 
 from mvtool.views.documents import DocumentsView
 from mvtool.views.jira_ import JiraIssuesView
+from ..utils.pagination import page_params
 from ..database import CRUDOperations
 from .requirements import RequirementsView
 from ..errors import ClientError, NotFoundError
@@ -60,25 +61,53 @@ class MeasuresView:
         response_model=list[MeasureOutput],
         **kwargs,
     )
-    def list_measures(self, requirement_id: int) -> Iterator[Measure]:
-        return self.query_measures(Measure.requirement_id == requirement_id)
+    def list_measures(
+        self,
+        requirement_id: int,
+        page_params=Depends(page_params),
+    ) -> Iterator[Measure]:
+        return self.query_measures(
+            where_clauses=[Measure.requirement_id == requirement_id],
+            order_by_clauses=[Measure.id.asc()],
+            **page_params,
+        )
 
     @router.get(
         "/projects/{project_id}/measures",
         response_model=list[MeasureOutput],
         **kwargs,
     )
-    def list_measures_of_project(self, project_id: int) -> Iterator[Measure]:
-        return self.query_measures(Requirement.project_id == project_id)
+    def list_measures_of_project(
+        self,
+        project_id: int,
+        page_params=Depends(page_params),
+    ) -> Iterator[Measure]:
+        return self.query_measures(
+            where_clauses=[Requirement.project_id == project_id],
+            order_by_clauses=[Measure.id.asc()],
+            **page_params,
+        )
 
-    def query_measures(self, *whereclauses: Any) -> Iterator[Measure]:
-        measures = self._session.exec(
-            select(Measure)
-            .join(Requirement)
-            # .join(Document, isouter=True)
-            .where(*whereclauses)
-            .order_by(Measure.id)
-        ).all()
+    def query_measures(
+        self,
+        where_clauses: Any = None,
+        order_by_clauses: Any = None,
+        offset: int | None = None,
+        limit: int | None = None,
+    ) -> Iterator[Measure]:
+        # construct measures query
+        measures_query = select(Measure).join(Requirement)
+        if where_clauses:
+            measures_query = measures_query.where(*where_clauses)
+        if order_by_clauses:
+            measures_query = measures_query.order_by(*order_by_clauses)
+        if offset is not None:
+            measures_query = measures_query.offset(offset)
+        if limit is not None:
+            measures_query = measures_query.limit(limit)
+
+        # execute measures query
+        measures = self._session.exec(measures_query).all()
 
         # cache jira issues
         list(
