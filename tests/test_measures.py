@@ -91,9 +91,7 @@ def test_query_measures(
     create_project: Project,
     create_measure: Measure,
 ):
-    results = list(
-        measures_view.query_measures(Requirement.project_id == create_project.id)
-    )
+    results = list(measures_view.list_measures_of_project(create_project.id))
 
     assert len(results) == 1
     measure = results[0]

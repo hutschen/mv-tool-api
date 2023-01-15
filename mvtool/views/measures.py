@@ -61,7 +61,7 @@ class MeasuresView:
         response_model=list[MeasureOutput],
         **kwargs,
     )
-    def list_measures(
+    def get_measures_page(
         self,
         requirement_id: int,
         page_params=Depends(page_params),
@@ -72,12 +72,18 @@ class MeasuresView:
             **page_params,
         )
 
+    def list_measures(self, requirement_id: int) -> Iterator[Measure]:
+        return self.query_measures(
+            where_clauses=[Measure.requirement_id == requirement_id],
+            order_by_clauses=[Measure.id.asc()],
+        )
+
     @router.get(
         "/projects/{project_id}/measures",
         response_model=list[MeasureOutput],
         **kwargs,
     )
-    def list_measures_of_project(
+    def get_measures_of_project_page(
         self,
         project_id: int,
         page_params=Depends(page_params),
@@ -86,6 +92,12 @@ class MeasuresView:
             where_clauses=[Requirement.project_id == project_id],
             order_by_clauses=[Measure.id.asc()],
             **page_params,
+        )
+
+    def list_measures_of_project(self, project_id: int) -> Iterator[Measure]:
+        return self.query_measures(
+            where_clauses=[Requirement.project_id == project_id],
+            order_by_clauses=[Measure.id.asc()],
         )
 
     def query_measures(
