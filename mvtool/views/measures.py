@@ -123,7 +123,7 @@ class MeasuresView:
         order_by_clauses: Any = None,
         offset: int | None = None,
         limit: int | None = None,
-    ) -> Iterator[Measure]:
+    ) -> list[Measure]:
         # construct measures query
         measures_query = select(Measure).join(Requirement)
         if where_clauses:
@@ -138,18 +138,17 @@ class MeasuresView:
         # execute measures query
         measures = self._session.exec(measures_query).all()
 
-        # cache jira issues
-        list(
-            self._jira_issues.get_jira_issues(
-                [m.jira_issue_id for m in measures if m.jira_issue_id]
-            )
-        )
-
-        # assign jira issue to measure and yield results
+        # set jira project and issue on measures
+        jira_issue_ids = set()
         for measure in measures:
+            if measure.jira_issue_id is not None:
+                jira_issue_ids.add(measure.jira_issue_id)
             self._set_jira_issue(measure, try_to_get=False)
             self._set_jira_project(measure)
-            yield measure
+
+        # cache jira issues and return measures
+        list(self._jira_issues.get_jira_issues(jira_issue_ids))
+        return measures
 
     @router.post(
         "/requirements/{requirement_id}/measures",
