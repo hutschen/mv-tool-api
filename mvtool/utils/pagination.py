@@ -16,6 +16,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+from typing import Generic, TypeVar
+from pydantic.generics import GenericModel
 from pydantic import conint
 
 
@@ -28,3 +30,11 @@ def page_params(
             limit=page_size,
         )
     return dict()
+
+
+T = TypeVar("T")
+
+
+class Page(GenericModel, Generic[T]):
+    items: list[T]
+    total_count: conint(ge=0)
