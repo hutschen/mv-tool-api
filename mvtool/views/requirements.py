@@ -53,20 +53,28 @@ class RequirementsView:
         self._crud = crud
         self._session = self._crud.session
 
-    @router.get(
-        "/projects/{project_id}/requirements",
-        response_model=list[RequirementOutput],
-        **kwargs,
-    )
     def list_requirements(self, project_id: int) -> list[Requirement]:
         return self.query_requirements(
             where_clauses=[Requirement.project_id == project_id]
         )
 
+    @router.get(
+        "/projects/{project_id}/requirements",
+        response_model=Page[RequirementOutput],
+        **kwargs,
+    )
     def get_requirements_page(
         self, project_id: int, page_params=Depends(page_params)
     ) -> Page[RequirementOutput]:
-        pass
+        where_clauses = [Requirement.project_id == project_id]
+        return Page[RequirementOutput](
+            items=self.query_requirements(
+                where_clauses=where_clauses,
+                order_by_clauses=[Requirement.id.asc()],
+                **page_params,
+            ),
+            total_count=self.query_requirement_count(where_clauses=where_clauses),
+        )
 
     def query_requirement_count(self, where_clauses: Any = None) -> int:
         # construct requirements query
