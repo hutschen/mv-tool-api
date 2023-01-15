@@ -15,9 +15,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Iterator
+from typing import Any, Iterator
 from fastapi import APIRouter, Depends
 from fastapi_utils.cbv import cbv
+from sqlmodel import func, select
+
+from mvtool.utils.pagination import Page, page_params
 
 from ..errors import NotFoundError
 from ..database import CRUDOperations
@@ -55,12 +58,48 @@ class RequirementsView:
         response_model=list[RequirementOutput],
         **kwargs,
     )
-    def list_requirements(self, project_id: int) -> Iterator[Requirement]:
-        for requirement in self._crud.read_all_from_db(
-            Requirement, project_id=project_id
-        ):
+    def list_requirements(self, project_id: int) -> list[Requirement]:
+        return self.query_requirements(
+            where_clauses=[Requirement.project_id == project_id]
+        )
+
+    def get_requirements_page(
+        self, project_id: int, page_params=Depends(page_params)
+    ) -> Page[RequirementOutput]:
+        pass
+
+    def query_requirement_count(self, where_clauses: Any = None) -> int:
+        # construct requirements query
+        query = select([func.count()]).select_from(Requirement)
+        if where_clauses:
+            query = query.where(*where_clauses)
+
+        # execute query
+        return self._session.execute(query).scalar()
+
+    def query_requirements(
+        self,
+        where_clauses: Any = None,
+        order_by_clauses: Any = None,
+        offset: int | None = None,
+        limit: int | None = None,
+    ) -> list[Requirement]:
+        # construct requirements query
+        query = select(Requirement).select_from(Requirement)
+        if where_clauses:
+            query = query.where(*where_clauses)
+        if order_by_clauses:
+            query = query.order_by(*order_by_clauses)
+        if offset is not None:
+            query = query.offset(offset)
+        if limit is not None:
+            query = query.limit(limit)
+
+        # execute query, set jira_project and return requirements
+        requirements = self._session.execute(query).scalars().all()
+        for requirement in requirements:
             self._set_jira_project(requirement)
-            yield requirement
+        return requirements
 
     @router.post(
         "/projects/{project_id}/requirements",
