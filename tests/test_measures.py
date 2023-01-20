@@ -37,7 +37,7 @@ def test_list_measure(
     create_document: Document,
     create_measure: Measure,
 ):
-    results = list(measures_view.list_measures_by_requirement(create_requirement.id))
+    results = list(measures_view.list_measures())
 
     assert len(results) == 1
     measure = results[0]
@@ -49,19 +49,13 @@ def test_list_measure(
     assert measure.requirement.project.jira_project.id == create_project.jira_project_id
 
 
-def test_list_measure_invalid_requirement_id(measures_view: MeasuresView):
-    results = list(measures_view.list_measures_by_requirement(-1))
-    assert len(results) == 0
-
-
 def test_list_measures_without_jira_issue(
     measures_view: MeasuresView,
-    create_requirement: Requirement,
     create_measure: Measure,
 ):
     create_measure.jira_issue_id = None
 
-    results = list(measures_view.list_measures_by_requirement(create_requirement.id))
+    results = list(measures_view.list_measures())
 
     assert len(results) == 1
     measure = results[0]
@@ -70,12 +64,14 @@ def test_list_measures_without_jira_issue(
     assert measure.jira_issue is None
 
 
-def test_list_measures_of_project(
+def test_list_measures_by_project(
     measures_view: MeasuresView,
     create_project: Project,
     create_measure: Measure,
 ):
-    results = list(measures_view.list_measures_by_project(create_project.id))
+    results = list(
+        measures_view.list_measures([Requirement.project_id == create_project.id])
+    )
 
     assert len(results) == 1
     measure = results[0]
@@ -86,20 +82,20 @@ def test_list_measures_of_project(
     assert measure.requirement.project.jira_project.id == create_project.jira_project_id
 
 
-def test_query_measures(
+def test_list_measures_by_requirement(
     measures_view: MeasuresView,
-    create_project: Project,
+    create_requirement: Requirement,
     create_measure: Measure,
 ):
-    results = list(measures_view.list_measures_by_project(create_project.id))
+    results = list(
+        measures_view.list_measures([Measure.requirement_id == create_requirement.id])
+    )
 
     assert len(results) == 1
     measure = results[0]
     assert isinstance(measure, Measure)
     assert measure.id == create_measure.id
-    assert measure.requirement.project.id == create_project.id
-    assert measure.jira_issue.id == create_measure.jira_issue_id
-    assert measure.requirement.project.jira_project.id == create_project.jira_project_id
+    assert measure.requirement.id == create_requirement.id
 
 
 def test_create_measure(

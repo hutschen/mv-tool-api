@@ -76,12 +76,6 @@ class MeasuresView:
             total_count=self.query_measure_count(where_clauses),
         )
 
-    def list_measures_by_requirement(self, requirement_id: int) -> Iterator[Measure]:
-        return self.list_measures(
-            where_clauses=[Measure.requirement_id == requirement_id],
-            order_by_clauses=[Measure.id.asc()],
-        )
-
     @router.get(
         "/projects/{project_id}/measures",
         response_model=Page[MeasureOutput],
@@ -100,12 +94,6 @@ class MeasuresView:
                 **page_params,
             ),
             total_count=self.query_measure_count(where_clauses),
-        )
-
-    def list_measures_by_project(self, project_id: int) -> Iterator[Measure]:
-        return self.list_measures(
-            where_clauses=[Requirement.project_id == project_id],
-            order_by_clauses=[Measure.id.asc()],
         )
 
     def query_measure_count(self, where_clauses: Any = None) -> int:
