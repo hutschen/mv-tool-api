@@ -333,9 +333,19 @@ def get_measure_filters(
     return where_clauses
 
 
+@router.get(
+    "/measures",
+    response_model=Page[MeasureOutput] | list[MeasureOutput],
+    **MeasuresView.kwargs,
+)
 def get_measures(
     where_clauses=Depends(get_measure_filters),
     page_params=Depends(page_params),
-    measures: MeasuresView = Depends(MeasuresView),
+    measures_view: MeasuresView = Depends(MeasuresView),
 ):
-    pass
+    measures = measures_view.list_measures(where_clauses, **page_params)
+    if page_params:
+        measures_count = measures_view.count_measures(where_clauses)
+        return Page[MeasureOutput](items=measures, total_count=measures_count)
+    else:
+        return measures
