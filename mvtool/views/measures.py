@@ -56,46 +56,6 @@ class MeasuresView:
         self._crud = crud
         self._session = self._crud.session
 
-    @router.get(
-        "/requirements/{requirement_id}/measures",
-        response_model=Page[MeasureOutput],
-        **kwargs,
-    )
-    def get_measures_page(
-        self,
-        requirement_id: int,
-        page_params=Depends(page_params),
-    ) -> Page[MeasureOutput]:
-        where_clauses = [Measure.requirement_id == requirement_id]
-        return Page[MeasureOutput](
-            items=self.list_measures(
-                where_clauses=where_clauses,
-                order_by_clauses=[Measure.id.asc()],
-                **page_params,
-            ),
-            total_count=self.count_measures(where_clauses),
-        )
-
-    @router.get(
-        "/projects/{project_id}/measures",
-        response_model=Page[MeasureOutput],
-        **kwargs,
-    )
-    def get_measures_of_project_page(
-        self,
-        project_id: int,
-        page_params=Depends(page_params),
-    ) -> Page[MeasureOutput]:
-        where_clauses = [Requirement.project_id == project_id]
-        return Page[MeasureOutput](
-            items=self.list_measures(
-                where_clauses=where_clauses,
-                order_by_clauses=[Measure.id.asc()],
-                **page_params,
-            ),
-            total_count=self.count_measures(where_clauses),
-        )
-
     def count_measures(self, where_clauses: Any = None) -> int:
         # construct measures query
         query = select([func.count()]).select_from(Measure).join(Requirement)
