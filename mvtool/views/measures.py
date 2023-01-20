@@ -73,7 +73,7 @@ class MeasuresView:
                 order_by_clauses=[Measure.id.asc()],
                 **page_params,
             ),
-            total_count=self.query_measure_count(where_clauses),
+            total_count=self.count_measures(where_clauses),
         )
 
     @router.get(
@@ -93,10 +93,10 @@ class MeasuresView:
                 order_by_clauses=[Measure.id.asc()],
                 **page_params,
             ),
-            total_count=self.query_measure_count(where_clauses),
+            total_count=self.count_measures(where_clauses),
         )
 
-    def query_measure_count(self, where_clauses: Any = None) -> int:
+    def count_measures(self, where_clauses: Any = None) -> int:
         # construct measures query
         query = select([func.count()]).select_from(Measure).join(Requirement)
         if where_clauses:
