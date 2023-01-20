@@ -68,7 +68,7 @@ class MeasuresView:
     ) -> Page[MeasureOutput]:
         where_clauses = [Measure.requirement_id == requirement_id]
         return Page[MeasureOutput](
-            items=self.query_measures(
+            items=self.list_measures(
                 where_clauses=where_clauses,
                 order_by_clauses=[Measure.id.asc()],
                 **page_params,
@@ -77,7 +77,7 @@ class MeasuresView:
         )
 
     def list_measures_by_requirement(self, requirement_id: int) -> Iterator[Measure]:
-        return self.query_measures(
+        return self.list_measures(
             where_clauses=[Measure.requirement_id == requirement_id],
             order_by_clauses=[Measure.id.asc()],
         )
@@ -94,7 +94,7 @@ class MeasuresView:
     ) -> Page[MeasureOutput]:
         where_clauses = [Requirement.project_id == project_id]
         return Page[MeasureOutput](
-            items=self.query_measures(
+            items=self.list_measures(
                 where_clauses=where_clauses,
                 order_by_clauses=[Measure.id.asc()],
                 **page_params,
@@ -103,7 +103,7 @@ class MeasuresView:
         )
 
     def list_measures_by_project(self, project_id: int) -> Iterator[Measure]:
-        return self.query_measures(
+        return self.list_measures(
             where_clauses=[Requirement.project_id == project_id],
             order_by_clauses=[Measure.id.asc()],
         )
@@ -117,7 +117,7 @@ class MeasuresView:
         # execute measures query
         return self._session.execute(query).scalar()
 
-    def query_measures(
+    def list_measures(
         self,
         where_clauses: Any = None,
         order_by_clauses: Any = None,
