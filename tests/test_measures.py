@@ -37,7 +37,7 @@ def test_list_measure(
     create_document: Document,
     create_measure: Measure,
 ):
-    results = list(measures_view.list_measures(create_requirement.id))
+    results = list(measures_view.list_measures_by_requirement(create_requirement.id))
 
     assert len(results) == 1
     measure = results[0]
@@ -50,7 +50,7 @@ def test_list_measure(
 
 
 def test_list_measure_invalid_requirement_id(measures_view: MeasuresView):
-    results = list(measures_view.list_measures(-1))
+    results = list(measures_view.list_measures_by_requirement(-1))
     assert len(results) == 0
 
 
@@ -61,7 +61,7 @@ def test_list_measures_without_jira_issue(
 ):
     create_measure.jira_issue_id = None
 
-    results = list(measures_view.list_measures(create_requirement.id))
+    results = list(measures_view.list_measures_by_requirement(create_requirement.id))
 
     assert len(results) == 1
     measure = results[0]
@@ -75,7 +75,7 @@ def test_list_measures_of_project(
     create_project: Project,
     create_measure: Measure,
 ):
-    results = list(measures_view.list_measures_of_project(create_project.id))
+    results = list(measures_view.list_measures_by_project(create_project.id))
 
     assert len(results) == 1
     measure = results[0]
@@ -91,7 +91,7 @@ def test_query_measures(
     create_project: Project,
     create_measure: Measure,
 ):
-    results = list(measures_view.list_measures_of_project(create_project.id))
+    results = list(measures_view.list_measures_by_project(create_project.id))
 
     assert len(results) == 1
     measure = results[0]

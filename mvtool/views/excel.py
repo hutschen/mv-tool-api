@@ -269,7 +269,7 @@ class MeasuresExcelView(ExcelView):
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> FileResponse:
         return self._process_download(
-            self._measures.list_measures_of_project(project_id),
+            self._measures.list_measures_by_project(project_id),
             temp_file,
             sheet_name=sheet_name,
             filename=filename,
@@ -288,7 +288,7 @@ class MeasuresExcelView(ExcelView):
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> FileResponse:
         return self._process_download(
-            self._measures.list_measures(requirement_id),
+            self._measures.list_measures_by_requirement(requirement_id),
             temp_file,
             sheet_name=sheet_name,
             filename=filename,

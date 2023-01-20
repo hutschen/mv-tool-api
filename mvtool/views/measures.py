@@ -76,7 +76,7 @@ class MeasuresView:
             total_count=self.query_measure_count(where_clauses),
         )
 
-    def list_measures(self, requirement_id: int) -> Iterator[Measure]:
+    def list_measures_by_requirement(self, requirement_id: int) -> Iterator[Measure]:
         return self.query_measures(
             where_clauses=[Measure.requirement_id == requirement_id],
             order_by_clauses=[Measure.id.asc()],
@@ -102,7 +102,7 @@ class MeasuresView:
             total_count=self.query_measure_count(where_clauses),
         )
 
-    def list_measures_of_project(self, project_id: int) -> Iterator[Measure]:
+    def list_measures_by_project(self, project_id: int) -> Iterator[Measure]:
         return self.query_measures(
             where_clauses=[Requirement.project_id == project_id],
             order_by_clauses=[Measure.id.asc()],
