@@ -17,9 +17,9 @@
 
 
 from typing import Any, Iterator
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Query, Response
 from fastapi_utils.cbv import cbv
-from sqlmodel import func, select
+from sqlmodel import func, select, or_
 
 from mvtool.views.documents import DocumentsView
 from mvtool.views.jira_ import JiraIssuesView
@@ -243,3 +243,99 @@ class MeasuresView:
                 jira_issue_id, try_to_get
             )
         )
+
+
+def get_measure_filters(
+    reference: list[str] | None = Query(default=None),
+    summary: str | None = None,
+    description: str | None = None,
+    compliance_status: list[str] | None = Query(default=None),
+    compliance_comment: str | None = None,
+    completion_status: list[str] | None = Query(default=None),
+    completion_comment: str | None = None,
+    verified: bool | None = None,
+    verification_method: list[str] | None = Query(default=None),
+    verification_comment: str | None = None,
+    document_id: list[int] | None = Query(default=None),
+    jira_issue_id: list[str] | None = Query(default=None),
+    project_id: list[int] | None = Query(default=None),
+    requirement_id: list[int] | None = Query(default=None),
+) -> list[Any]:
+    # TODO: enable filtering for empty values using False
+    # TODO: enable filtering for not empty values using True
+    where_clauses = []
+    if reference:
+        where_clauses.append(
+            or_(Measure.reference == ref for ref in reference)
+            if len(reference) > 1
+            else Measure.reference == reference[0]
+        )
+    if summary:
+        where_clauses.append(Measure.summary.ilike(f"%{summary}%"))
+    if description:
+        where_clauses.append(Measure.description.ilike(f"%{description}%"))
+    if compliance_status:
+        where_clauses.append(
+            or_(Measure.compliance_status == status for status in compliance_status)
+            if len(compliance_status) > 1
+            else Measure.compliance_status == compliance_status[0]
+        )
+    if compliance_comment:
+        where_clauses.append(
+            Measure.compliance_comment.ilike(f"%{compliance_comment}%")
+        )
+    if completion_status:
+        where_clauses.append(
+            or_(Measure.completion_status == status for status in completion_status)
+            if len(completion_status) > 1
+            else Measure.completion_status == completion_status[0]
+        )
+    if completion_comment:
+        where_clauses.append(
+            Measure.completion_comment.ilike(f"%{completion_comment}%")
+        )
+    if verified is not None:
+        where_clauses.append(Measure.verified == verified)
+    if verification_method:
+        where_clauses.append(
+            or_(Measure.verification_method == method for method in verification_method)
+            if len(verification_method) > 1
+            else Measure.verification_method == verification_method[0]
+        )
+    if verification_comment:
+        where_clauses.append(
+            Measure.verification_comment.ilike(f"%{verification_comment}%")
+        )
+    if document_id:
+        where_clauses.append(
+            or_(Measure.document_id == id for id in document_id)
+            if len(document_id) > 1
+            else Measure.document_id == document_id[0]
+        )
+    if jira_issue_id:
+        where_clauses.append(
+            or_(Measure.jira_issue_id == id for id in jira_issue_id)
+            if len(jira_issue_id) > 1
+            else Measure.jira_issue_id == jira_issue_id[0]
+        )
+    if project_id:
+        where_clauses.append(
+            or_(Requirement.project_id == id for id in project_id)
+            if len(project_id) > 1
+            else Requirement.project_id == project_id[0]
+        )
+    if requirement_id:
+        where_clauses.append(
+            or_(Measure.requirement_id == id for id in requirement_id)
+            if len(requirement_id) > 1
+            else Measure.requirement_id == requirement_id[0]
+        )
+    return where_clauses
+
+
+def get_measures(
+    where_clauses=Depends(get_measure_filters),
+    page_params=Depends(page_params),
+    measures: MeasuresView = Depends(MeasuresView),
+):
+    pass
