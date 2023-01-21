@@ -434,10 +434,13 @@ class RequirementOutput(AbstractRequirementInput):
     verification_progress: confloat(ge=0, le=1) | None
 
 
-class MeasureOutput(SQLModel):
-    reference: str | None
+class MeasureRepresentation(SQLModel):
     id: int
+    reference: str | None
     summary: str
+
+
+class MeasureOutput(MeasureRepresentation):
     description: str | None
     compliance_status: str | None
     compliance_comment: str | None
