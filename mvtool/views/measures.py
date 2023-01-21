@@ -19,7 +19,7 @@
 from typing import Any
 from fastapi import APIRouter, Depends, Query, Response
 from fastapi_utils.cbv import cbv
-from sqlmodel import func, select, or_
+from sqlmodel import Column, func, select, or_
 
 from mvtool.views.documents import DocumentsView
 from mvtool.views.jira_ import JiraIssuesView
@@ -118,6 +118,25 @@ class MeasuresView:
 
         # execute measures query
         return self._session.execute(query).scalar()
+
+    def list_measure_values(
+        self,
+        column: Column,
+        where_clauses: Any = None,
+    ) -> list[Any]:
+        # construct measure values query
+        query = (
+            select([column])
+            .select_from(Measure)
+            .join(Requirement)
+            .outerjoin(CatalogRequirement)
+            .outerjoin(CatalogModule)
+            .outerjoin(Catalog)
+            .distinct()
+        )
+        if where_clauses:
+            query = query.where(*where_clauses)
+        return self._session.exec(query).all()
 
     @router.post(
         "/requirements/{requirement_id}/measures",
@@ -361,3 +380,17 @@ def get_measures(
         return Page[MeasureOutput](items=measures, total_count=measures_count)
     else:
         return measures
+
+
+@router.get(
+    "/measure/references",
+    response_model=list[str | None],
+    **MeasuresView.kwargs,
+)
+def get_measure_references(
+    where_clauses=Depends(get_measure_filters),
+    measures_view: MeasuresView = Depends(MeasuresView),
+):
+    references = measures_view.list_measure_values(Measure.reference, where_clauses)
+    print(references)
+    return references
