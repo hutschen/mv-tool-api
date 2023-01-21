@@ -41,6 +41,7 @@ from ..models import (
     MeasureInput,
     Measure,
     MeasureOutput,
+    MeasureRepresentation,
     Requirement,
 )
 
@@ -70,6 +71,7 @@ class MeasuresView:
         order_by_clauses: Any = None,
         offset: int | None = None,
         limit: int | None = None,
+        query_jira: bool = True,
     ) -> list[Measure]:
         # construct measures query
         query = (
@@ -92,15 +94,16 @@ class MeasuresView:
         measures = self._session.exec(query).all()
 
         # set jira project and issue on measures
-        jira_issue_ids = set()
-        for measure in measures:
-            if measure.jira_issue_id is not None:
-                jira_issue_ids.add(measure.jira_issue_id)
-            self._set_jira_issue(measure, try_to_get=False)
-            self._set_jira_project(measure)
+        if query_jira:
+            jira_issue_ids = set()
+            for measure in measures:
+                if measure.jira_issue_id is not None:
+                    jira_issue_ids.add(measure.jira_issue_id)
+                self._set_jira_issue(measure, try_to_get=False)
+                self._set_jira_project(measure)
 
-        # cache jira issues and return measures
-        list(self._jira_issues.get_jira_issues(jira_issue_ids))
+            # cache jira issues and return measures
+            list(self._jira_issues.get_jira_issues(jira_issue_ids))
         return measures
 
     def count_measures(self, where_clauses: Any = None) -> int:
@@ -378,6 +381,26 @@ def get_measures(
     if page_params:
         measures_count = measures_view.count_measures(where_clauses)
         return Page[MeasureOutput](items=measures, total_count=measures_count)
+    else:
+        return measures
+
+
+@router.get(
+    "/measure/representations",
+    response_model=Page[MeasureRepresentation] | list[MeasureRepresentation],
+    **MeasuresView.kwargs,
+)
+def get_measure_representations(
+    where_clauses=Depends(get_measure_filters),
+    page_params=Depends(page_params),
+    measures_view: MeasuresView = Depends(MeasuresView),
+):
+    measures = measures_view.list_measures(
+        where_clauses, **page_params, query_jira=False
+    )
+    if page_params:
+        measures_count = measures_view.count_measures(where_clauses)
+        return Page[MeasureRepresentation](items=measures, total_count=measures_count)
     else:
         return measures
 
