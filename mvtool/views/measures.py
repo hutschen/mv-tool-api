@@ -20,6 +20,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query, Response
 from fastapi_utils.cbv import cbv
 from sqlmodel import Column, func, select, or_
+from sqlmodel.sql.expression import Select
 
 from mvtool.views.documents import DocumentsView
 from mvtool.views.jira_ import JiraIssuesView
@@ -65,6 +66,15 @@ class MeasuresView:
         self._crud = crud
         self._session = self._crud.session
 
+    @staticmethod
+    def _apply_joins_to_measures_query(query: Select) -> Select:
+        return (
+            query.join(Requirement)
+            .outerjoin(CatalogRequirement)
+            .outerjoin(CatalogModule)
+            .outerjoin(Catalog)
+        )
+
     def list_measures(
         self,
         where_clauses: Any = None,
@@ -74,13 +84,7 @@ class MeasuresView:
         query_jira: bool = True,
     ) -> list[Measure]:
         # construct measures query
-        query = (
-            select(Measure)
-            .join(Requirement)
-            .outerjoin(CatalogRequirement)
-            .outerjoin(CatalogModule)
-            .outerjoin(Catalog)
-        )
+        query = self._apply_joins_to_measures_query(select(Measure))
         if where_clauses:
             query = query.where(*where_clauses)
         if order_by_clauses:
@@ -108,13 +112,8 @@ class MeasuresView:
 
     def count_measures(self, where_clauses: Any = None) -> int:
         # construct measures query
-        query = (
-            select([func.count()])
-            .select_from(Measure)
-            .join(Requirement)
-            .outerjoin(CatalogRequirement)
-            .outerjoin(CatalogModule)
-            .outerjoin(Catalog)
+        query = self._apply_joins_to_measures_query(
+            select([func.count()]).select_from(Measure)
         )
         if where_clauses:
             query = query.where(*where_clauses)
@@ -128,15 +127,9 @@ class MeasuresView:
         where_clauses: Any = None,
     ) -> list[Any]:
         # construct measure values query
-        query = (
-            select([column])
-            .select_from(Measure)
-            .join(Requirement)
-            .outerjoin(CatalogRequirement)
-            .outerjoin(CatalogModule)
-            .outerjoin(Catalog)
-            .distinct()
-        )
+        query = self._apply_joins_to_measures_query(
+            select([column]).select_from(Measure)
+        ).distinct()
         if where_clauses:
             query = query.where(*where_clauses)
         return self._session.exec(query).all()
