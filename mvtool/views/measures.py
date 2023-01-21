@@ -395,6 +395,39 @@ def get_measure_representations(
 
 
 @router.get(
+    "/measure/field-names",
+    response_model=list[str],
+    **MeasuresView.kwargs,
+)
+def get_measure_field_names(
+    where_clauses=Depends(get_measure_filters),
+    measures_view: MeasuresView = Depends(MeasuresView),
+):
+    field_names = {"id", "summary", "verified", "requirement", "project"}
+    for field, names in [
+        (Measure.reference, ["reference"]),
+        (Measure.description, ["description"]),
+        (Measure.compliance_status, ["compliance_status"]),
+        (Measure.compliance_comment, ["compliance_comment"]),
+        (Measure.completion_status, ["completion_status"]),
+        (Measure.completion_comment, ["completion_comment"]),
+        (Measure.verification_method, ["verification_method"]),
+        (Measure.verification_comment, ["verification_comment"]),
+        (Measure.document_id, ["document"]),
+        (Measure.jira_issue_id, ["jira_issue"]),
+        (
+            Requirement.catalog_requirement_id,
+            ["catalog_requirement", "catalog_module", "catalog"],
+        ),
+    ]:
+        if measures_view.count_measures(
+            where_clauses + [filter_for_existence(field, True)]
+        ):
+            field_names.update(names)
+    return field_names
+
+
+@router.get(
     "/measure/references",
     response_model=list[str | None],
     **MeasuresView.kwargs,
