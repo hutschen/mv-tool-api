@@ -64,22 +64,6 @@ class MeasuresView:
         self._crud = crud
         self._session = self._crud.session
 
-    def count_measures(self, where_clauses: Any = None) -> int:
-        # construct measures query
-        query = (
-            select([func.count()])
-            .select_from(Measure)
-            .join(Requirement)
-            .outerjoin(CatalogRequirement)
-            .outerjoin(CatalogModule)
-            .outerjoin(Catalog)
-        )
-        if where_clauses:
-            query = query.where(*where_clauses)
-
-        # execute measures query
-        return self._session.execute(query).scalar()
-
     def list_measures(
         self,
         where_clauses: Any = None,
@@ -118,6 +102,22 @@ class MeasuresView:
         # cache jira issues and return measures
         list(self._jira_issues.get_jira_issues(jira_issue_ids))
         return measures
+
+    def count_measures(self, where_clauses: Any = None) -> int:
+        # construct measures query
+        query = (
+            select([func.count()])
+            .select_from(Measure)
+            .join(Requirement)
+            .outerjoin(CatalogRequirement)
+            .outerjoin(CatalogModule)
+            .outerjoin(Catalog)
+        )
+        if where_clauses:
+            query = query.where(*where_clauses)
+
+        # execute measures query
+        return self._session.execute(query).scalar()
 
     @router.post(
         "/requirements/{requirement_id}/measures",
