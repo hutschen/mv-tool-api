@@ -33,6 +33,7 @@ from ..database import CRUDOperations
 from .requirements import RequirementsView
 from ..errors import ClientError, NotFoundError
 from ..models import (
+    Catalog,
     CatalogModule,
     CatalogRequirement,
     JiraIssue,
@@ -71,6 +72,7 @@ class MeasuresView:
             .join(Requirement)
             .outerjoin(CatalogRequirement)
             .outerjoin(CatalogModule)
+            .outerjoin(Catalog)
         )
         if where_clauses:
             query = query.where(*where_clauses)
@@ -91,6 +93,7 @@ class MeasuresView:
             .join(Requirement)
             .outerjoin(CatalogRequirement)
             .outerjoin(CatalogModule)
+            .outerjoin(Catalog)
         )
         if where_clauses:
             query = query.where(*where_clauses)
@@ -259,6 +262,9 @@ def get_measure_filters(
     has_catalog_requirement: bool | None = None,
     has_catalog_module: bool | None = None,
     has_catalog: bool | None = None,
+    #
+    # filter by search string
+    search: str | None = None,
 ) -> list[Any]:
     where_clauses = []
 
@@ -311,6 +317,30 @@ def get_measure_filters(
     ]:
         if value is not None:
             where_clauses.append(filter_for_existence(column, value))
+
+    # filter by search string
+    if search:
+        where_clauses.append(
+            or_(
+                filter_by_pattern(column, f"*{search}*")
+                for column in (
+                    Measure.reference,
+                    Measure.summary,
+                    Measure.description,
+                    Measure.compliance_comment,
+                    Measure.completion_comment,
+                    Measure.verification_comment,
+                    Requirement.reference,
+                    Requirement.summary,
+                    CatalogRequirement.reference,
+                    CatalogRequirement.summary,
+                    CatalogModule.reference,
+                    CatalogModule.title,
+                    Catalog.reference,
+                    Catalog.title,
+                )
+            )
+        )
 
     return where_clauses
 
