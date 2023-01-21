@@ -26,7 +26,7 @@ from mvtool.views.jira_ import JiraIssuesView
 from ..utils.pagination import Page, page_params
 from ..utils.filtering import (
     filter_for_existence,
-    search_column,
+    filter_by_pattern,
     filter_column_by_values,
 )
 from ..database import CRUDOperations
@@ -262,7 +262,7 @@ def get_measure_filters(
 ) -> list[Any]:
     where_clauses = []
 
-    # filter by search string
+    # filter by pattern
     for column, value in [
         (Measure.summary, summary),
         (Measure.description, description),
@@ -271,7 +271,7 @@ def get_measure_filters(
         (Measure.verification_comment, verification_comment),
     ]:
         if value is not None:
-            where_clauses.append(search_column(column, value))
+            where_clauses.append(filter_by_pattern(column, value))
 
     # filter by values
     for column, values in [

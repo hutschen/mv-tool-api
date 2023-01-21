@@ -21,17 +21,19 @@ from sqlalchemy.schema import Column
 from sqlmodel import AutoString, or_
 
 
-def search_column(column: Column, filter_str: str) -> Any:
+def filter_by_pattern(column: Column, pattern: str) -> Any:
     """Generate where clause to filter column by string that may contain * and ?"""
+    assert isinstance(column.type, AutoString), "column must be of type string"
+
     #  change commonly used wildcards * and ? to SQL wildcards % and _
-    filter_str = (
-        filter_str.replace("\\", "\\\\")
+    pattern = (
+        pattern.replace("\\", "\\\\")
         .replace("%", "\\%")
         .replace("_", "\\_")
         .replace("?", "_")
         .replace("*", "%")
     )
-    return column.ilike(filter_str)
+    return column.ilike(pattern)
 
 
 def filter_column_by_values(column: Column, values: list[str | int]) -> Any:
