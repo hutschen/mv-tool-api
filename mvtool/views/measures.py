@@ -29,6 +29,8 @@ from ..database import CRUDOperations
 from .requirements import RequirementsView
 from ..errors import ClientError, NotFoundError
 from ..models import (
+    CatalogModule,
+    CatalogRequirement,
     JiraIssue,
     JiraIssueInput,
     MeasureInput,
@@ -59,7 +61,13 @@ class MeasuresView:
 
     def count_measures(self, where_clauses: Any = None) -> int:
         # construct measures query
-        query = select([func.count()]).select_from(Measure).join(Requirement)
+        query = (
+            select([func.count()])
+            .select_from(Measure)
+            .join(Requirement)
+            .outerjoin(CatalogRequirement)
+            .outerjoin(CatalogModule)
+        )
         if where_clauses:
             query = query.where(*where_clauses)
 
@@ -74,7 +82,12 @@ class MeasuresView:
         limit: int | None = None,
     ) -> list[Measure]:
         # construct measures query
-        query = select(Measure).join(Requirement)
+        query = (
+            select(Measure)
+            .join(Requirement)
+            .outerjoin(CatalogRequirement)
+            .outerjoin(CatalogModule)
+        )
         if where_clauses:
             query = query.where(*where_clauses)
         if order_by_clauses:
@@ -221,8 +234,9 @@ def get_measure_filters(
     jira_issue_id: list[str] | None = Query(default=None),
     project_id: list[int] | None = Query(default=None),
     requirement_id: list[int] | None = Query(default=None),
-    # Filter by catalog module ids (outer join)
-    # Filter by catalog ids (outer join)
+    catalog_requirement_id: list[int] | None = Query(default=None),
+    catalog_module_id: list[int] | None = Query(default=None),
+    catalog_id: list[int] | None = Query(default=None),
 ) -> list[Any]:
     # TODO: enable filtering for empty values using False or None
     # TODO: enable filtering for not empty values using True
@@ -247,6 +261,9 @@ def get_measure_filters(
         (Measure.jira_issue_id, jira_issue_id),
         (Requirement.project_id, project_id),
         (Measure.requirement_id, requirement_id),
+        (Requirement.catalog_requirement_id, catalog_requirement_id),
+        (CatalogRequirement.catalog_module_id, catalog_module_id),
+        (CatalogModule.catalog_id, catalog_id),
     ]:
         if values:
             where_clauses.append(filter_column_by_values(column, values))

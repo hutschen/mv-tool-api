@@ -20,10 +20,17 @@ from typing import Any
 from sqlalchemy.schema import Column
 
 
-def search_column(column: Column, search_str: str) -> Any:
-    """Generate where clause to search for search_str in column"""
-    search_str = search_str.replace("%", "\\%").replace("_", "\\_")
-    return column.ilike(f"%{search_str}%")
+def search_column(column: Column, filter_str: str) -> Any:
+    """Generate where clause to filter column by string that may contain * and ?"""
+    #  change commonly used wildcards * and ? to SQL wildcards % and _
+    filter_str = (
+        filter_str.replace("\\", "\\\\")
+        .replace("%", "\\%")
+        .replace("_", "\\_")
+        .replace("?", "_")
+        .replace("*", "%")
+    )
+    return column.ilike(filter_str)
 
 
 def filter_column_by_values(column: Column, values: list[str | int]) -> Any:
