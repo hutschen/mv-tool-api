@@ -122,13 +122,29 @@ class MeasuresView:
         self,
         column: Column,
         where_clauses: Any = None,
+        offset: int | None = None,
+        limit: int | None = None,
     ) -> list[Any]:
         query = self._apply_joins_to_measures_query(
-            select([column]).select_from(Measure)
-        ).distinct()
+            select([func.distinct(column)]).select_from(Measure)
+        ).where(column.isnot(None), *where_clauses)
+        if offset is not None:
+            query = query.offset(offset)
+        if limit is not None:
+            query = query.limit(limit)
+        return self._session.exec(query).all()
+
+    def count_measure_values(
+        self,
+        column: Column,
+        where_clauses: Any = None,
+    ) -> int:
+        query = self._apply_joins_to_measures_query(
+            select([func.count(func.distinct(column))]).select_from(Measure)
+        )
         if where_clauses:
             query = query.where(*where_clauses)
-        return self._session.exec(query).all()
+        return self._session.execute(query).scalar()
 
     @router.post(
         "/requirements/{requirement_id}/measures",
@@ -425,13 +441,21 @@ def get_measure_field_names(
 
 @router.get(
     "/measure/references",
-    response_model=list[str | None],
+    response_model=Page[str] | list[str],
     **MeasuresView.kwargs,
 )
 def get_measure_references(
     where_clauses=Depends(get_measure_filters),
+    page_params=Depends(page_params),
     measures_view: MeasuresView = Depends(MeasuresView),
 ):
-    references = measures_view.list_measure_values(Measure.reference, where_clauses)
-    print(references)
-    return references
+    references = measures_view.list_measure_values(
+        Measure.reference, where_clauses, **page_params
+    )
+    if page_params:
+        references_count = measures_view.count_measure_values(
+            Measure.reference, where_clauses
+        )
+        return Page[str](items=references, total_count=references_count)
+    else:
+        return references
