@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from typing import Any, Iterator
+from typing import Any
 from fastapi import APIRouter, Depends, Query, Response
 from fastapi_utils.cbv import cbv
 from sqlmodel import func, select, or_
@@ -24,6 +24,7 @@ from sqlmodel import func, select, or_
 from mvtool.views.documents import DocumentsView
 from mvtool.views.jira_ import JiraIssuesView
 from ..utils.pagination import Page, page_params
+from ..utils.filtering import search_column, filter_column_by_values
 from ..database import CRUDOperations
 from .requirements import RequirementsView
 from ..errors import ClientError, NotFoundError
@@ -220,76 +221,39 @@ def get_measure_filters(
     jira_issue_id: list[str] | None = Query(default=None),
     project_id: list[int] | None = Query(default=None),
     requirement_id: list[int] | None = Query(default=None),
+    # Filter by catalog module ids (outer join)
+    # Filter by catalog ids (outer join)
 ) -> list[Any]:
-    # TODO: enable filtering for empty values using False
+    # TODO: enable filtering for empty values using False or None
     # TODO: enable filtering for not empty values using True
     where_clauses = []
-    if reference:
-        where_clauses.append(
-            or_(Measure.reference == ref for ref in reference)
-            if len(reference) > 1
-            else Measure.reference == reference[0]
-        )
-    if summary:
-        where_clauses.append(Measure.summary.ilike(f"%{summary}%"))
-    if description:
-        where_clauses.append(Measure.description.ilike(f"%{description}%"))
-    if compliance_status:
-        where_clauses.append(
-            or_(Measure.compliance_status == status for status in compliance_status)
-            if len(compliance_status) > 1
-            else Measure.compliance_status == compliance_status[0]
-        )
-    if compliance_comment:
-        where_clauses.append(
-            Measure.compliance_comment.ilike(f"%{compliance_comment}%")
-        )
-    if completion_status:
-        where_clauses.append(
-            or_(Measure.completion_status == status for status in completion_status)
-            if len(completion_status) > 1
-            else Measure.completion_status == completion_status[0]
-        )
-    if completion_comment:
-        where_clauses.append(
-            Measure.completion_comment.ilike(f"%{completion_comment}%")
-        )
+
+    for column, value in [
+        (Measure.summary, summary),
+        (Measure.description, description),
+        (Measure.compliance_comment, compliance_comment),
+        (Measure.completion_comment, completion_comment),
+        (Measure.verification_comment, verification_comment),
+    ]:
+        if value is not None:
+            where_clauses.append(search_column(column, value))
+
+    for column, values in [
+        (Measure.reference, reference),
+        (Measure.compliance_status, compliance_status),
+        (Measure.completion_status, completion_status),
+        (Measure.verification_method, verification_method),
+        (Measure.document_id, document_id),
+        (Measure.jira_issue_id, jira_issue_id),
+        (Requirement.project_id, project_id),
+        (Measure.requirement_id, requirement_id),
+    ]:
+        if values:
+            where_clauses.append(filter_column_by_values(column, values))
+
     if verified is not None:
         where_clauses.append(Measure.verified == verified)
-    if verification_method:
-        where_clauses.append(
-            or_(Measure.verification_method == method for method in verification_method)
-            if len(verification_method) > 1
-            else Measure.verification_method == verification_method[0]
-        )
-    if verification_comment:
-        where_clauses.append(
-            Measure.verification_comment.ilike(f"%{verification_comment}%")
-        )
-    if document_id:
-        where_clauses.append(
-            or_(Measure.document_id == id for id in document_id)
-            if len(document_id) > 1
-            else Measure.document_id == document_id[0]
-        )
-    if jira_issue_id:
-        where_clauses.append(
-            or_(Measure.jira_issue_id == id for id in jira_issue_id)
-            if len(jira_issue_id) > 1
-            else Measure.jira_issue_id == jira_issue_id[0]
-        )
-    if project_id:
-        where_clauses.append(
-            or_(Requirement.project_id == id for id in project_id)
-            if len(project_id) > 1
-            else Requirement.project_id == project_id[0]
-        )
-    if requirement_id:
-        where_clauses.append(
-            or_(Measure.requirement_id == id for id in requirement_id)
-            if len(requirement_id) > 1
-            else Measure.requirement_id == requirement_id[0]
-        )
+
     return where_clauses
 
 
