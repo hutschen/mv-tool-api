@@ -271,8 +271,6 @@ def get_measure_filters(
     has_document: bool | None = None,
     has_jira_issue: bool | None = None,
     has_catalog_requirement: bool | None = None,
-    has_catalog_module: bool | None = None,
-    has_catalog: bool | None = None,
     #
     # filter by search string
     search: str | None = None,
@@ -323,8 +321,6 @@ def get_measure_filters(
         (Measure.document_id, has_document),
         (Measure.jira_issue_id, has_jira_issue),
         (Requirement.catalog_requirement_id, has_catalog_requirement),
-        (CatalogRequirement.catalog_module_id, has_catalog_module),
-        (CatalogModule.catalog_id, has_catalog),
     ]:
         if value is not None:
             where_clauses.append(filter_for_existence(column, value))
