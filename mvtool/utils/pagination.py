@@ -23,7 +23,7 @@ from pydantic import conint
 
 def page_params(
     page: conint(gt=0) | None = None, page_size: conint(gt=0) | None = None
-) -> dict[str, int | None]:
+) -> dict[str, int]:
     if page and page_size:
         return dict(
             offset=(page - 1) * page_size,
