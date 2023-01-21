@@ -111,14 +111,11 @@ class MeasuresView:
         return measures
 
     def count_measures(self, where_clauses: Any = None) -> int:
-        # construct measures query
         query = self._apply_joins_to_measures_query(
             select([func.count()]).select_from(Measure)
         )
         if where_clauses:
             query = query.where(*where_clauses)
-
-        # execute measures query
         return self._session.execute(query).scalar()
 
     def list_measure_values(
@@ -126,7 +123,6 @@ class MeasuresView:
         column: Column,
         where_clauses: Any = None,
     ) -> list[Any]:
-        # construct measure values query
         query = self._apply_joins_to_measures_query(
             select([column]).select_from(Measure)
         ).distinct()
