@@ -260,17 +260,14 @@ def test_delete_requirement(client, create_requirement):
     assert response.status_code == 404
 
 
-def test_get_measures_page(client, create_requirement, create_measure):
-    response = client.get(f"/api/requirements/{create_requirement.id}/measures")
+def test_get_measures_list(client: TestClient, create_measure):
+    response = client.get(f"/api/measures")
     assert response.status_code == 200
-    page = response.json()
-    assert type(page) == dict
-    assert type(page["items"]) == list
-    assert page["total_count"] == 1
+    assert type(response.json()) == list
 
 
-def test_get_measures_of_project_page(client, create_project, create_measure):
-    response = client.get(f"/api/projects/{create_project.id}/measures")
+def test_get_measures_page(client: TestClient, create_measure):
+    response = client.get(f"/api/measures", params=dict(page=1, page_size=10))
     assert response.status_code == 200
     page = response.json()
     assert type(page) == dict
