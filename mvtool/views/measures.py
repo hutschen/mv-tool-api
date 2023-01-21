@@ -24,7 +24,11 @@ from sqlmodel import func, select, or_
 from mvtool.views.documents import DocumentsView
 from mvtool.views.jira_ import JiraIssuesView
 from ..utils.pagination import Page, page_params
-from ..utils.filtering import search_column, filter_column_by_values
+from ..utils.filtering import (
+    filter_for_existence,
+    search_column,
+    filter_column_by_values,
+)
 from ..database import CRUDOperations
 from .requirements import RequirementsView
 from ..errors import ClientError, NotFoundError
@@ -220,6 +224,7 @@ class MeasuresView:
 
 
 def get_measure_filters(
+    # filter by values
     reference: list[str] | None = Query(default=None),
     summary: str | None = None,
     description: str | None = None,
@@ -230,6 +235,8 @@ def get_measure_filters(
     verified: bool | None = None,
     verification_method: list[str] | None = Query(default=None),
     verification_comment: str | None = None,
+    #
+    # filter by ids
     document_id: list[int] | None = Query(default=None),
     jira_issue_id: list[str] | None = Query(default=None),
     project_id: list[int] | None = Query(default=None),
@@ -237,11 +244,25 @@ def get_measure_filters(
     catalog_requirement_id: list[int] | None = Query(default=None),
     catalog_module_id: list[int] | None = Query(default=None),
     catalog_id: list[int] | None = Query(default=None),
+    #
+    # filter for existence
+    has_reference: bool | None = None,
+    has_description: bool | None = None,
+    has_compliance_status: bool | None = None,
+    has_compliance_comment: bool | None = None,
+    has_completion_status: bool | None = None,
+    has_completion_comment: bool | None = None,
+    has_verification_method: bool | None = None,
+    has_verification_comment: bool | None = None,
+    has_document: bool | None = None,
+    has_jira_issue: bool | None = None,
+    has_catalog_requirement: bool | None = None,
+    has_catalog_module: bool | None = None,
+    has_catalog: bool | None = None,
 ) -> list[Any]:
-    # TODO: enable filtering for empty values using False or None
-    # TODO: enable filtering for not empty values using True
     where_clauses = []
 
+    # filter by search string
     for column, value in [
         (Measure.summary, summary),
         (Measure.description, description),
@@ -252,6 +273,7 @@ def get_measure_filters(
         if value is not None:
             where_clauses.append(search_column(column, value))
 
+    # filter by values
     for column, values in [
         (Measure.reference, reference),
         (Measure.compliance_status, compliance_status),
@@ -270,6 +292,25 @@ def get_measure_filters(
 
     if verified is not None:
         where_clauses.append(Measure.verified == verified)
+
+    # filter for existence
+    for column, value in [
+        (Measure.reference, has_reference),
+        (Measure.description, has_description),
+        (Measure.compliance_status, has_compliance_status),
+        (Measure.compliance_comment, has_compliance_comment),
+        (Measure.completion_status, has_completion_status),
+        (Measure.completion_comment, has_completion_comment),
+        (Measure.verification_method, has_verification_method),
+        (Measure.verification_comment, has_verification_comment),
+        (Measure.document_id, has_document),
+        (Measure.jira_issue_id, has_jira_issue),
+        (Requirement.catalog_requirement_id, has_catalog_requirement),
+        (CatalogRequirement.catalog_module_id, has_catalog_module),
+        (CatalogModule.catalog_id, has_catalog),
+    ]:
+        if value is not None:
+            where_clauses.append(filter_for_existence(column, value))
 
     return where_clauses
 
