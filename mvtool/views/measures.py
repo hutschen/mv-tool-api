@@ -254,26 +254,29 @@ class MeasuresView:
 
 
 def get_measure_filters(
-    # filter by values
-    reference: list[str] | None = Query(default=None),
+    # filter by pattern
+    reference: str | None = None,
     summary: str | None = None,
     description: str | None = None,
-    compliance_status: list[str] | None = Query(default=None),
     compliance_comment: str | None = None,
-    completion_status: list[str] | None = Query(default=None),
     completion_comment: str | None = None,
-    verified: bool | None = None,
-    verification_method: list[str] | None = Query(default=None),
     verification_comment: str | None = None,
     #
+    # filter by values
+    references: list[str] | None = Query(default=None),
+    compliance_statuses: list[str] | None = Query(default=None),
+    completion_statuses: list[str] | None = Query(default=None),
+    verified: bool | None = None,
+    verification_methods: list[str] | None = Query(default=None),
+    #
     # filter by ids
-    document_id: list[int] | None = Query(default=None),
-    jira_issue_id: list[str] | None = Query(default=None),
-    project_id: list[int] | None = Query(default=None),
-    requirement_id: list[int] | None = Query(default=None),
-    catalog_requirement_id: list[int] | None = Query(default=None),
-    catalog_module_id: list[int] | None = Query(default=None),
-    catalog_id: list[int] | None = Query(default=None),
+    document_ids: list[int] | None = Query(default=None),
+    jira_issue_ids: list[str] | None = Query(default=None),
+    project_ids: list[int] | None = Query(default=None),
+    requirement_ids: list[int] | None = Query(default=None),
+    catalog_requirement_ids: list[int] | None = Query(default=None),
+    catalog_module_ids: list[int] | None = Query(default=None),
+    catalog_ids: list[int] | None = Query(default=None),
     #
     # filter for existence
     has_reference: bool | None = None,
@@ -295,6 +298,7 @@ def get_measure_filters(
 
     # filter by pattern
     for column, value in [
+        (Measure.reference, reference),
         (Measure.summary, summary),
         (Measure.description, description),
         (Measure.compliance_comment, compliance_comment),
@@ -304,19 +308,19 @@ def get_measure_filters(
         if value is not None:
             where_clauses.append(filter_by_pattern(column, value))
 
-    # filter by values
+    # filter by values or by ids
     for column, values in [
-        (Measure.reference, reference),
-        (Measure.compliance_status, compliance_status),
-        (Measure.completion_status, completion_status),
-        (Measure.verification_method, verification_method),
-        (Measure.document_id, document_id),
-        (Measure.jira_issue_id, jira_issue_id),
-        (Requirement.project_id, project_id),
-        (Measure.requirement_id, requirement_id),
-        (Requirement.catalog_requirement_id, catalog_requirement_id),
-        (CatalogRequirement.catalog_module_id, catalog_module_id),
-        (CatalogModule.catalog_id, catalog_id),
+        (Measure.reference, references),
+        (Measure.compliance_status, compliance_statuses),
+        (Measure.completion_status, completion_statuses),
+        (Measure.verification_method, verification_methods),
+        (Measure.document_id, document_ids),
+        (Measure.jira_issue_id, jira_issue_ids),
+        (Requirement.project_id, project_ids),
+        (Measure.requirement_id, requirement_ids),
+        (Requirement.catalog_requirement_id, catalog_requirement_ids),
+        (CatalogRequirement.catalog_module_id, catalog_module_ids),
+        (CatalogModule.catalog_id, catalog_ids),
     ]:
         if values:
             where_clauses.append(filter_column_by_values(column, values))
