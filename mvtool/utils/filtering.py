@@ -17,8 +17,7 @@
 
 
 from typing import Any
-from sqlalchemy.schema import Column
-from sqlmodel import AutoString, or_
+from sqlmodel import Column, AutoString, or_
 
 
 def filter_by_pattern(column: Column, pattern: str) -> Any:
