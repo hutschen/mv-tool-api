@@ -135,20 +135,16 @@ class MeasuresView:
     ) -> list[Any]:
         query = self._modify_measures_query(
             select([func.distinct(column)]).select_from(Measure),
-            [column.isnot(None), *where_clauses],
+            [filter_for_existence(column), *where_clauses],
             offset=offset,
             limit=limit,
         )
         return self._session.exec(query).all()
 
-    def count_measure_values(
-        self,
-        column: Column,
-        where_clauses: Any = None,
-    ) -> int:
+    def count_measure_values(self, column: Column, where_clauses: Any = None) -> int:
         query = self._modify_measures_query(
             select([func.count(func.distinct(column))]).select_from(Measure),
-            where_clauses,
+            [filter_for_existence(column), *where_clauses],
         )
         return self._session.execute(query).scalar()
 
