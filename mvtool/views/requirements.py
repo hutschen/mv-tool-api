@@ -410,3 +410,33 @@ def get_requirement_field_names(
         ):
             field_names.update(names)
     return field_names
+
+
+@router.get(
+    "/requirement/references",
+    response_model=Page[str] | list[str],
+    **RequirementsView.kwargs,
+)
+def get_requirement_references(
+    where_clauses=Depends(get_requirement_filters),
+    page_params=Depends(page_params),
+    requirements_view: RequirementsView = Depends(RequirementsView),
+):
+    references = requirements_view.list_requirement_values(
+        Requirement.reference, where_clauses, **page_params
+    )
+    if page_params:
+        references_count = requirements_view.count_requirement_values(
+            Requirement.reference, where_clauses
+        )
+        return Page[str](items=references, total_count=references_count)
+    else:
+        return references
+
+
+def get_target_objects():
+    pass
+
+
+def get_milestones():
+    pass
