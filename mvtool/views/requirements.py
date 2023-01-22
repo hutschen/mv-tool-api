@@ -105,30 +105,6 @@ class RequirementsView:
         )
         return self._session.execute(query).scalar()
 
-    def query_requirements(
-        self,
-        where_clauses: Any = None,
-        order_by_clauses: Any = None,
-        offset: int | None = None,
-        limit: int | None = None,
-    ) -> list[Requirement]:
-        # construct requirements query
-        query = select(Requirement).select_from(Requirement)
-        if where_clauses:
-            query = query.where(*where_clauses)
-        if order_by_clauses:
-            query = query.order_by(*order_by_clauses)
-        if offset is not None:
-            query = query.offset(offset)
-        if limit is not None:
-            query = query.limit(limit)
-
-        # execute query, set jira_project and return requirements
-        requirements = self._session.execute(query).scalars().all()
-        for requirement in requirements:
-            self._set_jira_project(requirement)
-        return requirements
-
     @router.post(
         "/projects/{project_id}/requirements",
         status_code=201,
