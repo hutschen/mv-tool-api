@@ -357,3 +357,32 @@ def get_requirement_representations(
         )
     else:
         return requirements
+
+
+@router.get(
+    "/requirement/field-names",
+    response_model=list[str],
+    **RequirementsView.kwargs,
+)
+def get_requirement_field_names(
+    where_clauses=Depends(get_requirement_filters),
+    requirements_view: RequirementsView = Depends(RequirementsView),
+) -> set[str]:
+    field_names = {"id", "summary", "project"}
+    for field, names in [
+        (Requirement.reference, ["reference"]),
+        (Requirement.description, ["description"]),
+        (Requirement.target_object, ["target_object"]),
+        (Requirement.milestone, ["milestone"]),
+        (Requirement.compliance_status, ["compliance_status"]),
+        (Requirement.compliance_comment, ["compliance_comment"]),
+        (
+            Requirement.catalog_requirement_id,
+            ["catalog_requirement", "catalog_module", "catalog"],
+        ),
+    ]:
+        if requirements_view.count_requirements(
+            [filter_for_existence(field, True), *where_clauses]
+        ):
+            field_names.update(names)
+    return field_names
