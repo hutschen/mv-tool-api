@@ -412,6 +412,21 @@ def get_requirement_field_names(
     return field_names
 
 
+def _get_requirement_field_values(
+    column: Column, where_clauses, page_params, requirements_view: RequirementsView
+) -> Page[str] | list[str]:
+    items = requirements_view.list_requirement_values(
+        column, where_clauses, **page_params
+    )
+    if page_params:
+        references_count = requirements_view.count_requirement_values(
+            column, where_clauses
+        )
+        return Page[str](items=items, total_count=references_count)
+    else:
+        return items
+
+
 @router.get(
     "/requirement/references",
     response_model=Page[str] | list[str],
@@ -422,21 +437,36 @@ def get_requirement_references(
     page_params=Depends(page_params),
     requirements_view: RequirementsView = Depends(RequirementsView),
 ):
-    references = requirements_view.list_requirement_values(
-        Requirement.reference, where_clauses, **page_params
+    return _get_requirement_field_values(
+        Requirement.reference, where_clauses, page_params, requirements_view
     )
-    if page_params:
-        references_count = requirements_view.count_requirement_values(
-            Requirement.reference, where_clauses
-        )
-        return Page[str](items=references, total_count=references_count)
-    else:
-        return references
 
 
-def get_target_objects():
-    pass
+@router.get(
+    "/requirement/target-objects",
+    response_model=Page[str] | list[str],
+    tags=["target object"],
+)
+def get_target_objects(
+    where_clauses=Depends(get_requirement_filters),
+    page_params=Depends(page_params),
+    requirements_view: RequirementsView = Depends(RequirementsView),
+):
+    return _get_requirement_field_values(
+        Requirement.target_object, where_clauses, page_params, requirements_view
+    )
 
 
-def get_milestones():
-    pass
+@router.get(
+    "/requirement/milestones",
+    response_model=Page[str] | list[str],
+    tags=["milestone"],
+)
+def get_milestones(
+    where_clauses=Depends(get_requirement_filters),
+    page_params=Depends(page_params),
+    requirements_view: RequirementsView = Depends(RequirementsView),
+):
+    return _get_requirement_field_values(
+        Requirement.milestone, where_clauses, page_params, requirements_view
+    )
