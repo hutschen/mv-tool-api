@@ -21,8 +21,7 @@ from fastapi_utils.cbv import cbv
 from sqlmodel import func, select
 from sqlmodel.sql.expression import Select
 
-from mvtool.utils.pagination import Page, page_params
-
+from ..utils.pagination import Page, page_params
 from ..errors import NotFoundError
 from ..database import CRUDOperations
 from .projects import ProjectsView
@@ -105,7 +104,7 @@ class RequirementsView:
         response_model=Page[RequirementOutput],
         **kwargs,
     )
-    def get_requirements_page(
+    def get_requirements_page_legacy(
         self, project_id: int, page_params=Depends(page_params)
     ) -> Page[RequirementOutput]:
         where_clauses = [Requirement.project_id == project_id]
@@ -115,16 +114,13 @@ class RequirementsView:
                 order_by_clauses=[Requirement.id.asc()],
                 **page_params,
             ),
-            total_count=self.query_requirement_count(where_clauses=where_clauses),
+            total_count=self.count_requirements(where_clauses=where_clauses),
         )
 
-    def query_requirement_count(self, where_clauses: Any = None) -> int:
-        # construct requirements query
-        query = select([func.count()]).select_from(Requirement)
-        if where_clauses:
-            query = query.where(*where_clauses)
-
-        # execute query
+    def count_requirements(self, where_clauses: Any = None) -> int:
+        query = self._modify_requirements_query(
+            select([func.count()]).select_from(Requirement), where_clauses
+        )
         return self._session.execute(query).scalar()
 
     def query_requirements(
@@ -256,3 +252,28 @@ class ImportCatalogRequirementsView:
 
         self._session.flush()
         return created_requirements
+
+
+def get_requirement_filters() -> list[Any]:
+    # TODO: implement this dummy function
+    return []
+
+
+@router.get(
+    "/requirements",
+    response_model=Page[RequirementOutput] | list[RequirementOutput],
+    **RequirementsView.kwargs,
+)
+def get_requirements(
+    where_clauses=Depends(get_requirement_filters),
+    page_params=Depends(page_params),
+    requirements_view: RequirementsView = Depends(RequirementsView),
+):
+    requirements = requirements_view.list_requirements(where_clauses, **page_params)
+    if page_params:
+        requirements_count = requirements_view.count_requirements(where_clauses)
+        return Page[RequirementOutput](
+            items=requirements, total_count=requirements_count
+        )
+    else:
+        return requirements
