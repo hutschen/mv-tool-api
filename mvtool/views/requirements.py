@@ -16,12 +16,17 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from typing import Any
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from fastapi_utils.cbv import cbv
-from sqlmodel import func, select
+from sqlmodel import func, or_, select
 from sqlmodel.sql.expression import Select
 
 from ..utils.pagination import Page, page_params
+from ..utils.filtering import (
+    filter_by_pattern,
+    filter_column_by_values,
+    filter_for_existence,
+)
 from ..errors import NotFoundError
 from ..database import CRUDOperations
 from .projects import ProjectsView
@@ -212,9 +217,103 @@ class ImportCatalogRequirementsView:
         return created_requirements
 
 
-def get_requirement_filters() -> list[Any]:
-    # TODO: implement this dummy function
-    return []
+def get_requirement_filters(
+    # filter by pattern
+    reference: str | None = None,
+    summary: str | None = None,
+    description: str | None = None,
+    target_object: str | None = None,
+    milestone: str | None = None,
+    compliance_comment: str | None = None,
+    #
+    # filter by values
+    references: list[str] | None = Query(default=None),
+    target_objects: list[str] | None = Query(default=None),
+    milestones: list[str] | None = Query(default=None),
+    compliance_statuses: list[str] | None = Query(default=None),
+    #
+    # filter by ids
+    project_ids: list[int] | None = Query(default=None),
+    catalog_requirement_ids: list[int] | None = Query(default=None),
+    catalog_module_ids: list[int] | None = Query(default=None),
+    catalog_ids: list[int] | None = Query(default=None),
+    #
+    # filter for existence
+    has_reference: bool | None = None,
+    has_description: bool | None = None,
+    has_target_object: bool | None = None,
+    has_milestone: bool | None = None,
+    has_compliance_status: bool | None = None,
+    has_compliance_comment: bool | None = None,
+    has_catalog_requirement: bool | None = None,
+    #
+    # filter by search string
+    search: str | None = None,
+) -> list[Any]:
+    where_clauses = []
+
+    # filter by pattern
+    for column, value in (
+        (Requirement.reference, reference),
+        (Requirement.summary, summary),
+        (Requirement.description, description),
+        (Requirement.target_object, target_object),
+        (Requirement.milestone, milestone),
+        (Requirement.compliance_comment, compliance_comment),
+    ):
+        if value:
+            where_clauses.append(filter_by_pattern(column, value))
+
+    # filter by values or by ids
+    for column, values in (
+        (Requirement.reference, references),
+        (Requirement.target_object, target_objects),
+        (Requirement.milestone, milestones),
+        (Requirement.compliance_status, compliance_statuses),
+        (Requirement.project_id, project_ids),
+        (Requirement.catalog_requirement_id, catalog_requirement_ids),
+        (CatalogRequirement.catalog_module_id, catalog_module_ids),
+        (CatalogModule.catalog_id, catalog_ids),
+    ):
+        if values:
+            where_clauses.append(filter_column_by_values(column, values))
+
+    # filter for existence
+    for column, value in (
+        (Requirement.reference, has_reference),
+        (Requirement.description, has_description),
+        (Requirement.target_object, has_target_object),
+        (Requirement.milestone, has_milestone),
+        (Requirement.compliance_status, has_compliance_status),
+        (Requirement.compliance_comment, has_compliance_comment),
+        (Requirement.catalog_requirement_id, has_catalog_requirement),
+    ):
+        if value is not None:
+            where_clauses.append(filter_for_existence(column, value))
+
+    # filter by search string
+    if search:
+        where_clauses.append(
+            or_(
+                filter_by_pattern(column, f"*{search}*")
+                for column in (
+                    Requirement.reference,
+                    Requirement.summary,
+                    Requirement.description,
+                    Requirement.target_object,
+                    Requirement.milestone,
+                    Requirement.compliance_comment,
+                    CatalogRequirement.reference,
+                    CatalogRequirement.summary,
+                    CatalogModule.reference,
+                    CatalogModule.title,
+                    Catalog.reference,
+                    Catalog.title,
+                )
+            )
+        )
+
+    return where_clauses
 
 
 @router.get(
