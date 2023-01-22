@@ -494,7 +494,7 @@ class RequirementsExcelView(ExcelView):
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> FileResponse:
         return self._process_download(
-            self._requirements.list_requirements(project_id),
+            self._requirements.list_requirements(Requirement.project_id == project_id),
             temp_file,
             sheet_name=sheet_name,
             filename=filename,

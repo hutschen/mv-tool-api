@@ -33,7 +33,9 @@ def test_list_requirements(
     create_project: Project,
     create_requirement: Requirement,
 ):
-    results = list(requirements_view.list_requirements(create_project.id))
+    results = requirements_view.list_requirements(
+        Requirement.project_id == create_project.id
+    )
 
     assert len(results) == 1
     requirement = results[0]
@@ -46,7 +48,7 @@ def test_list_requirements(
 def test_list_requirements_with_invalid_project_id(
     requirements_view: RequirementsView,
 ):
-    results = list(requirements_view.list_requirements(-1))
+    results = requirements_view.list_requirements(Requirement.project_id == -1)
     assert len(results) == 0
 
 
@@ -56,7 +58,9 @@ def test_list_requirements_without_jira_project(
     create_requirement: Requirement,
 ):
     create_project.jira_project_id = None
-    results = list(requirements_view.list_requirements(create_project.id))
+    results = requirements_view.list_requirements(
+        Requirement.project_id == create_project.id
+    )
 
     assert len(results) == 1
     requirement = results[0]

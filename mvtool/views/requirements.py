@@ -64,10 +64,31 @@ class RequirementsView:
             .outerjoin(Catalog)
         )
 
-    def list_requirements(self, project_id: int) -> list[Requirement]:
-        return self.query_requirements(
-            where_clauses=[Requirement.project_id == project_id]
-        )
+    def list_requirements(
+        self,
+        where_clauses: Any = None,
+        order_by_clauses: Any = None,
+        offset: int | None = None,
+        limit: int | None = None,
+        query_jira: bool = True,
+    ) -> list[Requirement]:
+        # construct requirements query
+        query = self._apply_joins_to_requirements_query(select(Requirement))
+        if where_clauses:
+            query = query.where(*where_clauses)
+        if order_by_clauses:
+            query = query.order_by(*order_by_clauses)
+        if offset is not None:
+            query = query.offset(offset)
+        if limit is not None:
+            query = query.limit(limit)
+
+        # execute query, set jira_project and return requirements
+        requirements = self._session.exec(query).all()
+        if query_jira:
+            for requirement in requirements:
+                self._set_jira_project(requirement)
+        return requirements
 
     @router.get(
         "/projects/{project_id}/requirements",
