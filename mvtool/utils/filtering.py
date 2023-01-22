@@ -35,7 +35,7 @@ def filter_by_pattern(column: Column, pattern: str) -> Any:
     return column.ilike(pattern)
 
 
-def filter_column_by_values(column: Column, values: list[str | int]) -> Any:
+def filter_by_values(column: Column, values: list[str | int]) -> Any:
     """Generate where clause to filter column by values"""
     assert len(values) > 0, "str_list must not be empty"
     if len(values) == 1:

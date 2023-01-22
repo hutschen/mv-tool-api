@@ -24,7 +24,7 @@ from sqlmodel.sql.expression import Select
 from ..utils.pagination import Page, page_params
 from ..utils.filtering import (
     filter_by_pattern,
-    filter_column_by_values,
+    filter_by_values,
     filter_for_existence,
 )
 from ..errors import NotFoundError
@@ -276,7 +276,7 @@ def get_requirement_filters(
         (CatalogModule.catalog_id, catalog_ids),
     ):
         if values:
-            where_clauses.append(filter_column_by_values(column, values))
+            where_clauses.append(filter_by_values(column, values))
 
     # filter for existence
     for column, value in (

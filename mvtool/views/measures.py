@@ -28,7 +28,7 @@ from ..utils.pagination import Page, page_params
 from ..utils.filtering import (
     filter_for_existence,
     filter_by_pattern,
-    filter_column_by_values,
+    filter_by_values,
 )
 from ..database import CRUDOperations
 from .requirements import RequirementsView
@@ -329,7 +329,7 @@ def get_measure_filters(
         (CatalogModule.catalog_id, catalog_ids),
     ]:
         if values:
-            where_clauses.append(filter_column_by_values(column, values))
+            where_clauses.append(filter_by_values(column, values))
 
     if verified is not None:
         where_clauses.append(Measure.verified == verified)
