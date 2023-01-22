@@ -18,7 +18,7 @@
 from typing import Any
 from fastapi import APIRouter, Depends, Query
 from fastapi_utils.cbv import cbv
-from sqlmodel import func, or_, select
+from sqlmodel import Column, func, or_, select
 from sqlmodel.sql.expression import Select
 
 from ..utils.pagination import Page, page_params
@@ -108,6 +108,30 @@ class RequirementsView:
     def count_requirements(self, where_clauses: Any = None) -> int:
         query = self._modify_requirements_query(
             select([func.count()]).select_from(Requirement), where_clauses
+        )
+        return self._session.execute(query).scalar()
+
+    def list_requirement_values(
+        self,
+        column: Column,
+        where_clauses: Any = None,
+        offset: int | None = None,
+        limit: int | None = None,
+    ) -> list[Any]:
+        query = self._modify_requirements_query(
+            select([func.distinct(column)]).select_from(Requirement),
+            [filter_for_existence(column), *where_clauses],
+            offset=offset,
+            limit=limit,
+        )
+        return self._session.exec(query).all()
+
+    def count_requirement_values(
+        self, column: Column, where_clauses: Any = None
+    ) -> int:
+        query = self._modify_requirements_query(
+            select([func.count(func.distinct(column))]).select_from(Requirement),
+            [filter_for_existence(column), *where_clauses],
         )
         return self._session.execute(query).scalar()
 
