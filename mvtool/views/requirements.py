@@ -19,6 +19,7 @@ from typing import Any
 from fastapi import APIRouter, Depends
 from fastapi_utils.cbv import cbv
 from sqlmodel import func, select
+from sqlmodel.sql.expression import Select
 
 from mvtool.utils.pagination import Page, page_params
 
@@ -27,6 +28,8 @@ from ..database import CRUDOperations
 from .projects import ProjectsView
 from .catalog_requirements import CatalogRequirementsView
 from ..models import (
+    Catalog,
+    CatalogModule,
     CatalogRequirement,
     RequirementInput,
     Requirement,
@@ -52,6 +55,14 @@ class RequirementsView:
         self._catalog_requirements = catalog_requirements
         self._crud = crud
         self._session = self._crud.session
+
+    @staticmethod
+    def _apply_joins_to_requirements_query(query: Select) -> Select:
+        return (
+            query.outerjoin(CatalogRequirement)
+            .outerjoin(CatalogModule)
+            .outerjoin(Catalog)
+        )
 
     def list_requirements(self, project_id: int) -> list[Requirement]:
         return self.query_requirements(
