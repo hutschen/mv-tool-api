@@ -99,24 +99,6 @@ class RequirementsView:
                 self._set_jira_project(requirement)
         return requirements
 
-    @router.get(
-        "/projects/{project_id}/requirements",
-        response_model=Page[RequirementOutput],
-        **kwargs,
-    )
-    def get_requirements_page_legacy(
-        self, project_id: int, page_params=Depends(page_params)
-    ) -> Page[RequirementOutput]:
-        where_clauses = [Requirement.project_id == project_id]
-        return Page[RequirementOutput](
-            items=self.query_requirements(
-                where_clauses=where_clauses,
-                order_by_clauses=[Requirement.id.asc()],
-                **page_params,
-            ),
-            total_count=self.count_requirements(where_clauses=where_clauses),
-        )
-
     def count_requirements(self, where_clauses: Any = None) -> int:
         query = self._modify_requirements_query(
             select([func.count()]).select_from(Requirement), where_clauses
