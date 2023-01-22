@@ -201,10 +201,15 @@ def test_delete_document(client, create_document):
     assert response.status_code == 404
 
 
-def test_get_requirements_page(
-    client, create_project: Project, create_requirement: Requirement
-):
-    response = client.get(f"/api/projects/{create_project.id}/requirements")
+def test_list_requirements(client, create_requirement: Requirement):
+    response = client.get("/api/requirements")
+    assert response.status_code == 200
+    requirements = response.json()
+    assert type(requirements) == list
+
+
+def test_get_requirements_page(client, create_requirement: Requirement):
+    response = client.get("/api/requirements", params=dict(page=1, page_size=10))
     assert response.status_code == 200
     page = response.json()
     assert type(page) == dict

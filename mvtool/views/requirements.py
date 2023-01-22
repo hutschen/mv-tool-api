@@ -15,22 +15,30 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any, Iterator
-from fastapi import APIRouter, Depends
+from typing import Any
+from fastapi import APIRouter, Depends, Query
 from fastapi_utils.cbv import cbv
-from sqlmodel import func, select
+from sqlmodel import Column, func, or_, select
+from sqlmodel.sql.expression import Select
 
-from mvtool.utils.pagination import Page, page_params
-
+from ..utils.pagination import Page, page_params
+from ..utils.filtering import (
+    filter_by_pattern,
+    filter_by_values,
+    filter_for_existence,
+)
 from ..errors import NotFoundError
 from ..database import CRUDOperations
 from .projects import ProjectsView
 from .catalog_requirements import CatalogRequirementsView
 from ..models import (
+    Catalog,
+    CatalogModule,
     CatalogRequirement,
     RequirementInput,
     Requirement,
     RequirementOutput,
+    RequirementRepresentation,
 )
 
 router = APIRouter()
@@ -53,47 +61,20 @@ class RequirementsView:
         self._crud = crud
         self._session = self._crud.session
 
-    def list_requirements(self, project_id: int) -> list[Requirement]:
-        return self.query_requirements(
-            where_clauses=[Requirement.project_id == project_id]
-        )
-
-    @router.get(
-        "/projects/{project_id}/requirements",
-        response_model=Page[RequirementOutput],
-        **kwargs,
-    )
-    def get_requirements_page(
-        self, project_id: int, page_params=Depends(page_params)
-    ) -> Page[RequirementOutput]:
-        where_clauses = [Requirement.project_id == project_id]
-        return Page[RequirementOutput](
-            items=self.query_requirements(
-                where_clauses=where_clauses,
-                order_by_clauses=[Requirement.id.asc()],
-                **page_params,
-            ),
-            total_count=self.query_requirement_count(where_clauses=where_clauses),
-        )
-
-    def query_requirement_count(self, where_clauses: Any = None) -> int:
-        # construct requirements query
-        query = select([func.count()]).select_from(Requirement)
-        if where_clauses:
-            query = query.where(*where_clauses)
-
-        # execute query
-        return self._session.execute(query).scalar()
-
-    def query_requirements(
-        self,
+    @staticmethod
+    def _modify_requirements_query(
+        query: Select,
         where_clauses: Any = None,
         order_by_clauses: Any = None,
         offset: int | None = None,
         limit: int | None = None,
-    ) -> list[Requirement]:
-        # construct requirements query
-        query = select(Requirement).select_from(Requirement)
+    ) -> Select:
+        """Modify a query to include all required joins, clauses and offset and limit."""
+        query = (
+            query.outerjoin(CatalogRequirement)
+            .outerjoin(CatalogModule)
+            .outerjoin(Catalog)
+        )
         if where_clauses:
             query = query.where(*where_clauses)
         if order_by_clauses:
@@ -102,12 +83,57 @@ class RequirementsView:
             query = query.offset(offset)
         if limit is not None:
             query = query.limit(limit)
+        return query
+
+    def list_requirements(
+        self,
+        where_clauses: Any = None,
+        order_by_clauses: Any = None,
+        offset: int | None = None,
+        limit: int | None = None,
+        query_jira: bool = True,
+    ) -> list[Requirement]:
+        # construct requirements query
+        query = self._modify_requirements_query(
+            select(Requirement), where_clauses, order_by_clauses, offset, limit
+        )
 
         # execute query, set jira_project and return requirements
-        requirements = self._session.execute(query).scalars().all()
-        for requirement in requirements:
-            self._set_jira_project(requirement)
+        requirements = self._session.exec(query).all()
+        if query_jira:
+            for requirement in requirements:
+                self._set_jira_project(requirement)
         return requirements
+
+    def count_requirements(self, where_clauses: Any = None) -> int:
+        query = self._modify_requirements_query(
+            select([func.count()]).select_from(Requirement), where_clauses
+        )
+        return self._session.execute(query).scalar()
+
+    def list_requirement_values(
+        self,
+        column: Column,
+        where_clauses: Any = None,
+        offset: int | None = None,
+        limit: int | None = None,
+    ) -> list[Any]:
+        query = self._modify_requirements_query(
+            select([func.distinct(column)]).select_from(Requirement),
+            [filter_for_existence(column), *where_clauses],
+            offset=offset,
+            limit=limit,
+        )
+        return self._session.exec(query).all()
+
+    def count_requirement_values(
+        self, column: Column, where_clauses: Any = None
+    ) -> int:
+        query = self._modify_requirements_query(
+            select([func.count(func.distinct(column))]).select_from(Requirement),
+            [filter_for_existence(column), *where_clauses],
+        )
+        return self._session.execute(query).scalar()
 
     @router.post(
         "/projects/{project_id}/requirements",
@@ -214,3 +240,233 @@ class ImportCatalogRequirementsView:
 
         self._session.flush()
         return created_requirements
+
+
+def get_requirement_filters(
+    # filter by pattern
+    reference: str | None = None,
+    summary: str | None = None,
+    description: str | None = None,
+    target_object: str | None = None,
+    milestone: str | None = None,
+    compliance_comment: str | None = None,
+    #
+    # filter by values
+    references: list[str] | None = Query(default=None),
+    target_objects: list[str] | None = Query(default=None),
+    milestones: list[str] | None = Query(default=None),
+    compliance_statuses: list[str] | None = Query(default=None),
+    #
+    # filter by ids
+    project_ids: list[int] | None = Query(default=None),
+    catalog_requirement_ids: list[int] | None = Query(default=None),
+    catalog_module_ids: list[int] | None = Query(default=None),
+    catalog_ids: list[int] | None = Query(default=None),
+    #
+    # filter for existence
+    has_reference: bool | None = None,
+    has_description: bool | None = None,
+    has_target_object: bool | None = None,
+    has_milestone: bool | None = None,
+    has_compliance_status: bool | None = None,
+    has_compliance_comment: bool | None = None,
+    has_catalog_requirement: bool | None = None,
+    #
+    # filter by search string
+    search: str | None = None,
+) -> list[Any]:
+    where_clauses = []
+
+    # filter by pattern
+    for column, value in (
+        (Requirement.reference, reference),
+        (Requirement.summary, summary),
+        (Requirement.description, description),
+        (Requirement.target_object, target_object),
+        (Requirement.milestone, milestone),
+        (Requirement.compliance_comment, compliance_comment),
+    ):
+        if value:
+            where_clauses.append(filter_by_pattern(column, value))
+
+    # filter by values or by ids
+    for column, values in (
+        (Requirement.reference, references),
+        (Requirement.target_object, target_objects),
+        (Requirement.milestone, milestones),
+        (Requirement.compliance_status, compliance_statuses),
+        (Requirement.project_id, project_ids),
+        (Requirement.catalog_requirement_id, catalog_requirement_ids),
+        (CatalogRequirement.catalog_module_id, catalog_module_ids),
+        (CatalogModule.catalog_id, catalog_ids),
+    ):
+        if values:
+            where_clauses.append(filter_by_values(column, values))
+
+    # filter for existence
+    for column, value in (
+        (Requirement.reference, has_reference),
+        (Requirement.description, has_description),
+        (Requirement.target_object, has_target_object),
+        (Requirement.milestone, has_milestone),
+        (Requirement.compliance_status, has_compliance_status),
+        (Requirement.compliance_comment, has_compliance_comment),
+        (Requirement.catalog_requirement_id, has_catalog_requirement),
+    ):
+        if value is not None:
+            where_clauses.append(filter_for_existence(column, value))
+
+    # filter by search string
+    if search:
+        where_clauses.append(
+            or_(
+                filter_by_pattern(column, f"*{search}*")
+                for column in (
+                    Requirement.reference,
+                    Requirement.summary,
+                    Requirement.description,
+                    Requirement.target_object,
+                    Requirement.milestone,
+                    Requirement.compliance_comment,
+                    CatalogRequirement.reference,
+                    CatalogRequirement.summary,
+                    CatalogModule.reference,
+                    CatalogModule.title,
+                    Catalog.reference,
+                    Catalog.title,
+                )
+            )
+        )
+
+    return where_clauses
+
+
+@router.get(
+    "/requirements",
+    response_model=Page[RequirementOutput] | list[RequirementOutput],
+    **RequirementsView.kwargs,
+)
+def get_requirements(
+    where_clauses=Depends(get_requirement_filters),
+    page_params=Depends(page_params),
+    requirements_view: RequirementsView = Depends(RequirementsView),
+):
+    requirements = requirements_view.list_requirements(where_clauses, **page_params)
+    if page_params:
+        requirements_count = requirements_view.count_requirements(where_clauses)
+        return Page[RequirementOutput](
+            items=requirements, total_count=requirements_count
+        )
+    else:
+        return requirements
+
+
+@router.get(
+    "/requirement/representations",
+    response_model=Page[RequirementRepresentation] | list[RequirementRepresentation],
+    **RequirementsView.kwargs,
+)
+def get_requirement_representations(
+    where_clauses=Depends(get_requirement_filters),
+    page_params=Depends(page_params),
+    requirements_view: RequirementsView = Depends(RequirementsView),
+):
+    requirements = requirements_view.list_requirements(
+        where_clauses, **page_params, query_jira=False
+    )
+    if page_params:
+        requirements_count = requirements_view.count_requirements(where_clauses)
+        return Page[RequirementRepresentation](
+            items=requirements, total_count=requirements_count
+        )
+    else:
+        return requirements
+
+
+@router.get(
+    "/requirement/field-names",
+    response_model=list[str],
+    **RequirementsView.kwargs,
+)
+def get_requirement_field_names(
+    where_clauses=Depends(get_requirement_filters),
+    requirements_view: RequirementsView = Depends(RequirementsView),
+) -> set[str]:
+    field_names = {"id", "summary", "project"}
+    for field, names in [
+        (Requirement.reference, ["reference"]),
+        (Requirement.description, ["description"]),
+        (Requirement.target_object, ["target_object"]),
+        (Requirement.milestone, ["milestone"]),
+        (Requirement.compliance_status, ["compliance_status"]),
+        (Requirement.compliance_comment, ["compliance_comment"]),
+        (
+            Requirement.catalog_requirement_id,
+            ["catalog_requirement", "catalog_module", "catalog"],
+        ),
+    ]:
+        if requirements_view.count_requirements(
+            [filter_for_existence(field, True), *where_clauses]
+        ):
+            field_names.update(names)
+    return field_names
+
+
+def _get_requirement_field_values(
+    column: Column, where_clauses, page_params, requirements_view: RequirementsView
+) -> Page[str] | list[str]:
+    items = requirements_view.list_requirement_values(
+        column, where_clauses, **page_params
+    )
+    if page_params:
+        references_count = requirements_view.count_requirement_values(
+            column, where_clauses
+        )
+        return Page[str](items=items, total_count=references_count)
+    else:
+        return items
+
+
+@router.get(
+    "/requirement/references",
+    response_model=Page[str] | list[str],
+    **RequirementsView.kwargs,
+)
+def get_requirement_references(
+    where_clauses=Depends(get_requirement_filters),
+    page_params=Depends(page_params),
+    requirements_view: RequirementsView = Depends(RequirementsView),
+):
+    return _get_requirement_field_values(
+        Requirement.reference, where_clauses, page_params, requirements_view
+    )
+
+
+@router.get(
+    "/requirement/target-objects",
+    response_model=Page[str] | list[str],
+    tags=["target object"],
+)
+def get_target_objects(
+    where_clauses=Depends(get_requirement_filters),
+    page_params=Depends(page_params),
+    requirements_view: RequirementsView = Depends(RequirementsView),
+):
+    return _get_requirement_field_values(
+        Requirement.target_object, where_clauses, page_params, requirements_view
+    )
+
+
+@router.get(
+    "/requirement/milestones",
+    response_model=Page[str] | list[str],
+    tags=["milestone"],
+)
+def get_milestones(
+    where_clauses=Depends(get_requirement_filters),
+    page_params=Depends(page_params),
+    requirements_view: RequirementsView = Depends(RequirementsView),
+):
+    return _get_requirement_field_values(
+        Requirement.milestone, where_clauses, page_params, requirements_view
+    )

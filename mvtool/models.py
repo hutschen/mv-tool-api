@@ -421,6 +421,12 @@ class CatalogRequirementOutput(CatalogRequirementInput):
     gs_verantwortliche: str | None
 
 
+class RequirementRepresentation(SQLModel):
+    id: int
+    reference: str | None
+    summary: str
+
+
 class RequirementOutput(AbstractRequirementInput):
     id: int
     project: ProjectOutput
