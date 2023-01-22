@@ -57,12 +57,28 @@ class RequirementsView:
         self._session = self._crud.session
 
     @staticmethod
-    def _apply_joins_to_requirements_query(query: Select) -> Select:
-        return (
+    def _modify_requirements_query(
+        query: Select,
+        where_clauses: Any = None,
+        order_by_clauses: Any = None,
+        offset: int | None = None,
+        limit: int | None = None,
+    ) -> Select:
+        """Modify a query to include all required joins, clauses and offset and limit."""
+        query = (
             query.outerjoin(CatalogRequirement)
             .outerjoin(CatalogModule)
             .outerjoin(Catalog)
         )
+        if where_clauses:
+            query = query.where(*where_clauses)
+        if order_by_clauses:
+            query = query.order_by(*order_by_clauses)
+        if offset is not None:
+            query = query.offset(offset)
+        if limit is not None:
+            query = query.limit(limit)
+        return query
 
     def list_requirements(
         self,
@@ -73,15 +89,9 @@ class RequirementsView:
         query_jira: bool = True,
     ) -> list[Requirement]:
         # construct requirements query
-        query = self._apply_joins_to_requirements_query(select(Requirement))
-        if where_clauses:
-            query = query.where(*where_clauses)
-        if order_by_clauses:
-            query = query.order_by(*order_by_clauses)
-        if offset is not None:
-            query = query.offset(offset)
-        if limit is not None:
-            query = query.limit(limit)
+        query = self._modify_requirements_query(
+            select(Requirement), where_clauses, order_by_clauses, offset, limit
+        )
 
         # execute query, set jira_project and return requirements
         requirements = self._session.exec(query).all()
