@@ -67,13 +67,29 @@ class MeasuresView:
         self._session = self._crud.session
 
     @staticmethod
-    def _apply_joins_to_measures_query(query: Select) -> Select:
-        return (
+    def _modify_measures_query(
+        query: Select,
+        where_clauses: Any = None,
+        order_by_clauses: Any = None,
+        offset: int | None = None,
+        limit: int | None = None,
+    ) -> Select:
+        """Modify a query to include all required joins, clauses and offset and limit."""
+        query = (
             query.join(Requirement)
             .outerjoin(CatalogRequirement)
             .outerjoin(CatalogModule)
             .outerjoin(Catalog)
         )
+        if where_clauses:
+            query = query.where(*where_clauses)
+        if order_by_clauses:
+            query = query.order_by(*order_by_clauses)
+        if offset is not None:
+            query = query.offset(offset)
+        if limit is not None:
+            query = query.limit(limit)
+        return query
 
     def list_measures(
         self,
@@ -84,15 +100,9 @@ class MeasuresView:
         query_jira: bool = True,
     ) -> list[Measure]:
         # construct measures query
-        query = self._apply_joins_to_measures_query(select(Measure))
-        if where_clauses:
-            query = query.where(*where_clauses)
-        if order_by_clauses:
-            query = query.order_by(*order_by_clauses)
-        if offset is not None:
-            query = query.offset(offset)
-        if limit is not None:
-            query = query.limit(limit)
+        query = self._modify_measures_query(
+            select(Measure), where_clauses, order_by_clauses, offset, limit
+        )
 
         # execute measures query
         measures = self._session.exec(query).all()
@@ -111,11 +121,9 @@ class MeasuresView:
         return measures
 
     def count_measures(self, where_clauses: Any = None) -> int:
-        query = self._apply_joins_to_measures_query(
-            select([func.count()]).select_from(Measure)
+        query = self._modify_measures_query(
+            select([func.count()]).select_from(Measure), where_clauses
         )
-        if where_clauses:
-            query = query.where(*where_clauses)
         return self._session.execute(query).scalar()
 
     def list_measure_values(
@@ -125,13 +133,12 @@ class MeasuresView:
         offset: int | None = None,
         limit: int | None = None,
     ) -> list[Any]:
-        query = self._apply_joins_to_measures_query(
-            select([func.distinct(column)]).select_from(Measure)
-        ).where(column.isnot(None), *where_clauses)
-        if offset is not None:
-            query = query.offset(offset)
-        if limit is not None:
-            query = query.limit(limit)
+        query = self._modify_measures_query(
+            select([func.distinct(column)]).select_from(Measure),
+            [column.isnot(None), *where_clauses],
+            offset=offset,
+            limit=limit,
+        )
         return self._session.exec(query).all()
 
     def count_measure_values(
@@ -139,11 +146,10 @@ class MeasuresView:
         column: Column,
         where_clauses: Any = None,
     ) -> int:
-        query = self._apply_joins_to_measures_query(
-            select([func.count(func.distinct(column))]).select_from(Measure)
+        query = self._modify_measures_query(
+            select([func.count(func.distinct(column))]).select_from(Measure),
+            where_clauses,
         )
-        if where_clauses:
-            query = query.where(*where_clauses)
         return self._session.execute(query).scalar()
 
     @router.post(
