@@ -38,6 +38,7 @@ from ..models import (
     RequirementInput,
     Requirement,
     RequirementOutput,
+    RequirementRepresentation,
 )
 
 router = APIRouter()
@@ -330,6 +331,28 @@ def get_requirements(
     if page_params:
         requirements_count = requirements_view.count_requirements(where_clauses)
         return Page[RequirementOutput](
+            items=requirements, total_count=requirements_count
+        )
+    else:
+        return requirements
+
+
+@router.get(
+    "/requirement/representations",
+    response_model=Page[RequirementRepresentation] | list[RequirementRepresentation],
+    **RequirementsView.kwargs,
+)
+def get_requirement_representations(
+    where_clauses=Depends(get_requirement_filters),
+    page_params=Depends(page_params),
+    requirements_view: RequirementsView = Depends(RequirementsView),
+):
+    requirements = requirements_view.list_requirements(
+        where_clauses, **page_params, query_jira=False
+    )
+    if page_params:
+        requirements_count = requirements_view.count_requirements(where_clauses)
+        return Page[RequirementRepresentation](
             items=requirements, total_count=requirements_count
         )
     else:
