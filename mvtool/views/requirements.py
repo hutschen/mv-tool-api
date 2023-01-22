@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any, Iterator
+from typing import Any
 from fastapi import APIRouter, Depends
 from fastapi_utils.cbv import cbv
 from sqlmodel import func, select
