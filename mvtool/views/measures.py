@@ -424,7 +424,7 @@ def get_measure_representations(
 def get_measure_field_names(
     where_clauses=Depends(get_measure_filters),
     measures_view: MeasuresView = Depends(MeasuresView),
-):
+) -> set[str]:
     field_names = {"id", "summary", "verified", "requirement", "project"}
     for field, names in [
         (Measure.reference, ["reference"]),
@@ -443,7 +443,7 @@ def get_measure_field_names(
         ),
     ]:
         if measures_view.count_measures(
-            where_clauses + [filter_for_existence(field, True)]
+            [filter_for_existence(field, True), *where_clauses]
         ):
             field_names.update(names)
     return field_names
