@@ -17,7 +17,7 @@
 
 
 from typing import Any
-from sqlmodel import Column, AutoString, or_
+from sqlmodel import Column, AutoString, and_, or_
 
 
 def filter_by_pattern(column: Column, pattern: str) -> Any:
@@ -44,10 +44,12 @@ def filter_by_values(column: Column, values: list[str | int]) -> Any:
         return column.in_(values)
 
 
-def filter_for_existence(column: Column, exists: bool) -> Any:
+def filter_for_existence(column: Column, exists: bool = True) -> Any:
     """Generate where clause to filter column for existence"""
-    or_clauses = [column.isnot(None) if exists else column.is_(None)]
+    none_clause = column.isnot(None) if exists else column.is_(None)
     if isinstance(column.type, AutoString):
         # also check for empty string if column is of type string
-        or_clauses.append(column != "" if exists else column == "")
-    return or_clauses[0] if len(or_clauses) == 1 else or_(*or_clauses)
+        str_clause = column != "" if exists else column == ""
+        return (and_ if exists else or_)(none_clause, str_clause)
+    else:
+        return none_clause
