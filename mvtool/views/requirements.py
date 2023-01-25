@@ -443,7 +443,7 @@ def get_requirement_references(
 
 
 @router.get(
-    "/requirement/target-objects",
+    "/target-objects",
     response_model=Page[str] | list[str],
     tags=["target object"],
 )
@@ -458,7 +458,7 @@ def get_target_objects(
 
 
 @router.get(
-    "/requirement/milestones",
+    "/milestones",
     response_model=Page[str] | list[str],
     tags=["milestone"],
 )
