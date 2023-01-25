@@ -95,7 +95,11 @@ class RequirementsView:
     ) -> list[Requirement]:
         # construct requirements query
         query = self._modify_requirements_query(
-            select(Requirement), where_clauses, order_by_clauses, offset, limit
+            select(Requirement),
+            where_clauses,
+            order_by_clauses or [Requirement.id.asc()],
+            offset,
+            limit,
         )
 
         # execute query, set jira_project and return requirements

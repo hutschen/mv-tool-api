@@ -101,7 +101,11 @@ class MeasuresView:
     ) -> list[Measure]:
         # construct measures query
         query = self._modify_measures_query(
-            select(Measure), where_clauses, order_by_clauses, offset, limit
+            select(Measure),
+            where_clauses,
+            order_by_clauses or [Measure.id.asc()],
+            offset,
+            limit,
         )
 
         # execute measures query
