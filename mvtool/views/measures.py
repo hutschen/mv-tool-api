@@ -17,8 +17,9 @@
 
 
 from typing import Any
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi_utils.cbv import cbv
+from pydantic import constr
 from sqlmodel import Column, func, select, or_
 from sqlmodel.sql.expression import Select
 
@@ -37,6 +38,7 @@ from ..models import (
     Catalog,
     CatalogModule,
     CatalogRequirement,
+    Document,
     JiraIssue,
     JiraIssueInput,
     MeasureInput,
@@ -77,6 +79,7 @@ class MeasuresView:
         """Modify a query to include all required joins, clauses and offset and limit."""
         query = (
             query.join(Requirement)
+            .outerjoin(Document)
             .outerjoin(CatalogRequirement)
             .outerjoin(CatalogModule)
             .outerjoin(Catalog)
@@ -103,7 +106,7 @@ class MeasuresView:
         query = self._modify_measures_query(
             select(Measure),
             where_clauses,
-            order_by_clauses or [Measure.id.asc()],
+            order_by_clauses or [Measure.id],
             offset,
             limit,
         )
@@ -378,6 +381,47 @@ def get_measure_filters(
     return where_clauses
 
 
+def get_measure_sort(
+    sort_by: str | None = None, sort_order: constr(regex=r"^(asc|desc)$") | None = None
+) -> list[Any]:
+    if not (sort_by and sort_order):
+        return []
+
+    try:
+        columns = {
+            "reference": [Measure.reference],
+            "summary": [Measure.summary],
+            "description": [Measure.description],
+            "compliance_status": [Measure.compliance_status],
+            "compliance_comment": [Measure.compliance_comment],
+            "completion_status": [Measure.completion_status],
+            "completion_comment": [Measure.completion_comment],
+            "verified": [Measure.verified],
+            "verification_method": [Measure.verification_method],
+            "verification_comment": [Measure.verification_comment],
+            "document": [Document.reference, Document.title],
+            "jira_issue": [Measure.jira_issue_id],
+            "requirement": [Requirement.reference, Requirement.summary],
+            "catalog_requirement": [
+                CatalogRequirement.reference,
+                CatalogRequirement.summary,
+            ],
+            "catalog_module": [CatalogModule.reference, CatalogModule.title],
+            "catalog": [Catalog.reference, Catalog.title],
+        }[sort_by]
+    except KeyError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid sort_by parameter: {sort_by}",
+        )
+
+    columns.append(Measure.id)
+    if sort_order == "asc":
+        return [column.asc() for column in columns]
+    else:
+        return [column.desc() for column in columns]
+
+
 @router.get(
     "/measures",
     response_model=Page[MeasureOutput] | list[MeasureOutput],
@@ -385,10 +429,13 @@ def get_measure_filters(
 )
 def get_measures(
     where_clauses=Depends(get_measure_filters),
+    order_by_clauses=Depends(get_measure_sort),
     page_params=Depends(page_params),
     measures_view: MeasuresView = Depends(MeasuresView),
 ):
-    measures = measures_view.list_measures(where_clauses, **page_params)
+    measures = measures_view.list_measures(
+        where_clauses, order_by_clauses, **page_params
+    )
     if page_params:
         measures_count = measures_view.count_measures(where_clauses)
         return Page[MeasureOutput](items=measures, total_count=measures_count)
@@ -403,11 +450,12 @@ def get_measures(
 )
 def get_measure_representations(
     where_clauses=Depends(get_measure_filters),
+    order_by_clauses=Depends(get_measure_sort),
     page_params=Depends(page_params),
     measures_view: MeasuresView = Depends(MeasuresView),
 ):
     measures = measures_view.list_measures(
-        where_clauses, **page_params, query_jira=False
+        where_clauses, order_by_clauses, **page_params, query_jira=False
     )
     if page_params:
         measures_count = measures_view.count_measures(where_clauses)
