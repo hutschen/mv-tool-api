@@ -366,6 +366,8 @@ def get_measure_filters(
                     Measure.compliance_comment,
                     Measure.completion_comment,
                     Measure.verification_comment,
+                    Document.reference,
+                    Document.title,
                     Requirement.reference,
                     Requirement.summary,
                     CatalogRequirement.reference,
