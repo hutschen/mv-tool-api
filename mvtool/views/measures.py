@@ -506,9 +506,13 @@ def get_measure_field_names(
 )
 def get_measure_references(
     where_clauses=Depends(get_measure_filters),
+    local_search: str | None = None,
     page_params=Depends(page_params),
     measures_view: MeasuresView = Depends(MeasuresView),
 ):
+    if local_search:
+        where_clauses.append(filter_by_pattern(Measure.reference, f"*{local_search}*"))
+
     references = measures_view.list_measure_values(
         Measure.reference, where_clauses, **page_params
     )
