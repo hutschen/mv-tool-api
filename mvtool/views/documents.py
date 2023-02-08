@@ -17,9 +17,10 @@
 
 
 from typing import Any, Iterator
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi_utils.cbv import cbv
-from sqlmodel import or_
+from pydantic import constr
+from sqlmodel import Column, or_
 
 from mvtool.utils.filtering import (
     filter_by_pattern,
@@ -30,7 +31,7 @@ from mvtool.utils.filtering import (
 from ..errors import NotFoundError
 from ..database import CRUDOperations
 from .projects import ProjectsView
-from ..models import DocumentInput, Document, DocumentOutput, JiraProject
+from ..models import DocumentInput, Document, DocumentOutput, JiraProject, Project
 
 router = APIRouter()
 
@@ -168,3 +169,29 @@ def get_document_filters(
         )
 
     return where_clauses
+
+
+def get_document_sort(
+    sort_by: str | None = None, sort_order: constr(regex=r"^(asc|desc)$") | None = None
+) -> list[Any]:
+    if not (sort_by and sort_order):
+        return []
+
+    try:
+        columns: list[Column] = {
+            "reference": [Document.reference],
+            "title": [Document.title],
+            "description": [Document.description],
+            "project": [Project.name],
+        }[sort_by]
+    except KeyError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid sort_by parameter: {sort_by}",
+        )
+
+    columns.append(Document.id)
+    if sort_order == "asc":
+        return [column.asc() for column in columns]
+    else:
+        return [column.desc() for column in columns]
