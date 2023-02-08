@@ -15,14 +15,21 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Iterator
-from fastapi import APIRouter, Depends
+from typing import Any, Iterator
+from fastapi import APIRouter, Depends, Query
 from fastapi_utils.cbv import cbv
+from sqlmodel import or_
+
+from mvtool.utils.filtering import (
+    filter_by_pattern,
+    filter_by_values,
+    filter_for_existence,
+)
 
 from ..errors import NotFoundError
 from ..database import CRUDOperations
 from .jira_ import JiraProjectsView
-from ..models import JiraProject, ProjectInput, Project, ProjectOutput
+from ..models import ProjectInput, Project, ProjectOutput
 
 router = APIRouter()
 
@@ -94,3 +101,59 @@ class ProjectsView:
                 jira_project_id, try_to_get
             )
         )
+
+
+def get_project_filters(
+    # filter by pattern
+    name: str | None = None,
+    description: str | None = None,
+    #
+    # filter by ids
+    jira_project_ids: list[str] | None = Query(None),
+    #
+    # filter for existence
+    has_name: bool | None = None,
+    has_description: bool | None = None,
+    has_jira_project: bool | None = None,
+    #
+    # filter by search string
+    search: str | None = None,
+) -> list[Any]:
+    where_clauses = []
+
+    # filter by pattern
+    for column, value in [
+        (Project.name, name),
+        (Project.description, description),
+    ]:
+        if value is not None:
+            where_clauses.append(filter_by_pattern(column, value))
+
+    # filter by Jira project ids
+    if jira_project_ids:
+        where_clauses.append(
+            filter_by_values(Project.jira_project_id, jira_project_ids)
+        )
+
+    # filter for existence
+    for column, value in [
+        (Project.name, has_name),
+        (Project.description, has_description),
+        (Project.jira_project_id, has_jira_project),
+    ]:
+        if value is not None:
+            where_clauses.append(filter_for_existence(column, value))
+
+    # filter by search string
+    if search:
+        where_clauses.append(
+            or_(
+                filter_by_pattern(column, f"*{search}*")
+                for column in (
+                    Project.name,
+                    Project.description,
+                )
+            )
+        )
+
+    return where_clauses
