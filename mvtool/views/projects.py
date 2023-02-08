@@ -15,14 +15,23 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Iterator
-from fastapi import APIRouter, Depends
+from typing import Any
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_utils.cbv import cbv
+from pydantic import constr
+from sqlmodel import func, or_, select
+from sqlmodel.sql.expression import Select
 
+from ..utils.filtering import (
+    filter_by_pattern,
+    filter_by_values,
+    filter_for_existence,
+)
+from ..utils.pagination import Page, page_params
 from ..errors import NotFoundError
 from ..database import CRUDOperations
 from .jira_ import JiraProjectsView
-from ..models import JiraProject, ProjectInput, Project, ProjectOutput
+from ..models import ProjectInput, Project, ProjectOutput, ProjectRepresentation
 
 router = APIRouter()
 
@@ -40,17 +49,63 @@ class ProjectsView:
         self._crud = crud
         self._session = self._crud.session
 
-    @router.get("/projects", response_model=list[ProjectOutput], **kwargs)
-    def list_projects(self) -> Iterator[Project]:
-        jira_projects_cached = False
+    @staticmethod
+    def _modify_projects_query(
+        query: Select,
+        where_clauses: list[Any] | None = None,
+        order_by_clauses: list[Any] | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
+    ) -> Select:
+        """Modify a query to include all required clauses and offset and limit."""
+        if where_clauses:
+            query = query.where(*where_clauses)
+        if order_by_clauses:
+            query = query.order_by(*order_by_clauses)
+        if offset is not None:
+            query = query.offset(offset)
+        if limit is not None:
+            query = query.limit(limit)
+        return query
 
-        for project in self._crud.read_all_from_db(Project):
-            if not jira_projects_cached:
-                list(self._jira_projects.list_jira_projects())
-                jira_projects_cached = True
+    def list_projects(
+        self,
+        where_clauses: list[Any] | None = None,
+        order_by_clauses: list[Any] | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
+        query_jira: bool = True,
+    ) -> list[Project]:
+        # Construct projects query
+        query = self._modify_projects_query(
+            select(Project),
+            where_clauses,
+            order_by_clauses or [Project.id],
+            offset,
+            limit,
+        )
 
-            self._set_jira_project(project, try_to_get=False)
-            yield project
+        # Execute projects query
+        projects: list[Project] = self._session.exec(query).all()
+
+        # set jira projects on projects
+        if query_jira:
+            jira_projects_cached = False
+            for project in projects:
+                if project.jira_project_id and not jira_projects_cached:
+                    # cache jira projects
+                    list(self._jira_projects.list_jira_projects())
+                    jira_projects_cached = True
+
+                self._set_jira_project(project, try_to_get=False)
+
+        return projects
+
+    def count_projects(self, where_clauses: list[Any] | None = None) -> int:
+        query = self._modify_projects_query(
+            select([func.count()]).select_from(Project), where_clauses
+        )
+        return self._session.execute(query).scalar()
 
     @router.post("/projects", status_code=201, response_model=ProjectOutput, **kwargs)
     def create_project(self, project_input: ProjectInput) -> Project:
@@ -94,3 +149,147 @@ class ProjectsView:
                 jira_project_id, try_to_get
             )
         )
+
+
+def get_project_filters(
+    # filter by pattern
+    name: str | None = None,
+    description: str | None = None,
+    #
+    # filter by ids
+    jira_project_ids: list[str] | None = Query(None),
+    #
+    # filter for existence
+    has_name: bool | None = None,
+    has_description: bool | None = None,
+    has_jira_project: bool | None = None,
+    #
+    # filter by search string
+    search: str | None = None,
+) -> list[Any]:
+    where_clauses = []
+
+    # filter by pattern
+    for column, value in [
+        (Project.name, name),
+        (Project.description, description),
+    ]:
+        if value is not None:
+            where_clauses.append(filter_by_pattern(column, value))
+
+    # filter by Jira project ids
+    if jira_project_ids:
+        where_clauses.append(
+            filter_by_values(Project.jira_project_id, jira_project_ids)
+        )
+
+    # filter for existence
+    for column, value in [
+        (Project.name, has_name),
+        (Project.description, has_description),
+        (Project.jira_project_id, has_jira_project),
+    ]:
+        if value is not None:
+            where_clauses.append(filter_for_existence(column, value))
+
+    # filter by search string
+    if search:
+        where_clauses.append(
+            or_(
+                filter_by_pattern(column, f"*{search}*")
+                for column in (
+                    Project.name,
+                    Project.description,
+                )
+            )
+        )
+
+    return where_clauses
+
+
+def get_project_sort(
+    sort_by: str | None = None, sort_order: constr(regex=r"^(asc|desc)$") | None = None
+) -> list[Any]:
+    if not (sort_by and sort_order):
+        return []
+
+    try:
+        columns = {
+            "name": [Project.name],
+            "description": [Project.description],
+            "jira_project": [Project.jira_project_id],
+        }[sort_by]
+    except KeyError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid sort_by parameter: {sort_by}",
+        )
+
+    columns.append(Project.id)
+    if sort_order == "asc":
+        return [column.asc() for column in columns]
+    else:
+        return [column.desc() for column in columns]
+
+
+@router.get(
+    "/projects",
+    response_model=Page[ProjectOutput] | list[ProjectOutput],
+    **ProjectsView.kwargs,
+)
+def get_projects(
+    where_clauses=Depends(get_project_filters),
+    order_by_clauses=Depends(get_project_sort),
+    page_params=Depends(page_params),
+    projects_view: ProjectsView = Depends(),
+):
+    projects = projects_view.list_projects(
+        where_clauses, order_by_clauses, **page_params
+    )
+    if page_params:
+        projects_count = projects_view.count_projects(where_clauses)
+        return Page[ProjectOutput](items=projects, total_count=projects_count)
+    else:
+        return projects
+
+
+@router.get(
+    "/project/representations",
+    response_model=Page[ProjectRepresentation] | list[ProjectRepresentation],
+    **ProjectsView.kwargs,
+)
+def get_project_representations(
+    where_clauses=Depends(get_project_filters),
+    order_by_clauses=Depends(get_project_sort),
+    page_params=Depends(page_params),
+    projects_view: ProjectsView = Depends(),
+):
+    projects = projects_view.list_projects(
+        where_clauses, order_by_clauses, **page_params, query_jira=False
+    )
+    if page_params:
+        projects_count = projects_view.count_projects(where_clauses)
+        return Page[ProjectRepresentation](items=projects, total_count=projects_count)
+    else:
+        return projects
+
+
+@router.get(
+    "/project/field_names",
+    response_model=list[str],
+    **ProjectsView.kwargs,
+)
+def get_project_field_names(
+    where_clauses=Depends(get_project_filters),
+    projects_view: ProjectsView = Depends(),
+) -> set[str]:
+    field_names = {"id", "name"}
+    for field, names in [
+        (Project.description, ["description"]),
+        (Project.jira_project_id, ["jira_project"]),
+    ]:
+        if projects_view.count_projects(
+            [filter_for_existence(field, True), *where_clauses]
+        ):
+            field_names.update(names)
+    return field_names
