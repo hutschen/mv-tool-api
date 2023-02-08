@@ -20,6 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_utils.cbv import cbv
 from pydantic import constr
 from sqlmodel import or_
+from sqlmodel.sql.expression import Select
 
 from mvtool.utils.filtering import (
     filter_by_pattern,
@@ -48,6 +49,25 @@ class ProjectsView:
         self._jira_projects = jira_projects
         self._crud = crud
         self._session = self._crud.session
+
+    @staticmethod
+    def _modify_projects_query(
+        query: Select,
+        where_clauses: list[Any] | None = None,
+        order_by_clauses: list[Any] | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
+    ) -> Select:
+        """Modify a query to include all required clauses and offset and limit."""
+        if where_clauses:
+            query = query.where(*where_clauses)
+        if order_by_clauses:
+            query = query.order_by(*order_by_clauses)
+        if offset is not None:
+            query = query.offset(offset)
+        if limit is not None:
+            query = query.limit(limit)
+        return query
 
     @router.get("/projects", response_model=list[ProjectOutput], **kwargs)
     def list_projects(self) -> Iterator[Project]:
