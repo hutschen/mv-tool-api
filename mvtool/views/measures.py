@@ -435,7 +435,7 @@ def get_measures(
     where_clauses=Depends(get_measure_filters),
     order_by_clauses=Depends(get_measure_sort),
     page_params=Depends(page_params),
-    measures_view: MeasuresView = Depends(MeasuresView),
+    measures_view: MeasuresView = Depends(),
 ):
     measures = measures_view.list_measures(
         where_clauses, order_by_clauses, **page_params
@@ -456,7 +456,7 @@ def get_measure_representations(
     where_clauses=Depends(get_measure_filters),
     order_by_clauses=Depends(get_measure_sort),
     page_params=Depends(page_params),
-    measures_view: MeasuresView = Depends(MeasuresView),
+    measures_view: MeasuresView = Depends(),
 ):
     measures = measures_view.list_measures(
         where_clauses, order_by_clauses, **page_params, query_jira=False
@@ -475,7 +475,7 @@ def get_measure_representations(
 )
 def get_measure_field_names(
     where_clauses=Depends(get_measure_filters),
-    measures_view: MeasuresView = Depends(MeasuresView),
+    measures_view: MeasuresView = Depends(),
 ) -> set[str]:
     field_names = {"id", "summary", "verified", "requirement", "project"}
     for field, names in [
@@ -510,7 +510,7 @@ def get_measure_references(
     where_clauses=Depends(get_measure_filters),
     local_search: str | None = None,
     page_params=Depends(page_params),
-    measures_view: MeasuresView = Depends(MeasuresView),
+    measures_view: MeasuresView = Depends(),
 ):
     if local_search:
         where_clauses.append(filter_by_pattern(Measure.reference, f"*{local_search}*"))
