@@ -19,7 +19,7 @@ from typing import Any, Iterator
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_utils.cbv import cbv
 from pydantic import constr
-from sqlmodel import or_
+from sqlmodel import or_, select
 from sqlmodel.sql.expression import Select
 
 from mvtool.utils.filtering import (
@@ -69,17 +69,42 @@ class ProjectsView:
             query = query.limit(limit)
         return query
 
+    def list_projects(
+        self,
+        where_clauses: list[Any] | None = None,
+        order_by_clauses: list[Any] | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
+        query_jira: bool = True,
+    ) -> list[Project]:
+        # Construct projects query
+        query = self._modify_projects_query(
+            select(Project),
+            where_clauses,
+            order_by_clauses or [Project.id],
+            offset,
+            limit,
+        )
+
+        # Execute projects query
+        projects: list[Project] = self._session.exec(query).all()
+
+        # set jira projects on projects
+        if query_jira:
+            jira_projects_cached = False
+            for project in projects:
+                if project.jira_project_id and not jira_projects_cached:
+                    # cache jira projects
+                    list(self._jira_projects.list_jira_projects())
+                    jira_projects_cached = True
+
+                self._set_jira_project(project, try_to_get=False)
+
+        return projects
+
     @router.get("/projects", response_model=list[ProjectOutput], **kwargs)
-    def list_projects(self) -> Iterator[Project]:
-        jira_projects_cached = False
-
-        for project in self._crud.read_all_from_db(Project):
-            if not jira_projects_cached:
-                list(self._jira_projects.list_jira_projects())
-                jira_projects_cached = True
-
-            self._set_jira_project(project, try_to_get=False)
-            yield project
+    def list_projects_legacy(self) -> list[Project]:
+        return self.list_projects()
 
     @router.post("/projects", status_code=201, response_model=ProjectOutput, **kwargs)
     def create_project(self, project_input: ProjectInput) -> Project:
