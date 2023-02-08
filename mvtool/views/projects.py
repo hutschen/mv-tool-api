@@ -26,6 +26,7 @@ from mvtool.utils.filtering import (
     filter_by_values,
     filter_for_existence,
 )
+from mvtool.utils.pagination import page_params
 
 from ..errors import NotFoundError
 from ..database import CRUDOperations
@@ -183,3 +184,28 @@ def get_project_sort(
         return [column.asc() for column in columns]
     else:
         return [column.desc() for column in columns]
+
+
+def get_projects(
+    where_clauses=Depends(get_project_filters),
+    order_by_clauses=Depends(get_project_sort),
+    page_params=Depends(page_params),
+    projects_view: ProjectsView = Depends(),
+):
+    pass
+
+
+def get_project_representations(
+    where_clauses=Depends(get_project_filters),
+    order_by_clauses=Depends(get_project_sort),
+    page_params=Depends(page_params),
+    projects_view: ProjectsView = Depends(),
+):
+    pass
+
+
+def get_project_field_names(
+    where_clauses=Depends(get_project_filters),
+    projects_view: ProjectsView = Depends(),
+):
+    pass
