@@ -274,8 +274,22 @@ def get_project_representations(
         return projects
 
 
+@router.get(
+    "/project/field_names",
+    response_model=list[str],
+    **ProjectsView.kwargs,
+)
 def get_project_field_names(
     where_clauses=Depends(get_project_filters),
     projects_view: ProjectsView = Depends(),
-):
-    pass
+) -> set[str]:
+    field_names = {"id", "name"}
+    for field, names in [
+        (Project.description, ["description"]),
+        (Project.jira_project_id, ["jira_project"]),
+    ]:
+        if projects_view.count_projects(
+            [filter_for_existence(field, True), *where_clauses]
+        ):
+            field_names.update(names)
+    return field_names
