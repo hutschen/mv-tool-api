@@ -15,20 +15,19 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any, Iterator
+from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_utils.cbv import cbv
 from pydantic import constr
 from sqlmodel import func, or_, select
 from sqlmodel.sql.expression import Select
 
-from mvtool.utils.filtering import (
+from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
 )
-from mvtool.utils.pagination import page_params
-
+from ..utils.pagination import Page, page_params
 from ..errors import NotFoundError
 from ..database import CRUDOperations
 from .jira_ import JiraProjectsView
