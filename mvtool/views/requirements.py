@@ -416,61 +416,47 @@ def get_requirement_field_names(
     return field_names
 
 
-def _get_requirement_field_values(
-    column: Column, where_clauses, page_params, requirements_view: RequirementsView
-) -> Page[str] | list[str]:
-    items = requirements_view.list_requirement_values(
-        column, where_clauses, **page_params
-    )
-    if page_params:
-        references_count = requirements_view.count_requirement_values(
-            column, where_clauses
+def _create_requirement_field_values_handler(column: Column) -> callable:
+    def handler(
+        where_clauses=Depends(get_requirement_filters),
+        local_search: str | None = None,
+        page_params=Depends(page_params),
+        requirements_view: RequirementsView = Depends(RequirementsView),
+    ) -> Page[str] | list[str]:
+        if local_search:
+            where_clauses.append(filter_by_pattern(column, f"*{local_search}*"))
+
+        items = requirements_view.list_requirement_values(
+            column, where_clauses, **page_params
         )
-        return Page[str](items=items, total_count=references_count)
-    else:
-        return items
+        if page_params:
+            references_count = requirements_view.count_requirement_values(
+                column, where_clauses
+            )
+            return Page[str](items=items, total_count=references_count)
+        else:
+            return items
+
+    return handler
 
 
-@router.get(
+router.get(
     "/requirement/references",
+    summary="Get requirement references",
     response_model=Page[str] | list[str],
     **RequirementsView.kwargs,
-)
-def get_requirement_references(
-    where_clauses=Depends(get_requirement_filters),
-    page_params=Depends(page_params),
-    requirements_view: RequirementsView = Depends(RequirementsView),
-):
-    return _get_requirement_field_values(
-        Requirement.reference, where_clauses, page_params, requirements_view
-    )
+)(_create_requirement_field_values_handler(Requirement.reference))
 
-
-@router.get(
+router.get(
     "/target-objects",
+    summary="Get target objects",
     response_model=Page[str] | list[str],
     tags=["target object"],
-)
-def get_target_objects(
-    where_clauses=Depends(get_requirement_filters),
-    page_params=Depends(page_params),
-    requirements_view: RequirementsView = Depends(RequirementsView),
-):
-    return _get_requirement_field_values(
-        Requirement.target_object, where_clauses, page_params, requirements_view
-    )
+)(_create_requirement_field_values_handler(Requirement.target_object))
 
-
-@router.get(
+router.get(
     "/milestones",
+    summary="Get milestones",
     response_model=Page[str] | list[str],
     tags=["milestone"],
-)
-def get_milestones(
-    where_clauses=Depends(get_requirement_filters),
-    page_params=Depends(page_params),
-    requirements_view: RequirementsView = Depends(RequirementsView),
-):
-    return _get_requirement_field_values(
-        Requirement.milestone, where_clauses, page_params, requirements_view
-    )
+)(_create_requirement_field_values_handler(Requirement.milestone))
