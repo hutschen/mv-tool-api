@@ -16,9 +16,16 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from typing import Iterator
-from fastapi import APIRouter, Depends, Response
+from typing import Any, Iterator
+from fastapi import APIRouter, Depends, Query, Response
 from fastapi_utils.cbv import cbv
+from sqlmodel import or_
+
+from mvtool.utils.filtering import (
+    filter_by_pattern,
+    filter_by_values,
+    filter_for_existence,
+)
 
 from ..errors import NotFoundError
 from ..database import CRUDOperations
@@ -99,3 +106,65 @@ class DocumentsView:
 
     def _set_jira_project(self, document: Document, try_to_get: bool = True) -> None:
         self._projects._set_jira_project(document.project, try_to_get)
+
+
+def get_document_filters(
+    # filter by pattern
+    reference: str | None = None,
+    title: str | None = None,
+    description: str | None = None,
+    #
+    # filter by values
+    references: list[str] | None = Query(None),
+    #
+    # filter by ids
+    project_ids: list[int] | None = Query(None),
+    #
+    # filter for existence
+    has_reference: bool | None = None,
+    has_description: bool | None = None,
+    #
+    # filter by search string
+    search: str | None = None,
+) -> list[Any]:
+    where_clauses = []
+
+    # filter by pattern
+    for column, value in (
+        (Document.reference, reference),
+        (Document.title, title),
+        (Document.description, description),
+    ):
+        if value:
+            where_clauses.append(filter_by_pattern(column, value))
+
+    # filter by values or by ids
+    for column, values in (
+        (Document.reference, references),
+        (Document.project_id, project_ids),
+    ):
+        if values:
+            where_clauses.append(filter_by_values(column, values))
+
+    # filter for existence
+    for column, value in (
+        (Document.reference, has_reference),
+        (Document.description, has_description),
+    ):
+        if value is not None:
+            where_clauses.append(filter_for_existence(column, value))
+
+    # filter by search string
+    if search:
+        where_clauses.append(
+            or_(
+                filter_by_pattern(column, f"*{search}*")
+                for column in (
+                    Document.reference,
+                    Document.title,
+                    Document.description,
+                )
+            )
+        )
+
+    return where_clauses
