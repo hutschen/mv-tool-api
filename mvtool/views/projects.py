@@ -31,7 +31,7 @@ from ..utils.pagination import Page, page_params
 from ..errors import NotFoundError
 from ..database import CRUDOperations
 from .jira_ import JiraProjectsView
-from ..models import ProjectInput, Project, ProjectOutput
+from ..models import ProjectInput, Project, ProjectOutput, ProjectRepresentation
 
 router = APIRouter()
 
@@ -253,13 +253,25 @@ def get_projects(
         return projects
 
 
+@router.get(
+    "/project/representations",
+    response_model=Page[ProjectRepresentation] | list[ProjectRepresentation],
+    **ProjectsView.kwargs,
+)
 def get_project_representations(
     where_clauses=Depends(get_project_filters),
     order_by_clauses=Depends(get_project_sort),
     page_params=Depends(page_params),
     projects_view: ProjectsView = Depends(),
 ):
-    pass
+    projects = projects_view.list_projects(
+        where_clauses, order_by_clauses, **page_params, query_jira=False
+    )
+    if page_params:
+        projects_count = projects_view.count_projects(where_clauses)
+        return Page[ProjectRepresentation](items=projects, total_count=projects_count)
+    else:
+        return projects
 
 
 def get_project_field_names(

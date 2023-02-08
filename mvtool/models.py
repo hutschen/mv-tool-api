@@ -399,6 +399,11 @@ class CatalogModuleOutput(CatalogModuleInput):
     catalog: CatalogOutput
 
 
+class ProjectRepresentation(SQLModel):
+    id: int
+    name: str
+
+
 class ProjectOutput(ProjectInput):
     id: int
     jira_project: JiraProject | None
