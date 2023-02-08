@@ -19,7 +19,7 @@ from typing import Any, Iterator
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_utils.cbv import cbv
 from pydantic import constr
-from sqlmodel import or_, select
+from sqlmodel import func, or_, select
 from sqlmodel.sql.expression import Select
 
 from mvtool.utils.filtering import (
@@ -101,6 +101,12 @@ class ProjectsView:
                 self._set_jira_project(project, try_to_get=False)
 
         return projects
+
+    def count_projects(self, where_clauses: list[Any] | None = None) -> int:
+        query = self._modify_projects_query(
+            select([func.count()]).select_from(Project), where_clauses
+        )
+        return self._session.execute(query).scalar()
 
     @router.get("/projects", response_model=list[ProjectOutput], **kwargs)
     def list_projects_legacy(self) -> list[Project]:
