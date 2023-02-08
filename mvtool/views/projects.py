@@ -107,10 +107,6 @@ class ProjectsView:
         )
         return self._session.execute(query).scalar()
 
-    @router.get("/projects", response_model=list[ProjectOutput], **kwargs)
-    def list_projects_legacy(self) -> list[Project]:
-        return self.list_projects()
-
     @router.post("/projects", status_code=201, response_model=ProjectOutput, **kwargs)
     def create_project(self, project_input: ProjectInput) -> Project:
         self._jira_projects.check_jira_project_id(project_input.jira_project_id)
@@ -236,13 +232,25 @@ def get_project_sort(
         return [column.desc() for column in columns]
 
 
+@router.get(
+    "/projects",
+    response_model=Page[ProjectOutput] | list[ProjectOutput],
+    **ProjectsView.kwargs,
+)
 def get_projects(
     where_clauses=Depends(get_project_filters),
     order_by_clauses=Depends(get_project_sort),
     page_params=Depends(page_params),
     projects_view: ProjectsView = Depends(),
 ):
-    pass
+    projects = projects_view.list_projects(
+        where_clauses, order_by_clauses, **page_params
+    )
+    if page_params:
+        projects_count = projects_view.count_projects(where_clauses)
+        return Page[ProjectOutput](items=projects, total_count=projects_count)
+    else:
+        return projects
 
 
 def get_project_representations(
