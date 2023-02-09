@@ -19,7 +19,7 @@ from typing import Any, Iterator
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_utils.cbv import cbv
 from pydantic import constr
-from sqlmodel import Column, or_, select
+from sqlmodel import Column, func, or_, select
 from sqlmodel.sql.expression import Select
 
 from ..utils.filtering import (
@@ -81,6 +81,12 @@ class CatalogsView:
             limit,
         )
         return self._session.exec(query).all()
+
+    def count_catalogs(self, where_clauses: list[Any] | None = None) -> int:
+        query = self._modify_catalogs_query(
+            select([func.count()]).select_from(Catalog), where_clauses
+        )
+        return self._session.execute(query).scalar()
 
     @router.get("/catalogs", response_model=list[CatalogOutput], **kwargs)
     def list_catalogs_legacy(self) -> list[Catalog]:
