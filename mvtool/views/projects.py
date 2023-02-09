@@ -195,10 +195,7 @@ def get_project_filters(
         where_clauses.append(
             or_(
                 filter_by_pattern(column, f"*{search}*")
-                for column in (
-                    Project.name,
-                    Project.description,
-                )
+                for column in (Project.name, Project.description)
             )
         )
 
