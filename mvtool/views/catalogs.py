@@ -15,10 +15,16 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Iterator
-from fastapi import APIRouter, Depends
+from typing import Any, Iterator
+from fastapi import APIRouter, Depends, Query
 from fastapi_utils.cbv import cbv
+from sqlmodel import or_
 
+from ..utils.filtering import (
+    filter_by_pattern,
+    filter_by_values,
+    filter_for_existence,
+)
 from ..errors import NotFoundError
 from ..auth import get_jira
 from ..models import Catalog, CatalogInput, CatalogOutput
@@ -84,3 +90,54 @@ class CatalogsView:
     @router.delete("/catalogs/{catalog_id}", status_code=204, **kwargs)
     def delete_catalog(self, catalog_id: int) -> None:
         return self._crud.delete_from_db(Catalog, catalog_id)
+
+
+def get_catalog_filters(
+    # filter by pattern
+    reference: str | None = None,
+    title: str | None = None,
+    description: str | None = None,
+    #
+    # filter by values
+    references: list[str] | None = Query(None),
+    #
+    # filter for existence
+    has_reference: bool | None = None,
+    has_description: bool | None = None,
+    #
+    # filter by search string
+    search: str | None = None,
+) -> list[Any]:
+    where_clauses = []
+
+    # filter by pattern
+    for column, value in [
+        (Catalog.reference, reference),
+        (Catalog.title, title),
+        (Catalog.description, description),
+    ]:
+        if value is not None:
+            where_clauses.append(filter_by_pattern(column, value))
+
+    # filter by values
+    if references:
+        where_clauses.append(filter_by_values(Catalog.reference, references))
+
+    # filter for existence
+    for column, value in [
+        (Catalog.reference, has_reference),
+        (Catalog.description, has_description),
+    ]:
+        if value is not None:
+            where_clauses.append(filter_for_existence(column, value))
+
+    # filter by search string
+    if search:
+        where_clauses.append(
+            or_(
+                filter_by_pattern(column, f"*{search}*")
+                for column in (Catalog.reference, Catalog.title, Catalog.description)
+            )
+        )
+
+    return where_clauses
