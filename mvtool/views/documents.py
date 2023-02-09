@@ -102,6 +102,20 @@ class DocumentsView:
         )
         return self._session.execute(query).scalar()
 
+    def list_document_values(
+        self,
+        column: Column,
+        where_clauses: Any = None,
+        offset: int | None = None,
+        limit: int | None = None,
+    ) -> list[Any]:
+        query = self._modify_documents_query(
+            select([func.distinct(column)]).select_from(Document),
+            [filter_for_existence(column), *where_clauses],
+            offset=offset,
+            limit=limit,
+        )
+        return self._session.exec(query).all()
     @router.get(
         "/projects/{project_id}/documents",
         response_model=list[DocumentOutput],
