@@ -67,37 +67,19 @@ class CatalogsView:
         return query
 
     @router.get("/catalogs", response_model=list[CatalogOutput], **kwargs)
-    def _list_catalogs(self) -> Iterator[CatalogOutput]:
-        for catalog in self.list_catalogs():
-            yield CatalogOutput.from_orm(catalog)
-
     def list_catalogs(self) -> list[Catalog]:
         return self._crud.read_all_from_db(Catalog)
 
     @router.post("/catalogs", status_code=201, response_model=CatalogOutput, **kwargs)
-    def _create_catalog(self, catalog_input: CatalogInput) -> CatalogOutput:
-        catalog = self.create_catalog(catalog_input)
-        return CatalogOutput.from_orm(catalog)
-
     def create_catalog(self, catalog_input: CatalogInput) -> Catalog:
         catalog = Catalog.from_orm(catalog_input)
         return self._crud.create_in_db(catalog)
 
     @router.get("/catalogs/{catalog_id}", response_model=CatalogOutput, **kwargs)
-    def _get_catalog(self, catalog_id: int) -> CatalogOutput:
-        catalog = self.get_catalog(catalog_id)
-        return CatalogOutput.from_orm(catalog)
-
     def get_catalog(self, catalog_id: int) -> Catalog:
         return self._crud.read_from_db(Catalog, catalog_id)
 
     @router.put("/catalogs/{catalog_id}", response_model=CatalogOutput, **kwargs)
-    def _update_catalog(
-        self, catalog_id: int, catalog_input: CatalogInput
-    ) -> CatalogOutput:
-        catalog = self.update_catalog(catalog_id, catalog_input)
-        return CatalogOutput.from_orm(catalog)
-
     def update_catalog(self, catalog_id: int, catalog_input: CatalogInput) -> Catalog:
         catalog = self._session.get(Catalog, catalog_id)
         if not catalog:
