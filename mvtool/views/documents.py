@@ -69,12 +69,39 @@ class DocumentsView:
             query = query.limit(limit)
         return query
 
+    def list_documents(
+        self,
+        where_clauses: Any = None,
+        order_by_clauses: Any = None,
+        offset: int | None = None,
+        limit: int | None = None,
+        query_jira: bool = True,
+    ) -> list[Document]:
+        # construct documents query
+        query = self._modify_documents_query(
+            select(Document),
+            where_clauses,
+            order_by_clauses or [Document.id],
+            offset,
+            limit,
+        )
+
+        # execute documents query
+        documents = self._session.exec(query).all()
+
+        # set jira project on the project related to each document
+        if query_jira:
+            for document in documents:
+                self._set_jira_project(document)
+
+        return documents
+
     @router.get(
         "/projects/{project_id}/documents",
         response_model=list[DocumentOutput],
         **kwargs,
     )
-    def list_documents(self, project_id: int) -> Iterator[Document]:
+    def list_documents_legacy(self, project_id: int) -> Iterator[Document]:
         for document in self._crud.read_all_from_db(Document, project_id=project_id):
             self._set_jira_project(document)
             yield document
