@@ -333,3 +333,29 @@ def get_document_field_names(
         ):
             field_names.update(names)
     return field_names
+
+
+@router.get(
+    "/document/references",
+    response_model=Page[str] | list[str],
+    **DocumentsView.kwargs,
+)
+def get_document_references(
+    where_clauses=Depends(get_document_filters),
+    local_search: str | None = None,
+    page_params=Depends(page_params),
+    document_view: DocumentsView = Depends(),
+):
+    if local_search:
+        where_clauses.append(filter_by_pattern(Document.reference, f"*{local_search}*"))
+
+    references = document_view.list_document_values(
+        Document.reference, where_clauses, **page_params
+    )
+    if page_params:
+        references_count = document_view.count_document_values(
+            Document.reference, where_clauses
+        )
+        return Page[str](items=references, total_count=references_count)
+    else:
+        return references
