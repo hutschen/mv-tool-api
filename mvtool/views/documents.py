@@ -32,7 +32,14 @@ from ..utils.filtering import (
 from ..errors import NotFoundError
 from ..database import CRUDOperations
 from .projects import ProjectsView
-from ..models import DocumentInput, Document, DocumentOutput, JiraProject, Project
+from ..models import (
+    DocumentInput,
+    Document,
+    DocumentOutput,
+    DocumentRepresentation,
+    JiraProject,
+    Project,
+)
 
 router = APIRouter()
 
@@ -280,5 +287,28 @@ def get_documents(
     if page_params:
         documents_count = documents_view.count_documents(where_clauses)
         return Page[DocumentOutput](items=documents, total_count=documents_count)
+    else:
+        return documents
+
+
+@router.get(
+    "/document/representations",
+    response_model=Page[DocumentRepresentation] | list[DocumentRepresentation],
+    **DocumentsView.kwargs,
+)
+def get_document_representations(
+    where_clauses=Depends(get_document_filters),
+    order_by_clauses=Depends(get_document_sort),
+    page_params=Depends(page_params),
+    documents_view: DocumentsView = Depends(),
+):
+    documents = documents_view.list_documents(
+        where_clauses, order_by_clauses, **page_params, query_jira=False
+    )
+    if page_params:
+        documents_count = documents_view.count_documents(where_clauses)
+        return Page[DocumentRepresentation](
+            items=documents, total_count=documents_count
+        )
     else:
         return documents

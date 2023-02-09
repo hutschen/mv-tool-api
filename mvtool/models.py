@@ -411,6 +411,12 @@ class ProjectOutput(ProjectInput):
     verification_progress: confloat(ge=0, le=1) | None
 
 
+class DocumentRepresentation(SQLModel):
+    id: int
+    reference: str | None
+    title: str
+
+
 class DocumentOutput(DocumentInput):
     id: int
     project: ProjectOutput
