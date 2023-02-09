@@ -19,7 +19,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_utils.cbv import cbv
 from pydantic import constr
-from sqlmodel import func, or_, select
+from sqlmodel import Column, func, or_, select
 from sqlmodel.sql.expression import Select
 
 from ..utils.filtering import (
@@ -209,7 +209,7 @@ def get_project_sort(
         return []
 
     try:
-        columns = {
+        columns: list[Column] = {
             "name": [Project.name],
             "description": [Project.description],
             "jira_project": [Project.jira_project_id],
