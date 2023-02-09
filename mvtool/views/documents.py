@@ -125,16 +125,6 @@ class DocumentsView:
         )
         return self._session.execute(query).scalar()
 
-    @router.get(
-        "/projects/{project_id}/documents",
-        response_model=list[DocumentOutput],
-        **kwargs,
-    )
-    def list_documents_legacy(self, project_id: int) -> Iterator[Document]:
-        for document in self._crud.read_all_from_db(Document, project_id=project_id):
-            self._set_jira_project(document)
-            yield document
-
     @router.post(
         "/projects/{project_id}/documents",
         status_code=201,
