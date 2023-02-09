@@ -23,6 +23,7 @@ from pydantic import constr
 from sqlmodel import Column, func, select, or_
 from sqlmodel.sql.expression import Select
 
+from ..utils.pagination import Page, page_params
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
@@ -270,3 +271,24 @@ def get_document_sort(
         return [column.asc() for column in columns]
     else:
         return [column.desc() for column in columns]
+
+
+@router.get(
+    "/documents",
+    response_model=Page[DocumentOutput] | list[DocumentOutput],
+    **DocumentsView.kwargs,
+)
+def get_documents(
+    where_clauses=Depends(get_document_filters),
+    order_by_clauses=Depends(get_document_sort),
+    page_params=Depends(page_params),
+    documents_view: DocumentsView = Depends(),
+):
+    documents = documents_view.list_documents(
+        where_clauses, order_by_clauses, **page_params
+    )
+    if page_params:
+        documents_count = documents_view.count_documents(where_clauses)
+        return Page[DocumentOutput](items=documents, total_count=documents_count)
+    else:
+        return documents
