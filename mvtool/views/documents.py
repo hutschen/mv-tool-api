@@ -96,6 +96,12 @@ class DocumentsView:
 
         return documents
 
+    def count_documents(self, where_clauses: Any = None) -> int:
+        query = self._modify_documents_query(
+            select([func.count()]).select_from(Document), where_clauses
+        )
+        return self._session.execute(query).scalar()
+
     @router.get(
         "/projects/{project_id}/documents",
         response_model=list[DocumentOutput],
