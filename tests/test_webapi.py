@@ -22,7 +22,7 @@ from fastapi.testclient import TestClient
 from mvtool import app
 from mvtool.auth import get_jira
 from mvtool.database import get_session
-from mvtool.models import Project, CatalogModule, Requirement
+from mvtool.models import Document, Project, CatalogModule, Requirement
 
 
 @pytest.fixture
@@ -155,8 +155,8 @@ def test_delete_project(client, create_project: Project):
     assert response.status_code == 404
 
 
-def test_list_documents(client, create_project: Project):
-    response = client.get(f"/api/projects/{create_project.id}/documents")
+def test_list_documents(client, create_document: Document):
+    response = client.get(f"/api/documents")
     assert response.status_code == 200
     assert type(response.json()) == list
 

@@ -24,7 +24,7 @@ from mvtool.views.documents import DocumentsView
 def test_list_document(
     documents_view: DocumentsView, create_project: Project, create_document: Document
 ):
-    results = list(documents_view.list_documents(create_project.id))
+    results = list(documents_view.list_documents())
 
     assert len(results) == 1
     document = results[0]
@@ -32,11 +32,6 @@ def test_list_document(
     assert document.id == create_document.id
     assert document.project.id == create_project.id
     assert document.project.jira_project.id == create_project.jira_project_id
-
-
-def test_list_document_with_invalid_project_id(documents_view: DocumentsView):
-    result = list(documents_view.list_documents(-1))
-    assert len(result) == 0
 
 
 def test_create_document(

@@ -289,7 +289,6 @@ def get_measure_filters(
     #
     # filter for existence
     has_reference: bool | None = None,
-    has_summary: bool | None = None,
     has_description: bool | None = None,
     has_compliance_status: bool | None = None,
     has_compliance_comment: bool | None = None,
@@ -341,7 +340,6 @@ def get_measure_filters(
     # filter for existence
     for column, value in [
         (Measure.reference, has_reference),
-        (Measure.summary, has_summary),
         (Measure.description, has_description),
         (Measure.compliance_status, has_compliance_status),
         (Measure.compliance_comment, has_compliance_comment),

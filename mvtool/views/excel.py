@@ -624,7 +624,7 @@ class DocumentsExcelView(ExcelView):
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> FileResponse:
         return self._process_download(
-            self._documents.list_documents(project_id),
+            self._documents.list_documents([Document.project_id == project_id]),
             temp_file,
             sheet_name=sheet_name,
             filename=filename,

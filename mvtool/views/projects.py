@@ -160,7 +160,6 @@ def get_project_filters(
     jira_project_ids: list[str] | None = Query(None),
     #
     # filter for existence
-    has_name: bool | None = None,
     has_description: bool | None = None,
     has_jira_project: bool | None = None,
     #
@@ -185,7 +184,6 @@ def get_project_filters(
 
     # filter for existence
     for column, value in [
-        (Project.name, has_name),
         (Project.description, has_description),
         (Project.jira_project_id, has_jira_project),
     ]:
