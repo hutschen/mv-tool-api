@@ -312,3 +312,24 @@ def get_document_representations(
         )
     else:
         return documents
+
+
+@router.get(
+    "/document/field-names",
+    response_model=list[str],
+    **DocumentsView.kwargs,
+)
+def get_document_field_names(
+    where_clauses=Depends(get_document_filters),
+    document_view: DocumentsView = Depends(),
+) -> set[str]:
+    field_names = {"id", "title", "project"}
+    for field, names in [
+        (Document.reference, ["reference"]),
+        (Document.description, ["description"]),
+    ]:
+        if document_view.count_documents(
+            [filter_for_existence(field, True), *where_clauses]
+        ):
+            field_names.update(names)
+    return field_names
