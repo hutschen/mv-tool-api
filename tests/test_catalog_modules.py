@@ -27,55 +27,55 @@ from mvtool.models import (
 from mvtool.views.catalog_modules import CatalogModulesView
 
 
-def test_list_catalog_module_outputs(
+def test_list_catalog_module(
     catalog_modules_view: CatalogModulesView,
     create_catalog: Catalog,
     create_catalog_module: CatalogModule,
 ):
-    results = list(catalog_modules_view._list_catalog_modules(create_catalog.id))
+    results = list(catalog_modules_view.list_catalog_modules(create_catalog.id))
     assert len(results) == 1
-    catalog_module_output = results[0]
-    assert isinstance(catalog_module_output, CatalogModuleOutput)
-    assert catalog_module_output.id == create_catalog_module.id
+    catalog_module = results[0]
+    assert isinstance(catalog_module, CatalogModule)
+    assert catalog_module.id == create_catalog_module.id
 
 
-def test_create_catalog_module_output(
+def test_create_catalog_module(
     catalog_modules_view: CatalogModulesView,
     create_catalog: Catalog,
     catalog_module_input: CatalogModuleInput,
 ):
-    catalog_module_output = catalog_modules_view._create_catalog_module(
+    catalog_module = catalog_modules_view.create_catalog_module(
         create_catalog.id, catalog_module_input
     )
-    assert isinstance(catalog_module_output, CatalogModuleOutput)
-    assert catalog_module_output.title == catalog_module_input.title
-    assert catalog_module_output.catalog.id == create_catalog.id
+    assert isinstance(catalog_module, CatalogModule)
+    assert catalog_module.title == catalog_module_input.title
+    assert catalog_module.catalog.id == create_catalog.id
 
 
-def test_get_catalog_module_output(
+def test_get_catalog_module(
     catalog_modules_view: CatalogModulesView, create_catalog_module: CatalogModule
 ):
-    catalog_module_output = catalog_modules_view._get_catalog_module(
+    catalog_module_output = catalog_modules_view.get_catalog_module(
         create_catalog_module.id
     )
-    assert isinstance(catalog_module_output, CatalogModuleOutput)
+    assert isinstance(catalog_module_output, CatalogModule)
     assert catalog_module_output.id == create_catalog_module.id
 
 
-def test_update_catalog_module_output(
+def test_update_catalog_module(
     catalog_modules_view: CatalogModulesView,
     create_catalog_module: CatalogModule,
     catalog_module_input: CatalogModuleInput,
 ):
     catalog_module_input.title += "updated"
-    catalog_module_output = catalog_modules_view._update_catalog_module(
+    catalog_module = catalog_modules_view.update_catalog_module(
         create_catalog_module.id, catalog_module_input
     )
-    assert isinstance(catalog_module_output, CatalogModuleOutput)
-    assert catalog_module_output.title == catalog_module_input.title
+    assert isinstance(catalog_module, CatalogModule)
+    assert catalog_module.title == catalog_module_input.title
 
 
-def test_update_catalog_module_output_invalid_catalog_module_id(
+def test_update_catalog_module_invalid_catalog_module_id(
     catalog_modules_view: CatalogModulesView,
     catalog_module_input: CatalogModuleInput,
 ):
@@ -90,5 +90,5 @@ def test_delete_catalog_module(
 ):
     catalog_modules_view.delete_catalog_module(create_catalog_module.id)
     with pytest.raises(HTTPException) as error_info:
-        catalog_modules_view._get_catalog_module(create_catalog_module.id)
+        catalog_modules_view.get_catalog_module(create_catalog_module.id)
     assert error_info.value.status_code == 404

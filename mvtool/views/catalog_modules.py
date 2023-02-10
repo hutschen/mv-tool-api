@@ -58,13 +58,6 @@ class CatalogModulesView:
         response_model=list[CatalogModuleOutput],
         **kwargs,
     )
-    def _list_catalog_modules(self, catalog_id: int) -> Iterator[CatalogModuleOutput]:
-        catalog_output = self._catalogs.get_catalog(catalog_id)
-        for catalog_module in self.list_catalog_modules(catalog_id):
-            yield CatalogModuleOutput.from_orm(
-                catalog_module, update=dict(catalog=catalog_output)
-            )
-
     def list_catalog_modules(self, catalog_id: int) -> list[CatalogModule]:
         return self._crud.read_all_from_db(CatalogModule, catalog_id=catalog_id)
 
@@ -74,14 +67,6 @@ class CatalogModulesView:
         response_model=CatalogModuleOutput,
         **kwargs,
     )
-    def _create_catalog_module(
-        self, catalog_id: int, catalog_module_input: CatalogModuleInput
-    ) -> CatalogModuleOutput:
-        return CatalogModuleOutput.from_orm(
-            self.create_catalog_module(catalog_id, catalog_module_input),
-            update=dict(catalog=self._catalogs.get_catalog(catalog_id)),
-        )
-
     def create_catalog_module(
         self, catalog_id: int, catalog_module_input: CatalogModuleInput
     ) -> CatalogModule:
@@ -94,13 +79,6 @@ class CatalogModulesView:
         response_model=CatalogModuleOutput,
         **kwargs,
     )
-    def _get_catalog_module(self, catalog_module_id: int) -> CatalogModuleOutput:
-        catalog_module = self.get_catalog_module(catalog_module_id)
-        return CatalogModuleOutput.from_orm(
-            catalog_module,
-            update=dict(catalog=self._catalogs.get_catalog(catalog_module.catalog_id)),
-        )
-
     def get_catalog_module(self, catalog_module_id: int) -> CatalogModule:
         return self._crud.read_from_db(CatalogModule, catalog_module_id)
 
@@ -109,17 +87,6 @@ class CatalogModulesView:
         response_model=CatalogModuleOutput,
         **kwargs,
     )
-    def _update_catalog_module(
-        self, catalog_module_id: int, catalog_module_input: CatalogModuleInput
-    ) -> CatalogModuleOutput:
-        catalog_module = self.update_catalog_module(
-            catalog_module_id, catalog_module_input
-        )
-        return CatalogModuleOutput.from_orm(
-            catalog_module,
-            update=dict(catalog=self._catalogs.get_catalog(catalog_module.catalog_id)),
-        )
-
     def update_catalog_module(
         self, catalog_module_id: int, catalog_module_input: CatalogModuleInput
     ) -> CatalogModule:
