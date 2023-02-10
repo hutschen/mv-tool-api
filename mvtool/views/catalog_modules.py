@@ -36,6 +36,7 @@ from ..models import (
     CatalogModule,
     CatalogModuleInput,
     CatalogModuleOutput,
+    CatalogModuleRepresentation,
 )
 from ..database import CRUDOperations
 
@@ -272,5 +273,29 @@ def get_catalog_modules(
     if page_params:
         cmodule_count = catalog_modules_view.count_catalog_modules(where_clauses)
         return Page[CatalogModuleOutput](items=cmodules, total_count=cmodule_count)
+    else:
+        return cmodules
+
+
+@router.get(
+    "/catalog-module/representations",
+    response_model=Page[CatalogModuleRepresentation]
+    | list[CatalogModuleRepresentation],
+    **CatalogModulesView.kwargs,
+)
+def get_catalog_modules(
+    where_clauses=Depends(get_catalog_module_filters),
+    order_by_clauses=Depends(get_catalog_module_sort),
+    page_params=Depends(page_params),
+    catalog_modules_view: CatalogModulesView = Depends(),
+):
+    cmodules = catalog_modules_view.list_catalog_modules(
+        where_clauses, order_by_clauses, **page_params
+    )
+    if page_params:
+        cmodule_count = catalog_modules_view.count_catalog_modules(where_clauses)
+        return Page[CatalogModuleRepresentation](
+            items=cmodules, total_count=cmodule_count
+        )
     else:
         return cmodules
