@@ -50,7 +50,7 @@ class CatalogModulesView:
         **kwargs,
     )
     def _list_catalog_modules(self, catalog_id: int) -> Iterator[CatalogModuleOutput]:
-        catalog_output = self._catalogs._get_catalog(catalog_id)
+        catalog_output = self._catalogs.get_catalog(catalog_id)
         for catalog_module in self.list_catalog_modules(catalog_id):
             yield CatalogModuleOutput.from_orm(
                 catalog_module, update=dict(catalog=catalog_output)
@@ -70,7 +70,7 @@ class CatalogModulesView:
     ) -> CatalogModuleOutput:
         return CatalogModuleOutput.from_orm(
             self.create_catalog_module(catalog_id, catalog_module_input),
-            update=dict(catalog=self._catalogs._get_catalog(catalog_id)),
+            update=dict(catalog=self._catalogs.get_catalog(catalog_id)),
         )
 
     def create_catalog_module(
@@ -89,7 +89,7 @@ class CatalogModulesView:
         catalog_module = self.get_catalog_module(catalog_module_id)
         return CatalogModuleOutput.from_orm(
             catalog_module,
-            update=dict(catalog=self._catalogs._get_catalog(catalog_module.catalog_id)),
+            update=dict(catalog=self._catalogs.get_catalog(catalog_module.catalog_id)),
         )
 
     def get_catalog_module(self, catalog_module_id: int) -> CatalogModule:
@@ -108,7 +108,7 @@ class CatalogModulesView:
         )
         return CatalogModuleOutput.from_orm(
             catalog_module,
-            update=dict(catalog=self._catalogs._get_catalog(catalog_module.catalog_id)),
+            update=dict(catalog=self._catalogs.get_catalog(catalog_module.catalog_id)),
         )
 
     def update_catalog_module(

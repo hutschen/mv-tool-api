@@ -19,7 +19,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_utils.cbv import cbv
 from pydantic import constr
-from sqlmodel import func, or_, select
+from sqlmodel import Column, func, or_, select
 from sqlmodel.sql.expression import Select
 
 from ..utils.filtering import (
@@ -195,10 +195,7 @@ def get_project_filters(
         where_clauses.append(
             or_(
                 filter_by_pattern(column, f"*{search}*")
-                for column in (
-                    Project.name,
-                    Project.description,
-                )
+                for column in (Project.name, Project.description)
             )
         )
 
@@ -212,7 +209,7 @@ def get_project_sort(
         return []
 
     try:
-        columns = {
+        columns: list[Column] = {
             "name": [Project.name],
             "description": [Project.description],
             "jira_project": [Project.jira_project_id],
@@ -273,7 +270,7 @@ def get_project_representations(
 
 
 @router.get(
-    "/project/field_names",
+    "/project/field-names",
     response_model=list[str],
     **ProjectsView.kwargs,
 )

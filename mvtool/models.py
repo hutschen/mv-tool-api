@@ -390,6 +390,12 @@ class Project(ProjectInput, CommonFieldsMixin, table=True):
         return verified / total if total else None
 
 
+class CatalogRepresentation(SQLModel):
+    id: int
+    reference: str | None
+    title: str
+
+
 class CatalogOutput(CatalogInput):
     id: int
 
