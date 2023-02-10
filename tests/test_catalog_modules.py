@@ -32,7 +32,9 @@ def test_list_catalog_module(
     create_catalog: Catalog,
     create_catalog_module: CatalogModule,
 ):
-    results = list(catalog_modules_view.list_catalog_modules(create_catalog.id))
+    results = catalog_modules_view.list_catalog_modules(
+        [CatalogModule.catalog_id == create_catalog.id]
+    )
     assert len(results) == 1
     catalog_module = results[0]
     assert isinstance(catalog_module, CatalogModule)

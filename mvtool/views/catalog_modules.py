@@ -19,7 +19,7 @@ from typing import Any, Iterator
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi_utils.cbv import cbv
 from pydantic import constr
-from sqlmodel import Column, or_
+from sqlmodel import Column, or_, select
 from sqlmodel.sql.expression import Select
 
 from ..utils.filtering import (
@@ -73,13 +73,21 @@ class CatalogModulesView:
             query = query.limit(limit)
         return query
 
-    @router.get(
-        "/catalogs/{catalog_id}/catalog-modules",
-        response_model=list[CatalogModuleOutput],
-        **kwargs,
-    )
-    def list_catalog_modules(self, catalog_id: int) -> list[CatalogModule]:
-        return self._crud.read_all_from_db(CatalogModule, catalog_id=catalog_id)
+    def list_catalog_modules(
+        self,
+        where_clauses: Any = None,
+        order_by_clauses: Any = None,
+        offset: int | None = None,
+        limit: int | None = None,
+    ) -> list[CatalogModule]:
+        query = self._modify_catalog_modules_query(
+            select(CatalogModule),
+            where_clauses,
+            order_by_clauses or [CatalogModule.id],
+            offset,
+            limit,
+        )
+        return self._session.exec(query).all()
 
     @router.post(
         "/catalogs/{catalog_id}/catalog-modules",
