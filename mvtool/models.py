@@ -400,6 +400,12 @@ class CatalogOutput(CatalogInput):
     id: int
 
 
+class CatalogModuleRepresentation(SQLModel):
+    id: int
+    reference: str | None
+    title: str
+
+
 class CatalogModuleOutput(CatalogModuleInput):
     id: int
     catalog: CatalogOutput

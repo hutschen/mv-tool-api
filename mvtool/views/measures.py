@@ -390,7 +390,7 @@ def get_measure_sort(
         return []
 
     try:
-        columns = {
+        columns: list[Column] = {
             "reference": [Measure.reference],
             "summary": [Measure.summary],
             "description": [Measure.description],
