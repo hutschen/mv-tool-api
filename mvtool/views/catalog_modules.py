@@ -15,13 +15,21 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Iterator
+from typing import Any, Iterator
 from fastapi import APIRouter, Depends
 from fastapi_utils.cbv import cbv
+from sqlmodel import or_
+
+from mvtool.utils.filtering import (
+    filter_by_pattern,
+    filter_by_values,
+    filter_for_existence,
+)
 
 from .catalogs import CatalogsView
 from ..errors import NotFoundError
 from ..models import (
+    Catalog,
     CatalogModule,
     CatalogModuleInput,
     CatalogModuleOutput,
@@ -126,3 +134,67 @@ class CatalogModulesView:
     @router.delete("/catalog-modules/{catalog_module_id}", status_code=204, **kwargs)
     def delete_catalog_module(self, catalog_module_id: int) -> None:
         self._crud.delete_from_db(CatalogModule, catalog_module_id)
+
+
+def get_catalog_module_filters(
+    # filter by pattern
+    reference: str | None = None,
+    title: str | None = None,
+    description: str | None = None,
+    #
+    # filter by values
+    references: list[str] | None = None,
+    #
+    # filter by ids
+    catalog_ids: list[int] | None = None,
+    #
+    # filter for existence
+    has_reference: bool | None = None,
+    has_description: bool | None = None,
+    #
+    # filter by search string
+    search: str | None = None,
+) -> list[Any]:
+    where_clauses = []
+
+    # filter by pattern
+    for column, value in [
+        (CatalogModule.reference, reference),
+        (CatalogModule.title, title),
+        (CatalogModule.description, description),
+    ]:
+        if value is not None:
+            where_clauses.append(filter_by_pattern(column, value))
+
+    # filter by values
+    for column, values in [
+        (CatalogModule.reference, references),
+        (CatalogModule.catalog_id, catalog_ids),
+    ]:
+        if values:
+            where_clauses.append(filter_by_values(column, values))
+
+    # filter for existence
+    for column, value in [
+        (CatalogModule.reference, has_reference),
+        (CatalogModule.description, has_description),
+    ]:
+        if value is not None:
+            where_clauses.append(filter_for_existence(column, value))
+
+    # filter by search string
+    if search:
+        where_clauses.append(
+            or_(
+                filter_by_pattern(column, f"*{search}*")
+                for column in (
+                    CatalogModule.reference,
+                    CatalogModule.title,
+                    CatalogModule.description,
+                    Catalog.reference,
+                    Catalog.title,
+                )
+            )
+        )
+
+    return where_clauses
