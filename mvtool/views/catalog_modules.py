@@ -16,9 +16,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from typing import Any, Iterator
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi_utils.cbv import cbv
-from sqlmodel import or_
+from pydantic import constr
+from sqlmodel import Column, or_
 
 from mvtool.utils.filtering import (
     filter_by_pattern,
@@ -198,3 +199,29 @@ def get_catalog_module_filters(
         )
 
     return where_clauses
+
+
+def get_catalog_module_sort(
+    sort_by: str | None = None, sort_order: constr(regex=r"^(asc|desc)$") | None = None
+) -> list[Any]:
+    if not (sort_by and sort_order):
+        return []
+
+    try:
+        columns: list[Column] = {
+            "reference": [CatalogModule.reference],
+            "title": [CatalogModule.title],
+            "description": [CatalogModule.description],
+            "catalog": [Catalog.reference, Catalog.title],
+        }[sort_by]
+    except KeyError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid sort_by parameter: {sort_by}",
+        )
+
+    columns.append(CatalogModule.id)
+    if sort_order == "asc":
+        return [column.asc() for column in columns]
+    else:
+        return [column.desc() for column in columns]
