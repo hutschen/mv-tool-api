@@ -16,11 +16,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from typing import Any, Iterator
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_utils.cbv import cbv
 from pydantic import constr
 from sqlmodel import Column, func, or_, select
 from sqlmodel.sql.expression import Select
+
+from mvtool.utils.pagination import Page, page_params
 
 from ..utils.filtering import (
     filter_by_pattern,
@@ -170,10 +172,10 @@ def get_catalog_module_filters(
     description: str | None = None,
     #
     # filter by values
-    references: list[str] | None = None,
+    references: list[str] | None = Query(None),
     #
     # filter by ids
-    catalog_ids: list[int] | None = None,
+    catalog_ids: list[int] | None = Query(None),
     #
     # filter for existence
     has_reference: bool | None = None,
@@ -251,3 +253,24 @@ def get_catalog_module_sort(
         return [column.asc() for column in columns]
     else:
         return [column.desc() for column in columns]
+
+
+@router.get(
+    "/catalog-modules",
+    response_model=Page[CatalogModuleOutput] | list[CatalogModuleOutput],
+    **CatalogModulesView.kwargs,
+)
+def get_catalog_modules(
+    where_clauses=Depends(get_catalog_module_filters),
+    order_by_clauses=Depends(get_catalog_module_sort),
+    page_params=Depends(page_params),
+    catalog_modules_view: CatalogModulesView = Depends(),
+):
+    cmodules = catalog_modules_view.list_catalog_modules(
+        where_clauses, order_by_clauses, **page_params
+    )
+    if page_params:
+        cmodule_count = catalog_modules_view.count_catalog_modules(where_clauses)
+        return Page[CatalogModuleOutput](items=cmodules, total_count=cmodule_count)
+    else:
+        return cmodules
