@@ -299,3 +299,24 @@ def get_catalog_modules(
         )
     else:
         return cmodules
+
+
+@router.get(
+    "/catalog-module/field-names",
+    response_model=list[str],
+    **CatalogModulesView.kwargs,
+)
+def get_catalog_module_field_names(
+    where_clauses=Depends(get_catalog_module_filters),
+    catalog_modules_view: CatalogModulesView = Depends(),
+) -> set[str]:
+    field_names = {"id", "title", "catalog"}
+    for field, names in [
+        (CatalogModule.reference, ["reference"]),
+        (CatalogModule.description, ["description"]),
+    ]:
+        if catalog_modules_view.count_catalog_modules(
+            [filter_for_existence(field, True), *where_clauses]
+        ):
+            field_names.update(names)
+    return field_names
