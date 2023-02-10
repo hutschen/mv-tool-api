@@ -89,6 +89,30 @@ class CatalogsView:
         )
         return self._session.execute(query).scalar()
 
+    def list_catalog_values(
+        self,
+        column: Column,
+        where_clauses: list[Any] | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
+    ) -> list[Any]:
+        query = self._modify_catalogs_query(
+            select([func.distinct(column)]).select_from(Catalog),
+            [filter_for_existence(column), *where_clauses],
+            offset=offset,
+            limit=limit,
+        )
+        return self._session.exec(query).all()
+
+    def count_catalog_values(
+        self, column: Column, where_clauses: list[Any] | None = None
+    ) -> int:
+        query = self._modify_catalogs_query(
+            select([func.count(func.distinct(column))]).select_from(Catalog),
+            [filter_for_existence(column), *where_clauses],
+        )
+        return self._session.execute(query).scalar()
+
     @router.post("/catalogs", status_code=201, response_model=CatalogOutput, **kwargs)
     def create_catalog(self, catalog_input: CatalogInput) -> Catalog:
         catalog = Catalog.from_orm(catalog_input)
@@ -251,3 +275,29 @@ def get_catalog_field_names(
         ):
             field_names.update(names)
     return field_names
+
+
+@router.get(
+    "/catalog/references",
+    response_model=Page[str] | list[str],
+    **CatalogsView.kwargs,
+)
+def get_catalog_references(
+    where_clauses=Depends(get_catalog_filters),
+    local_search: str | None = None,
+    page_params=Depends(page_params),
+    catalogs_view: CatalogsView = Depends(),
+):
+    if local_search:
+        where_clauses.append(filter_by_pattern(Catalog.reference, f"*{local_search}*"))
+
+    references = catalogs_view.list_catalog_values(
+        Catalog.reference, where_clauses, **page_params
+    )
+    if page_params:
+        references_count = catalogs_view.count_catalog_values(
+            Catalog.reference, where_clauses
+        )
+        return Page[str](items=references, total_count=references_count)
+    else:
+        return references
