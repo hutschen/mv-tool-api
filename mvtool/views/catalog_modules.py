@@ -19,7 +19,7 @@ from typing import Any, Iterator
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi_utils.cbv import cbv
 from pydantic import constr
-from sqlmodel import Column, or_, select
+from sqlmodel import Column, func, or_, select
 from sqlmodel.sql.expression import Select
 
 from ..utils.filtering import (
@@ -88,6 +88,13 @@ class CatalogModulesView:
             limit,
         )
         return self._session.exec(query).all()
+
+    def count_catalog_modules(self, where_clauses: Any = None) -> int:
+        query = self._modify_catalog_modules_query(
+            select([func.count()]).select_from(CatalogModule),
+            where_clauses,
+        )
+        return self._session.execute(query).scalar()
 
     @router.post(
         "/catalogs/{catalog_id}/catalog-modules",
