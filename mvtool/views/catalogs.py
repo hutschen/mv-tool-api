@@ -15,13 +15,14 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any, Iterator
+from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_utils.cbv import cbv
 from pydantic import constr
 from sqlmodel import Column, func, or_, select
 from sqlmodel.sql.expression import Select
 
+from ..utils.pagination import Page, page_params
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
@@ -87,10 +88,6 @@ class CatalogsView:
             select([func.count()]).select_from(Catalog), where_clauses
         )
         return self._session.execute(query).scalar()
-
-    @router.get("/catalogs", response_model=list[CatalogOutput], **kwargs)
-    def list_catalogs_legacy(self) -> list[Catalog]:
-        return self._crud.read_all_from_db(Catalog)
 
     @router.post("/catalogs", status_code=201, response_model=CatalogOutput, **kwargs)
     def create_catalog(self, catalog_input: CatalogInput) -> Catalog:
@@ -191,3 +188,24 @@ def get_catalog_sort(
         return [column.asc() for column in columns]
     else:
         return [column.desc() for column in columns]
+
+
+@router.get(
+    "/catalogs",
+    response_model=Page[CatalogOutput] | list[CatalogOutput],
+    **CatalogsView.kwargs,
+)
+def get_catalogs(
+    where_clauses=Depends(get_catalog_filters),
+    order_by_clauses=Depends(get_catalog_sort),
+    page_params=Depends(page_params),
+    catalogs_view: CatalogsView = Depends(),
+):
+    catalogs = catalogs_view.list_catalogs(
+        where_clauses, order_by_clauses, **page_params
+    )
+    if page_params:
+        catalogs_count = catalogs_view.count_catalogs(where_clauses)
+        return Page[CatalogOutput](items=catalogs, total_count=catalogs_count)
+    else:
+        return catalogs
