@@ -20,13 +20,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi_utils.cbv import cbv
 from pydantic import constr
 from sqlmodel import Column, or_
+from sqlmodel.sql.expression import Select
 
-from mvtool.utils.filtering import (
+from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
 )
-
 from .catalogs import CatalogsView
 from ..errors import NotFoundError
 from ..models import (
@@ -52,6 +52,26 @@ class CatalogModulesView:
         self._catalogs = catalogs
         self._crud = crud
         self._session = self._crud.session
+
+    @staticmethod
+    def _modify_catalog_modules_query(
+        query: Select,
+        where_clauses: list[Any] | None = None,
+        order_by_clauses: list[Any] | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
+    ) -> Select:
+        """Modify a query to include all required clauses and offset and limit."""
+        query = query.join(Catalog)
+        if where_clauses:
+            query = query.where(*where_clauses)
+        if order_by_clauses:
+            query = query.order_by(*order_by_clauses)
+        if offset is not None:
+            query = query.offset(offset)
+        if limit is not None:
+            query = query.limit(limit)
+        return query
 
     @router.get(
         "/catalogs/{catalog_id}/catalog-modules",
