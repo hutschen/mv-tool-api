@@ -270,7 +270,7 @@ def get_project_representations(
 
 
 @router.get(
-    "/project/field_names",
+    "/project/field-names",
     response_model=list[str],
     **ProjectsView.kwargs,
 )
