@@ -320,3 +320,31 @@ def get_catalog_module_field_names(
         ):
             field_names.update(names)
     return field_names
+
+
+@router.get(
+    "/catalog-module/references",
+    response_model=Page[str] | list[str],
+    **CatalogModulesView.kwargs,
+)
+def get_catalog_module_references(
+    where_clauses=Depends(get_catalog_module_filters),
+    local_search: str | None = None,
+    page_params=Depends(page_params),
+    catalog_modules_view: CatalogModulesView = Depends(),
+):
+    if local_search:
+        where_clauses.append(
+            filter_by_pattern(CatalogModule.reference, f"*{local_search}*")
+        )
+
+    references = catalog_modules_view.list_catalog_module_values(
+        CatalogModule.reference, where_clauses, **page_params
+    )
+    if page_params:
+        reference_count = catalog_modules_view.count_catalog_module_values(
+            CatalogModule.reference, where_clauses
+        )
+        return Page[str](items=references, total_count=reference_count)
+    else:
+        return references
