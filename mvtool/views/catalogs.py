@@ -30,7 +30,7 @@ from ..utils.filtering import (
 )
 from ..errors import NotFoundError
 from ..auth import get_jira
-from ..models import Catalog, CatalogInput, CatalogOutput
+from ..models import Catalog, CatalogInput, CatalogOutput, CatalogRepresentation
 from ..database import CRUDOperations
 
 router = APIRouter()
@@ -207,5 +207,26 @@ def get_catalogs(
     if page_params:
         catalogs_count = catalogs_view.count_catalogs(where_clauses)
         return Page[CatalogOutput](items=catalogs, total_count=catalogs_count)
+    else:
+        return catalogs
+
+
+@router.get(
+    "/catalog/representations",
+    response_model=Page[CatalogRepresentation] | list[CatalogRepresentation],
+    **CatalogsView.kwargs,
+)
+def get_catalog_representations(
+    where_clauses=Depends(get_catalog_filters),
+    order_by_clauses=Depends(get_catalog_sort),
+    page_params=Depends(page_params),
+    catalogs_view: CatalogsView = Depends(),
+):
+    catalogs = catalogs_view.list_catalogs(
+        where_clauses, order_by_clauses, **page_params
+    )
+    if page_params:
+        catalogs_count = catalogs_view.count_catalogs(where_clauses)
+        return Page[CatalogRepresentation](items=catalogs, total_count=catalogs_count)
     else:
         return catalogs
