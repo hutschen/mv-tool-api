@@ -96,6 +96,21 @@ class CatalogModulesView:
         )
         return self._session.execute(query).scalar()
 
+    def list_catalog_module_values(
+        self,
+        column: Column,
+        where_clauses: list[Any] | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
+    ) -> list[Any]:
+        query = self._modify_catalog_modules_query(
+            select([func.distinct(column)]).select_from(CatalogModule),
+            [filter_for_existence(column), *where_clauses],
+            offset=offset,
+            limit=limit,
+        )
+        return self._session.exec(query).all()
+
     @router.post(
         "/catalogs/{catalog_id}/catalog-modules",
         status_code=201,
