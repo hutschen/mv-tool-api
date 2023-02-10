@@ -230,3 +230,24 @@ def get_catalog_representations(
         return Page[CatalogRepresentation](items=catalogs, total_count=catalogs_count)
     else:
         return catalogs
+
+
+@router.get(
+    "/catalog/field-names",
+    response_model=list[str],
+    **CatalogsView.kwargs,
+)
+def get_catalog_field_names(
+    where_clauses=Depends(get_catalog_filters),
+    catalogs_view: CatalogsView = Depends(),
+) -> set[str]:
+    field_names = {"id", "title"}
+    for field, names in [
+        (Catalog.reference, ["reference"]),
+        (Catalog.description, ["description"]),
+    ]:
+        if catalogs_view.count_catalogs(
+            [filter_for_existence(field, True), *where_clauses]
+        ):
+            field_names.update(names)
+    return field_names
