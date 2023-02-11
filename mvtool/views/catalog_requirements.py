@@ -16,16 +16,27 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from typing import Any
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_utils.cbv import cbv
-from sqlmodel import select
+from pydantic import constr
+from sqlmodel import Column, func, or_, select
+from sqlmodel.sql.expression import Select
 
+from ..utils.filtering import (
+    filter_by_pattern,
+    filter_by_values,
+    filter_for_existence,
+)
+from ..utils.pagination import Page, page_params
 from ..errors import NotFoundError
 from ..database import CRUDOperations
 from ..models import (
+    Catalog,
+    CatalogModule,
     CatalogRequirement,
     CatalogRequirementInput,
     CatalogRequirementOutput,
+    CatalogRequirementRepresentation,
 )
 from .catalog_modules import CatalogModulesView
 
@@ -45,26 +56,72 @@ class CatalogRequirementsView:
         self._crud = crud
         self._session = self._crud.session
 
-    @router.get(
-        "/catalog-modules/{catalog_module_id}/catalog-requirements",
-        response_model=list[CatalogRequirementOutput],
-        **kwargs,
-    )
-    def list_catalog_requirements(
-        self, catalog_module_id: int
-    ) -> list[CatalogRequirement]:
-        return self.query_catalog_requirements(
-            CatalogRequirement.catalog_module_id == catalog_module_id
-        )
+    @staticmethod
+    def _modify_catalog_requirements_query(
+        query: Select,
+        where_clauses: list[Any] | None = None,
+        order_by_clauses: list[Any] | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
+    ) -> Select:
+        """Modify a query to include all required joins, clauses and offset and limit."""
+        query = query.join(CatalogModule).join(Catalog)
+        if where_clauses:
+            query = query.where(*where_clauses)
+        if order_by_clauses:
+            query = query.order_by(*order_by_clauses)
+        if offset is not None:
+            query = query.offset(offset)
+        if limit is not None:
+            query = query.limit(limit)
+        return query
 
-    def query_catalog_requirements(
-        self, *whereclauses: Any
+    def list_catalog_requirements(
+        self,
+        where_clauses: list[Any] | None = None,
+        order_by_clauses: list[Any] | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
     ) -> list[CatalogRequirement]:
-        return self._session.exec(
-            select(CatalogRequirement)
-            .where(*whereclauses)
-            .order_by(CatalogRequirement.id)
-        ).all()
+        query = self._modify_catalog_requirements_query(
+            select(CatalogRequirement),
+            where_clauses,
+            order_by_clauses or [CatalogRequirement.id],
+            offset,
+            limit,
+        )
+        return self._session.exec(query).all()
+
+    def count_catalog_requirements(self, where_clauses: list[Any] | None = None) -> int:
+        query = self._modify_catalog_requirements_query(
+            select([func.count()]).select_from(CatalogRequirement),
+            where_clauses,
+        )
+        return self._session.execute(query).scalar()
+
+    def list_catalog_requirement_values(
+        self,
+        column: Column,
+        where_clauses: list[Any] | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
+    ) -> list[Any]:
+        query = self._modify_catalog_requirements_query(
+            select([func.distinct(column)]).select_from(CatalogRequirement),
+            [filter_for_existence(column), *where_clauses],
+            offset=offset,
+            limit=limit,
+        )
+        return self._session.exec(query).all()
+
+    def count_catalog_requirement_values(
+        self, column: Column, where_clauses: list[Any] | None = None
+    ) -> int:
+        query = self._modify_catalog_requirements_query(
+            select([func.count(func.distinct(column))]).select_from(CatalogRequirement),
+            [filter_for_existence(column), *where_clauses],
+        )
+        return self._session.execute(query).scalar()
 
     @router.post(
         "/catalog-modules/{catalog_module_id}/catalog-requirements",
@@ -125,3 +182,213 @@ class CatalogRequirementsView:
     )
     def delete_catalog_requirement(self, catalog_requirement_id: int) -> None:
         return self._crud.delete_from_db(CatalogRequirement, catalog_requirement_id)
+
+
+def get_catalog_requirement_filters(
+    # filter by pattern
+    reference: str | None = None,
+    summary: str | None = None,
+    description: str | None = None,
+    gs_absicherung: str | None = None,
+    gs_verantwortliche: str | None = None,
+    #
+    # filter by values
+    references: list[str] | None = Query(None),
+    gs_absicherungen: list[str] | None = Query(None),
+    #
+    # filter by ids
+    catalog_ids: list[int] | None = Query(None),
+    catalog_module_ids: list[int] | None = Query(None),
+    #
+    # filter for existence
+    has_reference: bool | None = None,
+    has_description: bool | None = None,
+    has_gs_absicherung: bool | None = None,
+    has_gs_verantwortliche: bool | None = None,
+    #
+    # filter by search string
+    search: str | None = None,
+) -> list[Any]:
+    where_clauses = []
+
+    # filter by pattern
+    for column, value in (
+        (CatalogRequirement.reference, reference),
+        (CatalogRequirement.summary, summary),
+        (CatalogRequirement.description, description),
+        (CatalogRequirement.gs_absicherung, gs_absicherung),
+        (CatalogRequirement.gs_verantwortliche, gs_verantwortliche),
+    ):
+        if value:
+            where_clauses.append(filter_by_pattern(column, value))
+
+    # filter by values or ids
+    for column, values in (
+        (CatalogRequirement.reference, references),
+        (CatalogRequirement.gs_absicherung, gs_absicherungen),
+        (CatalogModule.catalog_id, catalog_ids),
+        (CatalogRequirement.catalog_module_id, catalog_module_ids),
+    ):
+        if values:
+            where_clauses.append(filter_by_values(column, values))
+
+    # filter for existence
+    for column, value in (
+        (CatalogRequirement.reference, has_reference),
+        (CatalogRequirement.description, has_description),
+        (CatalogRequirement.gs_absicherung, has_gs_absicherung),
+        (CatalogRequirement.gs_verantwortliche, has_gs_verantwortliche),
+    ):
+        if value is not None:
+            where_clauses.append(filter_for_existence(column, value))
+
+    # filter by search string
+    if search:
+        where_clauses.append(
+            or_(
+                filter_by_pattern(column, f"*{search}*")
+                for column in (
+                    CatalogRequirement.reference,
+                    CatalogRequirement.summary,
+                    CatalogRequirement.description,
+                    CatalogRequirement.gs_absicherung,
+                    CatalogRequirement.gs_verantwortliche,
+                    CatalogModule.reference,
+                    CatalogModule.title,
+                    Catalog.reference,
+                    Catalog.title,
+                )
+            )
+        )
+
+    return where_clauses
+
+
+def get_catalog_requirement_sort(
+    sort_by: str | None = None, sort_order: constr(regex=r"^(asc|desc)$") | None = None
+) -> list[Any]:
+    if not (sort_by and sort_order):
+        return []
+
+    try:
+        columns: list[Column] = {
+            "reference": [CatalogRequirement.reference],
+            "summary": [CatalogRequirement.summary],
+            "description": [CatalogRequirement.description],
+            "gs_absicherung": [CatalogRequirement.gs_absicherung],
+            "gs_verantwortliche": [CatalogRequirement.gs_verantwortliche],
+            "catalog": [Catalog.reference, Catalog.title],
+            "catalog_module": [CatalogModule.reference, CatalogModule.title],
+        }[sort_by]
+    except KeyError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid sort_by parameter: {sort_by}",
+        )
+
+    columns.append(CatalogRequirement.id)
+    if sort_order == "asc":
+        return [column.asc() for column in columns]
+    else:
+        return [column.desc() for column in columns]
+
+
+@router.get(
+    "/catalog-requirements",
+    response_model=Page[CatalogRequirementOutput] | list[CatalogRequirementOutput],
+    **CatalogRequirementsView.kwargs,
+)
+def get_catalog_requirements(
+    where_clauses=Depends(get_catalog_requirement_filters),
+    order_by_clauses=Depends(get_catalog_requirement_sort),
+    page_params=Depends(page_params),
+    catalog_requirements_view: CatalogRequirementsView = Depends(),
+) -> Page[CatalogRequirementOutput] | list[CatalogRequirement]:
+    crequirements = catalog_requirements_view.list_catalog_requirements(
+        where_clauses, order_by_clauses, **page_params
+    )
+    if page_params:
+        crequirements_count = catalog_requirements_view.count_catalog_requirements(
+            where_clauses
+        )
+        return Page[CatalogRequirementOutput](
+            items=crequirements, total_count=crequirements_count
+        )
+    else:
+        return crequirements
+
+
+@router.get(
+    "/catalog-requirement/representations",
+    response_model=Page[CatalogRequirementRepresentation]
+    | list[CatalogRequirementRepresentation],
+    **CatalogRequirementsView.kwargs,
+)
+def get_catalog_requirement_representations(
+    where_clauses=Depends(get_catalog_requirement_filters),
+    order_by_clauses=Depends(get_catalog_requirement_sort),
+    page_params=Depends(page_params),
+    catalog_requirements_view: CatalogRequirementsView = Depends(),
+) -> Page[CatalogRequirementRepresentation] | list[CatalogRequirement]:
+    crequirements = catalog_requirements_view.list_catalog_requirements(
+        where_clauses, order_by_clauses, **page_params
+    )
+    if page_params:
+        crequirements_count = catalog_requirements_view.count_catalog_requirements(
+            where_clauses
+        )
+        return Page[CatalogRequirementRepresentation](
+            items=crequirements, total_count=crequirements_count
+        )
+    else:
+        return crequirements
+
+
+@router.get(
+    "/catalog-requirement/field-names",
+    response_model=list[str],
+    **CatalogRequirementsView.kwargs,
+)
+def get_catalog_requirement_field_names(
+    where_clauses=Depends(get_catalog_requirement_filters),
+    catalog_requirements_view: CatalogRequirementsView = Depends(),
+) -> set[str]:
+    field_names = {"id", "summary", "catalog_module"}
+    for field, names in [
+        (CatalogRequirement.reference, ["reference"]),
+        (CatalogRequirement.description, ["description"]),
+        (CatalogRequirement.gs_absicherung, ["gs_absicherung"]),
+        (CatalogRequirement.gs_verantwortliche, ["gs_verantwortliche"]),
+    ]:
+        if catalog_requirements_view.count_catalog_requirements(
+            [filter_for_existence(field, True), *where_clauses]
+        ):
+            field_names.update(names)
+    return field_names
+
+
+@router.get(
+    "/catalog-requirement/references",
+    response_model=Page[str] | list[str],
+    **CatalogRequirementsView.kwargs,
+)
+def get_catalog_requirement_references(
+    where_clauses=Depends(get_catalog_requirement_filters),
+    local_search: str | None = None,
+    page_params=Depends(page_params),
+    catalog_requirements_view: CatalogRequirementsView = Depends(),
+) -> Page[str] | list[str]:
+    if local_search:
+        where_clauses.append(
+            filter_by_pattern(CatalogRequirement.reference, f"*{local_search}*")
+        )
+    references = catalog_requirements_view.list_catalog_requirement_values(
+        CatalogRequirement.reference, where_clauses, **page_params
+    )
+    if page_params:
+        references_count = catalog_requirements_view.count_catalog_requirement_values(
+            CatalogRequirement.reference, where_clauses
+        )
+        return Page[str](items=references, total_count=references_count)
+    else:
+        return references

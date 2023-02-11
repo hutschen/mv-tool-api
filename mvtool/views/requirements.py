@@ -16,8 +16,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from typing import Any
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_utils.cbv import cbv
+from pydantic import constr
 from sqlmodel import Column, func, or_, select
 from sqlmodel.sql.expression import Select
 
@@ -35,6 +36,7 @@ from ..models import (
     Catalog,
     CatalogModule,
     CatalogRequirement,
+    Project,
     RequirementInput,
     Requirement,
     RequirementOutput,
@@ -229,10 +231,8 @@ class ImportCatalogRequirementsView:
         project = self._projects.get_project(project_id)
         created_requirements = []
 
-        for (
-            catalog_requirement
-        ) in self._catalog_requirements.query_catalog_requirements(
-            CatalogRequirement.catalog_module_id.in_(catalog_module_ids)
+        for catalog_requirement in self._catalog_requirements.list_catalog_requirements(
+            [filter_by_values(CatalogRequirement.catalog_module_id, catalog_module_ids)]
         ):
             requirement = Requirement.from_orm(
                 RequirementInput.from_orm(catalog_requirement)
@@ -345,6 +345,42 @@ def get_requirement_filters(
     return where_clauses
 
 
+def get_requirement_sort(
+    sort_by: str | None = None, sort_order: constr(regex=r"^(asc|desc)$") | None = None
+) -> list[Any]:
+    if not (sort_by and sort_order):
+        return []
+
+    try:
+        columns: list[Column] = {
+            "reference": [Requirement.reference],
+            "summary": [Requirement.summary],
+            "description": [Requirement.description],
+            "target_object": [Requirement.target_object],
+            "milestone": [Requirement.milestone],
+            "project": [Project.name],
+            "catalog_requirement": [
+                CatalogRequirement.reference,
+                CatalogRequirement.summary,
+            ],
+            "catalog_module": [CatalogModule.reference, CatalogModule.title],
+            "catalog": [Catalog.reference, Catalog.title],
+            "compliance_status": [Requirement.compliance_status],
+            "compliance_comment": [Requirement.compliance_comment],
+        }[sort_by]
+    except KeyError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid sort_by parameter: {sort_by}",
+        )
+
+    columns.append(Requirement.id)
+    if sort_order == "asc":
+        return [column.asc() for column in columns]
+    else:
+        return [column.desc() for column in columns]
+
+
 @router.get(
     "/requirements",
     response_model=Page[RequirementOutput] | list[RequirementOutput],
@@ -352,10 +388,13 @@ def get_requirement_filters(
 )
 def get_requirements(
     where_clauses=Depends(get_requirement_filters),
+    order_by_clauses=Depends(get_requirement_sort),
     page_params=Depends(page_params),
     requirements_view: RequirementsView = Depends(RequirementsView),
 ):
-    requirements = requirements_view.list_requirements(where_clauses, **page_params)
+    requirements = requirements_view.list_requirements(
+        where_clauses, order_by_clauses, **page_params
+    )
     if page_params:
         requirements_count = requirements_view.count_requirements(where_clauses)
         return Page[RequirementOutput](
@@ -372,11 +411,12 @@ def get_requirements(
 )
 def get_requirement_representations(
     where_clauses=Depends(get_requirement_filters),
+    order_by_clauses=Depends(get_requirement_sort),
     page_params=Depends(page_params),
     requirements_view: RequirementsView = Depends(RequirementsView),
 ):
     requirements = requirements_view.list_requirements(
-        where_clauses, **page_params, query_jira=False
+        where_clauses, order_by_clauses, **page_params, query_jira=False
     )
     if page_params:
         requirements_count = requirements_view.count_requirements(where_clauses)

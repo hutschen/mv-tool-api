@@ -22,7 +22,13 @@ from fastapi.testclient import TestClient
 from mvtool import app
 from mvtool.auth import get_jira
 from mvtool.database import get_session
-from mvtool.models import Document, Project, CatalogModule, Requirement
+from mvtool.models import (
+    CatalogRequirement,
+    Document,
+    Project,
+    CatalogModule,
+    Requirement,
+)
 
 
 @pytest.fixture
@@ -229,10 +235,10 @@ def test_create_requirement(client, create_project: Project):
     assert requirement["project"]["id"] == create_project.id
 
 
-def test_list_catalog_requirements(client, create_catalog_module: CatalogModule):
-    response = client.get(
-        f"/api/catalog-modules/{create_catalog_module.id}/catalog-requirements"
-    )
+def test_list_catalog_requirements(
+    client, create_catalog_requirement: CatalogRequirement
+):
+    response = client.get(f"/api/catalog-requirements")
     assert response.status_code == 200
     assert isinstance(response.json(), list)
 

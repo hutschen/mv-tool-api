@@ -23,24 +23,22 @@ from mvtool.views.catalog_requirements import CatalogRequirementsView
 
 def test_list_catalog_requirements(
     catalog_requirements_view: CatalogRequirementsView,
-    create_catalog_module: CatalogModule,
     create_catalog_requirement: CatalogRequirement,
 ):
-    results = list(
-        catalog_requirements_view.list_catalog_requirements(create_catalog_module.id)
-    )
+    results = catalog_requirements_view.list_catalog_requirements()
 
     assert len(results) == 1
     catalog_requirement = results[0]
     assert isinstance(catalog_requirement, CatalogRequirement)
     assert catalog_requirement.id == create_catalog_requirement.id
-    assert catalog_requirement.catalog_module.id == create_catalog_module.id
 
 
 def test_list_catalog_requirements_with_invalid_catalog_module_id(
     catalog_requirements_view: CatalogRequirementsView,
 ):
-    results = list(catalog_requirements_view.list_catalog_requirements(-1))
+    results = catalog_requirements_view.list_catalog_requirements(
+        [CatalogRequirement.id == -1]
+    )
     assert len(results) == 0
 
 
