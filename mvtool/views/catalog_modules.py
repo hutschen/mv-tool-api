@@ -282,7 +282,7 @@ def get_catalog_modules(
     | list[CatalogModuleRepresentation],
     **CatalogModulesView.kwargs,
 )
-def get_catalog_modules(
+def get_catalog_module_representation(
     where_clauses=Depends(get_catalog_module_filters),
     order_by_clauses=Depends(get_catalog_module_sort),
     page_params=Depends(page_params),
