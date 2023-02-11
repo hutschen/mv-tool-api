@@ -318,3 +318,26 @@ def get_catalog_requirement_representations(
         )
     else:
         return crequirements
+
+
+@router.get(
+    "/catalog-requirement/field-names",
+    response_model=list[str],
+    **CatalogRequirementsView.kwargs,
+)
+def get_catalog_requirement_field_names(
+    where_clauses=Depends(get_catalog_requirement_filters),
+    catalog_requirements_view: CatalogRequirementsView = Depends(),
+) -> set[str]:
+    field_names = {"id", "summary", "catalog_module"}
+    for field, names in [
+        (CatalogRequirement.reference, ["reference"]),
+        (CatalogRequirement.description, ["description"]),
+        (CatalogRequirement.gs_absicherung, ["gs_absicherung"]),
+        (CatalogRequirement.gs_verantwortliche, ["gs_verantwortliche"]),
+    ]:
+        if catalog_requirements_view.count_catalog_requirements(
+            [filter_for_existence(field, True), *where_clauses]
+        ):
+            field_names.update(names)
+    return field_names
