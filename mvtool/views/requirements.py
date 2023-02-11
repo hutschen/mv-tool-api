@@ -390,10 +390,13 @@ def get_requirement_sort(
 )
 def get_requirements(
     where_clauses=Depends(get_requirement_filters),
+    order_by_clauses=Depends(get_requirement_sort),
     page_params=Depends(page_params),
     requirements_view: RequirementsView = Depends(RequirementsView),
 ):
-    requirements = requirements_view.list_requirements(where_clauses, **page_params)
+    requirements = requirements_view.list_requirements(
+        where_clauses, order_by_clauses, **page_params
+    )
     if page_params:
         requirements_count = requirements_view.count_requirements(where_clauses)
         return Page[RequirementOutput](
@@ -410,11 +413,12 @@ def get_requirements(
 )
 def get_requirement_representations(
     where_clauses=Depends(get_requirement_filters),
+    order_by_clauses=Depends(get_requirement_sort),
     page_params=Depends(page_params),
     requirements_view: RequirementsView = Depends(RequirementsView),
 ):
     requirements = requirements_view.list_requirements(
-        where_clauses, **page_params, query_jira=False
+        where_clauses, order_by_clauses, **page_params, query_jira=False
     )
     if page_params:
         requirements_count = requirements_view.count_requirements(where_clauses)
