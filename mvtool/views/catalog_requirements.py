@@ -91,6 +91,13 @@ class CatalogRequirementsView:
         )
         return self._session.exec(query).all()
 
+    def count_catalog_requirements(self, where_clauses: list[Any] | None = None) -> int:
+        query = self._modify_catalog_requirements_query(
+            select([func.count()]).select_from(CatalogRequirement),
+            where_clauses,
+        )
+        return self._session.execute(query).scalar()
+
     @router.get(
         "/catalog-modules/{catalog_module_id}/catalog-requirements",
         response_model=list[CatalogRequirementOutput],
