@@ -36,6 +36,7 @@ from ..models import (
     CatalogRequirement,
     CatalogRequirementInput,
     CatalogRequirementOutput,
+    CatalogRequirementRepresentation,
 )
 from .catalog_modules import CatalogModulesView
 
@@ -287,6 +288,32 @@ def get_catalog_requirements(
             where_clauses
         )
         return Page[CatalogRequirementOutput](
+            items=crequirements, total_count=crequirements_count
+        )
+    else:
+        return crequirements
+
+
+@router.get(
+    "/catalog-requirement/representations",
+    response_model=Page[CatalogRequirementRepresentation]
+    | list[CatalogRequirementRepresentation],
+    **CatalogRequirementsView.kwargs,
+)
+def get_catalog_requirement_representations(
+    where_clauses=Depends(get_catalog_requirement_filters),
+    order_by_clauses=Depends(get_catalog_requirement_sort),
+    page_params=Depends(page_params),
+    catalog_requirements_view: CatalogRequirementsView = Depends(),
+) -> Page[CatalogRequirementRepresentation] | list[CatalogRequirement]:
+    crequirements = catalog_requirements_view.list_catalog_requirements(
+        where_clauses, order_by_clauses, **page_params
+    )
+    if page_params:
+        crequirements_count = catalog_requirements_view.count_catalog_requirements(
+            where_clauses
+        )
+        return Page[CatalogRequirementRepresentation](
             items=crequirements, total_count=crequirements_count
         )
     else:

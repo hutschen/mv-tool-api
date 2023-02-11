@@ -434,6 +434,12 @@ class DocumentOutput(DocumentInput):
     project: ProjectOutput
 
 
+class CatalogRequirementRepresentation(SQLModel):
+    id: int
+    reference: str | None
+    summary: str
+
+
 class CatalogRequirementOutput(CatalogRequirementInput):
     id: int
     catalog_module: CatalogModuleOutput
