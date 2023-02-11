@@ -22,12 +22,12 @@ from pydantic import constr
 from sqlmodel import Column, func, or_, select
 from sqlmodel.sql.expression import Select
 
-from mvtool.utils.filtering import (
+from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
 )
-
+from ..utils.pagination import Page, page_params
 from ..errors import NotFoundError
 from ..database import CRUDOperations
 from ..models import (
@@ -97,18 +97,6 @@ class CatalogRequirementsView:
             where_clauses,
         )
         return self._session.execute(query).scalar()
-
-    @router.get(
-        "/catalog-modules/{catalog_module_id}/catalog-requirements",
-        response_model=list[CatalogRequirementOutput],
-        **kwargs,
-    )
-    def list_catalog_requirements_legacy(
-        self, catalog_module_id: int
-    ) -> list[CatalogRequirement]:
-        return self.list_catalog_requirements(
-            [CatalogRequirement.catalog_module_id == catalog_module_id]
-        )
 
     @router.post(
         "/catalog-modules/{catalog_module_id}/catalog-requirements",
@@ -180,8 +168,8 @@ def get_catalog_requirement_filters(
     gs_verantwortliche: str | None = None,
     #
     # filter by values
-    references: list[str] | None = None,
-    gs_absicherungen: list[str] | None = None,
+    references: list[str] | None = Query(None),
+    gs_absicherungen: list[str] | None = Query(None),
     #
     # filter by ids
     catalog_ids: list[int] | None = Query(None),
@@ -278,3 +266,28 @@ def get_catalog_requirement_sort(
         return [column.asc() for column in columns]
     else:
         return [column.desc() for column in columns]
+
+
+@router.get(
+    "/catalog-requirements",
+    response_model=Page[CatalogRequirementOutput] | list[CatalogRequirementOutput],
+    **CatalogRequirementsView.kwargs,
+)
+def get_catalog_requirements(
+    where_clauses=Depends(get_catalog_requirement_filters),
+    order_by_clauses=Depends(get_catalog_requirement_sort),
+    page_params=Depends(page_params),
+    catalog_requirements_view: CatalogRequirementsView = Depends(),
+) -> Page[CatalogRequirementOutput] | list[CatalogRequirement]:
+    crequirements = catalog_requirements_view.list_catalog_requirements(
+        where_clauses, order_by_clauses, **page_params
+    )
+    if page_params:
+        crequirements_count = catalog_requirements_view.count_catalog_requirements(
+            where_clauses
+        )
+        return Page[CatalogRequirementOutput](
+            items=crequirements, total_count=crequirements_count
+        )
+    else:
+        return crequirements
