@@ -16,13 +16,21 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from typing import Any
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from fastapi_utils.cbv import cbv
-from sqlmodel import select
+from sqlmodel import or_, select
+
+from mvtool.utils.filtering import (
+    filter_by_pattern,
+    filter_by_values,
+    filter_for_existence,
+)
 
 from ..errors import NotFoundError
 from ..database import CRUDOperations
 from ..models import (
+    Catalog,
+    CatalogModule,
     CatalogRequirement,
     CatalogRequirementInput,
     CatalogRequirementOutput,
@@ -125,3 +133,83 @@ class CatalogRequirementsView:
     )
     def delete_catalog_requirement(self, catalog_requirement_id: int) -> None:
         return self._crud.delete_from_db(CatalogRequirement, catalog_requirement_id)
+
+
+def get_catalog_requirement_filters(
+    # filter by pattern
+    reference: str | None = None,
+    summary: str | None = None,
+    description: str | None = None,
+    gs_absicherung: str | None = None,
+    gs_verantwortliche: str | None = None,
+    #
+    # filter by values
+    references: list[str] | None = None,
+    gs_absicherungen: list[str] | None = None,
+    #
+    # filter by ids
+    catalog_ids: list[int] | None = Query(None),
+    catalog_module_ids: list[int] | None = Query(None),
+    #
+    # filter for existence
+    has_reference: bool | None = None,
+    has_description: bool | None = None,
+    has_gs_absicherung: bool | None = None,
+    has_gs_verantwortliche: bool | None = None,
+    #
+    # filter by search string
+    search: str | None = None,
+) -> list[Any]:
+    where_clauses = []
+
+    # filter by pattern
+    for column, value in (
+        (CatalogRequirement.reference, reference),
+        (CatalogRequirement.summary, summary),
+        (CatalogRequirement.description, description),
+        (CatalogRequirement.gs_absicherung, gs_absicherung),
+        (CatalogRequirement.gs_verantwortliche, gs_verantwortliche),
+    ):
+        if value:
+            where_clauses.append(filter_by_pattern(column, value))
+
+    # filter by values or ids
+    for column, values in (
+        (CatalogRequirement.reference, references),
+        (CatalogRequirement.gs_absicherung, gs_absicherungen),
+        (CatalogModule.catalog_id, catalog_ids),
+        (CatalogRequirement.catalog_module_id, catalog_module_ids),
+    ):
+        if values:
+            where_clauses.append(filter_by_values(column, values))
+
+    # filter for existence
+    for column, value in (
+        (CatalogRequirement.reference, has_reference),
+        (CatalogRequirement.description, has_description),
+        (CatalogRequirement.gs_absicherung, has_gs_absicherung),
+        (CatalogRequirement.gs_verantwortliche, has_gs_verantwortliche),
+    ):
+        if value is not None:
+            where_clauses.append(filter_for_existence(column, value))
+
+    # filter by search string
+    if search:
+        where_clauses.append(
+            or_(
+                filter_by_pattern(column, f"*{search}*")
+                for column in (
+                    CatalogRequirement.reference,
+                    CatalogRequirement.summary,
+                    CatalogRequirement.description,
+                    CatalogRequirement.gs_absicherung,
+                    CatalogRequirement.gs_verantwortliche,
+                    CatalogModule.reference,
+                    CatalogModule.title,
+                    Catalog.reference,
+                    Catalog.title,
+                )
+            )
+        )
+
+    return where_clauses
