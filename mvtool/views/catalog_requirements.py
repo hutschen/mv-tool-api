@@ -99,6 +99,30 @@ class CatalogRequirementsView:
         )
         return self._session.execute(query).scalar()
 
+    def list_catalog_requirement_values(
+        self,
+        column: Column,
+        where_clauses: list[Any] | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
+    ) -> list[Any]:
+        query = self._modify_catalog_requirements_query(
+            select([func.distinct(column)]).select_from(CatalogRequirement),
+            [filter_for_existence(column), *where_clauses],
+            offset=offset,
+            limit=limit,
+        )
+        return self._session.exec(query).all()
+
+    def count_catalog_requirement_values(
+        self, column: Column, where_clauses: list[Any] | None = None
+    ) -> int:
+        query = self._modify_catalog_requirements_query(
+            select([func.count(func.distinct(column))]).select_from(CatalogRequirement),
+            [filter_for_existence(column), *where_clauses],
+        )
+        return self._session.execute(query).scalar()
+
     @router.post(
         "/catalog-modules/{catalog_module_id}/catalog-requirements",
         response_model=CatalogRequirementOutput,
@@ -341,3 +365,30 @@ def get_catalog_requirement_field_names(
         ):
             field_names.update(names)
     return field_names
+
+
+@router.get(
+    "/catalog-requirement/references",
+    response_model=Page[str] | list[str],
+    **CatalogRequirementsView.kwargs,
+)
+def get_catalog_requirement_references(
+    where_clauses=Depends(get_catalog_requirement_filters),
+    local_search: str | None = None,
+    page_params=Depends(page_params),
+    catalog_requirements_view: CatalogRequirementsView = Depends(),
+) -> Page[str] | list[str]:
+    if local_search:
+        where_clauses.append(
+            filter_by_pattern(CatalogRequirement.reference, f"*{local_search}*")
+        )
+    references = catalog_requirements_view.list_catalog_requirement_values(
+        CatalogRequirement.reference, where_clauses, **page_params
+    )
+    if page_params:
+        references_count = catalog_requirements_view.count_catalog_requirement_values(
+            CatalogRequirement.reference, where_clauses
+        )
+        return Page[str](items=references, total_count=references_count)
+    else:
+        return references
