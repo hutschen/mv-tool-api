@@ -75,26 +75,33 @@ class CatalogRequirementsView:
             query = query.limit(limit)
         return query
 
+    def list_catalog_requirements(
+        self,
+        where_clauses: list[Any] | None = None,
+        order_by_clauses: list[Any] | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
+    ) -> list[CatalogRequirement]:
+        query = self._modify_catalog_requirements_query(
+            select(CatalogRequirement),
+            where_clauses,
+            order_by_clauses or [CatalogRequirement.id],
+            offset,
+            limit,
+        )
+        return self._session.exec(query).all()
+
     @router.get(
         "/catalog-modules/{catalog_module_id}/catalog-requirements",
         response_model=list[CatalogRequirementOutput],
         **kwargs,
     )
-    def list_catalog_requirements(
+    def list_catalog_requirements_legacy(
         self, catalog_module_id: int
     ) -> list[CatalogRequirement]:
-        return self.query_catalog_requirements(
-            CatalogRequirement.catalog_module_id == catalog_module_id
+        return self.list_catalog_requirements(
+            [CatalogRequirement.catalog_module_id == catalog_module_id]
         )
-
-    def query_catalog_requirements(
-        self, *whereclauses: Any
-    ) -> list[CatalogRequirement]:
-        return self._session.exec(
-            select(CatalogRequirement)
-            .where(*whereclauses)
-            .order_by(CatalogRequirement.id)
-        ).all()
 
     @router.post(
         "/catalog-modules/{catalog_module_id}/catalog-requirements",

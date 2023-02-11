@@ -231,10 +231,8 @@ class ImportCatalogRequirementsView:
         project = self._projects.get_project(project_id)
         created_requirements = []
 
-        for (
-            catalog_requirement
-        ) in self._catalog_requirements.query_catalog_requirements(
-            CatalogRequirement.catalog_module_id.in_(catalog_module_ids)
+        for catalog_requirement in self._catalog_requirements.list_catalog_requirements(
+            [filter_by_values(CatalogRequirement.catalog_module_id, catalog_module_ids)]
         ):
             requirement = Requirement.from_orm(
                 RequirementInput.from_orm(catalog_requirement)
