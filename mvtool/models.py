@@ -200,7 +200,7 @@ class Requirement(RequirementInput, CommonFieldsMixin, table=True):
         elif every("N/A") and len(compliance_states) > 0:
             return "N/A"
         else:
-            return self.compliance_status
+            return None
 
     @property
     def _compliant_count_query(self):
