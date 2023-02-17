@@ -242,10 +242,19 @@ def get_catalogs(
 )
 def get_catalog_representations(
     where_clauses=Depends(get_catalog_filters),
+    local_search: str | None = None,
     order_by_clauses=Depends(get_catalog_sort),
     page_params=Depends(page_params),
     catalogs_view: CatalogsView = Depends(),
 ):
+    if local_search:
+        where_clauses.append(
+            or_(
+                filter_by_pattern(column, f"*{local_search}*")
+                for column in (Catalog.reference, Catalog.title)
+            )
+        )
+
     catalogs = catalogs_view.list_catalogs(
         where_clauses, order_by_clauses, **page_params
     )
