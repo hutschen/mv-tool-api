@@ -22,6 +22,7 @@ from pydantic import constr
 from sqlmodel import Column, func, or_, select
 from sqlmodel.sql.expression import Select
 
+from ..utils import combine_flags
 from ..utils.pagination import Page, page_params
 from ..utils.filtering import (
     filter_by_pattern,
@@ -275,6 +276,8 @@ def get_requirement_filters(
     has_milestone: bool | None = None,
     has_compliance_status: bool | None = None,
     has_compliance_comment: bool | None = None,
+    has_catalog: bool | None = None,
+    has_catalog_module: bool | None = None,
     has_catalog_requirement: bool | None = None,
     #
     # filter by search string
@@ -316,7 +319,10 @@ def get_requirement_filters(
         (Requirement.milestone, has_milestone),
         (Requirement.compliance_status, has_compliance_status),
         (Requirement.compliance_comment, has_compliance_comment),
-        (Requirement.catalog_requirement_id, has_catalog_requirement),
+        (
+            Requirement.catalog_requirement_id,
+            combine_flags(has_catalog_requirement, has_catalog_module, has_catalog),
+        ),
     ):
         if value is not None:
             where_clauses.append(filter_for_existence(column, value))
