@@ -284,10 +284,19 @@ def get_catalog_modules(
 )
 def get_catalog_module_representation(
     where_clauses=Depends(get_catalog_module_filters),
+    local_search: str | None = None,
     order_by_clauses=Depends(get_catalog_module_sort),
     page_params=Depends(page_params),
     catalog_modules_view: CatalogModulesView = Depends(),
 ):
+    if local_search:
+        where_clauses.append(
+            or_(
+                filter_by_pattern(column, f"*{local_search}*")
+                for column in (CatalogModule.reference, CatalogModule.title)
+            )
+        )
+
     cmodules = catalog_modules_view.list_catalog_modules(
         where_clauses, order_by_clauses, **page_params
     )
