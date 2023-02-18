@@ -253,6 +253,8 @@ def get_requirement_filters(
     reference: str | None = None,
     summary: str | None = None,
     description: str | None = None,
+    gs_absicherung: str | None = None,
+    gs_verantwortliche: str | None = None,
     target_object: str | None = None,
     milestone: str | None = None,
     compliance_comment: str | None = None,
@@ -279,6 +281,8 @@ def get_requirement_filters(
     has_catalog: bool | None = None,
     has_catalog_module: bool | None = None,
     has_catalog_requirement: bool | None = None,
+    has_gs_absicherung: bool | None = None,
+    has_gs_verantwortliche: bool | None = None,
     #
     # filter by search string
     search: str | None = None,
@@ -290,6 +294,8 @@ def get_requirement_filters(
         (Requirement.reference, reference),
         (Requirement.summary, summary),
         (Requirement.description, description),
+        (CatalogRequirement.gs_absicherung, gs_absicherung),
+        (CatalogRequirement.gs_verantwortliche, gs_verantwortliche),
         (Requirement.target_object, target_object),
         (Requirement.milestone, milestone),
         (Requirement.compliance_comment, compliance_comment),
@@ -323,6 +329,8 @@ def get_requirement_filters(
             Requirement.catalog_requirement_id,
             combine_flags(has_catalog_requirement, has_catalog_module, has_catalog),
         ),
+        (CatalogRequirement.gs_absicherung, has_gs_absicherung),
+        (CatalogRequirement.gs_verantwortliche, has_gs_verantwortliche),
     ):
         if value is not None:
             where_clauses.append(filter_for_existence(column, value))
