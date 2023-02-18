@@ -26,6 +26,7 @@ from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
+    search_columns,
 )
 from ..utils.pagination import Page, page_params
 from ..errors import NotFoundError
@@ -157,6 +158,7 @@ def get_project_filters(
     description: str | None = None,
     #
     # filter by ids
+    ids: list[int] | None = Query(None),
     jira_project_ids: list[str] | None = Query(None),
     #
     # filter for existence
@@ -176,11 +178,13 @@ def get_project_filters(
         if value is not None:
             where_clauses.append(filter_by_pattern(column, value))
 
-    # filter by Jira project ids
-    if jira_project_ids:
-        where_clauses.append(
-            filter_by_values(Project.jira_project_id, jira_project_ids)
-        )
+    # filter by ids
+    for column, values in (
+        (Project.id, ids),
+        (Project.jira_project_id, jira_project_ids),
+    ):
+        if values:
+            where_clauses.append(filter_by_values(column, values))
 
     # filter for existence
     for column, value in [
@@ -254,11 +258,15 @@ def get_projects(
     **ProjectsView.kwargs,
 )
 def get_project_representations(
-    where_clauses=Depends(get_project_filters),
+    where_clauses: list[Any] = Depends(get_project_filters),
+    local_search: str | None = None,
     order_by_clauses=Depends(get_project_sort),
     page_params=Depends(page_params),
     projects_view: ProjectsView = Depends(),
 ):
+    if local_search:
+        where_clauses.append(search_columns(local_search, Project.name))
+
     projects = projects_view.list_projects(
         where_clauses, order_by_clauses, **page_params, query_jira=False
     )

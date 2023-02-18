@@ -30,6 +30,7 @@ from ..utils.filtering import (
     filter_for_existence,
     filter_by_pattern,
     filter_by_values,
+    search_columns,
 )
 from ..database import CRUDOperations
 from .requirements import RequirementsView
@@ -279,6 +280,7 @@ def get_measure_filters(
     verification_methods: list[str] | None = Query(default=None),
     #
     # filter by ids
+    ids: list[int] | None = Query(default=None),
     document_ids: list[int] | None = Query(default=None),
     jira_issue_ids: list[str] | None = Query(default=None),
     project_ids: list[int] | None = Query(default=None),
@@ -323,6 +325,7 @@ def get_measure_filters(
         (Measure.compliance_status, compliance_statuses),
         (Measure.completion_status, completion_statuses),
         (Measure.verification_method, verification_methods),
+        (Measure.id, ids),
         (Measure.document_id, document_ids),
         (Measure.jira_issue_id, jira_issue_ids),
         (Requirement.project_id, project_ids),
@@ -451,11 +454,17 @@ def get_measures(
     **MeasuresView.kwargs,
 )
 def get_measure_representations(
-    where_clauses=Depends(get_measure_filters),
+    where_clauses: list[Any] = Depends(get_measure_filters),
+    local_search: str | None = None,
     order_by_clauses=Depends(get_measure_sort),
     page_params=Depends(page_params),
     measures_view: MeasuresView = Depends(),
 ):
+    if local_search:
+        where_clauses.append(
+            search_columns(local_search, Measure.reference, Measure.summary)
+        )
+
     measures = measures_view.list_measures(
         where_clauses, order_by_clauses, **page_params, query_jira=False
     )
@@ -511,7 +520,7 @@ def get_measure_references(
     measures_view: MeasuresView = Depends(),
 ):
     if local_search:
-        where_clauses.append(filter_by_pattern(Measure.reference, f"*{local_search}*"))
+        where_clauses.append(search_columns(local_search, Measure.reference))
 
     references = measures_view.list_measure_values(
         Measure.reference, where_clauses, **page_params

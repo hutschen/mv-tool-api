@@ -27,6 +27,7 @@ from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
+    search_columns,
 )
 from ..errors import NotFoundError
 from ..auth import get_jira
@@ -147,6 +148,9 @@ def get_catalog_filters(
     # filter by values
     references: list[str] | None = Query(None),
     #
+    # filter by ids
+    ids: list[int] | None = Query(None),
+    #
     # filter for existence
     has_reference: bool | None = None,
     has_description: bool | None = None,
@@ -165,9 +169,13 @@ def get_catalog_filters(
         if value is not None:
             where_clauses.append(filter_by_pattern(column, value))
 
-    # filter by values
-    if references:
-        where_clauses.append(filter_by_values(Catalog.reference, references))
+    # filter by values or by ids
+    for column, values in (
+        (Catalog.id, ids),
+        (Catalog.reference, references),
+    ):
+        if values:
+            where_clauses.append(filter_by_values(column, values))
 
     # filter for existence
     for column, value in [
@@ -242,10 +250,16 @@ def get_catalogs(
 )
 def get_catalog_representations(
     where_clauses=Depends(get_catalog_filters),
+    local_search: str | None = None,
     order_by_clauses=Depends(get_catalog_sort),
     page_params=Depends(page_params),
     catalogs_view: CatalogsView = Depends(),
 ):
+    if local_search:
+        where_clauses.append(
+            search_columns(local_search, Catalog.reference, Catalog.title)
+        )
+
     catalogs = catalogs_view.list_catalogs(
         where_clauses, order_by_clauses, **page_params
     )
@@ -283,13 +297,13 @@ def get_catalog_field_names(
     **CatalogsView.kwargs,
 )
 def get_catalog_references(
-    where_clauses=Depends(get_catalog_filters),
+    where_clauses: list[Any] = Depends(get_catalog_filters),
     local_search: str | None = None,
     page_params=Depends(page_params),
     catalogs_view: CatalogsView = Depends(),
 ):
     if local_search:
-        where_clauses.append(filter_by_pattern(Catalog.reference, f"*{local_search}*"))
+        where_clauses.append(search_columns(local_search, Catalog.reference))
 
     references = catalogs_view.list_catalog_values(
         Catalog.reference, where_clauses, **page_params

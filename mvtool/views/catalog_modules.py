@@ -27,6 +27,7 @@ from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
+    search_columns,
 )
 from .catalogs import CatalogsView
 from ..errors import NotFoundError
@@ -175,6 +176,7 @@ def get_catalog_module_filters(
     references: list[str] | None = Query(None),
     #
     # filter by ids
+    ids: list[int] | None = Query(None),
     catalog_ids: list[int] | None = Query(None),
     #
     # filter for existence
@@ -195,9 +197,10 @@ def get_catalog_module_filters(
         if value is not None:
             where_clauses.append(filter_by_pattern(column, value))
 
-    # filter by values
+    # filter by values or ids
     for column, values in [
         (CatalogModule.reference, references),
+        (CatalogModule.id, ids),
         (CatalogModule.catalog_id, catalog_ids),
     ]:
         if values:
@@ -283,11 +286,17 @@ def get_catalog_modules(
     **CatalogModulesView.kwargs,
 )
 def get_catalog_module_representation(
-    where_clauses=Depends(get_catalog_module_filters),
+    where_clauses: list[Any] = Depends(get_catalog_module_filters),
+    local_search: str | None = None,
     order_by_clauses=Depends(get_catalog_module_sort),
     page_params=Depends(page_params),
     catalog_modules_view: CatalogModulesView = Depends(),
 ):
+    if local_search:
+        where_clauses.append(
+            search_columns(local_search, CatalogModule.reference, CatalogModule.title)
+        )
+
     cmodules = catalog_modules_view.list_catalog_modules(
         where_clauses, order_by_clauses, **page_params
     )
@@ -333,9 +342,7 @@ def get_catalog_module_references(
     catalog_modules_view: CatalogModulesView = Depends(),
 ):
     if local_search:
-        where_clauses.append(
-            filter_by_pattern(CatalogModule.reference, f"*{local_search}*")
-        )
+        where_clauses.append(search_columns(local_search, CatalogModule.reference))
 
     references = catalog_modules_view.list_catalog_module_values(
         CatalogModule.reference, where_clauses, **page_params

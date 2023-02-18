@@ -28,6 +28,7 @@ from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
+    search_columns,
 )
 from ..errors import NotFoundError
 from ..database import CRUDOperations
@@ -192,6 +193,7 @@ def get_document_filters(
     references: list[str] | None = Query(None),
     #
     # filter by ids
+    ids: list[int] | None = Query(None),
     project_ids: list[int] | None = Query(None),
     #
     # filter for existence
@@ -214,6 +216,7 @@ def get_document_filters(
 
     # filter by values or by ids
     for column, values in (
+        (Document.id, ids),
         (Document.reference, references),
         (Document.project_id, project_ids),
     ):
@@ -297,11 +300,17 @@ def get_documents(
     **DocumentsView.kwargs,
 )
 def get_document_representations(
-    where_clauses=Depends(get_document_filters),
+    where_clauses: list[Any] = Depends(get_document_filters),
+    local_search: str | None = None,
     order_by_clauses=Depends(get_document_sort),
     page_params=Depends(page_params),
     documents_view: DocumentsView = Depends(),
 ):
+    if local_search:
+        where_clauses.append(
+            search_columns(local_search, Document.reference, Document.title)
+        )
+
     documents = documents_view.list_documents(
         where_clauses, order_by_clauses, **page_params, query_jira=False
     )
@@ -341,13 +350,13 @@ def get_document_field_names(
     **DocumentsView.kwargs,
 )
 def get_document_references(
-    where_clauses=Depends(get_document_filters),
+    where_clauses: list[Any] = Depends(get_document_filters),
     local_search: str | None = None,
     page_params=Depends(page_params),
     document_view: DocumentsView = Depends(),
 ):
     if local_search:
-        where_clauses.append(filter_by_pattern(Document.reference, f"*{local_search}*"))
+        where_clauses.append(search_columns(local_search, Document.reference))
 
     references = document_view.list_document_values(
         Document.reference, where_clauses, **page_params
