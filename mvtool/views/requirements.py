@@ -266,6 +266,7 @@ def get_requirement_filters(
     compliance_statuses: list[str] | None = Query(default=None),
     #
     # filter by ids
+    ids: list[int] | None = Query(default=None),
     project_ids: list[int] | None = Query(default=None),
     catalog_requirement_ids: list[int] | None = Query(default=None),
     catalog_module_ids: list[int] | None = Query(default=None),
@@ -309,6 +310,7 @@ def get_requirement_filters(
         (Requirement.target_object, target_objects),
         (Requirement.milestone, milestones),
         (Requirement.compliance_status, compliance_statuses),
+        (Requirement.id, ids),
         (Requirement.project_id, project_ids),
         (Requirement.catalog_requirement_id, catalog_requirement_ids),
         (CatalogRequirement.catalog_module_id, catalog_module_ids),

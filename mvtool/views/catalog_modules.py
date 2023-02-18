@@ -176,6 +176,7 @@ def get_catalog_module_filters(
     references: list[str] | None = Query(None),
     #
     # filter by ids
+    ids: list[int] | None = Query(None),
     catalog_ids: list[int] | None = Query(None),
     #
     # filter for existence
@@ -196,9 +197,10 @@ def get_catalog_module_filters(
         if value is not None:
             where_clauses.append(filter_by_pattern(column, value))
 
-    # filter by values
+    # filter by values or ids
     for column, values in [
         (CatalogModule.reference, references),
+        (CatalogModule.id, ids),
         (CatalogModule.catalog_id, catalog_ids),
     ]:
         if values:

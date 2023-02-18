@@ -198,6 +198,7 @@ def get_catalog_requirement_filters(
     gs_absicherungen: list[str] | None = Query(None),
     #
     # filter by ids
+    ids: list[int] | None = Query(None),
     catalog_ids: list[int] | None = Query(None),
     catalog_module_ids: list[int] | None = Query(None),
     #
@@ -227,6 +228,7 @@ def get_catalog_requirement_filters(
     for column, values in (
         (CatalogRequirement.reference, references),
         (CatalogRequirement.gs_absicherung, gs_absicherungen),
+        (CatalogRequirement.id, ids),
         (CatalogModule.catalog_id, catalog_ids),
         (CatalogRequirement.catalog_module_id, catalog_module_ids),
     ):

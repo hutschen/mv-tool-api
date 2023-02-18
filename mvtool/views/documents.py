@@ -193,6 +193,7 @@ def get_document_filters(
     references: list[str] | None = Query(None),
     #
     # filter by ids
+    ids: list[int] | None = Query(None),
     project_ids: list[int] | None = Query(None),
     #
     # filter for existence
@@ -215,6 +216,7 @@ def get_document_filters(
 
     # filter by values or by ids
     for column, values in (
+        (Document.id, ids),
         (Document.reference, references),
         (Document.project_id, project_ids),
     ):

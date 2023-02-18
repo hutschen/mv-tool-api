@@ -158,6 +158,7 @@ def get_project_filters(
     description: str | None = None,
     #
     # filter by ids
+    ids: list[int] | None = Query(None),
     jira_project_ids: list[str] | None = Query(None),
     #
     # filter for existence
@@ -177,11 +178,13 @@ def get_project_filters(
         if value is not None:
             where_clauses.append(filter_by_pattern(column, value))
 
-    # filter by Jira project ids
-    if jira_project_ids:
-        where_clauses.append(
-            filter_by_values(Project.jira_project_id, jira_project_ids)
-        )
+    # filter by ids
+    for column, values in (
+        (Project.id, ids),
+        (Project.jira_project_id, jira_project_ids),
+    ):
+        if values:
+            where_clauses.append(filter_by_values(column, values))
 
     # filter for existence
     for column, value in [

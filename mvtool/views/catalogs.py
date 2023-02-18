@@ -148,6 +148,9 @@ def get_catalog_filters(
     # filter by values
     references: list[str] | None = Query(None),
     #
+    # filter by ids
+    ids: list[int] | None = Query(None),
+    #
     # filter for existence
     has_reference: bool | None = None,
     has_description: bool | None = None,
@@ -166,9 +169,13 @@ def get_catalog_filters(
         if value is not None:
             where_clauses.append(filter_by_pattern(column, value))
 
-    # filter by values
-    if references:
-        where_clauses.append(filter_by_values(Catalog.reference, references))
+    # filter by values or by ids
+    for column, values in (
+        (Catalog.id, ids),
+        (Catalog.reference, references),
+    ):
+        if values:
+            where_clauses.append(filter_by_values(column, values))
 
     # filter for existence
     for column, value in [

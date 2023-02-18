@@ -280,6 +280,7 @@ def get_measure_filters(
     verification_methods: list[str] | None = Query(default=None),
     #
     # filter by ids
+    ids: list[int] | None = Query(default=None),
     document_ids: list[int] | None = Query(default=None),
     jira_issue_ids: list[str] | None = Query(default=None),
     project_ids: list[int] | None = Query(default=None),
@@ -324,6 +325,7 @@ def get_measure_filters(
         (Measure.compliance_status, compliance_statuses),
         (Measure.completion_status, completion_statuses),
         (Measure.verification_method, verification_methods),
+        (Measure.id, ids),
         (Measure.document_id, document_ids),
         (Measure.jira_issue_id, jira_issue_ids),
         (Requirement.project_id, project_ids),
