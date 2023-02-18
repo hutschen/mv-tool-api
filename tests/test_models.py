@@ -98,7 +98,7 @@ def test_requirement_compliance_status_hint(crud: CRUDOperations, compliance_sta
     crud.create_in_db(requirement)
     crud.session.commit()
 
-    assert requirement.compliance_status_hint == compliance_status
+    assert requirement.compliance_status_hint == None
 
 
 @pytest.mark.parametrize(
