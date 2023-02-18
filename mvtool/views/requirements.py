@@ -27,6 +27,7 @@ from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
+    search_columns,
 )
 from ..errors import NotFoundError
 from ..database import CRUDOperations
@@ -410,11 +411,17 @@ def get_requirements(
     **RequirementsView.kwargs,
 )
 def get_requirement_representations(
-    where_clauses=Depends(get_requirement_filters),
+    where_clauses: list[Any] = Depends(get_requirement_filters),
+    local_search: str | None = None,
     order_by_clauses=Depends(get_requirement_sort),
     page_params=Depends(page_params),
     requirements_view: RequirementsView = Depends(RequirementsView),
 ):
+    if local_search:
+        where_clauses.append(
+            search_columns(local_search, Requirement.reference, Requirement.summary)
+        )
+
     requirements = requirements_view.list_requirements(
         where_clauses, order_by_clauses, **page_params, query_jira=False
     )
@@ -464,7 +471,7 @@ def _create_requirement_field_values_handler(column: Column) -> callable:
         requirements_view: RequirementsView = Depends(RequirementsView),
     ) -> Page[str] | list[str]:
         if local_search:
-            where_clauses.append(filter_by_pattern(column, f"*{local_search}*"))
+            where_clauses.append(search_columns(local_search, column))
 
         items = requirements_view.list_requirement_values(
             column, where_clauses, **page_params

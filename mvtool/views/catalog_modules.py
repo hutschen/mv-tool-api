@@ -27,6 +27,7 @@ from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
+    search_columns,
 )
 from .catalogs import CatalogsView
 from ..errors import NotFoundError
@@ -283,7 +284,7 @@ def get_catalog_modules(
     **CatalogModulesView.kwargs,
 )
 def get_catalog_module_representation(
-    where_clauses=Depends(get_catalog_module_filters),
+    where_clauses: list[Any] = Depends(get_catalog_module_filters),
     local_search: str | None = None,
     order_by_clauses=Depends(get_catalog_module_sort),
     page_params=Depends(page_params),
@@ -291,10 +292,7 @@ def get_catalog_module_representation(
 ):
     if local_search:
         where_clauses.append(
-            or_(
-                filter_by_pattern(column, f"*{local_search}*")
-                for column in (CatalogModule.reference, CatalogModule.title)
-            )
+            search_columns(local_search, CatalogModule.reference, CatalogModule.title)
         )
 
     cmodules = catalog_modules_view.list_catalog_modules(
@@ -342,9 +340,7 @@ def get_catalog_module_references(
     catalog_modules_view: CatalogModulesView = Depends(),
 ):
     if local_search:
-        where_clauses.append(
-            filter_by_pattern(CatalogModule.reference, f"*{local_search}*")
-        )
+        where_clauses.append(search_columns(local_search, CatalogModule.reference))
 
     references = catalog_modules_view.list_catalog_module_values(
         CatalogModule.reference, where_clauses, **page_params

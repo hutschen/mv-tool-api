@@ -26,6 +26,7 @@ from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
+    search_columns,
 )
 from ..utils.pagination import Page, page_params
 from ..errors import NotFoundError
@@ -325,11 +326,19 @@ def get_catalog_requirements(
     **CatalogRequirementsView.kwargs,
 )
 def get_catalog_requirement_representations(
-    where_clauses=Depends(get_catalog_requirement_filters),
+    where_clauses: list[Any] = Depends(get_catalog_requirement_filters),
+    local_search: str | None = None,
     order_by_clauses=Depends(get_catalog_requirement_sort),
     page_params=Depends(page_params),
     catalog_requirements_view: CatalogRequirementsView = Depends(),
 ) -> Page[CatalogRequirementRepresentation] | list[CatalogRequirement]:
+    if local_search:
+        where_clauses.append(
+            search_columns(
+                local_search, CatalogRequirement.reference, CatalogRequirement.summary
+            )
+        )
+
     crequirements = catalog_requirements_view.list_catalog_requirements(
         where_clauses, order_by_clauses, **page_params
     )
@@ -373,15 +382,13 @@ def get_catalog_requirement_field_names(
     **CatalogRequirementsView.kwargs,
 )
 def get_catalog_requirement_references(
-    where_clauses=Depends(get_catalog_requirement_filters),
+    where_clauses: list[Any] = Depends(get_catalog_requirement_filters),
     local_search: str | None = None,
     page_params=Depends(page_params),
     catalog_requirements_view: CatalogRequirementsView = Depends(),
 ) -> Page[str] | list[str]:
     if local_search:
-        where_clauses.append(
-            filter_by_pattern(CatalogRequirement.reference, f"*{local_search}*")
-        )
+        where_clauses.append(search_columns(local_search, CatalogRequirement.reference))
     references = catalog_requirements_view.list_catalog_requirement_values(
         CatalogRequirement.reference, where_clauses, **page_params
     )

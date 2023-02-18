@@ -27,6 +27,7 @@ from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
+    search_columns,
 )
 from ..errors import NotFoundError
 from ..auth import get_jira
@@ -249,10 +250,7 @@ def get_catalog_representations(
 ):
     if local_search:
         where_clauses.append(
-            or_(
-                filter_by_pattern(column, f"*{local_search}*")
-                for column in (Catalog.reference, Catalog.title)
-            )
+            search_columns(local_search, Catalog.reference, Catalog.title)
         )
 
     catalogs = catalogs_view.list_catalogs(
@@ -292,13 +290,13 @@ def get_catalog_field_names(
     **CatalogsView.kwargs,
 )
 def get_catalog_references(
-    where_clauses=Depends(get_catalog_filters),
+    where_clauses: list[Any] = Depends(get_catalog_filters),
     local_search: str | None = None,
     page_params=Depends(page_params),
     catalogs_view: CatalogsView = Depends(),
 ):
     if local_search:
-        where_clauses.append(filter_by_pattern(Catalog.reference, f"*{local_search}*"))
+        where_clauses.append(search_columns(local_search, Catalog.reference))
 
     references = catalogs_view.list_catalog_values(
         Catalog.reference, where_clauses, **page_params
