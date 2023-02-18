@@ -53,3 +53,14 @@ def filter_for_existence(column: Column, exists: bool = True) -> Any:
         return (and_ if exists else or_)(none_clause, str_clause)
     else:
         return none_clause
+
+
+def search_columns(search_str: str, columns_head: Column, *columns_tail: Column) -> Any:
+    """Generate where clause to search for search string in columns"""
+    search_str = f"*{search_str}*"
+    if columns_tail:
+        return or_(
+            filter_by_pattern(c, search_str) for c in (columns_head, *columns_tail)
+        )
+    else:
+        return filter_by_pattern(columns_head, search_str)
