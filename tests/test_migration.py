@@ -417,3 +417,99 @@ def test_migration_e47b89bcaa77_add_completion_fields(
         ).fetchone()
         assert requirement["completion_status"] is None
         assert requirement["completion_comment"] is None
+
+
+def test_migration_13be50ec3471_remove_gs_anforderung_reference_field(
+    alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
+):
+    # Insert two catalog requirements, one with a reference, one without
+    timestamp = datetime.utcnow()
+    with_ref_id = 1
+    without_ref_id = 2
+    alembic_runner.migrate_up_before("13be50ec3471")
+    alembic_runner.insert_into(
+        "catalog_requirement",
+        {
+            "id": with_ref_id,
+            "created": timestamp,
+            "updated": timestamp,
+            "summary": "summary %d" % with_ref_id,
+            "reference": "reference %d" % with_ref_id,
+            "gs_anforderung_reference": "gs_reference %d" % with_ref_id,
+        },
+    )
+    alembic_runner.insert_into(
+        "catalog_requirement",
+        {
+            "id": without_ref_id,
+            "created": timestamp,
+            "updated": timestamp,
+            "summary": "summary %d" % without_ref_id,
+            "gs_anforderung_reference": "gs_reference %d" % without_ref_id,
+        },
+    )
+    alembic_runner.migrate_up_one()
+
+    with alembic_engine.connect() as conn:
+        with_reference = conn.execute(
+            "SELECT * FROM catalog_requirement WHERE id=%d" % with_ref_id
+        ).fetchone()
+        without_reference = conn.execute(
+            "SELECT * FROM catalog_requirement WHERE id=%d" % without_ref_id
+        ).fetchone()
+
+        # check if existing reference is not overwritten
+        assert with_reference["reference"] == "reference %d" % with_ref_id
+        assert without_reference["reference"] == "gs_reference %d" % without_ref_id
+
+        # check if gs_anforderung_reference is removed
+        assert "gs_anforderung_reference" not in with_reference
+        assert "gs_anforderung_reference" not in without_reference
+
+
+def test_migration_bef7008ddd94_remove_gs_reference_field(
+    alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
+):
+    # Insert two catalog modules, one with a reference, one without
+    timestamp = datetime.utcnow()
+    with_ref_id = 1
+    without_ref_id = 2
+    alembic_runner.migrate_up_before("bef7008ddd94")
+    alembic_runner.insert_into(
+        "catalog_module",
+        {
+            "id": with_ref_id,
+            "created": timestamp,
+            "updated": timestamp,
+            "title": "title %d" % with_ref_id,
+            "reference": "reference %d" % with_ref_id,
+            "gs_reference": "gs_reference %d" % with_ref_id,
+        },
+    )
+    alembic_runner.insert_into(
+        "catalog_module",
+        {
+            "id": without_ref_id,
+            "created": timestamp,
+            "updated": timestamp,
+            "title": "title %d" % without_ref_id,
+            "gs_reference": "gs_reference %d" % without_ref_id,
+        },
+    )
+    alembic_runner.migrate_up_one()
+
+    with alembic_engine.connect() as conn:
+        with_reference = conn.execute(
+            "SELECT * FROM catalog_module WHERE id=%d" % with_ref_id
+        ).fetchone()
+        without_reference = conn.execute(
+            "SELECT * FROM catalog_module WHERE id=%d" % without_ref_id
+        ).fetchone()
+
+        # check if existing reference is not overwritten
+        assert with_reference["reference"] == "reference %d" % with_ref_id
+        assert without_reference["reference"] == "gs_reference %d" % without_ref_id
+
+        # check if gs_reference is removed
+        assert "gs_reference" not in with_reference
+        assert "gs_reference" not in without_reference

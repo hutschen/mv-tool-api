@@ -96,7 +96,7 @@ class GSBausteinParser:
         match = cls._requirement_title_re_1.match(text)
         if match:
             return CatalogRequirement(
-                gs_anforderung_reference=match.group(1),
+                reference=match.group(1),
                 summary=match.group(3),
                 gs_absicherung=match.group(6),
                 gs_verantwortliche=match.group(5),
@@ -105,7 +105,7 @@ class GSBausteinParser:
             match = cls._requirement_title_re_2.match(text)
             if match:
                 return CatalogRequirement(
-                    gs_anforderung_reference=match.group(1),
+                    reference=match.group(1),
                     summary=match.group(3),
                     gs_absicherung=match.group(4),
                     gs_verantwortliche=match.group(6),
@@ -163,9 +163,7 @@ class GSBausteinParser:
             if paragraphs.current.style.name == "Title":
                 match = cls._gs_baustein_title_re.match(paragraphs.current.text)
                 if match:
-                    return CatalogModule(
-                        gs_reference=match.group(1), title=match.group(3)
-                    )
+                    return CatalogModule(reference=match.group(1), title=match.group(3))
                 else:
                     raise errors.ValueHttpError(
                         f"Could not parse GS baustein title: {paragraphs.current.text}"
