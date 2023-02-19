@@ -211,7 +211,6 @@ class MeasuresExcelView(ExcelView):
             self,
             [
                 ExcelHeader("Requirement Reference", ExcelHeader.WRITE_ONLY, True),
-                ExcelHeader("Requirement GS ID", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Requirement Summary", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Reference", optional=True),
                 ExcelHeader("ID", optional=True),
@@ -236,11 +235,6 @@ class MeasuresExcelView(ExcelView):
     def _convert_to_row(self, data: Measure, *args) -> dict[str, str]:
         return {
             "Requirement Reference": data.requirement.reference,
-            "Requirement GS ID": (
-                data.requirement.catalog_requirement.gs_anforderung_reference
-                if data.requirement.catalog_requirement
-                else None
-            ),
             "Requirement Summary": data.requirement.summary,
             "Reference": data.reference,
             "ID": data.id,
@@ -425,7 +419,6 @@ class RequirementsExcelView(ExcelView):
             [
                 ExcelHeader("ID", optional=True),
                 ExcelHeader("Reference", optional=True),
-                ExcelHeader("GS ID", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Catalog", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Catalog Module", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Summary"),
@@ -447,11 +440,6 @@ class RequirementsExcelView(ExcelView):
         return {
             "ID": data.id,
             "Reference": data.reference,
-            "GS ID": (
-                data.catalog_requirement.gs_anforderung_reference
-                if data.catalog_requirement
-                else None
-            ),
             "Catalog": (
                 data.catalog_requirement.catalog_module.catalog.title
                 if data.catalog_requirement

@@ -96,7 +96,7 @@ class GSBausteinParser:
         match = cls._requirement_title_re_1.match(text)
         if match:
             return CatalogRequirement(
-                gs_anforderung_reference=match.group(1),
+                reference=match.group(1),
                 summary=match.group(3),
                 gs_absicherung=match.group(6),
                 gs_verantwortliche=match.group(5),
@@ -105,7 +105,7 @@ class GSBausteinParser:
             match = cls._requirement_title_re_2.match(text)
             if match:
                 return CatalogRequirement(
-                    gs_anforderung_reference=match.group(1),
+                    reference=match.group(1),
                     summary=match.group(3),
                     gs_absicherung=match.group(4),
                     gs_verantwortliche=match.group(6),

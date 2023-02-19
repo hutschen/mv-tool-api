@@ -253,7 +253,6 @@ class Requirement(RequirementInput, CommonFieldsMixin, table=True):
 
 class CatalogRequirementInput(AbstractRequirementInput):
     # Special fields for IT Grundschutz Kompendium
-    gs_anforderung_reference: str | None
     gs_absicherung: constr(regex=r"^(B|S|H)$") | None
     gs_verantwortliche: str | None
 
@@ -445,7 +444,6 @@ class CatalogRequirementOutput(CatalogRequirementInput):
     catalog_module: CatalogModuleOutput
 
     # Special fields for IT Grundschutz Kompendium
-    gs_anforderung_reference: str | None
     gs_absicherung: constr(regex=r"^(B|S|H)$") | None
     gs_verantwortliche: str | None
 
