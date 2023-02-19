@@ -163,9 +163,7 @@ class GSBausteinParser:
             if paragraphs.current.style.name == "Title":
                 match = cls._gs_baustein_title_re.match(paragraphs.current.text)
                 if match:
-                    return CatalogModule(
-                        gs_reference=match.group(1), title=match.group(3)
-                    )
+                    return CatalogModule(reference=match.group(1), title=match.group(3))
                 else:
                     raise errors.ValueHttpError(
                         f"Could not parse GS baustein title: {paragraphs.current.text}"

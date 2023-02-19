@@ -272,9 +272,6 @@ class CatalogModuleInput(SQLModel):
     title: str
     description: str | None
 
-    # Special fields for IT Grundschutz Kompendium
-    gs_reference: str | None
-
 
 class CatalogModule(CatalogModuleInput, CommonFieldsMixin, table=True):
     __tablename__ = "catalog_module"
