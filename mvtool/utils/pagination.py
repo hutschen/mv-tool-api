@@ -1,4 +1,6 @@
-# Copyright (C) 2022 Helmar Hutschenreuter
+# coding: utf-8
+#
+# Copyright (C) 2023 Helmar Hutschenreuter
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -14,16 +16,25 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-def combine_flags(flags_head: bool | None, *flags_tail: bool | None) -> bool | None:
-    """Combine the given boolean flags and return the result.
+from typing import Generic, TypeVar
+from pydantic.generics import GenericModel
+from pydantic import conint
 
-    Args:
-        flags_head (bool or None): The first boolean flag.
-        flags_tail (tuple of bools or Nones): The remaining boolean flags.
 
-    Returns:
-        bool or None: The result of combining the boolean flags with an OR operator.
-        If all the input flags are None, the function returns None.
-    """
-    boolean_flags = [f for f in [flags_head, *flags_tail] if f is not None]
-    return any(boolean_flags) if boolean_flags else None
+def page_params(
+    page: conint(gt=0) | None = None, page_size: conint(gt=0) | None = None
+) -> dict[str, int]:
+    if page and page_size:
+        return dict(
+            offset=(page - 1) * page_size,
+            limit=page_size,
+        )
+    return dict()
+
+
+T = TypeVar("T")
+
+
+class Page(GenericModel, Generic[T]):
+    items: list[T]
+    total_count: conint(ge=0)

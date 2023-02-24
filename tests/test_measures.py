@@ -37,7 +37,7 @@ def test_list_measure(
     create_document: Document,
     create_measure: Measure,
 ):
-    results = list(measures_view.list_measures(create_requirement.id))
+    results = list(measures_view.list_measures())
 
     assert len(results) == 1
     measure = results[0]
@@ -49,19 +49,13 @@ def test_list_measure(
     assert measure.requirement.project.jira_project.id == create_project.jira_project_id
 
 
-def test_list_measure_invalid_requirement_id(measures_view: MeasuresView):
-    results = list(measures_view.list_measures(-1))
-    assert len(results) == 0
-
-
 def test_list_measures_without_jira_issue(
     measures_view: MeasuresView,
-    create_requirement: Requirement,
     create_measure: Measure,
 ):
     create_measure.jira_issue_id = None
 
-    results = list(measures_view.list_measures(create_requirement.id))
+    results = list(measures_view.list_measures())
 
     assert len(results) == 1
     measure = results[0]
@@ -70,29 +64,13 @@ def test_list_measures_without_jira_issue(
     assert measure.jira_issue is None
 
 
-def test_list_measures_of_project(
-    measures_view: MeasuresView,
-    create_project: Project,
-    create_measure: Measure,
-):
-    results = list(measures_view.list_measures_of_project(create_project.id))
-
-    assert len(results) == 1
-    measure = results[0]
-    assert isinstance(measure, Measure)
-    assert measure.id == create_measure.id
-    assert measure.requirement.project.id == create_project.id
-    assert measure.jira_issue.id == create_measure.jira_issue_id
-    assert measure.requirement.project.jira_project.id == create_project.jira_project_id
-
-
-def test_query_measures(
+def test_list_measures_by_project(
     measures_view: MeasuresView,
     create_project: Project,
     create_measure: Measure,
 ):
     results = list(
-        measures_view.query_measures(Requirement.project_id == create_project.id)
+        measures_view.list_measures([Requirement.project_id == create_project.id])
     )
 
     assert len(results) == 1
@@ -102,6 +80,22 @@ def test_query_measures(
     assert measure.requirement.project.id == create_project.id
     assert measure.jira_issue.id == create_measure.jira_issue_id
     assert measure.requirement.project.jira_project.id == create_project.jira_project_id
+
+
+def test_list_measures_by_requirement(
+    measures_view: MeasuresView,
+    create_requirement: Requirement,
+    create_measure: Measure,
+):
+    results = list(
+        measures_view.list_measures([Measure.requirement_id == create_requirement.id])
+    )
+
+    assert len(results) == 1
+    measure = results[0]
+    assert isinstance(measure, Measure)
+    assert measure.id == create_measure.id
+    assert measure.requirement.id == create_requirement.id
 
 
 def test_create_measure(
@@ -324,3 +318,55 @@ def test_measure_jira_issue_with_getter():
     measure = Measure(summary="test", jira_issue_id="test")
     measure._get_jira_issue = lambda _: jira_issue_dummy
     assert measure.jira_issue == jira_issue_dummy
+
+
+@pytest.mark.parametrize("compliance_status", ["C", "PC", None])
+def test_measure_completion_status_hint_jira_issue_completed(
+    compliance_status, create_measure: Measure
+):
+    create_measure.compliance_status = compliance_status
+    create_measure.jira_issue.status.completed = True
+    assert create_measure.completion_status_hint == "completed"
+
+
+@pytest.mark.parametrize("completion_status", ["open", "in progress", None])
+def test_measure_completion_status_hint_jira_issue_incomplete(
+    completion_status,
+    create_measure: Measure,
+):
+    create_measure.compliance_status = "C"
+    create_measure.completion_status = completion_status
+    create_measure.jira_issue.status.completed = False
+    assert create_measure.completion_status_hint == completion_status
+
+
+@pytest.mark.parametrize("compliance_status", ["NC", "N/A"])
+def test_measure_completion_status_hint_non_compliant(
+    compliance_status, create_measure: Measure
+):
+    create_measure.compliance_status = compliance_status
+    assert create_measure.completion_status_hint is None
+
+
+@pytest.mark.parametrize("verified", [True, False])
+def test_measure_verified_hint_completed(verified, create_measure: Measure):
+    create_measure.compliance_status = "C"
+    create_measure.completion_status = "completed"
+    create_measure.verified = verified
+    assert create_measure.verified_hint == verified
+
+
+@pytest.mark.parametrize("verified", [True, False])
+def test_measure_verified_hint_not_completed(verified, create_measure: Measure):
+    create_measure.compliance_status = "C"
+    create_measure.completion_status = "open"
+    create_measure.verified = verified
+    assert create_measure.verified_hint is False
+
+
+@pytest.mark.parametrize("compliance_status", ["NC", "N/A"])
+def test_measure_verified_hint_non_compliant(
+    compliance_status, create_measure: Measure
+):
+    create_measure.compliance_status = compliance_status
+    assert create_measure.verified_hint is False

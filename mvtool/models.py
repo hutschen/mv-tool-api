@@ -128,6 +128,26 @@ class Measure(MeasureInput, CommonFieldsMixin, table=True):
 
         return getattr(self, "_get_jira_issue")(self.jira_issue_id)
 
+    @property
+    def completion_status_hint(self):
+        if self.compliance_status not in ("C", "PC", None):
+            return None
+
+        if self.jira_issue and self.jira_issue.status.completed:
+            return "completed"
+        else:
+            return self.completion_status
+
+    @property
+    def verified_hint(self):
+        if self.compliance_status not in ("C", "PC", None):
+            return False
+
+        if self.completion_status == "completed":
+            return self.verified
+        else:
+            return False
+
 
 class AbstractRequirementInput(SQLModel):
     reference: str | None
@@ -162,16 +182,10 @@ class Requirement(RequirementInput, CommonFieldsMixin, table=True):
         session = Session.object_session(self)
 
         # get the compliance states of all measures subordinated to this requirement
-        compliance_query = (
-            select([Measure.compliance_status])
-            .select_from(Measure)
-            .where(Measure.requirement_id == self.id)
+        compliance_query = select([Measure.compliance_status]).where(
+            Measure.requirement_id == self.id, Measure.compliance_status != None
         )
-        compliance_states = [
-            c
-            for c in session.execute(compliance_query).scalars().all()
-            if c is not None  # ignore None because it is "neutral"
-        ]
+        compliance_states = session.execute(compliance_query).scalars().all()
 
         # compute the compliance status hint
         exists = lambda x: any(x == c in compliance_states for c in compliance_states)
@@ -186,33 +200,59 @@ class Requirement(RequirementInput, CommonFieldsMixin, table=True):
         elif every("N/A") and len(compliance_states) > 0:
             return "N/A"
         else:
-            return self.compliance_status
+            return None
 
     @property
-    def completion(self) -> float | None:
+    def _compliant_count_query(self):
+        return (
+            select([func.count()])
+            .select_from(Measure)
+            .where(
+                Measure.requirement_id == self.id,
+                or_(
+                    Measure.compliance_status.in_(("C", "PC")),
+                    Measure.compliance_status.is_(None),
+                ),
+            )
+        )
+
+    @property
+    def completion_progress(self) -> float | None:
         if self.compliance_status not in ("C", "PC", None):
             return None
 
         session = Session.object_session(self)
 
         # get the total number of measures subordinated to this requirement
-        total_query = (
-            select([func.count()])
-            .select_from(Measure)
-            .where(Measure.requirement_id == self.id)
-        )
-        total = session.execute(total_query).scalar()
+        total = session.execute(self._compliant_count_query).scalar()
 
         # get the number of completed measures subordinated to this requirement
-        completed_query = total_query.where(Measure.verified == True)
+        completed_query = self._compliant_count_query.where(
+            Measure.completion_status == "completed"
+        )
         completed = session.execute(completed_query).scalar()
 
         return completed / total if total else 0.0
 
+    @property
+    def verification_progress(self) -> float | None:
+        if self.compliance_status not in ("C", "PC", None):
+            return None
+
+        session = Session.object_session(self)
+
+        # get the total number of measures subordinated to this requirement
+        total = session.execute(self._compliant_count_query).scalar()
+
+        # get the number of verified measures subordinated to this requirement
+        verified_query = self._compliant_count_query.where(Measure.verified == True)
+        verified = session.execute(verified_query).scalar()
+
+        return verified / total if total else 0.0
+
 
 class CatalogRequirementInput(AbstractRequirementInput):
     # Special fields for IT Grundschutz Kompendium
-    gs_anforderung_reference: str | None
     gs_absicherung: constr(regex=r"^(B|S|H)$") | None
     gs_verantwortliche: str | None
 
@@ -231,9 +271,6 @@ class CatalogModuleInput(SQLModel):
     reference: str | None
     title: str
     description: str | None
-
-    # Special fields for IT Grundschutz Kompendium
-    gs_reference: str | None
 
 
 class CatalogModule(CatalogModuleInput, CommonFieldsMixin, table=True):
@@ -302,13 +339,10 @@ class Project(ProjectInput, CommonFieldsMixin, table=True):
         return getattr(self, "_get_jira_project")(self.jira_project_id)
 
     @property
-    def completion(self) -> float | None:
-        session = Session.object_session(self)
-
-        # get the total number of measures in project
-        total_query = (
+    def _compliant_count_query(self):
+        return (
             select([func.count()])
-            .select_from(Measure, Requirement)
+            .select_from(Requirement)
             .outerjoin(Measure)
             .where(
                 Requirement.project_id == self.id,
@@ -316,19 +350,56 @@ class Project(ProjectInput, CommonFieldsMixin, table=True):
                     Requirement.compliance_status.in_(("C", "PC")),
                     Requirement.compliance_status.is_(None),
                 ),
+                or_(
+                    Measure.compliance_status.in_(("C", "PC")),
+                    Measure.compliance_status.is_(None),
+                ),
             )
         )
-        total = session.execute(total_query).scalar()
+
+    @property
+    def completion_progress(self) -> float | None:
+        session = Session.object_session(self)
+
+        # get the total number of measures in project
+        total = session.execute(self._compliant_count_query).scalar()
 
         # get the number of completed measures in project
-        completed_query = total_query.where(Measure.verified == True)
+        completed_query = self._compliant_count_query.where(
+            Measure.completion_status == "completed"
+        )
         completed = session.execute(completed_query).scalar()
 
         return completed / total if total else None
 
+    @property
+    def verification_progress(self) -> float | None:
+        session = Session.object_session(self)
+
+        # get the total number of measures in project
+        total = session.execute(self._compliant_count_query).scalar()
+
+        # get the number of verified measures in project
+        verified_query = self._compliant_count_query.where(Measure.verified == True)
+        verified = session.execute(verified_query).scalar()
+
+        return verified / total if total else None
+
+
+class CatalogRepresentation(SQLModel):
+    id: int
+    reference: str | None
+    title: str
+
 
 class CatalogOutput(CatalogInput):
     id: int
+
+
+class CatalogModuleRepresentation(SQLModel):
+    id: int
+    reference: str | None
+    title: str
 
 
 class CatalogModuleOutput(CatalogModuleInput):
@@ -336,10 +407,22 @@ class CatalogModuleOutput(CatalogModuleInput):
     catalog: CatalogOutput
 
 
+class ProjectRepresentation(SQLModel):
+    id: int
+    name: str
+
+
 class ProjectOutput(ProjectInput):
     id: int
     jira_project: JiraProject | None
-    completion: confloat(ge=0, le=1) | None
+    completion_progress: confloat(ge=0, le=1) | None
+    verification_progress: confloat(ge=0, le=1) | None
+
+
+class DocumentRepresentation(SQLModel):
+    id: int
+    reference: str | None
+    title: str
 
 
 class DocumentOutput(DocumentInput):
@@ -347,14 +430,25 @@ class DocumentOutput(DocumentInput):
     project: ProjectOutput
 
 
+class CatalogRequirementRepresentation(SQLModel):
+    id: int
+    reference: str | None
+    summary: str
+
+
 class CatalogRequirementOutput(CatalogRequirementInput):
     id: int
     catalog_module: CatalogModuleOutput
 
     # Special fields for IT Grundschutz Kompendium
-    gs_anforderung_reference: str | None
     gs_absicherung: constr(regex=r"^(B|S|H)$") | None
     gs_verantwortliche: str | None
+
+
+class RequirementRepresentation(SQLModel):
+    id: int
+    reference: str | None
+    summary: str
 
 
 class RequirementOutput(AbstractRequirementInput):
@@ -366,19 +460,25 @@ class RequirementOutput(AbstractRequirementInput):
     compliance_status: str | None
     compliance_status_hint: str | None
     compliance_comment: str | None
-    completion: confloat(ge=0, le=1) | None
+    completion_progress: confloat(ge=0, le=1) | None
+    verification_progress: confloat(ge=0, le=1) | None
 
 
-class MeasureOutput(SQLModel):
-    reference: str | None
+class MeasureRepresentation(SQLModel):
     id: int
+    reference: str | None
     summary: str
+
+
+class MeasureOutput(MeasureRepresentation):
     description: str | None
     compliance_status: str | None
     compliance_comment: str | None
     completion_status: str | None
+    completion_status_hint: str | None
     completion_comment: str | None
-    verified: bool = False
+    verified: bool
+    verified_hint: bool
     verification_method: str | None
     verification_comment: str | None
     requirement: RequirementOutput

@@ -22,7 +22,13 @@ from fastapi.testclient import TestClient
 from mvtool import app
 from mvtool.auth import get_jira
 from mvtool.database import get_session
-from mvtool.models import Project, CatalogModule, Requirement
+from mvtool.models import (
+    CatalogRequirement,
+    Document,
+    Project,
+    CatalogModule,
+    Requirement,
+)
 
 
 @pytest.fixture
@@ -155,8 +161,8 @@ def test_delete_project(client, create_project: Project):
     assert response.status_code == 404
 
 
-def test_list_documents(client, create_project: Project):
-    response = client.get(f"/api/projects/{create_project.id}/documents")
+def test_list_documents(client, create_document: Document):
+    response = client.get(f"/api/documents")
     assert response.status_code == 200
     assert type(response.json()) == list
 
@@ -201,10 +207,20 @@ def test_delete_document(client, create_document):
     assert response.status_code == 404
 
 
-def test_list_requirements(client, create_project: Project):
-    response = client.get(f"/api/projects/{create_project.id}/requirements")
+def test_list_requirements(client, create_requirement: Requirement):
+    response = client.get("/api/requirements")
     assert response.status_code == 200
-    assert type(response.json()) == list
+    requirements = response.json()
+    assert type(requirements) == list
+
+
+def test_get_requirements_page(client, create_requirement: Requirement):
+    response = client.get("/api/requirements", params=dict(page=1, page_size=10))
+    assert response.status_code == 200
+    page = response.json()
+    assert type(page) == dict
+    assert type(page["items"]) == list
+    assert page["total_count"] == 1
 
 
 def test_create_requirement(client, create_project: Project):
@@ -219,10 +235,10 @@ def test_create_requirement(client, create_project: Project):
     assert requirement["project"]["id"] == create_project.id
 
 
-def test_list_catalog_requirements(client, create_catalog_module: CatalogModule):
-    response = client.get(
-        f"/api/catalog-modules/{create_catalog_module.id}/catalog-requirements"
-    )
+def test_list_catalog_requirements(
+    client, create_catalog_requirement: CatalogRequirement
+):
+    response = client.get(f"/api/catalog-requirements")
     assert response.status_code == 200
     assert isinstance(response.json(), list)
 
@@ -255,10 +271,19 @@ def test_delete_requirement(client, create_requirement):
     assert response.status_code == 404
 
 
-def test_list_measures(client, create_requirement):
-    response = client.get(f"/api/requirements/{create_requirement.id}/measures")
+def test_get_measures_list(client: TestClient, create_measure):
+    response = client.get(f"/api/measures")
     assert response.status_code == 200
     assert type(response.json()) == list
+
+
+def test_get_measures_page(client: TestClient, create_measure):
+    response = client.get(f"/api/measures", params=dict(page=1, page_size=10))
+    assert response.status_code == 200
+    page = response.json()
+    assert type(page) == dict
+    assert type(page["items"]) == list
+    assert page["total_count"] == 1
 
 
 def test_create_measure(client, create_requirement):

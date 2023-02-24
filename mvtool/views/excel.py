@@ -211,7 +211,6 @@ class MeasuresExcelView(ExcelView):
             self,
             [
                 ExcelHeader("Requirement Reference", ExcelHeader.WRITE_ONLY, True),
-                ExcelHeader("Requirement GS ID", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Requirement Summary", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Reference", optional=True),
                 ExcelHeader("ID", optional=True),
@@ -236,11 +235,6 @@ class MeasuresExcelView(ExcelView):
     def _convert_to_row(self, data: Measure, *args) -> dict[str, str]:
         return {
             "Requirement Reference": data.requirement.reference,
-            "Requirement GS ID": (
-                data.requirement.catalog_requirement.gs_anforderung_reference
-                if data.requirement.catalog_requirement
-                else None
-            ),
             "Requirement Summary": data.requirement.summary,
             "Reference": data.reference,
             "ID": data.id,
@@ -269,7 +263,7 @@ class MeasuresExcelView(ExcelView):
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> FileResponse:
         return self._process_download(
-            self._measures.list_measures_of_project(project_id),
+            self._measures.list_measures([Requirement.project_id == project_id]),
             temp_file,
             sheet_name=sheet_name,
             filename=filename,
@@ -288,7 +282,7 @@ class MeasuresExcelView(ExcelView):
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> FileResponse:
         return self._process_download(
-            self._measures.list_measures(requirement_id),
+            self._measures.list_measures([Measure.requirement_id == requirement_id]),
             temp_file,
             sheet_name=sheet_name,
             filename=filename,
@@ -425,7 +419,6 @@ class RequirementsExcelView(ExcelView):
             [
                 ExcelHeader("ID", optional=True),
                 ExcelHeader("Reference", optional=True),
-                ExcelHeader("GS ID", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Catalog", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Catalog Module", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Summary"),
@@ -447,11 +440,6 @@ class RequirementsExcelView(ExcelView):
         return {
             "ID": data.id,
             "Reference": data.reference,
-            "GS ID": (
-                data.catalog_requirement.gs_anforderung_reference
-                if data.catalog_requirement
-                else None
-            ),
             "Catalog": (
                 data.catalog_requirement.catalog_module.catalog.title
                 if data.catalog_requirement
@@ -478,7 +466,7 @@ class RequirementsExcelView(ExcelView):
             "Milestone": data.milestone,
             "Compliance Status": data.compliance_status,
             "Compliance Comment": data.compliance_comment,
-            "Completion": data.completion,
+            "Completion": data.completion_progress,
         }
 
     @router.get(
@@ -494,7 +482,7 @@ class RequirementsExcelView(ExcelView):
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> FileResponse:
         return self._process_download(
-            self._requirements.list_requirements(project_id),
+            self._requirements.list_requirements(Requirement.project_id == project_id),
             temp_file,
             sheet_name=sheet_name,
             filename=filename,
@@ -624,7 +612,7 @@ class DocumentsExcelView(ExcelView):
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> FileResponse:
         return self._process_download(
-            self._documents.list_documents(project_id),
+            self._documents.list_documents([Document.project_id == project_id]),
             temp_file,
             sheet_name=sheet_name,
             filename=filename,

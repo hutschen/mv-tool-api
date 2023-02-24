@@ -17,51 +17,49 @@
 
 import pytest
 from fastapi import HTTPException
-from mvtool.models import Catalog, CatalogInput, CatalogOutput
+from mvtool.models import Catalog, CatalogInput
 from mvtool.views.catalogs import CatalogsView
 
 
 def test_list_catalog_outputs(catalogs_view: CatalogsView, create_catalog: Catalog):
-    results = list(catalogs_view._list_catalogs())
+    results = list(catalogs_view.list_catalogs())
     assert len(results) == 1
     catalog_output = results[0]
-    assert isinstance(catalog_output, CatalogOutput)
+    assert isinstance(catalog_output, Catalog)
     assert catalog_output.id == create_catalog.id
 
 
-def test_create_catalog_output(
-    catalogs_view: CatalogsView, catalog_input: CatalogInput
-):
-    catalog_output = catalogs_view._create_catalog(catalog_input)
-    assert isinstance(catalog_output, CatalogOutput)
-    assert catalog_output.title == catalog_input.title
+def test_create_catalog(catalogs_view: CatalogsView, catalog_input: CatalogInput):
+    catalog = catalogs_view.create_catalog(catalog_input)
+    assert isinstance(catalog, Catalog)
+    assert catalog.title == catalog_input.title
 
 
-def test_get_catalog_output(catalogs_view: CatalogsView, create_catalog: Catalog):
-    catalog_output = catalogs_view._get_catalog(create_catalog.id)
-    assert isinstance(catalog_output, CatalogOutput)
-    assert catalog_output.id == create_catalog.id
+def test_get_catalog(catalogs_view: CatalogsView, create_catalog: Catalog):
+    catalog = catalogs_view.get_catalog(create_catalog.id)
+    assert isinstance(catalog, Catalog)
+    assert catalog.id == create_catalog.id
 
 
-def test_update_catalog_output(
+def test_update_catalog(
     catalogs_view: CatalogsView, create_catalog: Catalog, catalog_input: CatalogInput
 ):
     catalog_input.title += "updated"
-    catalog_output = catalogs_view._update_catalog(create_catalog.id, catalog_input)
-    assert isinstance(catalog_output, CatalogOutput)
-    assert catalog_output.title == catalog_input.title
+    catalog = catalogs_view.update_catalog(create_catalog.id, catalog_input)
+    assert isinstance(catalog, Catalog)
+    assert catalog.title == catalog_input.title
 
 
 def test_update_catalog_output_invalid_catalog_id(
     catalogs_view: CatalogsView, catalog_input: CatalogInput
 ):
     with pytest.raises(HTTPException) as error_info:
-        catalogs_view._update_catalog(1, catalog_input)
+        catalogs_view.update_catalog(1, catalog_input)
     assert error_info.value.status_code == 404
 
 
 def test_delete_catalog(catalogs_view: CatalogsView, create_catalog: Catalog):
     catalogs_view.delete_catalog(create_catalog.id)
     with pytest.raises(HTTPException) as error_info:
-        catalogs_view._get_catalog(create_catalog.id)
+        catalogs_view.get_catalog(create_catalog.id)
     assert error_info.value.status_code == 404

@@ -33,7 +33,9 @@ def test_list_requirements(
     create_project: Project,
     create_requirement: Requirement,
 ):
-    results = list(requirements_view.list_requirements(create_project.id))
+    results = requirements_view.list_requirements(
+        Requirement.project_id == create_project.id
+    )
 
     assert len(results) == 1
     requirement = results[0]
@@ -46,7 +48,7 @@ def test_list_requirements(
 def test_list_requirements_with_invalid_project_id(
     requirements_view: RequirementsView,
 ):
-    results = list(requirements_view.list_requirements(-1))
+    results = requirements_view.list_requirements(Requirement.project_id == -1)
     assert len(results) == 0
 
 
@@ -56,7 +58,9 @@ def test_list_requirements_without_jira_project(
     create_requirement: Requirement,
 ):
     create_project.jira_project_id = None
-    results = list(requirements_view.list_requirements(create_project.id))
+    results = requirements_view.list_requirements(
+        Requirement.project_id == create_project.id
+    )
 
     assert len(results) == 1
     requirement = results[0]
@@ -216,16 +220,32 @@ def test_import_requirements_from_catalog_modules_with_invalid_catalog_module_id
 
 
 def test_requirement_completion_incomplete(create_requirement: Requirement):
-    assert create_requirement.completion == 0.0
+    assert create_requirement.completion_progress == 0.0
 
 
 def test_requirement_completion_complete(
     create_requirement: Requirement, create_measure: Measure
 ):
-    create_measure.verified = True
-    assert create_requirement.completion == 1.0
+    create_measure.completion_status = "completed"
+    assert create_requirement.completion_progress == 1.0
 
 
 def test_requirement_completion_ignored(create_requirement: Requirement):
     create_requirement.compliance_status = "NC"
-    assert create_requirement.completion == None
+    assert create_requirement.completion_progress == None
+
+
+def test_requirement_verification_incomplete(create_requirement: Requirement):
+    assert create_requirement.verification_progress == 0.0
+
+
+def test_requirement_verification_complete(
+    create_requirement: Requirement, create_measure: Measure
+):
+    create_measure.verified = True
+    assert create_requirement.verification_progress == 1.0
+
+
+def test_requirement_verification_ignored(create_requirement: Requirement):
+    create_requirement.compliance_status = "NC"
+    assert create_requirement.verification_progress == None
