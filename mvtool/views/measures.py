@@ -431,6 +431,8 @@ def get_measure_sort(
             ],
             "catalog_module": [CatalogModule.reference, CatalogModule.title],
             "catalog": [Catalog.reference, Catalog.title],
+            "target_object": [Requirement.target_object],
+            "milestone": [Requirement.milestone],
         }[sort_by]
     except KeyError:
         raise HTTPException(
