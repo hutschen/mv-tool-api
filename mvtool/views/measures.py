@@ -500,6 +500,8 @@ def get_measure_field_names(
             Requirement.catalog_requirement_id,
             ["catalog_requirement", "catalog_module", "catalog"],
         ),
+        (Requirement.milestone, ["milestone"]),
+        (Requirement.target_object, ["target_object"]),
     ]:
         if measures_view.count_measures(
             [filter_for_existence(field, True), *where_clauses]
