@@ -22,6 +22,7 @@ from fastapi_utils.cbv import cbv
 from pydantic import constr
 from sqlmodel import Column, func, select, or_
 from sqlmodel.sql.expression import Select
+from mvtool.utils import combine_flags
 
 from mvtool.views.documents import DocumentsView
 from mvtool.views.jira_ import JiraIssuesView
@@ -271,6 +272,8 @@ def get_measure_filters(
     compliance_comment: str | None = None,
     completion_comment: str | None = None,
     verification_comment: str | None = None,
+    target_object: str | None = None,
+    milestone: str | None = None,
     #
     # filter by values
     references: list[str] | None = Query(default=None),
@@ -278,6 +281,8 @@ def get_measure_filters(
     completion_statuses: list[str] | None = Query(default=None),
     verified: bool | None = None,
     verification_methods: list[str] | None = Query(default=None),
+    target_objects: list[str] | None = Query(default=None),
+    milestones: list[str] | None = Query(default=None),
     #
     # filter by ids
     ids: list[int] | None = Query(default=None),
@@ -300,7 +305,11 @@ def get_measure_filters(
     has_verification_comment: bool | None = None,
     has_document: bool | None = None,
     has_jira_issue: bool | None = None,
+    has_catalog: bool | None = None,
+    has_catalog_module: bool | None = None,
     has_catalog_requirement: bool | None = None,
+    has_target_object: bool | None = None,
+    has_milestone: bool | None = None,
     #
     # filter by search string
     search: str | None = None,
@@ -315,6 +324,8 @@ def get_measure_filters(
         (Measure.compliance_comment, compliance_comment),
         (Measure.completion_comment, completion_comment),
         (Measure.verification_comment, verification_comment),
+        (Requirement.target_object, target_object),
+        (Requirement.milestone, milestone),
     ]:
         if value is not None:
             where_clauses.append(filter_by_pattern(column, value))
@@ -333,6 +344,8 @@ def get_measure_filters(
         (Requirement.catalog_requirement_id, catalog_requirement_ids),
         (CatalogRequirement.catalog_module_id, catalog_module_ids),
         (CatalogModule.catalog_id, catalog_ids),
+        (Requirement.target_object, target_objects),
+        (Requirement.milestone, milestones),
     ]:
         if values:
             where_clauses.append(filter_by_values(column, values))
@@ -352,7 +365,12 @@ def get_measure_filters(
         (Measure.verification_comment, has_verification_comment),
         (Measure.document_id, has_document),
         (Measure.jira_issue_id, has_jira_issue),
-        (Requirement.catalog_requirement_id, has_catalog_requirement),
+        (
+            Requirement.catalog_requirement_id,
+            combine_flags(has_catalog_requirement, has_catalog_module, has_catalog),
+        ),
+        (Requirement.target_object, has_target_object),
+        (Requirement.milestone, has_milestone),
     ]:
         if value is not None:
             where_clauses.append(filter_for_existence(column, value))
@@ -413,6 +431,8 @@ def get_measure_sort(
             ],
             "catalog_module": [CatalogModule.reference, CatalogModule.title],
             "catalog": [Catalog.reference, Catalog.title],
+            "target_object": [Requirement.target_object],
+            "milestone": [Requirement.milestone],
         }[sort_by]
     except KeyError:
         raise HTTPException(
@@ -500,6 +520,8 @@ def get_measure_field_names(
             Requirement.catalog_requirement_id,
             ["catalog_requirement", "catalog_module", "catalog"],
         ),
+        (Requirement.milestone, ["milestone"]),
+        (Requirement.target_object, ["target_object"]),
     ]:
         if measures_view.count_measures(
             [filter_for_existence(field, True), *where_clauses]
