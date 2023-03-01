@@ -15,7 +15,7 @@ dependencies-prod-install:
 	pipenv install --ignore-pipfile
 
 dependencies-dev-install:
-	pipenv install --dev
+	pipenv install --ignore-pipfile --dev
 
 dependencies-update:
 	pipenv update --dev
