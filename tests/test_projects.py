@@ -133,17 +133,17 @@ def test_project_jira_project_with_getter():
     assert project.jira_project is jira_project_dummy
 
 
-def test_project_completion_no_requirements(create_project: Project):
+def test_project_completion_progress_no_requirements(create_project: Project):
     assert create_project.completion_progress == None
 
 
-def test_project_completion_no_measures(
+def test_project_completion_progress_no_measures(
     create_project: Project, create_requirement: Requirement
 ):
     assert create_project.completion_progress == 0.0
 
 
-def test_project_completion_nothing_to_complete(
+def test_project_completion_progress_nothing_to_complete(
     create_project: Project, create_requirement: Requirement
 ):
     create_requirement.compliance_status = "NC"
@@ -152,7 +152,7 @@ def test_project_completion_nothing_to_complete(
     assert create_project.completion_progress == None
 
 
-def test_project_completion_complete(
+def test_project_completion_progress_complete(
     create_project: Project,
     create_requirement: Requirement,
     create_measure: Measure,
@@ -164,7 +164,7 @@ def test_project_completion_complete(
     assert create_project.completion_progress == 1.0
 
 
-def test_project_completion_incomplete(
+def test_project_completion_progress_incomplete(
     create_project: Project,
     create_requirement: Requirement,
     create_measure: Measure,
@@ -176,17 +176,17 @@ def test_project_completion_incomplete(
     assert create_project.completion_progress == 0.0
 
 
-def test_project_verification_no_requirements(create_project: Project):
+def test_project_verification_progress_no_requirements(create_project: Project):
     assert create_project.verification_progress == None
 
 
-def test_project_verification_no_measures(
+def test_project_verification_progress_no_measures(
     create_project: Project, create_requirement: Requirement
 ):
     assert create_project.verification_progress == 0.0
 
 
-def test_project_verification_nothing_to_verify(
+def test_project_verification_progress_nothing_to_verify(
     create_project: Project, create_requirement: Requirement
 ):
     create_requirement.compliance_status = "NC"
@@ -195,25 +195,25 @@ def test_project_verification_nothing_to_verify(
     assert create_project.verification_progress == None
 
 
-def test_project_verification_verified(
+def test_project_verification_progress_verified(
     create_project: Project,
     create_requirement: Requirement,
     create_measure: Measure,
 ):
     create_requirement.compliance_status = "C"
-    create_measure.verified = True
+    create_measure.verification_status = "verified"
 
     assert create_requirement.verification_progress == 1.0
     assert create_project.verification_progress == 1.0
 
 
-def test_project_verification_unverified(
+def test_project_verification_progress_unverified(
     create_project: Project,
     create_requirement: Requirement,
     create_measure: Measure,
 ):
     create_requirement.compliance_status = "C"
-    create_measure.verified = False
+    create_measure.verification_status = "not verified"
 
     assert create_requirement.verification_progress == 0.0
     assert create_project.verification_progress == 0.0

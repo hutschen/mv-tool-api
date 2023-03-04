@@ -219,33 +219,33 @@ def test_import_requirements_from_catalog_modules_with_invalid_catalog_module_id
     assert len(results) == 0
 
 
-def test_requirement_completion_incomplete(create_requirement: Requirement):
+def test_requirement_completion_progress_incomplete(create_requirement: Requirement):
     assert create_requirement.completion_progress == 0.0
 
 
-def test_requirement_completion_complete(
+def test_requirement_completion_progress_complete(
     create_requirement: Requirement, create_measure: Measure
 ):
     create_measure.completion_status = "completed"
     assert create_requirement.completion_progress == 1.0
 
 
-def test_requirement_completion_ignored(create_requirement: Requirement):
+def test_requirement_completion_progress_ignored(create_requirement: Requirement):
     create_requirement.compliance_status = "NC"
     assert create_requirement.completion_progress == None
 
 
-def test_requirement_verification_incomplete(create_requirement: Requirement):
+def test_requirement_verification_progress_incomplete(create_requirement: Requirement):
     assert create_requirement.verification_progress == 0.0
 
 
-def test_requirement_verification_complete(
+def test_requirement_verification_progress_complete(
     create_requirement: Requirement, create_measure: Measure
 ):
-    create_measure.verified = True
+    create_measure.verification_status = "verified"
     assert create_requirement.verification_progress == 1.0
 
 
-def test_requirement_verification_ignored(create_requirement: Requirement):
+def test_requirement_verification_progress_ignored(create_requirement: Requirement):
     create_requirement.compliance_status = "NC"
     assert create_requirement.verification_progress == None
