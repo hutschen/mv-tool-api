@@ -108,6 +108,26 @@ class MeasureInput(AbstractComplianceInput):
             )
         return v
 
+    @classmethod
+    def __assert_verification_condition(cls, fieldname, v, values):
+        if (
+            v
+            and ("verification_method" in values)
+            and (values["verification_method"] is None)
+        ):
+            raise ValueError(
+                f"{fieldname} cannot be set when verification_method is None"
+            )
+        return v
+
+    @validator("verified")
+    def verified_validator(cls, v, values):
+        return cls.__assert_verification_condition("verified", v, values)
+
+    @validator("verification_comment")
+    def verification_comment_validator(cls, v, values):
+        return cls.__assert_verification_condition("verification_comment", v, values)
+
 
 class Measure(MeasureInput, CommonFieldsMixin, table=True):
     requirement_id: int | None = Field(default=None, foreign_key="requirement.id")
