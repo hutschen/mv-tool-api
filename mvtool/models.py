@@ -71,17 +71,21 @@ class AbstractComplianceInput(SQLModel):
     compliance_status: constr(regex=r"^(C|PC|NC|N/A)$") | None
     compliance_comment: str | None
 
+    @classmethod
+    def _dependent_field_validator(
+        cls, dependent_fieldname, fieldname, dependent_value, values: dict
+    ):
+        if not values.get(fieldname, False) and dependent_value:
+            raise ValueError(
+                f"{dependent_fieldname} cannot be set when {fieldname} is not set"
+            )
+        return dependent_value
+
     @validator("compliance_comment")
     def compliance_comment_validator(cls, v, values):
-        if (
-            v
-            and ("compliance_status" in values)
-            and (values["compliance_status"] is None)
-        ):
-            raise ValueError(
-                "compliance_comment cannot be set when compliance_status is None"
-            )
-        return v
+        return cls._dependent_field_validator(
+            "compliance_comment", "compliance_status", v, values
+        )
 
 
 class MeasureInput(AbstractComplianceInput):
@@ -90,45 +94,31 @@ class MeasureInput(AbstractComplianceInput):
     description: str | None
     completion_status: constr(regex=r"^(open|in progress|completed)$") | None
     completion_comment: str | None
+    verification_method: constr(regex=r"^(I|T|R)$") | None
     verification_status: constr(
         regex=r"^(verified|partially verified|not verified)$"
     ) | None
-    verification_method: constr(regex=r"^(I|T|R)$") | None
     verification_comment: str | None
     document_id: int | None
     jira_issue_id: str | None
 
     @validator("completion_comment")
     def completion_comment_validator(cls, v, values):
-        if (
-            v
-            and ("completion_status" in values)
-            and (values["completion_status"] is None)
-        ):
-            raise ValueError(
-                "completion_comment cannot be set when compliance_status is None"
-            )
-        return v
-
-    @classmethod
-    def __assert_verification_condition(cls, fieldname, v, values):
-        if (
-            v
-            and ("verification_method" in values)
-            and (values["verification_method"] is None)
-        ):
-            raise ValueError(
-                f"{fieldname} cannot be set when verification_method is None"
-            )
-        return v
+        return cls._dependent_field_validator(
+            "completion_comment", "completion_status", v, values
+        )
 
     @validator("verification_status")
     def verification_status_validator(cls, v, values):
-        return cls.__assert_verification_condition("verification_status", v, values)
+        return cls._dependent_field_validator(
+            "verification_status", "verification_method", v, values
+        )
 
     @validator("verification_comment")
     def verification_comment_validator(cls, v, values):
-        return cls.__assert_verification_condition("verification_comment", v, values)
+        return cls._dependent_field_validator(
+            "verification_comment", "verification_method", v, values
+        )
 
 
 class Measure(MeasureInput, CommonFieldsMixin, table=True):
