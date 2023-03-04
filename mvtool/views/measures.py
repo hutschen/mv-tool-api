@@ -279,7 +279,7 @@ def get_measure_filters(
     references: list[str] | None = Query(default=None),
     compliance_statuses: list[str] | None = Query(default=None),
     completion_statuses: list[str] | None = Query(default=None),
-    verified: bool | None = None,
+    verification_statuses: bool | None = None,
     verification_methods: list[str] | None = Query(default=None),
     target_objects: list[str] | None = Query(default=None),
     milestones: list[str] | None = Query(default=None),
@@ -301,6 +301,7 @@ def get_measure_filters(
     has_compliance_comment: bool | None = None,
     has_completion_status: bool | None = None,
     has_completion_comment: bool | None = None,
+    has_verification_status: bool | None = None,
     has_verification_method: bool | None = None,
     has_verification_comment: bool | None = None,
     has_document: bool | None = None,
@@ -335,6 +336,7 @@ def get_measure_filters(
         (Measure.reference, references),
         (Measure.compliance_status, compliance_statuses),
         (Measure.completion_status, completion_statuses),
+        (Measure.verification_status, verification_statuses),
         (Measure.verification_method, verification_methods),
         (Measure.id, ids),
         (Measure.document_id, document_ids),
@@ -350,9 +352,6 @@ def get_measure_filters(
         if values:
             where_clauses.append(filter_by_values(column, values))
 
-    if verified is not None:
-        where_clauses.append(Measure.verified == verified)
-
     # filter for existence
     for column, value in [
         (Measure.reference, has_reference),
@@ -361,6 +360,7 @@ def get_measure_filters(
         (Measure.compliance_comment, has_compliance_comment),
         (Measure.completion_status, has_completion_status),
         (Measure.completion_comment, has_completion_comment),
+        (Measure.verification_status, has_verification_status),
         (Measure.verification_method, has_verification_method),
         (Measure.verification_comment, has_verification_comment),
         (Measure.document_id, has_document),
@@ -419,7 +419,7 @@ def get_measure_sort(
             "compliance_comment": [Measure.compliance_comment],
             "completion_status": [Measure.completion_status],
             "completion_comment": [Measure.completion_comment],
-            "verified": [Measure.verified],
+            "verification_status": [Measure.verification_status],
             "verification_method": [Measure.verification_method],
             "verification_comment": [Measure.verification_comment],
             "document": [Document.reference, Document.title],
@@ -504,14 +504,14 @@ def get_measure_field_names(
     where_clauses=Depends(get_measure_filters),
     measures_view: MeasuresView = Depends(),
 ) -> set[str]:
-    field_names = {"id", "summary", "verified", "requirement", "project"}
+    field_names = {"project", "requirement", "id", "summary", "completion_status"}
     for field, names in [
         (Measure.reference, ["reference"]),
         (Measure.description, ["description"]),
         (Measure.compliance_status, ["compliance_status"]),
         (Measure.compliance_comment, ["compliance_comment"]),
-        (Measure.completion_status, ["completion_status"]),
         (Measure.completion_comment, ["completion_comment"]),
+        (Measure.verification_status, ["verification_status"]),
         (Measure.verification_method, ["verification_method"]),
         (Measure.verification_comment, ["verification_comment"]),
         (Measure.document_id, ["document"]),

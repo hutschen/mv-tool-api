@@ -346,27 +346,3 @@ def test_measure_completion_status_hint_non_compliant(
 ):
     create_measure.compliance_status = compliance_status
     assert create_measure.completion_status_hint is None
-
-
-@pytest.mark.parametrize("verified", [True, False])
-def test_measure_verified_hint_completed(verified, create_measure: Measure):
-    create_measure.compliance_status = "C"
-    create_measure.completion_status = "completed"
-    create_measure.verified = verified
-    assert create_measure.verified_hint == verified
-
-
-@pytest.mark.parametrize("verified", [True, False])
-def test_measure_verified_hint_not_completed(verified, create_measure: Measure):
-    create_measure.compliance_status = "C"
-    create_measure.completion_status = "open"
-    create_measure.verified = verified
-    assert create_measure.verified_hint is False
-
-
-@pytest.mark.parametrize("compliance_status", ["NC", "N/A"])
-def test_measure_verified_hint_non_compliant(
-    compliance_status, create_measure: Measure
-):
-    create_measure.compliance_status = compliance_status
-    assert create_measure.verified_hint is False

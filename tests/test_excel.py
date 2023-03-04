@@ -227,7 +227,7 @@ def test_convert_row_to_measure(
         "Compliance Comment": "test",
         "Completion Status": "open",
         "Completion Comment": "test",
-        "Verified": False,
+        "Verification Status": "verified",
         "Verification Method": "R",
         "Verification Comment": "test",
     }
@@ -239,7 +239,7 @@ def test_convert_row_to_measure(
     assert jira_issue_key == "TEST-1"
     assert measure_input.summary == "test"
     assert measure_input.description == "test"
-    assert measure_input.verified == False
+    assert measure_input.verification_status == "verified"
 
 
 def test_convert_row_to_measure_invalid_jira_issue_key(

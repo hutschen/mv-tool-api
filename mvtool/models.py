@@ -90,7 +90,9 @@ class MeasureInput(AbstractComplianceInput):
     description: str | None
     completion_status: constr(regex=r"^(open|in progress|completed)$") | None
     completion_comment: str | None
-    verified: bool = False
+    verification_status: constr(
+        regex=r"^(verified|partially verified|not verified)$"
+    ) | None
     verification_method: constr(regex=r"^(I|T|R)$") | None
     verification_comment: str | None
     document_id: int | None
@@ -107,6 +109,26 @@ class MeasureInput(AbstractComplianceInput):
                 "completion_comment cannot be set when compliance_status is None"
             )
         return v
+
+    @classmethod
+    def __assert_verification_condition(cls, fieldname, v, values):
+        if (
+            v
+            and ("verification_method" in values)
+            and (values["verification_method"] is None)
+        ):
+            raise ValueError(
+                f"{fieldname} cannot be set when verification_method is None"
+            )
+        return v
+
+    @validator("verification_status")
+    def verification_status_validator(cls, v, values):
+        return cls.__assert_verification_condition("verification_status", v, values)
+
+    @validator("verification_comment")
+    def verification_comment_validator(cls, v, values):
+        return cls.__assert_verification_condition("verification_comment", v, values)
 
 
 class Measure(MeasureInput, CommonFieldsMixin, table=True):
@@ -137,16 +159,6 @@ class Measure(MeasureInput, CommonFieldsMixin, table=True):
             return "completed"
         else:
             return self.completion_status
-
-    @property
-    def verified_hint(self):
-        if self.compliance_status not in ("C", "PC", None):
-            return False
-
-        if self.completion_status == "completed":
-            return self.verified
-        else:
-            return False
 
 
 class AbstractRequirementInput(SQLModel):
@@ -245,7 +257,9 @@ class Requirement(RequirementInput, CommonFieldsMixin, table=True):
         total = session.execute(self._compliant_count_query).scalar()
 
         # get the number of verified measures subordinated to this requirement
-        verified_query = self._compliant_count_query.where(Measure.verified == True)
+        verified_query = self._compliant_count_query.where(
+            Measure.verification_status == "verified"
+        )
         verified = session.execute(verified_query).scalar()
 
         return verified / total if total else 0.0
@@ -380,7 +394,9 @@ class Project(ProjectInput, CommonFieldsMixin, table=True):
         total = session.execute(self._compliant_count_query).scalar()
 
         # get the number of verified measures in project
-        verified_query = self._compliant_count_query.where(Measure.verified == True)
+        verified_query = self._compliant_count_query.where(
+            Measure.verification_status == "verified"
+        )
         verified = session.execute(verified_query).scalar()
 
         return verified / total if total else None
@@ -477,8 +493,7 @@ class MeasureOutput(MeasureRepresentation):
     completion_status: str | None
     completion_status_hint: str | None
     completion_comment: str | None
-    verified: bool
-    verified_hint: bool
+    verification_status: str | None
     verification_method: str | None
     verification_comment: str | None
     requirement: RequirementOutput
