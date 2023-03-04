@@ -591,3 +591,51 @@ def test_migration_c083b27f9c47_verification_validators(
         assert valid_measure["verification_method"] == "R"
         assert valid_measure["verification_comment"] == "comment"
         assert bool(valid_measure["verified"]) is True
+
+
+def test_migration_35374d36bf2f_add_verification_status_field(
+    alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
+):
+    # Insert two measure, one with verified == true, one with verified == false
+    timestamp = datetime.utcnow()
+    verified_measure_id = 1
+    unverified_measure_id = 2
+    alembic_runner.migrate_up_before("35374d36bf2f")
+    alembic_runner.insert_into(
+        "measure",
+        {
+            "id": verified_measure_id,
+            "created": timestamp,
+            "updated": timestamp,
+            "summary": "summary %d" % verified_measure_id,
+            "verified": True,
+        },
+    )
+    alembic_runner.insert_into(
+        "measure",
+        {
+            "id": unverified_measure_id,
+            "created": timestamp,
+            "updated": timestamp,
+            "summary": "summary %d" % unverified_measure_id,
+            "verified": False,
+        },
+    )
+    alembic_runner.migrate_up_one()
+
+    with alembic_engine.connect() as conn:
+        verified_measure = conn.execute(
+            "SELECT * FROM measure WHERE id=%d" % verified_measure_id
+        ).fetchone()
+
+        # check if verification status of verified measure is set to "verified"
+        # and verified field is removed
+        assert verified_measure["verification_status"] == "verified"
+        assert "verified" not in verified_measure
+
+        unverified_measure = conn.execute(
+            "SELECT * FROM measure WHERE id=%d" % unverified_measure_id
+        ).fetchone()
+
+        # check if verification status of unverified measure is set to None
+        assert unverified_measure["verification_status"] is None
