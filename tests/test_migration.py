@@ -513,3 +513,81 @@ def test_migration_bef7008ddd94_remove_gs_reference_field(
         # check if gs_reference is removed
         assert "gs_reference" not in with_reference
         assert "gs_reference" not in without_reference
+
+
+def test_migration_c083b27f9c47_verification_validators(
+    alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
+):
+    # Insert two measures, one with invalid verification fields,
+    # one with valid verification fields
+    timestamp = datetime.utcnow()
+    unverified_measure_id = 1
+    invalid_measure_id = 2
+    valid_measure_id = 3
+    alembic_runner.migrate_up_before("c083b27f9c47")
+    alembic_runner.insert_into(
+        "measure",
+        {
+            "id": unverified_measure_id,
+            "created": timestamp,
+            "updated": timestamp,
+            "summary": "summary %d" % unverified_measure_id,
+            "verified": False,
+        },
+    )
+    alembic_runner.insert_into(
+        "measure",
+        {
+            "id": invalid_measure_id,
+            "created": timestamp,
+            "updated": timestamp,
+            "summary": "summary %d" % invalid_measure_id,
+            # verification fields must not be set when verification_method is not set
+            "verified": True,
+            "verification_comment": "comment",
+        },
+    )
+    alembic_runner.insert_into(
+        "measure",
+        {
+            "id": valid_measure_id,
+            "created": timestamp,
+            "updated": timestamp,
+            "summary": "summary %d" % valid_measure_id,
+            "verification_method": "R",
+            # verification_method is set, so verification fields can be set
+            "verified": True,
+            "verification_comment": "comment",
+        },
+    )
+    alembic_runner.migrate_up_one()
+
+    with alembic_engine.connect() as conn:
+        unverified_measure = conn.execute(
+            "SELECT * FROM measure WHERE id=%d" % unverified_measure_id
+        ).fetchone()
+
+        # check if verification fields of unverified measure are unchanged
+        assert unverified_measure["verification_method"] is None
+        assert unverified_measure["verification_comment"] is None
+        assert bool(unverified_measure["verified"]) is False
+
+        invalid_measure = conn.execute(
+            "SELECT * FROM measure WHERE id=%d" % invalid_measure_id
+        ).fetchone()
+
+        # check if verification method of invalid measure is set to "R"
+        assert invalid_measure["verification_method"] == "R"
+
+        # check if other verification fields of invalid measure are unchanged
+        assert invalid_measure["verification_comment"] == "comment"
+        assert bool(invalid_measure["verified"]) is True
+
+        valid_measure = conn.execute(
+            "SELECT * FROM measure WHERE id=%d" % valid_measure_id
+        ).fetchone()
+
+        # check if verification fields of valid measure are unchanged
+        assert valid_measure["verification_method"] == "R"
+        assert valid_measure["verification_comment"] == "comment"
+        assert bool(valid_measure["verified"]) is True
