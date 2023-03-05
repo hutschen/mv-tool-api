@@ -279,7 +279,7 @@ def get_measure_filters(
     references: list[str] | None = Query(default=None),
     compliance_statuses: list[str] | None = Query(default=None),
     completion_statuses: list[str] | None = Query(default=None),
-    verification_statuses: bool | None = None,
+    verification_statuses: list[str] | None = Query(default=None),
     verification_methods: list[str] | None = Query(default=None),
     target_objects: list[str] | None = Query(default=None),
     milestones: list[str] | None = Query(default=None),
