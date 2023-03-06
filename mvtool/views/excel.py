@@ -44,7 +44,11 @@ from mvtool.models import (
 )
 from .jira_ import JiraIssuesView
 from .measures import MeasuresView, get_measure_filters, get_measure_sort
-from .requirements import RequirementsView
+from .requirements import (
+    RequirementsView,
+    get_requirement_filters,
+    get_requirement_sort,
+)
 from .documents import DocumentsView
 from .projects import ProjectsView
 
@@ -390,7 +394,7 @@ class MeasuresExcelView(ExcelView):
 
 @cbv(router)
 class RequirementsExcelView(ExcelView):
-    kwargs = RequirementsView.kwargs
+    kwargs = dict(tags=["excel"])
 
     def __init__(
         self,
@@ -454,19 +458,20 @@ class RequirementsExcelView(ExcelView):
         }
 
     @router.get(
-        "/projects/{project_id}/requirements/excel",
+        "/excel/requirements",
         response_class=FileResponse,
         **kwargs,
     )
     def download_requirements_excel(
         self,
-        project_id: int,
+        where_clauses=Depends(get_requirement_filters),
+        order_by_clauses=Depends(get_requirement_sort),
+        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
         sheet_name: str = "Export",
         filename: str = "export.xlsx",
-        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> FileResponse:
         return self._process_download(
-            self._requirements.list_requirements(Requirement.project_id == project_id),
+            self._requirements.list_requirements(where_clauses, order_by_clauses),
             temp_file,
             sheet_name=sheet_name,
             filename=filename,
