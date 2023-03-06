@@ -322,11 +322,10 @@ def test_upload_requirements_excel(
 def test_download_documents_excel(
     documents_excel_view: DocumentsExcelView,
     excel_temp_file,
-    create_project: Project,
     create_document: Document,
 ):
     result = documents_excel_view.download_documents_excel(
-        create_project.id, temp_file=excel_temp_file
+        [], [], temp_file=excel_temp_file
     )
     assert isinstance(result, FileResponse)
     assert (
