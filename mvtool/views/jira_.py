@@ -195,11 +195,11 @@ class JiraIssuesView(JiraBaseView):
         self,
         jira_project_id: str,
         offset: conint(ge=0) = 0,
-        size: conint(ge=0) | None = None,
+        limit: conint(ge=0) | None = None,
     ) -> Iterator[JiraIssue]:
         jira_query = f"project = {jira_project_id}"
         jira_issues_data = self.jira.search_issues(
-            jira_query, startAt=offset, maxResults=size
+            jira_query, startAt=offset, maxResults=limit
         )
 
         for jira_issue_data in jira_issues_data:
