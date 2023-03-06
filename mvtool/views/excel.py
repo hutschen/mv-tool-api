@@ -199,7 +199,7 @@ class ExcelView(Generic[T]):
 
 @cbv(router)
 class MeasuresExcelView(ExcelView):
-    kwargs = MeasuresView.kwargs
+    kwargs = dict(tags=["excel"])
 
     def __init__(
         self,
@@ -253,19 +253,18 @@ class MeasuresExcelView(ExcelView):
         }
 
     @router.get(
-        "/requirements/{requirement_id}/measures/excel",
+        "/excel/measures",
         response_class=FileResponse,
         **kwargs,
     )
-    def download_measures_excel_for_requirement(
+    def download_measures_excel(
         self,
-        requirement_id: int,
         sheet_name: str = "Export",
         filename: str = "export.xlsx",
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> FileResponse:
         return self._process_download(
-            self._measures.list_measures([Measure.requirement_id == requirement_id]),
+            self._measures.list_measures(),
             temp_file,
             sheet_name=sheet_name,
             filename=filename,
