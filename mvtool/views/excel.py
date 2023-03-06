@@ -43,7 +43,7 @@ from mvtool.models import (
     RequirementOutput,
 )
 from .jira_ import JiraIssuesView
-from .measures import MeasuresView
+from .measures import MeasuresView, get_measure_filters, get_measure_sort
 from .requirements import RequirementsView
 from .documents import DocumentsView
 from .projects import ProjectsView
@@ -220,8 +220,8 @@ class MeasuresExcelView(ExcelView):
                 ExcelHeader("Compliance Comment", optional=True),
                 ExcelHeader("Completion Status", optional=True),
                 ExcelHeader("Completion Comment", optional=True),
-                ExcelHeader("Verification Status", optional=True),
                 ExcelHeader("Verification Method", optional=True),
+                ExcelHeader("Verification Status", optional=True),
                 ExcelHeader("Verification Comment", optional=True),
                 ExcelHeader("Document Reference", ExcelHeader.WRITE_ONLY, True),
                 ExcelHeader("Document Title", ExcelHeader.WRITE_ONLY, True),
@@ -244,8 +244,8 @@ class MeasuresExcelView(ExcelView):
             "Compliance Comment": data.compliance_comment,
             "Completion Status": data.completion_status,
             "Completion Comment": data.completion_comment,
-            "Verification Status": data.verification_status,
             "Verification Method": data.verification_method,
+            "Verification Status": data.verification_status,
             "Verification Comment": data.verification_comment,
             "Document Reference": data.document.reference if data.document else None,
             "Document Title": data.document.title if data.document else None,
