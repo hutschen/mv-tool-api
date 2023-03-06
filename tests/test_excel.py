@@ -152,30 +152,13 @@ def test_determine_headers_to_write(empty_worksheet, worksheet_headers):
     assert headers == ("str", "bool")
 
 
-def test_download_measures_excel_for_project(
+def test_download_measures_excel(
     measures_excel_view: MeasuresExcelView,
     excel_temp_file,
-    create_project: Project,
     create_measure: Measure,
 ):
-    result = measures_excel_view.download_measures_excel_for_project(
-        create_project.id, temp_file=excel_temp_file
-    )
-    assert isinstance(result, FileResponse)
-    assert (
-        result.media_type
-        == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-
-
-def test_download_measures_excel_for_requirement(
-    measures_excel_view: MeasuresExcelView,
-    excel_temp_file,
-    create_requirement: Requirement,
-    create_measure: Measure,
-):
-    result = measures_excel_view.download_measures_excel_for_requirement(
-        create_requirement.id, temp_file=excel_temp_file
+    result = measures_excel_view.download_measures_excel(
+        [], [], temp_file=excel_temp_file
     )
     assert isinstance(result, FileResponse)
     assert (

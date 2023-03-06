@@ -259,11 +259,11 @@ class MeasuresExcelView(ExcelView):
     )
     def download_measures_excel(
         self,
-        sheet_name: str = "Export",
-        filename: str = "export.xlsx",
         where_clauses=Depends(get_measure_filters),
         order_by_clauses=Depends(get_measure_sort),
         temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
+        sheet_name: str = "Export",
+        filename: str = "export.xlsx",
     ) -> FileResponse:
         return self._process_download(
             self._measures.list_measures(where_clauses, order_by_clauses),
