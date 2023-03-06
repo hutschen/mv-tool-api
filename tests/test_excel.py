@@ -264,11 +264,10 @@ def test_upload_measures_excel(
 def test_download_requirements_excel(
     requirements_excel_view: RequirementsExcelView,
     excel_temp_file,
-    create_project: Project,
     create_requirement: Requirement,
 ):
     result = requirements_excel_view.download_requirements_excel(
-        create_project.id, temp_file=excel_temp_file
+        [], [], temp_file=excel_temp_file
     )
     assert isinstance(result, FileResponse)
     assert (
