@@ -49,7 +49,7 @@ from .requirements import (
     get_requirement_filters,
     get_requirement_sort,
 )
-from .documents import DocumentsView
+from .documents import DocumentsView, get_document_filters, get_document_sort
 from .projects import ProjectsView
 
 
@@ -559,7 +559,7 @@ class RequirementsExcelView(ExcelView):
 
 @cbv(router)
 class DocumentsExcelView(ExcelView):
-    kwargs = DocumentsView.kwargs
+    kwargs = dict(tags=["excel"])
 
     def __init__(
         self,
@@ -589,19 +589,20 @@ class DocumentsExcelView(ExcelView):
         }
 
     @router.get(
-        "/projects/{project_id}/documents/excel",
+        "/excel/documents",
         response_class=FileResponse,
         **kwargs,
     )
     def download_documents_excel(
         self,
-        project_id: int,
+        where_clauses=Depends(get_document_filters),
+        order_by_clauses=Depends(get_document_sort),
+        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
         sheet_name: str = "Export",
         filename: str = "export.xlsx",
-        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
     ) -> FileResponse:
         return self._process_download(
-            self._documents.list_documents([Document.project_id == project_id]),
+            self._documents.list_documents(where_clauses, order_by_clauses),
             temp_file,
             sheet_name=sheet_name,
             filename=filename,
