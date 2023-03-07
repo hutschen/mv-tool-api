@@ -33,13 +33,10 @@ from mvtool.models import (
     Requirement,
     RequirementInput,
 )
-from mvtool.views.excel import (
-    DocumentsExcelView,
-    ExcelHeader,
-    ExcelView,
-    MeasuresExcelView,
-    RequirementsExcelView,
-)
+from mvtool.views.excel.common import ExcelHeader, ExcelView
+from mvtool.views.excel.requirements import RequirementsExcelView
+from mvtool.views.excel.measures import MeasuresExcelView
+from mvtool.views.excel.documents import DocumentsExcelView
 
 
 @pytest.fixture

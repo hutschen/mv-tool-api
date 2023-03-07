@@ -31,7 +31,6 @@ from mvtool.models import (
     JiraIssue,
     JiraIssueInput,
     JiraIssueStatus,
-    Measure,
     MeasureInput,
     ProjectInput,
     Project,
@@ -42,12 +41,10 @@ from mvtool.views.catalog_modules import CatalogModulesView
 from mvtool.views.catalog_requirements import CatalogRequirementsView
 from mvtool.views.catalogs import CatalogsView
 from mvtool.views.documents import DocumentsView
-from mvtool.views.excel import (
-    DocumentsExcelView,
-    MeasuresExcelView,
-    RequirementsExcelView,
-    get_excel_temp_file,
-)
+from mvtool.views.excel.common import get_excel_temp_file
+from mvtool.views.excel.requirements import RequirementsExcelView
+from mvtool.views.excel.measures import MeasuresExcelView
+from mvtool.views.excel.documents import DocumentsExcelView
 from mvtool.views.gs import get_word_temp_file
 from mvtool.views.jira_ import JiraIssuesView, JiraProjectsView
 from mvtool.views.projects import ProjectsView
