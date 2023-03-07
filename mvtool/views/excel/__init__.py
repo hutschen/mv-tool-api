@@ -17,9 +17,10 @@
 
 from fastapi import APIRouter
 
-from mvtool.views.excel import (
+from . import (
     catalogs,
     catalog_modules,
+    catalog_requirements,
     requirements,
     measures,
     documents,
@@ -29,6 +30,7 @@ from mvtool.views.excel import (
 router = APIRouter()
 router.include_router(catalogs.router)  # TODO: use prefix="/excel"
 router.include_router(catalog_modules.router)  # TODO: use prefix="/excel"
+router.include_router(catalog_requirements.router)  # TODO: use prefix="/excel"
 router.include_router(requirements.router)  # TODO: use prefix="/excel"
 router.include_router(measures.router)  # TODO: use prefix="/excel"
 router.include_router(documents.router)  # TODO: use prefix="/excel"
