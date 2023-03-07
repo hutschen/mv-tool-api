@@ -14,6 +14,28 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+from tempfile import NamedTemporaryFile
+
+
+def get_temp_file(suffix: str | None = None) -> callable:
+    """Creates a callable that returns a context manager which yields a temporary file.
+
+    This should be used together with fastapi's Depends() function.
+
+    Args:
+        suffix (str or None, optional): The suffix of the temporary file. Defaults to None.
+
+    Returns:
+        callable: Callable that returns a context manager that yields a temporary file.
+    """
+
+    def get_temp_file():
+        with NamedTemporaryFile(suffix=suffix) as temp_file:
+            yield temp_file
+
+    return get_temp_file
+
+
 def combine_flags(flags_head: bool | None, *flags_tail: bool | None) -> bool | None:
     """Combine the given boolean flags and return the result.
 

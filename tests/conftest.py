@@ -37,15 +37,14 @@ from mvtool.models import (
     Requirement,
     RequirementInput,
 )
+from mvtool.utils import get_temp_file
 from mvtool.views.catalog_modules import CatalogModulesView
 from mvtool.views.catalog_requirements import CatalogRequirementsView
 from mvtool.views.catalogs import CatalogsView
 from mvtool.views.documents import DocumentsView
-from mvtool.views.excel.common import get_excel_temp_file
 from mvtool.views.excel.requirements import RequirementsExcelView
 from mvtool.views.excel.measures import MeasuresExcelView
 from mvtool.views.excel.documents import DocumentsExcelView
-from mvtool.views.gs import get_word_temp_file
 from mvtool.views.jira_ import JiraIssuesView, JiraProjectsView
 from mvtool.views.projects import ProjectsView
 from mvtool.views.requirements import ImportCatalogRequirementsView, RequirementsView
@@ -368,7 +367,7 @@ def create_measure(
 
 @pytest.fixture
 def excel_temp_file():
-    for file in get_excel_temp_file():
+    for file in get_temp_file(".xlsx")():
         yield file
 
 
@@ -391,5 +390,5 @@ def documents_excel_view(crud, projects_view, documents_view):
 
 @pytest.fixture
 def word_temp_file():
-    for file in get_word_temp_file():
+    for file in get_temp_file(".docx")():
         yield file

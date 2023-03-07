@@ -15,17 +15,18 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import re
 import shutil
-from tempfile import NamedTemporaryFile
-from fastapi import APIRouter, Depends, UploadFile
-from fastapi_utils.cbv import cbv
+import re
 import docx
+from tempfile import NamedTemporaryFile
+from fastapi_utils.cbv import cbv
+from fastapi import APIRouter, Depends, UploadFile
 
 from .catalogs import CatalogsView
 from .catalog_modules import CatalogModulesView
-from ..database import CRUDOperations
+from ..utils import get_temp_file
 from ..models import CatalogModule, CatalogRequirement
+from ..database import CRUDOperations
 from .. import errors
 
 
@@ -187,11 +188,6 @@ class GSBausteinParser:
         return catalog_module
 
 
-def get_word_temp_file():
-    with NamedTemporaryFile(suffix=".docx") as temp_file:
-        yield temp_file
-
-
 router = APIRouter()
 
 
@@ -217,7 +213,7 @@ class ImportGSBausteinView:
         self,
         catalog_id: int,
         upload_file: UploadFile,
-        temp_file: NamedTemporaryFile = Depends(get_word_temp_file),
+        temp_file: NamedTemporaryFile = Depends(get_temp_file(".docx")),
     ) -> CatalogModule:
         catalog = self._catalogs.get_catalog(catalog_id)
         shutil.copyfileobj(upload_file.file, temp_file.file)

@@ -15,24 +15,25 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from tempfile import NamedTemporaryFile
-from typing import Iterator
 from fastapi import APIRouter, Depends, UploadFile
-from fastapi.responses import FileResponse
 from fastapi_utils.cbv import cbv
+from fastapi.responses import FileResponse
 from pydantic import ValidationError
 from sqlmodel import Session, select
+from tempfile import NamedTemporaryFile
+from typing import Iterator
 
 from ... import errors
 from ...database import get_session
 from ...models import Requirement, RequirementInput, RequirementOutput
-from .common import ExcelHeader, ExcelView, IdModel, get_excel_temp_file
+from ...utils import get_temp_file
+from ..projects import ProjectsView
 from ..requirements import (
     RequirementsView,
     get_requirement_filters,
     get_requirement_sort,
 )
-from ..projects import ProjectsView
+from .common import ExcelHeader, ExcelView, IdModel
 
 router = APIRouter()
 
@@ -111,7 +112,7 @@ class RequirementsExcelView(ExcelView):
         self,
         where_clauses=Depends(get_requirement_filters),
         order_by_clauses=Depends(get_requirement_sort),
-        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
+        temp_file: NamedTemporaryFile = Depends(get_temp_file(".xlsx")),
         sheet_name: str = "Export",
         filename: str = "export.xlsx",
     ) -> FileResponse:
@@ -195,7 +196,7 @@ class RequirementsExcelView(ExcelView):
         self,
         project_id: int,
         upload_file: UploadFile,
-        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
+        temp_file: NamedTemporaryFile = Depends(get_temp_file(".xlsx")),
     ) -> Iterator[Requirement]:
         return self._bulk_create_patch_requirements(
             project_id, self._process_upload(upload_file, temp_file)

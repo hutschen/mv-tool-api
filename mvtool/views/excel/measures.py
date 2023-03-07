@@ -26,12 +26,12 @@ from sqlmodel import Session, select
 from ... import errors
 from ...database import get_session
 from ...models import Measure, MeasureInput, MeasureOutput
+from ...utils import get_temp_file
 from .common import (
     ExcelHeader,
     ExcelView,
     IdModel,
     JiraIssueKeyModel,
-    get_excel_temp_file,
 )
 from ..jira_ import JiraIssuesView
 from ..measures import MeasuresView, get_measure_filters, get_measure_sort
@@ -103,7 +103,7 @@ class MeasuresExcelView(ExcelView):
         self,
         where_clauses=Depends(get_measure_filters),
         order_by_clauses=Depends(get_measure_sort),
-        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
+        temp_file: NamedTemporaryFile = Depends(get_temp_file(".xlsx")),
         sheet_name: str = "Export",
         filename: str = "export.xlsx",
     ) -> FileResponse:
@@ -223,7 +223,7 @@ class MeasuresExcelView(ExcelView):
         self,
         requirement_id: int,
         upload_file: UploadFile,
-        temp_file: NamedTemporaryFile = Depends(get_excel_temp_file),
+        temp_file: NamedTemporaryFile = Depends(get_temp_file(".xlsx")),
     ) -> Iterator[MeasureOutput]:
         return self._bulk_create_patch_measures(
             requirement_id, self._process_upload(upload_file, temp_file)

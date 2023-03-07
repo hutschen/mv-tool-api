@@ -29,12 +29,6 @@ from openpyxl.worksheet.table import Table
 from ... import errors
 
 
-def get_excel_temp_file():
-    # TODO: Make this function more generic and move it to utils
-    with NamedTemporaryFile(suffix=".xlsx") as temp_file:
-        yield temp_file
-
-
 class IdModel(BaseModel):
     # TODO: Move this to models
     id: int | None
