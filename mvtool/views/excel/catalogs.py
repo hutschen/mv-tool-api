@@ -29,29 +29,38 @@ from ...models import Catalog
 router = APIRouter()
 
 
+def get_catalog_excel_headers() -> list[ExcelHeader]:
+    return [
+        ExcelHeader("Catalog ID", optional=True),
+        ExcelHeader("Catalog Reference", optional=True),
+        ExcelHeader("Catalog Title"),
+        ExcelHeader("Catalog Description", optional=True),
+    ]
+
+
+def convert_catalog_to_row(catalog: Catalog) -> dict[str, Any]:
+    return {
+        "Catalog ID": catalog.id,
+        "Catalog Reference": catalog.reference,
+        "Catalog Title": catalog.title,
+        "Catalog Description": catalog.description,
+    }
+
+
 @cbv(router)
 class CatalogsExcelView(ExcelView):
     kwargs = dict(tags=["excel"])
 
-    def __init__(self, catalogs: CatalogsView = Depends()):
-        ExcelView.__init__(
-            self,
-            [
-                ExcelHeader("ID", optional=True),
-                ExcelHeader("Reference", optional=True),
-                ExcelHeader("Title"),
-                ExcelHeader("Description", optional=True),
-            ],
-        )
+    def __init__(
+        self,
+        catalogs: CatalogsView = Depends(),
+        headers: list[ExcelHeader] = Depends(get_catalog_excel_headers),
+    ):
+        ExcelView.__init__(self, headers)
         self._catalogs = catalogs
 
     def _convert_to_row(self, catalog: Catalog) -> dict[str, Any]:
-        return {
-            "ID": catalog.id,
-            "Reference": catalog.reference,
-            "Title": catalog.title,
-            "Description": catalog.description,
-        }
+        return convert_catalog_to_row(catalog)
 
     @router.get("/excel/catalogs", response_class=FileResponse, **kwargs)
     def download_catalogs_excel(
