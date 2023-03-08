@@ -21,7 +21,7 @@ from fastapi.responses import FileResponse
 from pydantic import ValidationError
 from sqlmodel import Session, select
 from tempfile import NamedTemporaryFile
-from typing import Iterator
+from typing import Any, Iterator
 
 from ... import errors
 from ...database import get_session
@@ -34,12 +34,16 @@ from ..requirements import (
     get_requirement_sort,
 )
 from .common import ExcelHeader, ExcelView, IdModel
+from .projects import convert_project_to_row, get_project_excel_headers
 
 router = APIRouter()
 
 
-def get_requirement_excel_headers() -> callable:
+def get_requirement_excel_headers(
+    project_headers=Depends(get_project_excel_headers),
+) -> callable:
     return [
+        *project_headers,
         ExcelHeader("Requirement ID", optional=True),
         ExcelHeader("Requirement Reference", optional=True),
         ExcelHeader("Requirement Catalog", ExcelHeader.WRITE_ONLY, True),
@@ -54,6 +58,41 @@ def get_requirement_excel_headers() -> callable:
         ExcelHeader("Requirement Compliance Comment", optional=True),
         ExcelHeader("Requirement Completion", ExcelHeader.WRITE_ONLY, True),
     ]
+
+
+def convert_requirement_to_row(requirement: Requirement) -> dict[str, Any]:
+    return {
+        **convert_project_to_row(requirement.project),
+        "Requirement ID": requirement.id,
+        "Requirement Reference": requirement.reference,
+        "Requirement Catalog": (
+            requirement.catalog_requirement.catalog_module.catalog.title
+            if requirement.catalog_requirement
+            else None
+        ),
+        "Requirement Catalog Module": (
+            requirement.catalog_requirement.catalog_module.title
+            if requirement.catalog_requirement
+            else None
+        ),
+        "Requirement Summary": requirement.summary,
+        "Requirement Description": requirement.description,
+        "Requirement GS Absicherung": (
+            requirement.catalog_requirement.gs_absicherung
+            if requirement.catalog_requirement
+            else None
+        ),
+        "Requirement GS Verantwortliche": (
+            requirement.catalog_requirement.gs_verantwortliche
+            if requirement.catalog_requirement
+            else None
+        ),
+        "Requirement Target Object": requirement.target_object,
+        "Requirement Milestone": requirement.milestone,
+        "Requirement Compliance Status": requirement.compliance_status,
+        "Requirement Compliance Comment": requirement.compliance_comment,
+        "Requirement Completion": requirement.completion_progress,
+    }
 
 
 @cbv(router)
@@ -76,37 +115,7 @@ class RequirementsExcelView(ExcelView):
         self._requirements = requirements
 
     def _convert_to_row(self, data: Requirement) -> dict[str, str]:
-        return {
-            "Requirement ID": data.id,
-            "Requirement Reference": data.reference,
-            "Requirement Catalog": (
-                data.catalog_requirement.catalog_module.catalog.title
-                if data.catalog_requirement
-                else None
-            ),
-            "Requirement Catalog Module": (
-                data.catalog_requirement.catalog_module.title
-                if data.catalog_requirement
-                else None
-            ),
-            "Requirement Summary": data.summary,
-            "Requirement Description": data.description,
-            "Requirement GS Absicherung": (
-                data.catalog_requirement.gs_absicherung
-                if data.catalog_requirement
-                else None
-            ),
-            "Requirement GS Verantwortliche": (
-                data.catalog_requirement.gs_verantwortliche
-                if data.catalog_requirement
-                else None
-            ),
-            "Requirement Target Object": data.target_object,
-            "Requirement Milestone": data.milestone,
-            "Requirement Compliance Status": data.compliance_status,
-            "Requirement Compliance Comment": data.compliance_comment,
-            "Requirement Completion": data.completion_progress,
-        }
+        return convert_requirement_to_row(data)
 
     @router.get(
         "/excel/requirements",
