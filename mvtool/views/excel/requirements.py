@@ -38,6 +38,24 @@ from .common import ExcelHeader, ExcelView, IdModel
 router = APIRouter()
 
 
+def get_requirement_excel_headers() -> callable:
+    return [
+        ExcelHeader("Requirement ID", optional=True),
+        ExcelHeader("Requirement Reference", optional=True),
+        ExcelHeader("Requirement Catalog", ExcelHeader.WRITE_ONLY, True),
+        ExcelHeader("Requirement Catalog Module", ExcelHeader.WRITE_ONLY, True),
+        ExcelHeader("Requirement Summary"),
+        ExcelHeader("Requirement Description", optional=True),
+        ExcelHeader("Requirement GS Absicherung", ExcelHeader.WRITE_ONLY, True),
+        ExcelHeader("Requirement GS Verantwortliche", ExcelHeader.WRITE_ONLY, True),
+        ExcelHeader("Requirement Milestone", optional=True),
+        ExcelHeader("Requirement Target Object", optional=True),
+        ExcelHeader("Requirement Compliance Status", optional=True),
+        ExcelHeader("Requirement Compliance Comment", optional=True),
+        ExcelHeader("Requirement Completion", ExcelHeader.WRITE_ONLY, True),
+    ]
+
+
 @cbv(router)
 class RequirementsExcelView(ExcelView):
     kwargs = dict(tags=["excel"])
@@ -47,24 +65,11 @@ class RequirementsExcelView(ExcelView):
         session: Session = Depends(get_session),
         projects: ProjectsView = Depends(ProjectsView),
         requirements: RequirementsView = Depends(RequirementsView),
+        headers=Depends(get_requirement_excel_headers),
     ):
         ExcelView.__init__(
             self,
-            [
-                ExcelHeader("ID", optional=True),
-                ExcelHeader("Reference", optional=True),
-                ExcelHeader("Catalog", ExcelHeader.WRITE_ONLY, True),
-                ExcelHeader("Catalog Module", ExcelHeader.WRITE_ONLY, True),
-                ExcelHeader("Summary"),
-                ExcelHeader("Description", optional=True),
-                ExcelHeader("GS Absicherung", ExcelHeader.WRITE_ONLY, True),
-                ExcelHeader("GS Verantwortliche", ExcelHeader.WRITE_ONLY, True),
-                ExcelHeader("Milestone", optional=True),
-                ExcelHeader("Target Object", optional=True),
-                ExcelHeader("Compliance Status", optional=True),
-                ExcelHeader("Compliance Comment", optional=True),
-                ExcelHeader("Completion", ExcelHeader.WRITE_ONLY, True),
-            ],
+            headers,
         )
         self._session = session
         self._projects = projects
@@ -72,35 +77,35 @@ class RequirementsExcelView(ExcelView):
 
     def _convert_to_row(self, data: Requirement) -> dict[str, str]:
         return {
-            "ID": data.id,
-            "Reference": data.reference,
-            "Catalog": (
+            "Requirement ID": data.id,
+            "Requirement Reference": data.reference,
+            "Requirement Catalog": (
                 data.catalog_requirement.catalog_module.catalog.title
                 if data.catalog_requirement
                 else None
             ),
-            "Catalog Module": (
+            "Requirement Catalog Module": (
                 data.catalog_requirement.catalog_module.title
                 if data.catalog_requirement
                 else None
             ),
-            "Summary": data.summary,
-            "Description": data.description,
-            "GS Absicherung": (
+            "Requirement Summary": data.summary,
+            "Requirement Description": data.description,
+            "Requirement GS Absicherung": (
                 data.catalog_requirement.gs_absicherung
                 if data.catalog_requirement
                 else None
             ),
-            "GS Verantwortliche": (
+            "Requirement GS Verantwortliche": (
                 data.catalog_requirement.gs_verantwortliche
                 if data.catalog_requirement
                 else None
             ),
-            "Target Object": data.target_object,
-            "Milestone": data.milestone,
-            "Compliance Status": data.compliance_status,
-            "Compliance Comment": data.compliance_comment,
-            "Completion": data.completion_progress,
+            "Requirement Target Object": data.target_object,
+            "Requirement Milestone": data.milestone,
+            "Requirement Compliance Status": data.compliance_status,
+            "Requirement Compliance Comment": data.compliance_comment,
+            "Requirement Completion": data.completion_progress,
         }
 
     @router.get(
@@ -113,8 +118,8 @@ class RequirementsExcelView(ExcelView):
         where_clauses=Depends(get_requirement_filters),
         order_by_clauses=Depends(get_requirement_sort),
         temp_file: NamedTemporaryFile = Depends(get_temp_file(".xlsx")),
-        sheet_name: str = "Export",
-        filename: str = "export.xlsx",
+        sheet_name: str = "Reqirements",
+        filename: str = "requirements.xlsx",
     ) -> FileResponse:
         return self._process_download(
             self._requirements.list_requirements(where_clauses, order_by_clauses),
