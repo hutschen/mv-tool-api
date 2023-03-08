@@ -29,30 +29,35 @@ from ...models import Project
 router = APIRouter()
 
 
+def get_project_excel_headers() -> list[ExcelHeader]:
+    return [
+        ExcelHeader("Project ID", optional=True),
+        ExcelHeader("Project Name"),
+        ExcelHeader("Project Description", optional=True),
+        ExcelHeader("Project Completion Progress", ExcelHeader.WRITE_ONLY, True),
+        ExcelHeader("Project Verification Progress", ExcelHeader.WRITE_ONLY, True),
+    ]
+
+
 @cbv(router)
 class ProjectsExcelView(ExcelView):
     kwargs = dict(tags=["excel"])
 
-    def __init__(self, projects: ProjectsView = Depends()):
-        ExcelView.__init__(
-            self,
-            [
-                ExcelHeader("ID", optional=True),
-                ExcelHeader("Name"),
-                ExcelHeader("Description", optional=True),
-                ExcelHeader("Completion Progress", ExcelHeader.WRITE_ONLY, True),
-                ExcelHeader("Verification Progress", ExcelHeader.WRITE_ONLY, True),
-            ],
-        )
+    def __init__(
+        self,
+        projects: ProjectsView = Depends(),
+        headers: list[ExcelHeader] = Depends(get_project_excel_headers),
+    ):
+        ExcelView.__init__(self, headers)
         self._projects = projects
 
     def _convert_to_row(self, project: Project) -> dict[str, Any]:
         return {
-            "ID": project.id,
-            "Name": project.name,
-            "Description": project.description,
-            "Completion Progress": project.completion_progress,
-            "Verification Progress": project.verification_progress,
+            "Project ID": project.id,
+            "Project Name": project.name,
+            "Project Description": project.description,
+            "Project Completion Progress": project.completion_progress,
+            "Project Verification Progress": project.verification_progress,
         }
 
     @router.get("/excel/projects", response_class=FileResponse, **kwargs)
