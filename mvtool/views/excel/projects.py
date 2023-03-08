@@ -39,6 +39,16 @@ def get_project_excel_headers() -> list[ExcelHeader]:
     ]
 
 
+def convert_project_to_row(project: Project) -> dict[str, Any]:
+    return {
+        "Project ID": project.id,
+        "Project Name": project.name,
+        "Project Description": project.description,
+        "Project Completion Progress": project.completion_progress,
+        "Project Verification Progress": project.verification_progress,
+    }
+
+
 @cbv(router)
 class ProjectsExcelView(ExcelView):
     kwargs = dict(tags=["excel"])
@@ -52,13 +62,7 @@ class ProjectsExcelView(ExcelView):
         self._projects = projects
 
     def _convert_to_row(self, project: Project) -> dict[str, Any]:
-        return {
-            "Project ID": project.id,
-            "Project Name": project.name,
-            "Project Description": project.description,
-            "Project Completion Progress": project.completion_progress,
-            "Project Verification Progress": project.verification_progress,
-        }
+        return convert_project_to_row(project)
 
     @router.get("/excel/projects", response_class=FileResponse, **kwargs)
     def download_projects_excel(
