@@ -21,6 +21,11 @@ from fastapi.responses import FileResponse
 from fastapi_utils.cbv import cbv
 from fastapi import APIRouter, Depends
 
+from mvtool.views.excel.catalogs import (
+    convert_catalog_to_row,
+    get_catalog_excel_headers,
+)
+
 from .common import ExcelHeader, ExcelView
 from ..catalog_modules import (
     CatalogModulesView,
@@ -33,30 +38,52 @@ from ...models import CatalogModule
 router = APIRouter()
 
 
+def get_catalog_module_excel_headers(
+    catalog_headers: list[ExcelHeader] = Depends(get_catalog_excel_headers),
+) -> list[ExcelHeader]:
+    return [
+        *catalog_headers,
+        ExcelHeader("Catalog Module ID", optional=True),
+        ExcelHeader("Catalog Module Reference", optional=True),
+        ExcelHeader("Catalog Module Title"),
+        ExcelHeader("Catalog Module Description", optional=True),
+    ]
+
+
+def convert_catalog_module_to_row(
+    catalog_module: CatalogModule | None,
+) -> dict[str, Any]:
+    if catalog_module is None:
+        return {
+            **convert_catalog_to_row(None),
+            "Catalog Module ID": None,
+            "Catalog Module Reference": None,
+            "Catalog Module Title": None,
+            "Catalog Module Description": None,
+        }
+    return {
+        **convert_catalog_to_row(catalog_module.catalog),
+        "Catalog Module ID": catalog_module.id,
+        "Catalog Module Reference": catalog_module.reference,
+        "Catalog Module Title": catalog_module.title,
+        "Catalog Module Description": catalog_module.description,
+    }
+
+
 @cbv(router)
 class CatalogModulesExcelView(ExcelView):
     kwargs = dict(tags=["excel"])
 
-    def __init__(self, catalog_modules: CatalogModulesView = Depends()):
-        ExcelView.__init__(
-            self,
-            [
-                # TODO: add also catalog headers
-                ExcelHeader("ID", optional=True),
-                ExcelHeader("Reference", optional=True),
-                ExcelHeader("Title"),
-                ExcelHeader("Description", optional=True),
-            ],
-        )
+    def __init__(
+        self,
+        catalog_modules: CatalogModulesView = Depends(),
+        headers: list[ExcelHeader] = Depends(get_catalog_module_excel_headers),
+    ):
+        ExcelView.__init__(self, headers)
         self._catalog_modules = catalog_modules
 
     def _convert_to_row(self, catalog_module: CatalogModule) -> dict[str, Any]:
-        return {
-            "ID": catalog_module.id,
-            "Reference": catalog_module.reference,
-            "Title": catalog_module.title,
-            "Description": catalog_module.description,
-        }
+        return convert_catalog_module_to_row(catalog_module)
 
     @router.get("/excel/catalog_modules", response_class=FileResponse, **kwargs)
     def download_catalog_modules_excel(
