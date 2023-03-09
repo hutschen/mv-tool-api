@@ -16,12 +16,17 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from tempfile import NamedTemporaryFile
-from typing import Iterator
+from typing import Any, Iterator
 from fastapi import APIRouter, Depends, UploadFile
 from fastapi.responses import FileResponse
 from fastapi_utils.cbv import cbv
 from pydantic import ValidationError
 from sqlmodel import Session, select
+
+from mvtool.views.excel.requirements import (
+    convert_requirement_to_row,
+    get_requirement_excel_headers,
+)
 
 from ... import errors
 from ...database import get_session
@@ -39,6 +44,44 @@ from ..measures import MeasuresView, get_measure_filters, get_measure_sort
 router = APIRouter()
 
 
+def get_measure_excel_headers(
+    requirement_headers=Depends(get_requirement_excel_headers),
+) -> list[ExcelHeader]:
+    return [
+        *requirement_headers,
+        ExcelHeader("Measure ID", optional=True),
+        ExcelHeader("Measure Reference", optional=True),
+        ExcelHeader("Measure Summary"),
+        ExcelHeader("Measure Description", optional=True),
+        ExcelHeader("Measure Compliance Status", optional=True),
+        ExcelHeader("Measure Compliance Comment", optional=True),
+        ExcelHeader("Measure Completion Status", optional=True),
+        ExcelHeader("Measure Completion Comment", optional=True),
+        ExcelHeader("Measure Verification Method", optional=True),
+        ExcelHeader("Measure Verification Status", optional=True),
+        ExcelHeader("Measure Verification Comment", optional=True),
+        ExcelHeader("JIRA Issue Key", optional=True),
+    ]
+
+
+def convert_measure_to_row(measure: Measure) -> dict[str, Any]:
+    return {
+        **convert_requirement_to_row(measure.requirement),
+        "Measure ID": measure.id,
+        "Measure Reference": measure.reference,
+        "Measure Summary": measure.summary,
+        "Measure Description": measure.description,
+        "Measure Compliance Status": measure.compliance_status,
+        "Measure Compliance Comment": measure.compliance_comment,
+        "Measure Completion Status": measure.completion_status,
+        "Measure Completion Comment": measure.completion_comment,
+        "Measure Verification Method": measure.verification_method,
+        "Measure Verification Status": measure.verification_status,
+        "Measure Verification Comment": measure.verification_comment,
+        "JIRA Issue Key": measure.jira_issue.key if measure.jira_issue else None,
+    }
+
+
 @cbv(router)
 class MeasuresExcelView(ExcelView):
     kwargs = dict(tags=["excel"])
@@ -48,51 +91,15 @@ class MeasuresExcelView(ExcelView):
         session: Session = Depends(get_session),
         jira_issues: JiraIssuesView = Depends(JiraIssuesView),
         measures: MeasuresView = Depends(MeasuresView),
+        headers: list[ExcelHeader] = Depends(get_measure_excel_headers),
     ):
-        ExcelView.__init__(
-            self,
-            [
-                ExcelHeader("Requirement Reference", ExcelHeader.WRITE_ONLY, True),
-                ExcelHeader("Requirement Summary", ExcelHeader.WRITE_ONLY, True),
-                ExcelHeader("Reference", optional=True),
-                ExcelHeader("ID", optional=True),
-                ExcelHeader("Summary"),
-                ExcelHeader("Description", optional=True),
-                ExcelHeader("Compliance Status", optional=True),
-                ExcelHeader("Compliance Comment", optional=True),
-                ExcelHeader("Completion Status", optional=True),
-                ExcelHeader("Completion Comment", optional=True),
-                ExcelHeader("Verification Method", optional=True),
-                ExcelHeader("Verification Status", optional=True),
-                ExcelHeader("Verification Comment", optional=True),
-                ExcelHeader("Document Reference", ExcelHeader.WRITE_ONLY, True),
-                ExcelHeader("Document Title", ExcelHeader.WRITE_ONLY, True),
-                ExcelHeader("JIRA Issue Key", optional=True),
-            ],
-        )
+        ExcelView.__init__(self, headers)
         self._session = session
         self._jira_issues = jira_issues
         self._measures = measures
 
     def _convert_to_row(self, data: Measure, *args) -> dict[str, str]:
-        return {
-            "Requirement Reference": data.requirement.reference,
-            "Requirement Summary": data.requirement.summary,
-            "Reference": data.reference,
-            "ID": data.id,
-            "Summary": data.summary,
-            "Description": data.description,
-            "Compliance Status": data.compliance_status,
-            "Compliance Comment": data.compliance_comment,
-            "Completion Status": data.completion_status,
-            "Completion Comment": data.completion_comment,
-            "Verification Method": data.verification_method,
-            "Verification Status": data.verification_status,
-            "Verification Comment": data.verification_comment,
-            "Document Reference": data.document.reference if data.document else None,
-            "Document Title": data.document.title if data.document else None,
-            "JIRA Issue Key": data.jira_issue.key if data.jira_issue else None,
-        }
+        return convert_measure_to_row(data)
 
     @router.get(
         "/excel/measures",
