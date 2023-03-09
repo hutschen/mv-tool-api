@@ -53,7 +53,7 @@ def get_catalog_module_excel_headers(
 def convert_catalog_module_to_row(
     catalog_module: CatalogModule | None,
 ) -> dict[str, Any]:
-    if catalog_module is None:
+    if not catalog_module:
         return {
             **convert_catalog_to_row(None),
             "Catalog Module ID": None,

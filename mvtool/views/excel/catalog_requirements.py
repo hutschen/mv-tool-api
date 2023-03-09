@@ -53,7 +53,7 @@ def get_catalog_requirement_excel_headers(
 def convert_catalog_requirement_to_row(
     catalog_requirement: CatalogRequirement | None,
 ) -> dict[str, Any]:
-    if catalog_requirement is None:
+    if not catalog_requirement:
         return {
             **convert_catalog_module_to_row(None),
             "Catalog Requirement ID": None,

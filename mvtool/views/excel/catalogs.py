@@ -39,7 +39,7 @@ def get_catalog_excel_headers() -> list[ExcelHeader]:
 
 
 def convert_catalog_to_row(catalog: Catalog | None) -> dict[str, Any]:
-    if catalog is None:
+    if not catalog:
         return {
             "Catalog ID": None,
             "Catalog Reference": None,
