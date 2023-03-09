@@ -46,7 +46,7 @@ router = APIRouter()
 def get_requirement_excel_headers(
     project_headers=Depends(get_project_excel_headers),
     catalog_requirement_headers=Depends(get_catalog_requirement_excel_headers),
-) -> callable:
+) -> list[ExcelHeader]:
     return [
         *project_headers,
         *catalog_requirement_headers,
