@@ -38,7 +38,14 @@ def get_catalog_excel_headers() -> list[ExcelHeader]:
     ]
 
 
-def convert_catalog_to_row(catalog: Catalog) -> dict[str, Any]:
+def convert_catalog_to_row(catalog: Catalog | None) -> dict[str, Any]:
+    if catalog is None:
+        return {
+            "Catalog ID": None,
+            "Catalog Reference": None,
+            "Catalog Title": None,
+            "Catalog Description": None,
+        }
     return {
         "Catalog ID": catalog.id,
         "Catalog Reference": catalog.reference,

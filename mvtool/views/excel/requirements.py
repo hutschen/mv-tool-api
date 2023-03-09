@@ -23,6 +23,11 @@ from sqlmodel import Session, select
 from tempfile import NamedTemporaryFile
 from typing import Any, Iterator
 
+from mvtool.views.excel.catalogs import (
+    convert_catalog_to_row,
+    get_catalog_excel_headers,
+)
+
 from ... import errors
 from ...database import get_session
 from ...models import Requirement, RequirementInput, RequirementOutput
@@ -41,12 +46,13 @@ router = APIRouter()
 
 def get_requirement_excel_headers(
     project_headers=Depends(get_project_excel_headers),
+    catalog_headers=Depends(get_catalog_excel_headers),
 ) -> callable:
     return [
         *project_headers,
+        *catalog_headers,
         ExcelHeader("Requirement ID", optional=True),
         ExcelHeader("Requirement Reference", optional=True),
-        ExcelHeader("Requirement Catalog", ExcelHeader.WRITE_ONLY, True),
         ExcelHeader("Requirement Catalog Module", ExcelHeader.WRITE_ONLY, True),
         ExcelHeader("Requirement Summary"),
         ExcelHeader("Requirement Description", optional=True),
@@ -63,13 +69,13 @@ def get_requirement_excel_headers(
 def convert_requirement_to_row(requirement: Requirement) -> dict[str, Any]:
     return {
         **convert_project_to_row(requirement.project),
-        "Requirement ID": requirement.id,
-        "Requirement Reference": requirement.reference,
-        "Requirement Catalog": (
-            requirement.catalog_requirement.catalog_module.catalog.title
+        **convert_catalog_to_row(
+            requirement.catalog_requirement.catalog_module.catalog
             if requirement.catalog_requirement
             else None
         ),
+        "Requirement ID": requirement.id,
+        "Requirement Reference": requirement.reference,
         "Requirement Catalog Module": (
             requirement.catalog_requirement.catalog_module.title
             if requirement.catalog_requirement
