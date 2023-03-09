@@ -23,11 +23,6 @@ from sqlmodel import Session, select
 from tempfile import NamedTemporaryFile
 from typing import Any, Iterator
 
-from mvtool.views.excel.catalogs import (
-    convert_catalog_to_row,
-    get_catalog_excel_headers,
-)
-
 from ... import errors
 from ...database import get_session
 from ...models import Requirement, RequirementInput, RequirementOutput
@@ -38,6 +33,10 @@ from ..requirements import (
     get_requirement_filters,
     get_requirement_sort,
 )
+from .catalog_requirements import (
+    convert_catalog_requirement_to_row,
+    get_catalog_requirement_excel_headers,
+)
 from .common import ExcelHeader, ExcelView, IdModel
 from .projects import convert_project_to_row, get_project_excel_headers
 
@@ -46,41 +45,32 @@ router = APIRouter()
 
 def get_requirement_excel_headers(
     project_headers=Depends(get_project_excel_headers),
-    catalog_headers=Depends(get_catalog_excel_headers),
+    catalog_requirement_headers=Depends(get_catalog_requirement_excel_headers),
 ) -> callable:
     return [
         *project_headers,
-        *catalog_headers,
+        *catalog_requirement_headers,
         ExcelHeader("Requirement ID", optional=True),
         ExcelHeader("Requirement Reference", optional=True),
-        ExcelHeader("Requirement Catalog Module", ExcelHeader.WRITE_ONLY, True),
         ExcelHeader("Requirement Summary"),
         ExcelHeader("Requirement Description", optional=True),
         ExcelHeader("Requirement GS Absicherung", ExcelHeader.WRITE_ONLY, True),
         ExcelHeader("Requirement GS Verantwortliche", ExcelHeader.WRITE_ONLY, True),
-        ExcelHeader("Requirement Milestone", optional=True),
-        ExcelHeader("Requirement Target Object", optional=True),
         ExcelHeader("Requirement Compliance Status", optional=True),
         ExcelHeader("Requirement Compliance Comment", optional=True),
-        ExcelHeader("Requirement Completion", ExcelHeader.WRITE_ONLY, True),
+        ExcelHeader("Requirement Completion Progress", ExcelHeader.WRITE_ONLY, True),
+        ExcelHeader("Requirement Verification Progress", ExcelHeader.WRITE_ONLY, True),
+        ExcelHeader("Milestone", optional=True),
+        ExcelHeader("Target Object", optional=True),
     ]
 
 
 def convert_requirement_to_row(requirement: Requirement) -> dict[str, Any]:
     return {
         **convert_project_to_row(requirement.project),
-        **convert_catalog_to_row(
-            requirement.catalog_requirement.catalog_module.catalog
-            if requirement.catalog_requirement
-            else None
-        ),
+        **convert_catalog_requirement_to_row(requirement.catalog_requirement),
         "Requirement ID": requirement.id,
         "Requirement Reference": requirement.reference,
-        "Requirement Catalog Module": (
-            requirement.catalog_requirement.catalog_module.title
-            if requirement.catalog_requirement
-            else None
-        ),
         "Requirement Summary": requirement.summary,
         "Requirement Description": requirement.description,
         "Requirement GS Absicherung": (
@@ -93,11 +83,12 @@ def convert_requirement_to_row(requirement: Requirement) -> dict[str, Any]:
             if requirement.catalog_requirement
             else None
         ),
-        "Requirement Target Object": requirement.target_object,
-        "Requirement Milestone": requirement.milestone,
         "Requirement Compliance Status": requirement.compliance_status,
         "Requirement Compliance Comment": requirement.compliance_comment,
-        "Requirement Completion": requirement.completion_progress,
+        "Requirement Completion Progress": requirement.completion_progress,
+        "Requirement Verification Progress": requirement.verification_progress,
+        "Target Object": requirement.target_object,
+        "Milestone": requirement.milestone,
     }
 
 
