@@ -15,50 +15,81 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any
-from tempfile import NamedTemporaryFile
-from fastapi.responses import FileResponse
-from fastapi_utils.cbv import cbv
 from fastapi import APIRouter, Depends
+from fastapi_utils.cbv import cbv
+from fastapi.responses import FileResponse
+from tempfile import NamedTemporaryFile
+from typing import Any
 
-from .common import ExcelHeader, ExcelView
-from ..catalogs import get_catalog_filters, get_catalog_sort
-from ..catalog_requirements import CatalogRequirementsView
-from ...utils import get_temp_file
 from ...models import CatalogRequirement
+from ...utils import get_temp_file
+from ..catalog_requirements import CatalogRequirementsView
+from ..catalogs import get_catalog_filters, get_catalog_sort
+from .catalog_modules import (
+    convert_catalog_module_to_row,
+    get_catalog_module_excel_headers,
+)
+from .common import ExcelHeader, ExcelView
 
 router = APIRouter()
+
+
+def get_catalog_requirement_excel_headers(
+    catalog_module_headers: list[ExcelHeader] = Depends(
+        get_catalog_module_excel_headers
+    ),
+) -> list[ExcelHeader]:
+    return [
+        *catalog_module_headers,
+        ExcelHeader("Catalog Requirement ID", optional=True),
+        ExcelHeader("Catalog Requirement Reference", optional=True),
+        ExcelHeader("Catalog Requirement Summary"),
+        ExcelHeader("Catalog Requirement Description", optional=True),
+        ExcelHeader("Catalog Requirement GS Absicherung", optional=True),
+        ExcelHeader("Catalog Requirement GS Verantwortliche", optional=True),
+    ]
+
+
+def convert_catalog_requirement_to_row(
+    catalog_requirement: CatalogRequirement | None,
+) -> dict[str, Any]:
+    if catalog_requirement is None:
+        return {
+            **convert_catalog_module_to_row(None),
+            "Catalog Requirement ID": None,
+            "Catalog Requirement Reference": None,
+            "Catalog Requirement Summary": None,
+            "Catalog Requirement Description": None,
+            "Catalog Requirement GS Absicherung": None,
+            "Catalog Requirement GS Verantwortliche": None,
+        }
+    return {
+        **convert_catalog_module_to_row(catalog_requirement.catalog_module),
+        "Catalog Requirement ID": catalog_requirement.id,
+        "Catalog Requirement Reference": catalog_requirement.reference,
+        "Catalog Requirement Summary": catalog_requirement.summary,
+        "Catalog Requirement Description": catalog_requirement.description,
+        "Catalog Requirement GS Absicherung": catalog_requirement.gs_absicherung,
+        "Catalog Requirement GS Verantwortliche": catalog_requirement.gs_verantwortliche,
+    }
 
 
 @cbv(router)
 class CatalogRequirementsExcelView(ExcelView):
     kwargs = dict(tags=["excel"])
 
-    def __init__(self, catalog_requirements: CatalogRequirementsView = Depends()):
-        ExcelView.__init__(
-            self,
-            [
-                ExcelHeader("ID", optional=True),
-                ExcelHeader("Reference", optional=True),
-                ExcelHeader("Summary"),
-                ExcelHeader("Description", optional=True),
-                ExcelHeader("GS Absicherung", optional=True),
-                ExcelHeader("GS Verantwortliche", optional=True),
-            ],
-        )
+    def __init__(
+        self,
+        catalog_requirements: CatalogRequirementsView = Depends(),
+        headers: list[ExcelHeader] = Depends(get_catalog_requirement_excel_headers),
+    ):
+        ExcelView.__init__(self, headers)
         self._catalog_requirements = catalog_requirements
 
     def _convert_to_row(
         self, catalog_requirement: CatalogRequirement
     ) -> dict[str, Any]:
-        return {
-            "ID": catalog_requirement.id,
-            "Reference": catalog_requirement.reference,
-            "Summary": catalog_requirement.summary,
-            "Description": catalog_requirement.description,
-            "GS Absicherung": catalog_requirement.gs_absicherung,
-            "GS Verantwortliche": catalog_requirement.gs_verantwortliche,
-        }
+        return convert_catalog_requirement_to_row(catalog_requirement)
 
     @router.get("/excel/catalog_requirements", response_class=FileResponse, **kwargs)
     def download_catalog_requirements_excel(
