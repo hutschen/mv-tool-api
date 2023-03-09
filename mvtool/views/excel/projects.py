@@ -39,7 +39,15 @@ def get_project_excel_headers() -> list[ExcelHeader]:
     ]
 
 
-def convert_project_to_row(project: Project) -> dict[str, Any]:
+def convert_project_to_row(project: Project | None) -> dict[str, Any]:
+    if not project:
+        return {
+            "Project ID": None,
+            "Project Name": None,
+            "Project Description": None,
+            "Project Completion Progress": None,
+            "Project Verification Progress": None,
+        }
     return {
         "Project ID": project.id,
         "Project Name": project.name,

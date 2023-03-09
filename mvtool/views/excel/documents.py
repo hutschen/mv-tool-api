@@ -36,11 +36,8 @@ from .projects import convert_project_to_row, get_project_excel_headers
 router = APIRouter()
 
 
-def get_document_excel_headers(
-    project_headers=Depends(get_project_excel_headers),
-) -> list[ExcelHeader]:
+def get_document_excel_headers_only() -> list[ExcelHeader]:
     return [
-        *project_headers,
         ExcelHeader("Document ID", optional=True),
         ExcelHeader("Document Reference", optional=True),
         ExcelHeader("Document Title"),
@@ -48,13 +45,38 @@ def get_document_excel_headers(
     ]
 
 
-def convert_document_to_row(data: Document) -> dict[str, str]:
+def get_document_excel_headers(
+    project_headers=Depends(get_project_excel_headers),
+    document_headers=Depends(get_document_excel_headers_only),
+) -> list[ExcelHeader]:
+    return [
+        *project_headers,
+        *document_headers,
+    ]
+
+
+def convert_document_to_row(
+    document: Document | None, document_only=False
+) -> dict[str, str]:
+    project_row = (
+        convert_project_to_row(document.project if document else None)
+        if not document_only
+        else {}
+    )
+    if not document:
+        return {
+            **project_row,
+            "Document ID": None,
+            "Document Reference": None,
+            "Document Title": None,
+            "Document Description": None,
+        }
     return {
-        **convert_project_to_row(data.project),
-        "Document ID": data.id,
-        "Document Reference": data.reference,
-        "Document Title": data.title,
-        "Document Description": data.description,
+        **project_row,
+        "Document ID": document.id,
+        "Document Reference": document.reference,
+        "Document Title": document.title,
+        "Document Description": document.description,
     }
 
 

@@ -23,29 +23,30 @@ from fastapi_utils.cbv import cbv
 from pydantic import ValidationError
 from sqlmodel import Session, select
 
-from mvtool.views.excel.requirements import (
-    convert_requirement_to_row,
-    get_requirement_excel_headers,
-)
-
 from ... import errors
 from ...database import get_session
 from ...models import Measure, MeasureInput, MeasureOutput
 from ...utils import get_temp_file
+from ..jira_ import JiraIssuesView
+from ..measures import MeasuresView, get_measure_filters, get_measure_sort
 from .common import (
     ExcelHeader,
     ExcelView,
     IdModel,
     JiraIssueKeyModel,
 )
-from ..jira_ import JiraIssuesView
-from ..measures import MeasuresView, get_measure_filters, get_measure_sort
+from .documents import convert_document_to_row, get_document_excel_headers_only
+from .requirements import (
+    convert_requirement_to_row,
+    get_requirement_excel_headers,
+)
 
 router = APIRouter()
 
 
 def get_measure_excel_headers(
     requirement_headers=Depends(get_requirement_excel_headers),
+    document_headers=Depends(get_document_excel_headers_only),
 ) -> list[ExcelHeader]:
     return [
         *requirement_headers,
@@ -61,6 +62,7 @@ def get_measure_excel_headers(
         ExcelHeader("Measure Verification Status", optional=True),
         ExcelHeader("Measure Verification Comment", optional=True),
         ExcelHeader("JIRA Issue Key", optional=True),
+        *document_headers,
     ]
 
 
@@ -79,6 +81,7 @@ def convert_measure_to_row(measure: Measure) -> dict[str, Any]:
         "Measure Verification Status": measure.verification_status,
         "Measure Verification Comment": measure.verification_comment,
         "JIRA Issue Key": measure.jira_issue.key if measure.jira_issue else None,
+        **convert_document_to_row(measure.document, document_only=True),
     }
 
 
