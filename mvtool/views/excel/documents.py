@@ -31,9 +31,31 @@ from ...utils import get_temp_file
 from ..documents import DocumentsView, get_document_filters, get_document_sort
 from ..projects import ProjectsView
 from .common import ExcelHeader, ExcelView, IdModel
-
+from .projects import convert_project_to_row, get_project_excel_headers
 
 router = APIRouter()
+
+
+def get_document_excel_headers(
+    project_headers=Depends(get_project_excel_headers),
+) -> list[ExcelHeader]:
+    return [
+        *project_headers,
+        ExcelHeader("Document ID", optional=True),
+        ExcelHeader("Document Reference", optional=True),
+        ExcelHeader("Document Title"),
+        ExcelHeader("Document Description", optional=True),
+    ]
+
+
+def convert_document_to_row(data: Document) -> dict[str, str]:
+    return {
+        **convert_project_to_row(data.project),
+        "Document ID": data.id,
+        "Document Reference": data.reference,
+        "Document Title": data.title,
+        "Document Description": data.description,
+    }
 
 
 @cbv(router)
@@ -45,27 +67,15 @@ class DocumentsExcelView(ExcelView):
         session: Session = Depends(get_session),
         projects: ProjectsView = Depends(ProjectsView),
         documents: DocumentsView = Depends(DocumentsView),
+        headers: list[ExcelHeader] = Depends(get_document_excel_headers),
     ):
-        ExcelView.__init__(
-            self,
-            [
-                ExcelHeader("ID", optional=True),
-                ExcelHeader("Reference", optional=True),
-                ExcelHeader("Title"),
-                ExcelHeader("Description", optional=True),
-            ],
-        )
+        ExcelView.__init__(self, headers)
         self._session = session
         self._projects = projects
         self._documents = documents
 
     def _convert_to_row(self, data: Document) -> dict[str, str]:
-        return {
-            "ID": data.id,
-            "Reference": data.reference,
-            "Title": data.title,
-            "Description": data.description,
-        }
+        return convert_document_to_row(data)
 
     @router.get(
         "/excel/documents",
