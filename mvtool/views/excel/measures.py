@@ -17,6 +17,7 @@
 
 from tempfile import NamedTemporaryFile
 from typing import Any, Iterator
+
 from fastapi import APIRouter, Depends, UploadFile
 from fastapi.responses import FileResponse
 from fastapi_utils.cbv import cbv
@@ -29,17 +30,9 @@ from ...models import Measure, MeasureInput, MeasureOutput
 from ...utils import get_temp_file
 from ..jira_ import JiraIssuesView
 from ..measures import MeasuresView, get_measure_filters, get_measure_sort
-from .common import (
-    ExcelHeader,
-    ExcelView,
-    IdModel,
-    JiraIssueKeyModel,
-)
+from .common import ExcelHeader, ExcelView, IdModel, JiraIssueKeyModel
 from .documents import convert_document_to_row, get_document_excel_headers_only
-from .requirements import (
-    convert_requirement_to_row,
-    get_requirement_excel_headers,
-)
+from .requirements import convert_requirement_to_row, get_requirement_excel_headers
 
 router = APIRouter()
 
