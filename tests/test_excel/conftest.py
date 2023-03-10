@@ -21,10 +21,19 @@ import pytest
 from openpyxl import Workbook
 
 from mvtool.utils import get_temp_file
+from mvtool.views.excel.catalog_modules import get_catalog_module_excel_headers
+from mvtool.views.excel.catalog_requirements import (
+    get_catalog_requirement_excel_headers,
+)
+from mvtool.views.excel.catalogs import get_catalog_excel_headers
 from mvtool.views.excel.common import ExcelHeader
 from mvtool.views.excel.documents import DocumentsExcelView
 from mvtool.views.excel.measures import MeasuresExcelView
-from mvtool.views.excel.requirements import RequirementsExcelView
+from mvtool.views.excel.projects import get_project_excel_headers
+from mvtool.views.excel.requirements import (
+    RequirementsExcelView,
+    get_requirement_excel_headers,
+)
 
 
 @pytest.fixture
@@ -69,17 +78,44 @@ def excel_temp_file():
 
 
 @pytest.fixture
-def measures_excel_view(crud, jira_issues_view, measures_view):
-    return Mock(wraps=MeasuresExcelView(crud.session, jira_issues_view, measures_view))
+def catalog_headers():
+    return get_catalog_excel_headers()
 
 
 @pytest.fixture
-def requirements_excel_view(crud, projects_view, requirements_view):
-    return Mock(
-        wraps=RequirementsExcelView(crud.session, projects_view, requirements_view)
+def catalog_module_headers(catalog_headers):
+    return get_catalog_module_excel_headers(catalog_headers)
+
+
+@pytest.fixture
+def catalog_requirement_headers(catalog_module_headers):
+    return get_catalog_requirement_excel_headers(catalog_module_headers)
+
+
+@pytest.fixture
+def project_headers():
+    return get_project_excel_headers()
+
+
+@pytest.fixture
+def requirement_headers(project_headers, catalog_requirement_headers):
+    return get_requirement_excel_headers(project_headers, catalog_requirement_headers)
+
+
+@pytest.fixture
+def requirements_excel_view(
+    crud, projects_view, requirements_view, requirement_headers
+):
+    return RequirementsExcelView(
+        crud.session, projects_view, requirements_view, requirement_headers
     )
 
 
 @pytest.fixture
 def documents_excel_view(crud, projects_view, documents_view):
     return Mock(wraps=DocumentsExcelView(crud.session, projects_view, documents_view))
+
+
+@pytest.fixture
+def measures_excel_view(crud, jira_issues_view, measures_view):
+    return Mock(wraps=MeasuresExcelView(crud.session, jira_issues_view, measures_view))
