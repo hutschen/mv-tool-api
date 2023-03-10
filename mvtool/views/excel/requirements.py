@@ -54,8 +54,6 @@ def get_requirement_excel_headers(
         ExcelHeader("Requirement Reference", optional=True),
         ExcelHeader("Requirement Summary"),
         ExcelHeader("Requirement Description", optional=True),
-        ExcelHeader("Requirement GS Absicherung", ExcelHeader.WRITE_ONLY, True),
-        ExcelHeader("Requirement GS Verantwortliche", ExcelHeader.WRITE_ONLY, True),
         ExcelHeader("Requirement Compliance Status", optional=True),
         ExcelHeader("Requirement Compliance Comment", optional=True),
         ExcelHeader("Requirement Completion Progress", ExcelHeader.WRITE_ONLY, True),
@@ -73,16 +71,6 @@ def convert_requirement_to_row(requirement: Requirement) -> dict[str, Any]:
         "Requirement Reference": requirement.reference,
         "Requirement Summary": requirement.summary,
         "Requirement Description": requirement.description,
-        "Requirement GS Absicherung": (
-            requirement.catalog_requirement.gs_absicherung
-            if requirement.catalog_requirement
-            else None
-        ),
-        "Requirement GS Verantwortliche": (
-            requirement.catalog_requirement.gs_verantwortliche
-            if requirement.catalog_requirement
-            else None
-        ),
         "Requirement Compliance Status": requirement.compliance_status,
         "Requirement Compliance Comment": requirement.compliance_comment,
         "Requirement Completion Progress": requirement.completion_progress,
