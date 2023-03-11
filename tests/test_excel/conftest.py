@@ -33,7 +33,7 @@ from mvtool.views.excel.documents import (
     get_document_excel_headers_only,
 )
 from mvtool.views.excel.measures import MeasuresExcelView, get_measure_excel_headers
-from mvtool.views.excel.projects import get_project_excel_headers
+from mvtool.views.excel.projects import ProjectsExcelView, get_project_excel_headers
 from mvtool.views.excel.requirements import (
     RequirementsExcelView,
     get_requirement_excel_headers,
@@ -120,6 +120,11 @@ def measure_headers(requirement_headers, document_headers):
 @pytest.fixture
 def catalogs_excel_view(catalogs_view, catalog_headers):
     return CatalogsExcelView(catalogs_view, catalog_headers)
+
+
+@pytest.fixture
+def projects_excel_view(projects_view, project_headers):
+    return ProjectsExcelView(projects_view, project_headers)
 
 
 @pytest.fixture

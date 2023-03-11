@@ -65,12 +65,10 @@ def test_convert_project_to_row_none():
 
 
 def test_download_projects_excel(
-    projects_view: ProjectsView, excel_temp_file: NamedTemporaryFile
+    projects_excel_view, excel_temp_file: NamedTemporaryFile
 ):
-    excel_view = ProjectsExcelView(projects_view, get_project_excel_headers())
-
     filename = "test.xlsx"
-    response = excel_view.download_projects_excel(
+    response = projects_excel_view.download_projects_excel(
         [], [], temp_file=excel_temp_file, filename=filename
     )
 
