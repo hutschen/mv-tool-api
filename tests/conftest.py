@@ -16,11 +16,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from jira import JIRAError
-import pytest
 from unittest.mock import Mock
-from mvtool.config import Config, DatabaseConfig, JiraConfig
+
+import pytest
+from jira import JIRAError
+
 from mvtool import database
+from mvtool.config import Config, DatabaseConfig, JiraConfig
 from mvtool.models import (
     Catalog,
     CatalogInput,
@@ -31,28 +33,21 @@ from mvtool.models import (
     JiraIssue,
     JiraIssueInput,
     JiraIssueStatus,
-    Measure,
     MeasureInput,
-    ProjectInput,
     Project,
+    ProjectInput,
     Requirement,
     RequirementInput,
 )
+from mvtool.utils import get_temp_file
 from mvtool.views.catalog_modules import CatalogModulesView
 from mvtool.views.catalog_requirements import CatalogRequirementsView
 from mvtool.views.catalogs import CatalogsView
 from mvtool.views.documents import DocumentsView
-from mvtool.views.excel import (
-    DocumentsExcelView,
-    MeasuresExcelView,
-    RequirementsExcelView,
-    get_excel_temp_file,
-)
-from mvtool.views.gs import get_word_temp_file
 from mvtool.views.jira_ import JiraIssuesView, JiraProjectsView
+from mvtool.views.measures import MeasuresView
 from mvtool.views.projects import ProjectsView
 from mvtool.views.requirements import ImportCatalogRequirementsView, RequirementsView
-from mvtool.views.measures import MeasuresView
 
 
 @pytest.fixture
@@ -370,29 +365,6 @@ def create_measure(
 
 
 @pytest.fixture
-def excel_temp_file():
-    for file in get_excel_temp_file():
-        yield file
-
-
-@pytest.fixture
-def measures_excel_view(crud, jira_issues_view, measures_view):
-    return Mock(wraps=MeasuresExcelView(crud.session, jira_issues_view, measures_view))
-
-
-@pytest.fixture
-def requirements_excel_view(crud, projects_view, requirements_view):
-    return Mock(
-        wraps=RequirementsExcelView(crud.session, projects_view, requirements_view)
-    )
-
-
-@pytest.fixture
-def documents_excel_view(crud, projects_view, documents_view):
-    return Mock(wraps=DocumentsExcelView(crud.session, projects_view, documents_view))
-
-
-@pytest.fixture
 def word_temp_file():
-    for file in get_word_temp_file():
+    for file in get_temp_file(".docx")():
         yield file
