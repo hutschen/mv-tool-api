@@ -21,7 +21,10 @@ import pytest
 from openpyxl import Workbook
 
 from mvtool.utils import get_temp_file
-from mvtool.views.excel.catalog_modules import get_catalog_module_excel_headers
+from mvtool.views.excel.catalog_modules import (
+    CatalogModulesExcelView,
+    get_catalog_module_excel_headers,
+)
 from mvtool.views.excel.catalog_requirements import (
     get_catalog_requirement_excel_headers,
 )
@@ -120,6 +123,11 @@ def measure_headers(requirement_headers, document_headers):
 @pytest.fixture
 def catalogs_excel_view(catalogs_view, catalog_headers):
     return CatalogsExcelView(catalogs_view, catalog_headers)
+
+
+@pytest.fixture
+def catalog_modules_excel_view(catalog_modules_view, catalog_module_headers):
+    return CatalogModulesExcelView(catalog_modules_view, catalog_module_headers)
 
 
 @pytest.fixture
