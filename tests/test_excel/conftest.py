@@ -27,8 +27,12 @@ from mvtool.views.excel.catalog_requirements import (
 )
 from mvtool.views.excel.catalogs import get_catalog_excel_headers
 from mvtool.views.excel.common import ExcelHeader
-from mvtool.views.excel.documents import DocumentsExcelView
-from mvtool.views.excel.measures import MeasuresExcelView
+from mvtool.views.excel.documents import (
+    DocumentsExcelView,
+    get_document_excel_headers,
+    get_document_excel_headers_only,
+)
+from mvtool.views.excel.measures import MeasuresExcelView, get_measure_excel_headers
 from mvtool.views.excel.projects import get_project_excel_headers
 from mvtool.views.excel.requirements import (
     RequirementsExcelView,
@@ -103,6 +107,17 @@ def requirement_headers(project_headers, catalog_requirement_headers):
 
 
 @pytest.fixture
+def document_headers(project_headers):
+    document_headers_only = get_document_excel_headers_only()
+    return get_document_excel_headers(project_headers, document_headers_only)
+
+
+@pytest.fixture
+def measure_headers(requirement_headers, document_headers):
+    return get_measure_excel_headers(requirement_headers, document_headers)
+
+
+@pytest.fixture
 def requirements_excel_view(
     crud, projects_view, requirements_view, requirement_headers
 ):
@@ -117,5 +132,7 @@ def documents_excel_view(crud, projects_view, documents_view):
 
 
 @pytest.fixture
-def measures_excel_view(crud, jira_issues_view, measures_view):
-    return Mock(wraps=MeasuresExcelView(crud.session, jira_issues_view, measures_view))
+def measures_excel_view(crud, jira_issues_view, measures_view, measure_headers):
+    return MeasuresExcelView(
+        crud.session, jira_issues_view, measures_view, measure_headers
+    )
