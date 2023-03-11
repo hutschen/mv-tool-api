@@ -127,8 +127,10 @@ def requirements_excel_view(
 
 
 @pytest.fixture
-def documents_excel_view(crud, projects_view, documents_view):
-    return Mock(wraps=DocumentsExcelView(crud.session, projects_view, documents_view))
+def documents_excel_view(crud, projects_view, documents_view, document_headers):
+    return DocumentsExcelView(
+        crud.session, projects_view, documents_view, document_headers
+    )
 
 
 @pytest.fixture
