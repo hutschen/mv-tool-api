@@ -25,7 +25,7 @@ from mvtool.views.excel.catalog_modules import get_catalog_module_excel_headers
 from mvtool.views.excel.catalog_requirements import (
     get_catalog_requirement_excel_headers,
 )
-from mvtool.views.excel.catalogs import get_catalog_excel_headers
+from mvtool.views.excel.catalogs import CatalogsExcelView, get_catalog_excel_headers
 from mvtool.views.excel.common import ExcelHeader
 from mvtool.views.excel.documents import (
     DocumentsExcelView,
@@ -115,6 +115,11 @@ def document_headers(project_headers):
 @pytest.fixture
 def measure_headers(requirement_headers, document_headers):
     return get_measure_excel_headers(requirement_headers, document_headers)
+
+
+@pytest.fixture
+def catalogs_excel_view(catalogs_view, catalog_headers):
+    return CatalogsExcelView(catalogs_view, catalog_headers)
 
 
 @pytest.fixture
