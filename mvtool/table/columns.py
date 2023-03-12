@@ -26,9 +26,9 @@ class Cell(NamedTuple):
 
 
 class ColumnDef:
-    READ_WRITE = 0
-    READ_ONLY = 1
-    WRITE_ONLY = 2
+    IMPORT_EXPORT = 0
+    IMPORT_ONLY = 1
+    EXPORT_ONLY = 2
 
     def __init__(
         self,
@@ -40,17 +40,17 @@ class ColumnDef:
     ):
         self.label = label
         self.attr_name = attr_name
-        self._mode = mode or self.READ_WRITE
+        self._mode = mode or self.IMPORT_EXPORT
         self.required = required
         self._hidden = hidden
 
     @property
-    def is_write(self) -> bool:
-        return self._mode in (self.READ_WRITE, self.WRITE_ONLY)
+    def is_export(self) -> bool:
+        return self._mode in (self.IMPORT_EXPORT, self.EXPORT_ONLY)
 
     @property
-    def is_read(self) -> bool:
-        return self._mode in (self.READ_WRITE, self.READ_ONLY)
+    def is_import(self) -> bool:
+        return self._mode in (self.IMPORT_EXPORT, self.IMPORT_ONLY)
 
     @property
     def hidden(self) -> bool:
@@ -78,36 +78,36 @@ class ColumnsDef(Generic[M]):
         self.required = required
 
     @property
-    def write_children(self) -> list[ColumnDef]:
-        return [c for c in self.children if c.is_write]
+    def children_for_export(self) -> list[ColumnDef]:
+        return [c for c in self.children if c.is_export]
 
     @property
-    def read_children(self) -> list[ColumnDef]:
-        return [c for c in self.children if c.is_read]
+    def children_for_import(self) -> list[ColumnDef]:
+        return [c for c in self.children if c.is_import]
 
     @property
-    def is_write(self) -> bool:
-        return bool(self.write_children)
+    def is_export(self) -> bool:
+        return bool(self.children_for_export)
 
     @property
-    def is_read(self) -> bool:
-        return bool(self.read_children)
+    def is_import(self) -> bool:
+        return bool(self.children_for_import)
 
-    def write_to_row(self, obj: M) -> Iterator[Cell]:
-        for child in self.write_children:
+    def export_to_row(self, obj: M) -> Iterator[Cell]:
+        for child in self.children_for_export:
             value = getattr(obj, child.attr_name)
             if isinstance(child, ColumnsDef):
                 if value is None:
                     continue
-                yield from child.write_to_row(value)
+                yield from child.export_to_row(value)
             else:
                 yield Cell(f"{self.label} {child.label}", value)
 
-    def read_from_row(self, row: Iterable[Cell]) -> M:
+    def import_from_row(self, row: Iterable[Cell]) -> M:
         column_defs: dict[str, ColumnDef] = {}  # associate cell labels and column defs
         columns_defs: list[ColumnsDef] = []
 
-        for child in self.read_children:
+        for child in self.children_for_import:
             if isinstance(child, ColumnDef):
                 column_defs[f"{self.label} {child.label}"] = child
             else:
@@ -122,6 +122,6 @@ class ColumnsDef(Generic[M]):
             model_kwargs[column_def.attr_name] = cell.value
 
         for columns_def in columns_defs:
-            model_kwargs[columns_def.attr_name] = columns_def.read_from_row(row)
+            model_kwargs[columns_def.attr_name] = columns_def.import_from_row(row)
 
         return self.model(**model_kwargs) if model_kwargs else None
