@@ -13,13 +13,19 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any, Collection, Generic, Iterable, Iterator, NamedTuple, TypeVar
+from typing import Any, Generic, Iterable, Iterator, NamedTuple, TypeVar
 
 import pandas as pd
 from pydantic import BaseModel
 
 E = TypeVar("E", BaseModel)  # Export model
 I = TypeVar("I", BaseModel)  # Import model
+
+
+class MissingLabelsError(ValueError):
+    def __init__(self, missing_labels: set[str]) -> None:
+        self.missing_labels = missing_labels
+        super().__init__(f"Missing labels: {', '.join(missing_labels)}")
 
 
 class Cell(NamedTuple):
@@ -38,7 +44,7 @@ class ColumnDef:
         attr_name: str,
         mode: int | None = None,
         required: bool = False,
-        hidden: bool = False,
+        hidden: bool = False,  # only used for export
     ):
         self.label = label
         self.attr_name = attr_name
@@ -108,23 +114,35 @@ class ColumnsDef(Generic[I, E]):
 
     def import_from_row(self, row: Iterable[Cell]) -> I:
         column_defs: dict[str, ColumnDef] = {}  # associate cell labels and column defs
-        columns_defs: list[ColumnsDef] = []
+        required_labels: set[str] = set()  # required labels
+        columns_defs: list[ColumnsDef] = []  # subordinated columns defs (nodes)
 
         for child in self.children_for_import:
             if isinstance(child, ColumnDef):
-                column_defs[f"{self.label} {child.label}"] = child
+                label = f"{self.label} {child.label}"
+                column_defs[label] = child
+                if child.required:
+                    required_labels.add(label)
             else:
                 columns_defs.append(child)
 
         model_kwargs = {}  # kwargs for the model constructor
 
+        existing_labels = set()
         for cell in row:
             column_def = column_defs.get(cell.label, None)
-            if column_def is None:
-                continue
-            model_kwargs[column_def.attr_name] = cell.value
+            if column_def:
+                existing_labels.add(cell.label)
+                model_kwargs[column_def.attr_name] = cell.value
 
-        for columns_def in columns_defs:
-            model_kwargs[columns_def.attr_name] = columns_def.import_from_row(row)
+        if model_kwargs:
+            # check if all required labels (columns) are present
+            missing_labels = required_labels - existing_labels
+            if missing_labels:
+                raise MissingLabelsError(missing_labels)
 
-        return self.import_model(**model_kwargs) if model_kwargs else None
+            # proceed with subordinated columns defs (nodes)
+            for columns_def in columns_defs:
+                model_kwargs[columns_def.attr_name] = columns_def.import_from_row(row)
+
+            return self.import_model(**model_kwargs)
