@@ -146,3 +146,6 @@ class ColumnsDef(Generic[I, E]):
                 model_kwargs[columns_def.attr_name] = columns_def.import_from_row(row)
 
             return self.import_model(**model_kwargs)
+
+    def import_from_dataframe(self, df: pd.DataFrame) -> Iterator[I]:
+        return [self.import_from_row(row) for row in df.itertuples(index=False)]
