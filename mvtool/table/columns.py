@@ -1,0 +1,127 @@
+# Copyright (C) 2023 Helmar Hutschenreuter
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+from typing import Any, Generic, Iterable, Iterator, NamedTuple, TypeVar
+
+from pydantic import BaseModel
+
+M = TypeVar("M", BaseModel)
+
+
+class Cell(NamedTuple):
+    label: str
+    value: Any
+
+
+class ColumnDef:
+    READ_WRITE = 0
+    READ_ONLY = 1
+    WRITE_ONLY = 2
+
+    def __init__(
+        self,
+        label: str,
+        attr_name: str,
+        mode: int | None = None,
+        required: bool = False,
+        hidden: bool = False,
+    ):
+        self.label = label
+        self.attr_name = attr_name
+        self._mode = mode or self.READ_WRITE
+        self.required = required
+        self._hidden = hidden
+
+    @property
+    def is_write(self) -> bool:
+        return self._mode in (self.READ_WRITE, self.WRITE_ONLY)
+
+    @property
+    def is_read(self) -> bool:
+        return self._mode in (self.READ_WRITE, self.READ_ONLY)
+
+    @property
+    def hidden(self) -> bool:
+        # a column can only be hidden if it is not required
+        return (not self.required) and self._hidden
+
+    @hidden.setter
+    def hidden(self, value: bool) -> None:
+        self._hidden = value
+
+
+class ColumnsDef(Generic[M]):
+    def __init__(
+        self,
+        model: type[M],
+        label: str,
+        children: list[ColumnDef | "ColumnsDef"],
+        attr_name: str | None = None,
+        required: bool = False,
+    ):
+        self.model = model
+        self.label = label
+        self.children = children
+        self.attr_name = attr_name
+        self.required = required
+
+    @property
+    def write_children(self) -> list[ColumnDef]:
+        return [c for c in self.children if c.is_write]
+
+    @property
+    def read_children(self) -> list[ColumnDef]:
+        return [c for c in self.children if c.is_read]
+
+    @property
+    def is_write(self) -> bool:
+        return bool(self.write_children)
+
+    @property
+    def is_read(self) -> bool:
+        return bool(self.read_children)
+
+    def write_to_row(self, obj: M) -> Iterator[Cell]:
+        for child in self.write_children:
+            value = getattr(obj, child.attr_name)
+            if isinstance(child, ColumnsDef):
+                if value is None:
+                    continue
+                yield from child.write_to_row(value)
+            else:
+                yield Cell(f"{self.label} {child.label}", value)
+
+    def read_from_row(self, row: Iterable[Cell]) -> M:
+        column_defs: dict[str, ColumnDef] = {}  # associate cell labels and column defs
+        columns_defs: list[ColumnsDef] = []
+
+        for child in self.read_children:
+            if isinstance(child, ColumnDef):
+                column_defs[f"{self.label} {child.label}"] = child
+            else:
+                columns_defs.append(child)
+
+        model_kwargs = {}  # kwargs for the model constructor
+
+        for cell in row:
+            column_def = column_defs.get(cell.label, None)
+            if column_def is None:
+                continue
+            model_kwargs[column_def.attr_name] = cell.value
+
+        for columns_def in columns_defs:
+            model_kwargs[columns_def.attr_name] = columns_def.read_from_row(row)
+
+        return self.model(**model_kwargs) if model_kwargs else None
