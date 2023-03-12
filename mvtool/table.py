@@ -16,12 +16,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from typing import Any, Generic, Iterable, Iterator, NamedTuple, TypeVar
+import numpy as np
 
 import pandas as pd
 from pydantic import BaseModel
 
-E = TypeVar("E", BaseModel)  # Export model
-I = TypeVar("I", BaseModel)  # Import model
+E = TypeVar("E", bound=BaseModel)  # Export model
+I = TypeVar("I", bound=BaseModel)  # Import model
 
 
 class MissingLabelsError(ValueError):
@@ -45,14 +46,14 @@ class ColumnDef:
         label: str,
         attr_name: str,
         mode: int | None = None,
-        required: bool = False,
+        required: bool = False,  # only used for import
         hidden: bool = False,  # only used for export
     ):
         self.label = label
         self.attr_name = attr_name
         self._mode = mode or self.IMPORT_EXPORT
         self.required = required
-        self._hidden = hidden
+        self.hidden = hidden
 
     @property
     def is_export(self) -> bool:
@@ -62,36 +63,19 @@ class ColumnDef:
     def is_import(self) -> bool:
         return self._mode in (self.IMPORT_EXPORT, self.IMPORT_ONLY)
 
-    @property
-    def hidden(self) -> bool:
-        # a column can only be hidden if it is not required
-        return (not self.required) and self._hidden
-
-    @hidden.setter
-    def hidden(self, value: bool) -> None:
-        self._hidden = value
-
 
 class ColumnsDef(Generic[I, E]):
     def __init__(
         self,
         import_model: type[I],
         label: str,
-        children: list[ColumnDef | "ColumnsDef"],
-        attr_name: str | None = None,
+        children: "list[ColumnDef | ColumnsDef]",
+        attr_name: str | None = None,  # must be set if this is a child
     ):
         self.import_model = import_model
         self.label = label
         self.children = children
         self.attr_name = attr_name
-
-    @property
-    def children_for_export(self) -> list[ColumnDef]:
-        return [c for c in self.children if c.is_export]
-
-    @property
-    def children_for_import(self) -> list[ColumnDef]:
-        return [c for c in self.children if c.is_import]
 
     @property
     def is_export(self) -> bool:
@@ -101,20 +85,29 @@ class ColumnsDef(Generic[I, E]):
     def is_import(self) -> bool:
         return bool(self.children_for_import)
 
+    @property
+    def children_for_export(self) -> list[ColumnDef]:
+        return [c for c in self.children if c.is_export]
+
+    @property
+    def children_for_import(self) -> list[ColumnDef]:
+        return [c for c in self.children if c.is_import]
+
     def export_to_row(self, obj: E) -> Iterator[Cell]:
         for child in self.children_for_export:
             value = getattr(obj, child.attr_name)
             if isinstance(child, ColumnsDef):
-                if value:
+                if value is not None:
                     yield from child.export_to_row(value)
             else:
-                if (value or child.required) and not child.hidden:
+                if value is not None and not child.hidden:
                     yield Cell(f"{self.label} {child.label}", value)
 
     def export_to_dataframe(self, objs: Iterable[E]) -> pd.DataFrame:
         return pd.DataFrame(dict(self.export_to_row(o)) for o in objs)
 
     def import_from_row(self, row: Iterable[Cell]) -> I:
+        row = tuple(row)  # make sure we can iterate multiple times
         column_defs: dict[str, ColumnDef] = {}  # associate cell labels and column defs
         required_labels: set[str] = set()  # required labels
         columns_defs: list[ColumnsDef] = []  # subordinated columns defs (nodes)
@@ -150,4 +143,8 @@ class ColumnsDef(Generic[I, E]):
             return self.import_model(**model_kwargs)
 
     def import_from_dataframe(self, df: pd.DataFrame) -> Iterator[I]:
-        return [self.import_from_row(row) for row in df.itertuples(index=False)]
+        lables = df.columns.to_list()
+        for values in df.itertuples(index=False):
+            yield self.import_from_row(
+                Cell(l, v) for l, v in zip(lables, values) if v is not np.nan
+            )
