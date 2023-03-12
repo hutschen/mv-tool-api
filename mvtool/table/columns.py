@@ -13,10 +13,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any, Generic, Iterable, Iterator, NamedTuple, TypeVar
+from typing import Any, Collection, Generic, Iterable, Iterator, NamedTuple, TypeVar
 
+import pandas as pd
 from pydantic import BaseModel
-
 
 E = TypeVar("E", BaseModel)  # Export model
 I = TypeVar("I", BaseModel)  # Import model
@@ -71,13 +71,11 @@ class ColumnsDef(Generic[I, E]):
         label: str,
         children: list[ColumnDef | "ColumnsDef"],
         attr_name: str | None = None,
-        required: bool = False,
     ):
         self.import_model = import_model
         self.label = label
         self.children = children
         self.attr_name = attr_name
-        self.required = required
 
     @property
     def children_for_export(self) -> list[ColumnDef]:
@@ -95,6 +93,26 @@ class ColumnsDef(Generic[I, E]):
     def is_import(self) -> bool:
         return bool(self.children_for_import)
 
+    def get_required_labels(
+        self, existing_labels: Collection[str], for_export: bool = True
+    ) -> list[str]:
+        children = self.children_for_export if for_export else self.children_for_import
+
+        # collect all labels and required labels for export
+        is_required: bool = False
+        required_labels = set()
+
+        for child in children:
+            if isinstance(child, ColumnDef):
+                label = f"{self.label} {child.label}"
+                is_required = is_required or (label in existing_labels)
+                if child.required:
+                    required_labels.add(label)
+            else:
+                required_labels.update(*child.get_required_labels(existing_labels))
+
+        return required_labels if is_required else set()
+
     def export_to_row(self, obj: E) -> Iterator[Cell]:
         for child in self.children_for_export:
             value = getattr(obj, child.attr_name)
@@ -104,6 +122,16 @@ class ColumnsDef(Generic[I, E]):
                 yield from child.export_to_row(value)
             else:
                 yield Cell(f"{self.label} {child.label}", value)
+
+    def export_to_dataframe(self, objs: Iterable[E]) -> pd.DataFrame:
+        df = pd.DataFrame(dict(self.export_to_row(o)) for o in objs)
+        column_flags = df.any()
+        # set required columns in column_flags to True
+        for child in self.children_for_export:
+            if child.required:
+                column_flags[child.label] = True
+        df = df.loc[:, column_flags]
+        return df
 
     def import_from_row(self, row: Iterable[Cell]) -> I:
         column_defs: dict[str, ColumnDef] = {}  # associate cell labels and column defs
