@@ -17,7 +17,9 @@ from typing import Any, Generic, Iterable, Iterator, NamedTuple, TypeVar
 
 from pydantic import BaseModel
 
-M = TypeVar("M", BaseModel)
+
+E = TypeVar("E", BaseModel)  # Export model
+I = TypeVar("I", BaseModel)  # Import model
 
 
 class Cell(NamedTuple):
@@ -62,16 +64,16 @@ class ColumnDef:
         self._hidden = value
 
 
-class ColumnsDef(Generic[M]):
+class ColumnsDef(Generic[I, E]):
     def __init__(
         self,
-        model: type[M],
+        import_model: type[I],
         label: str,
         children: list[ColumnDef | "ColumnsDef"],
         attr_name: str | None = None,
         required: bool = False,
     ):
-        self.model = model
+        self.import_model = import_model
         self.label = label
         self.children = children
         self.attr_name = attr_name
@@ -93,7 +95,7 @@ class ColumnsDef(Generic[M]):
     def is_import(self) -> bool:
         return bool(self.children_for_import)
 
-    def export_to_row(self, obj: M) -> Iterator[Cell]:
+    def export_to_row(self, obj: E) -> Iterator[Cell]:
         for child in self.children_for_export:
             value = getattr(obj, child.attr_name)
             if isinstance(child, ColumnsDef):
@@ -103,7 +105,7 @@ class ColumnsDef(Generic[M]):
             else:
                 yield Cell(f"{self.label} {child.label}", value)
 
-    def import_from_row(self, row: Iterable[Cell]) -> M:
+    def import_from_row(self, row: Iterable[Cell]) -> I:
         column_defs: dict[str, ColumnDef] = {}  # associate cell labels and column defs
         columns_defs: list[ColumnsDef] = []
 
@@ -124,4 +126,4 @@ class ColumnsDef(Generic[M]):
         for columns_def in columns_defs:
             model_kwargs[columns_def.attr_name] = columns_def.import_from_row(row)
 
-        return self.model(**model_kwargs) if model_kwargs else None
+        return self.import_model(**model_kwargs) if model_kwargs else None
