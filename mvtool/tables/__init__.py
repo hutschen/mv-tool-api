@@ -17,7 +17,8 @@
 
 from fastapi import APIRouter
 
-from . import projects
+from . import catalogs, projects
 
 router = APIRouter()
+router.include_router(catalogs.router)
 router.include_router(projects.router)
