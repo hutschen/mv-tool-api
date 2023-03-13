@@ -15,12 +15,14 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from fastapi import APIRouter, Depends
+import shutil
+from fastapi import APIRouter, Depends, UploadFile
 from fastapi.responses import FileResponse
+import pandas as pd
 
 from mvtool.utils import get_temp_file
 
-from ..models import Catalog, CatalogInput
+from ..models import Catalog, CatalogInput, CatalogOutput
 from ..views.catalogs import CatalogsView, get_catalog_filters, get_catalog_sort
 from .common import ColumnDef, ColumnsDef
 
@@ -59,3 +61,24 @@ def download_catalogs_excel(
     df = columns_def.export_to_dataframe(catalogs)
     df.to_excel(temp_file, sheet_name=sheet_name, index=False)
     return FileResponse(temp_file.name, filename=filename)
+
+
+@router.post(
+    "/excel/catalogs",
+    status_code=201,
+    response_model=list[CatalogOutput],
+    **CatalogsView.kwargs
+)
+def upload_catalogs_excel(
+    upload_file: UploadFile,
+    catalogs_view: CatalogsView = Depends(),
+    columns_def: ColumnsDef = Depends(get_catalog_columns_def),
+    temp_file=Depends(get_temp_file(".xlsx")),
+    dry_run: bool = False,  # don't save to database
+) -> list[Catalog]:
+    shutil.copyfileobj(upload_file.file, temp_file)
+    df = pd.read_excel(temp_file, engine="openpyxl")
+    catalog_imports = columns_def.import_from_dataframe(df)
+    list(catalog_imports)
+    # TODO: validate catalog imports and perform import
+    return []
