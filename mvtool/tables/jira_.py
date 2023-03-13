@@ -16,11 +16,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+from pydantic import BaseModel
+
 from ..models import JiraProject
 from .common import ColumnDef, ColumnsDef
 
 
-class JiraProjectImport(JiraProject):
+class JiraProjectImport(BaseModel):
     key: str | None = None
 
 

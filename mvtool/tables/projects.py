@@ -14,18 +14,24 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from fastapi import APIRouter, Depends
-from fastapi.responses import FileResponse
+import shutil
 
-from ..models import ProjectInput, Project
+import pandas as pd
+from fastapi import APIRouter, Depends, UploadFile
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
+
+from ..models import Project, ProjectInput, ProjectOutput
 from ..utils import get_temp_file
 from ..views.projects import ProjectsView, get_project_filters, get_project_sort
 from .common import ColumnDef, ColumnsDef
 from .jira_ import JiraProjectImport, get_jira_project_columns_def
 
 
-class ProjectImport(ProjectInput):
+class ProjectImport(BaseModel):
     id: int | None = None
+    name: str
+    description: str | None
     jira_project: JiraProjectImport | None = None
 
 
@@ -73,3 +79,24 @@ def download_projects_excel(
     df = columns_def.export_to_dataframe(projects)
     df.to_excel(temp_file, sheet_name=sheet_name, index=False, engine="openpyxl")
     return FileResponse(temp_file.name, filename=filename)
+
+
+@router.post(
+    "/excel/projects",
+    status_code=201,
+    response_model=list[ProjectOutput],
+    **ProjectsView.kwargs
+)
+def upload_projects_excel(
+    upload_file: UploadFile,
+    projects_view: ProjectsView = Depends(),
+    columns_def: ColumnsDef = Depends(get_project_columns_def),
+    temp_file=Depends(get_temp_file(".xlsx")),
+    dry_run: bool = False,  # don't save to database
+) -> list[Project]:
+    shutil.copyfileobj(upload_file.file, temp_file)
+    df = pd.read_excel(temp_file, engine="openpyxl")
+    project_imports = columns_def.import_from_dataframe(df)
+    list(project_imports)
+    # TODO: validate project imports and perform import
+    return []
