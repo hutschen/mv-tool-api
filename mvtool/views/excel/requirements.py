@@ -26,7 +26,7 @@ from typing import Any, Iterator
 from ... import errors
 from ...database import get_session
 from ...models import Requirement, RequirementInput, RequirementOutput
-from ...utils import get_temp_file
+from ...utils.temp_file import get_temp_file
 from ..projects import ProjectsView
 from ..requirements import (
     RequirementsView,

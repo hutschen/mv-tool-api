@@ -1,4 +1,6 @@
-# Copyright (C) 2022 Helmar Hutschenreuter
+# coding: utf-8
+#
+# Copyright (C) 2023 Helmar Hutschenreuter
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -13,17 +15,24 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from tempfile import NamedTemporaryFile
 
-def combine_flags(flags_head: bool | None, *flags_tail: bool | None) -> bool | None:
-    """Combine the given boolean flags and return the result.
+
+def get_temp_file(suffix: str | None = None) -> callable:
+    """Creates a callable that returns a context manager which yields a temporary file.
+
+    This should be used together with fastapi's Depends() function.
 
     Args:
-        flags_head (bool or None): The first boolean flag.
-        flags_tail (tuple of bools or Nones): The remaining boolean flags.
+        suffix (str or None, optional): The suffix of the temporary file. Defaults to None.
 
     Returns:
-        bool or None: The result of combining the boolean flags with an OR operator.
-        If all the input flags are None, the function returns None.
+        callable: Callable that returns a context manager that yields a temporary file.
     """
-    boolean_flags = [f for f in [flags_head, *flags_tail] if f is not None]
-    return any(boolean_flags) if boolean_flags else None
+
+    def get_temp_file():
+        with NamedTemporaryFile(suffix=suffix) as temp_file:
+            yield temp_file
+
+    return get_temp_file
+

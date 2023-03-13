@@ -23,7 +23,7 @@ from fastapi import APIRouter, Depends
 
 from .common import ExcelHeader, ExcelView
 from ..projects import ProjectsView, get_project_filters, get_project_sort
-from ...utils import get_temp_file
+from ...utils.temp_file import get_temp_file
 from ...models import Project
 
 router = APIRouter()

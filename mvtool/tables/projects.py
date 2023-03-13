@@ -22,7 +22,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from ..models import Project, ProjectInput, ProjectOutput
-from ..utils import get_temp_file
+from ..utils.temp_file import get_temp_file
 from ..views.projects import ProjectsView, get_project_filters, get_project_sort
 from .common import ColumnDef, ColumnsDef
 from .jira_ import JiraProjectImport, get_jira_project_columns_def
