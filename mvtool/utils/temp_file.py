@@ -15,7 +15,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import shutil
 from tempfile import NamedTemporaryFile
+
+from fastapi import Depends, UploadFile
 
 
 def get_temp_file(suffix: str | None = None) -> callable:
@@ -36,3 +39,18 @@ def get_temp_file(suffix: str | None = None) -> callable:
 
     return get_temp_file
 
+
+def copy_upload_to_temp_file(
+    upload_file: UploadFile, temp_file: NamedTemporaryFile = Depends(get_temp_file())
+) -> NamedTemporaryFile:
+    """Copies the contents of an upload file to a temporary file.
+
+    Args:
+        upload_file (UploadFile): The upload file to copy.
+        temp_file (NamedTemporaryFile, optional): The temporary file to copy to.
+
+    Returns:
+        NamedTemporaryFile: The temporary file.
+    """
+    shutil.copyfileobj(upload_file.file, temp_file)
+    return temp_file
