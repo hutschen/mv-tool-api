@@ -19,7 +19,7 @@
 import pytest
 from pydantic import BaseModel
 
-from mvtool.table import ColumnDef, ColumnsDef
+from mvtool.tables.common import ColumnDef, ColumnsDef
 
 
 # define example models
