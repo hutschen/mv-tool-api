@@ -97,10 +97,10 @@ class ColumnsDef(Generic[I, E]):
         for child in self.children_for_export:
             value = getattr(obj, child.attr_name)
             if isinstance(child, ColumnsDef):
-                if value is not None:
+                if value is not None:  # when value is not None, it must be an object
                     yield from child.export_to_row(value)
             else:
-                if value is not None and not child.hidden:
+                if value is not None and value != "" and not child.hidden:
                     yield Cell(f"{self.label} {child.label}", value)
 
     def export_to_dataframe(self, objs: Iterable[E]) -> pd.DataFrame:
