@@ -14,20 +14,27 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from ..models import JiraProject, ProjectInput, ProjectOutput
+from fastapi import Depends
+
+from ..models import ProjectInput, ProjectOutput
 from .common import ColumnDef, ColumnsDef
+from .jira_ import JiraProjectImport, get_jira_project_columns_def
 
 
 class ProjectImport(ProjectInput):
     id: int | None = None
-    jira_project: JiraProject | None = None
+    jira_project: JiraProjectImport | None = None
 
 
 class ProjectExport(ProjectOutput):
     pass
 
 
-def get_project_columns_def() -> ColumnsDef[ProjectImport, ProjectExport]:
+def get_project_columns_def(
+    jira_project_columns_def: ColumnsDef = Depends(get_jira_project_columns_def),
+) -> ColumnsDef[ProjectImport, ProjectExport]:
+    jira_project_columns_def.attr_name = "jira_project"
+
     return ColumnsDef(
         ProjectImport,
         "Project",
@@ -35,15 +42,7 @@ def get_project_columns_def() -> ColumnsDef[ProjectImport, ProjectExport]:
             ColumnDef("ID", "id"),
             ColumnDef("Name", "name", required=True),
             ColumnDef("Description", "description"),
-            ColumnsDef[JiraProject, JiraProject](
-                JiraProject,
-                "Jira Project",
-                [
-                    ColumnDef("Key", "key", required=True),
-                    ColumnDef("Name", "name", ColumnDef.EXPORT_ONLY),
-                    ColumnDef("Link", "url", ColumnDef.EXPORT_ONLY),
-                ],
-            ),
+            jira_project_columns_def,
             ColumnDef(
                 "Completion Progress",
                 "completion_progress",
