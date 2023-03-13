@@ -14,9 +14,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from fastapi import Depends
+from fastapi import APIRouter, Depends
+from fastapi.responses import FileResponse
 
-from ..models import ProjectInput, ProjectOutput
+from ..models import ProjectInput, Project
+from ..utils import get_temp_file
+from ..views.projects import ProjectsView, get_project_filters, get_project_sort
 from .common import ColumnDef, ColumnsDef
 from .jira_ import JiraProjectImport, get_jira_project_columns_def
 
@@ -26,13 +29,9 @@ class ProjectImport(ProjectInput):
     jira_project: JiraProjectImport | None = None
 
 
-class ProjectExport(ProjectOutput):
-    pass
-
-
 def get_project_columns_def(
     jira_project_columns_def: ColumnsDef = Depends(get_jira_project_columns_def),
-) -> ColumnsDef[ProjectImport, ProjectExport]:
+) -> ColumnsDef[ProjectImport, Project]:
     jira_project_columns_def.attr_name = "jira_project"
 
     return ColumnsDef(
@@ -55,3 +54,22 @@ def get_project_columns_def(
             ),
         ],
     )
+
+
+router = APIRouter()
+
+
+@router.get("/excel/projects", response_class=FileResponse, **ProjectsView.kwargs)
+def download_projects_excel(
+    projects_view: ProjectsView = Depends(),
+    where_clauses=Depends(get_project_filters),
+    sort_clauses=Depends(get_project_sort),
+    columns_def: ColumnsDef = Depends(get_project_columns_def),
+    temp_file=Depends(get_temp_file(".xlsx")),
+    sheet_name="Projects",
+    filename="projects.xlsx",
+) -> FileResponse:
+    projects = projects_view.list_projects(where_clauses, sort_clauses)
+    df = columns_def.export_to_dataframe(projects)
+    df.to_excel(temp_file, sheet_name=sheet_name, index=False, engine="openpyxl")
+    return FileResponse(temp_file.name, filename=filename)
