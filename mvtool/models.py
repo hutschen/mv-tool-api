@@ -88,7 +88,7 @@ class AbstractComplianceInput(SQLModel):
         )
 
 
-class MeasureInput(AbstractComplianceInput):
+class AbstractMeasureInput(AbstractComplianceInput):
     reference: str | None
     summary: str
     description: str | None
@@ -99,8 +99,6 @@ class MeasureInput(AbstractComplianceInput):
         regex=r"^(verified|partially verified|not verified)$"
     ) | None
     verification_comment: str | None
-    document_id: int | None
-    jira_issue_id: str | None
 
     @validator("completion_comment")
     def completion_comment_validator(cls, v, values):
@@ -119,6 +117,11 @@ class MeasureInput(AbstractComplianceInput):
         return cls._dependent_field_validator(
             "verification_comment", "verification_method", v, values
         )
+
+
+class MeasureInput(AbstractMeasureInput):
+    document_id: int | None
+    jira_issue_id: str | None
 
 
 class Measure(MeasureInput, CommonFieldsMixin, table=True):

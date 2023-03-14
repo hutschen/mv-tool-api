@@ -24,6 +24,7 @@ from . import (
     projects,
     requirements,
     documents,
+    measures,
 )
 
 router = APIRouter()
@@ -33,3 +34,4 @@ router.include_router(catalog_requirements.router)
 router.include_router(projects.router)
 router.include_router(requirements.router)
 router.include_router(documents.router)
+router.include_router(measures.router)

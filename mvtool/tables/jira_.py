@@ -18,12 +18,12 @@
 
 from pydantic import BaseModel
 
-from ..models import JiraProject
+from ..models import JiraIssue, JiraProject
 from .common import ColumnDef, ColumnsDef
 
 
 class JiraProjectImport(BaseModel):
-    key: str | None = None
+    key: str
 
 
 def get_jira_project_columns_def() -> ColumnsDef[JiraProjectImport, JiraProject]:
@@ -33,6 +33,21 @@ def get_jira_project_columns_def() -> ColumnsDef[JiraProjectImport, JiraProject]
         [
             ColumnDef("Key", "key", required=True),
             ColumnDef("Name", "name", ColumnDef.EXPORT_ONLY),
+            ColumnDef("Link", "url", ColumnDef.EXPORT_ONLY),
+        ],
+    )
+
+
+class JiraIssueImport(BaseModel):
+    key: str
+
+
+def get_jira_issue_columns_def() -> ColumnsDef[JiraIssueImport, JiraIssue]:
+    return ColumnsDef(
+        JiraIssueImport,
+        "Jira Issue",
+        [
+            ColumnDef("Key", "key", required=True),
             ColumnDef("Link", "url", ColumnDef.EXPORT_ONLY),
         ],
     )
