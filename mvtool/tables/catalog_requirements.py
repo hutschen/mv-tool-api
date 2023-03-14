@@ -15,9 +15,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from tempfile import NamedTemporaryFile
+
+import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
-import pandas as pd
 from pydantic import BaseModel, constr
 
 from mvtool.models import CatalogRequirement, CatalogRequirementOutput
@@ -75,7 +77,7 @@ def download_catalog_requirements_excel(
     where_clauses=Depends(get_catalog_requirement_filters),
     sort_clauses=Depends(get_catalog_requirement_sort),
     columns_def: ColumnsDef = Depends(get_catalog_requirement_columns_def),
-    temp_file: FileResponse = Depends(get_temp_file(".xlsx")),
+    temp_file: NamedTemporaryFile = Depends(get_temp_file(".xlsx")),
     sheet_name="Catalog Requirements",
     filename="catalog_requirements.xlsx",
 ) -> FileResponse:
