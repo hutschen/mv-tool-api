@@ -98,7 +98,7 @@ def download_catalog_requirements_excel(
 def upload_catalog_requirements_excel(
     catalog_requirements_view: CatalogRequirementsView = Depends(),
     columns_def: ColumnsDef = Depends(get_catalog_requirement_columns_def),
-    temp_file: FileResponse = Depends(copy_upload_to_temp_file),
+    temp_file: NamedTemporaryFile = Depends(copy_upload_to_temp_file),
     dry_run: bool = False,
 ) -> list[CatalogRequirementOutput]:
     df = pd.read_excel(temp_file.file)
