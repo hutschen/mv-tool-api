@@ -18,15 +18,19 @@
 import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
-from ..models import Catalog, CatalogInput, CatalogOutput
+from ..models import Catalog, CatalogOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.catalogs import CatalogsView, get_catalog_filters, get_catalog_sort
 from .common import ColumnDef, ColumnsDef
 
 
-class CatalogImport(CatalogInput):
+class CatalogImport(BaseModel):
     id: int | None = None
+    reference: str | None
+    title: str
+    description: str | None
 
 
 def get_catalog_columns_def() -> ColumnsDef[CatalogImport, Catalog]:
