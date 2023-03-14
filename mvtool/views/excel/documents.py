@@ -24,7 +24,7 @@ from sqlmodel import Session, select
 from tempfile import NamedTemporaryFile
 from typing import Iterator
 
-from ... import errors
+from ...utils import errors
 from ...database import get_session
 from ...models import Document, DocumentOutput, DocumentInput
 from ...utils.temp_file import get_temp_file

@@ -30,7 +30,7 @@ from ..utils.filtering import (
     search_columns,
 )
 from .catalogs import CatalogsView
-from ..errors import NotFoundError
+from ..utils.errors import NotFoundError
 from ..models import (
     Catalog,
     CatalogModule,

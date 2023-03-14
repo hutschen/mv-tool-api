@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 from pydantic import BaseModel
 
-from ..errors import ValueHttpError
+from ..utils.errors import ValueHttpError
 
 E = TypeVar("E", bound=BaseModel)  # Export model
 I = TypeVar("I", bound=BaseModel)  # Import model

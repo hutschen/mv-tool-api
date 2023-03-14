@@ -35,7 +35,7 @@ from ..utils.filtering import (
 )
 from ..database import CRUDOperations
 from .requirements import RequirementsView
-from ..errors import ClientError, NotFoundError
+from ..utils.errors import ClientError, NotFoundError
 from ..models import (
     Catalog,
     CatalogModule,

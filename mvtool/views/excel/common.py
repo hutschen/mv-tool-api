@@ -27,7 +27,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl import Workbook, load_workbook
 from openpyxl.worksheet.table import Table
 
-from ... import errors
+from ...utils import errors
 
 
 class IdModel(BaseModel):

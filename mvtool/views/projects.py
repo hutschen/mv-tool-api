@@ -29,7 +29,7 @@ from ..utils.filtering import (
     search_columns,
 )
 from ..utils.pagination import Page, page_params
-from ..errors import NotFoundError
+from ..utils.errors import NotFoundError
 from ..database import CRUDOperations
 from .jira_ import JiraProjectsView
 from ..models import ProjectInput, Project, ProjectOutput, ProjectRepresentation
