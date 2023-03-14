@@ -17,7 +17,6 @@
 
 from typing import Any, Generic, Iterable, Iterator, NamedTuple, TypeVar
 
-import numpy as np
 import pandas as pd
 from pydantic import BaseModel
 
@@ -148,5 +147,5 @@ class ColumnsDef(Generic[I, E]):
         lables = df.columns.to_list()
         for values in df.itertuples(index=False):
             yield self.import_from_row(
-                Cell(l, v) for l, v in zip(lables, values) if v is not np.nan
+                Cell(l, v) for l, v in zip(lables, values) if not pd.isna(v)
             )
