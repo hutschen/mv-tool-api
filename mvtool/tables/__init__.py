@@ -17,10 +17,11 @@
 
 from fastapi import APIRouter
 
-from . import catalogs, catalog_modules, catalog_requirements, projects
+from . import catalogs, catalog_modules, catalog_requirements, projects, requirements
 
 router = APIRouter()
 router.include_router(catalogs.router)
 router.include_router(catalog_modules.router)
 router.include_router(catalog_requirements.router)
 router.include_router(projects.router)
+router.include_router(requirements.router)
