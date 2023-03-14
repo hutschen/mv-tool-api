@@ -16,19 +16,21 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from typing import Any, Generic, Iterable, Iterator, NamedTuple, TypeVar
-import numpy as np
 
+import numpy as np
 import pandas as pd
 from pydantic import BaseModel
+
+from ..errors import ValueHttpError
 
 E = TypeVar("E", bound=BaseModel)  # Export model
 I = TypeVar("I", bound=BaseModel)  # Import model
 
 
-class MissingLabelsError(ValueError):
+class MissingColumnsError(ValueHttpError):
     def __init__(self, missing_labels: set[str]) -> None:
         self.missing_labels = missing_labels
-        super().__init__(f"Missing labels: {', '.join(missing_labels)}")
+        super().__init__(f"Missing columns: {', '.join(missing_labels)}")
 
 
 class Cell(NamedTuple):
@@ -134,7 +136,7 @@ class ColumnsDef(Generic[I, E]):
             # check if all required labels (columns) are present
             missing_labels = required_labels - existing_labels
             if missing_labels:
-                raise MissingLabelsError(missing_labels)
+                raise MissingColumnsError(missing_labels)
 
             # proceed with subordinated columns defs (nodes)
             for columns_def in columns_defs:
