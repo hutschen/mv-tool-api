@@ -16,17 +16,16 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
-import pandas as pd
-from mvtool.utils.temp_file import copy_upload_to_temp_file, get_temp_file
-
-from mvtool.views.documents import get_document_filters, get_document_sort
 
 from ..models import AbstractMeasureInput, Measure, MeasureOutput
+from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
+from ..views.documents import get_document_filters, get_document_sort
 from ..views.measures import MeasuresView
 from .common import ColumnDef, ColumnsDef
-from .documents import DocumentImport, get_document_columns_def
+from .documents import DocumentImport, get_document_only_columns_def
 from .jira_ import JiraIssueImport, get_jira_issue_columns_def
 from .requirements import RequirementImport, get_requirement_columns_def
 
@@ -40,11 +39,11 @@ class MeasureImport(AbstractMeasureInput):
 
 def get_measure_columns_def(
     requirement_columns_def: ColumnsDef = Depends(get_requirement_columns_def),
-    document_columns_def: ColumnsDef = Depends(get_document_columns_def),
+    document_only_columns_def: ColumnsDef = Depends(get_document_only_columns_def),
     jira_issue_columns_def: ColumnsDef = Depends(get_jira_issue_columns_def),
 ) -> ColumnsDef[MeasureImport, Measure]:
     requirement_columns_def.attr_name = "requirement"
-    document_columns_def.attr_name = "document"
+    document_only_columns_def.attr_name = "document"
     jira_issue_columns_def.attr_name = "jira_issue"
 
     return ColumnsDef(
@@ -56,7 +55,7 @@ def get_measure_columns_def(
             ColumnDef("Reference", "reference"),
             ColumnDef("Summary", "summary", required=True),
             ColumnDef("Description", "description"),
-            document_columns_def,
+            document_only_columns_def,
             jira_issue_columns_def,
             ColumnDef("Completion Status", "completion_status"),
             ColumnDef("Completion Comment", "completion_comment"),

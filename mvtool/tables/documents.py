@@ -36,21 +36,26 @@ class DocumentImport(DocumentInput):
     id: int | None = None
 
 
-def get_document_columns_def(
-    project_columns_def: ColumnsDef = Depends(get_project_columns_def),
-) -> ColumnsDef[DocumentImport, Document]:
-    project_columns_def.attr_name = "project"
-
+def get_document_only_columns_def() -> ColumnsDef[DocumentImport, Document]:
     return ColumnsDef(
         DocumentImport,
         "Document",
         [
-            project_columns_def,
+            ColumnDef("ID", "id"),
             ColumnDef("Reference", "reference"),
             ColumnDef("Title", "title", required=True),
             ColumnDef("Description", "description"),
         ],
     )
+
+
+def get_document_columns_def(
+    project_columns_def: ColumnsDef = Depends(get_project_columns_def),
+    document_only_columns_def: ColumnsDef = Depends(get_document_only_columns_def),
+) -> ColumnsDef[DocumentImport, Document]:
+    project_columns_def.attr_name = "project"
+    document_only_columns_def.children.insert(0, project_columns_def)
+    return document_only_columns_def
 
 
 router = APIRouter()
