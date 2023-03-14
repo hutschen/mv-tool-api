@@ -101,7 +101,7 @@ def upload_catalog_requirements_excel(
     temp_file: NamedTemporaryFile = Depends(copy_upload_to_temp_file),
     dry_run: bool = False,
 ) -> list[CatalogRequirementOutput]:
-    df = pd.read_excel(temp_file.file)
+    df = pd.read_excel(temp_file, engine="openpyxl")
     catalog_requirement_imports = columns_def.import_from_dataframe(df)
     list(catalog_requirement_imports)
     return []

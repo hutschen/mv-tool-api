@@ -92,10 +92,9 @@ def upload_catalog_modules_excel(
     catalog_modules_view: CatalogModulesView = Depends(),
     columns_def: ColumnsDef = Depends(get_catalog_module_columns_def),
     temp_file=Depends(copy_upload_to_temp_file),
-    sheet_name="Catalog Modules",
     dry_run: bool = False,  # don't save to database
 ) -> list[CatalogModuleOutput]:
-    df = pd.read_excel(temp_file, sheet_name=sheet_name)
+    df = pd.read_excel(temp_file, engine="openpyxl")
     catalog_module_imports = columns_def.import_from_dataframe(df)
     list(catalog_module_imports)
     # TODO: validate catalog module imports and perform import
