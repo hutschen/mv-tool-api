@@ -17,7 +17,7 @@
 
 
 import pandas as pd
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import FileResponse
 
 from ..models import AbstractMeasureInput, Measure, MeasureOutput
@@ -74,11 +74,14 @@ def download_measures_excel(
     measures_view: MeasuresView = Depends(),
     where_clauses=Depends(get_document_filters),
     sort_clauses=Depends(get_document_sort),
+    hidden_columns: list[str] | None = Query(None),
     columns_def: ColumnsDef = Depends(get_measure_columns_def),
     temp_file=Depends(get_temp_file(".xlsx")),
     sheet_name="Measures",
     filename="measures.xlsx",
 ) -> FileResponse:
+    if hidden_columns:
+        columns_def.hide_columns(hidden_columns)
     measures = measures_view.list_measures(where_clauses, sort_clauses)
     df = columns_def.export_to_dataframe(measures)
     df.to_excel(temp_file, sheet_name=sheet_name, index=False, engine="openpyxl")
