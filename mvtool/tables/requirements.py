@@ -17,23 +17,24 @@
 
 
 from tempfile import NamedTemporaryFile
+
+import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
-import pandas as pd
-from mvtool.utils.temp_file import copy_upload_to_temp_file, get_temp_file
-from mvtool.views.catalog_requirements import (
+
+from ..models import AbstractComplianceInput, Requirement, RequirementOutput
+from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
+from ..views.catalog_requirements import (
     get_catalog_requirement_filters,
     get_catalog_requirement_sort,
 )
-
-from mvtool.views.requirements import RequirementsView
-
-from ..models import AbstractComplianceInput, Requirement, RequirementOutput
+from ..views.requirements import RequirementsView
 from .catalog_requirements import (
     CatalogRequirementImport,
     get_catalog_requirement_columns_def,
 )
 from .common import ColumnDef, ColumnsDef
+from .projects import get_project_columns_def
 
 
 class RequirementImport(AbstractComplianceInput):
@@ -50,14 +51,17 @@ def get_requirement_columns_def(
     catalog_requirement_columns_def: ColumnsDef = Depends(
         get_catalog_requirement_columns_def
     ),
+    project_columns_def: ColumnsDef = Depends(get_project_columns_def),
 ) -> ColumnsDef[RequirementImport, Requirement]:
     catalog_requirement_columns_def.attr_name = "catalog_requirement"
+    project_columns_def.attr_name = "project"
 
     return ColumnsDef(
         RequirementImport,
         "Requirement",
         [
             catalog_requirement_columns_def,
+            project_columns_def,
             ColumnDef("ID", "id"),
             ColumnDef("Reference", "reference"),
             ColumnDef("Summary", "summary", required=True),
