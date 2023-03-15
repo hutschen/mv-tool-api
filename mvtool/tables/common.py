@@ -94,6 +94,14 @@ class ColumnsDef(Generic[I, E]):
     def children_for_import(self) -> "Generator[ColumnDef | ColumnsDef]":
         return (c for c in self.children if c.is_import)
 
+    @property
+    def labels_for_export(self) -> "Generator[str]":
+        for child in self.children_for_export:
+            if isinstance(child, ColumnsDef):
+                yield from child.labels_for_export
+            else:
+                yield f"{self.label} {child.label}"
+
     def export_to_row(self, obj: E) -> Iterator[Cell]:
         for child in self.children_for_export:
             value = getattr(obj, child.attr_name)
@@ -105,8 +113,12 @@ class ColumnsDef(Generic[I, E]):
                     yield Cell(f"{self.label} {child.label}", value)
 
     def export_to_dataframe(self, objs: Iterable[E]) -> pd.DataFrame:
-        # FIXME: column order is not deterministic, as not all columns are present in all rows.
-        return pd.DataFrame(dict(self.export_to_row(o)) for o in objs)
+        df = pd.DataFrame(dict(self.export_to_row(o)) for o in objs)
+
+        # reorder columns
+        labels_in_df = df.columns.to_list()
+        ordered_labels = [l for l in self.labels_for_export if l in labels_in_df]
+        return df[ordered_labels]
 
     def import_from_row(self, row: Iterable[Cell]) -> I:
         row = tuple(row)  # make sure we can iterate multiple times
