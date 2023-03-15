@@ -102,6 +102,13 @@ class ColumnsDef(Generic[I, E]):
             else:
                 yield f"{self.label} {child.label}"
 
+    def hide_columns(self, labels: list[str]) -> None:
+        for child in self.children:
+            if isinstance(child, ColumnsDef):
+                child.hide_columns(labels)
+            else:
+                child.hidden = f"{self.label} {child.label}" in labels
+
     def export_to_row(self, obj: E) -> Iterator[Cell]:
         for child in self.children_for_export:
             value = getattr(obj, child.attr_name)
