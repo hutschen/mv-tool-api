@@ -58,7 +58,10 @@ class ColumnDef:
 
     @property
     def is_export(self) -> bool:
-        return self._mode in (self.IMPORT_EXPORT, self.EXPORT_ONLY)
+        return (not self.hidden) and self._mode in (
+            self.IMPORT_EXPORT,
+            self.EXPORT_ONLY,
+        )
 
     @property
     def is_import(self) -> bool:
@@ -120,7 +123,7 @@ class ColumnsDef(Generic[I, E]):
                 if value is not None:  # when value is not None, it must be an object
                     yield from child.export_to_row(value)
             else:
-                if value is not None and value != "" and not child.hidden:
+                if value is not None and value != "":
                     yield Cell(f"{self.label} {child.label}", value)
 
     def export_to_dataframe(self, objs: Iterable[E]) -> pd.DataFrame:
