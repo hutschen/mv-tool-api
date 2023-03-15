@@ -101,7 +101,7 @@ def test_column_def(column_def, is_export, is_import, required, hidden):
 
 
 @pytest.mark.parametrize(
-    "colums_def,is_export,is_import,child_labels_export,child_lables_import",
+    "columns_def,is_export,is_import,child_labels_export,child_lables_import,export_labels",
     [
         (
             create_person_columns_def(),
@@ -109,8 +109,15 @@ def test_column_def(column_def, is_export, is_import, required, hidden):
             True,
             ["Name", "Age", "Address"],
             ["Name", "Age", "Address"],
+            [
+                "Person Name",
+                "Person Age",
+                "Address Street",
+                "Address ZIP",
+                "Address City",
+            ],
         ),
-        (ColumnsDef(Person, "Person", []), False, False, [], []),
+        (ColumnsDef(Person, "Person", []), False, False, [], [], []),
         (
             ColumnsDef(
                 Person, "Person", [ColumnDef("Name", "name", ColumnDef.EXPORT_ONLY)]
@@ -119,6 +126,7 @@ def test_column_def(column_def, is_export, is_import, required, hidden):
             False,
             ["Name"],
             [],
+            ["Person Name"],
         ),
         (
             ColumnsDef(
@@ -128,20 +136,23 @@ def test_column_def(column_def, is_export, is_import, required, hidden):
             True,
             [],
             ["Name"],
+            [],
         ),
     ],
 )
 def test_columns_def(
-    colums_def: ColumnsDef,
+    columns_def: ColumnsDef,
     is_export,
     is_import,
     child_labels_export,
     child_lables_import,
+    export_labels,
 ):
-    assert colums_def.is_export == is_export
-    assert colums_def.is_import == is_import
-    assert [c.label for c in colums_def.children_for_export] == child_labels_export
-    assert [c.label for c in colums_def.children_for_import] == child_lables_import
+    assert columns_def.is_export == is_export
+    assert columns_def.is_import == is_import
+    assert [c.label for c in columns_def.children_for_export] == child_labels_export
+    assert [c.label for c in columns_def.children_for_import] == child_lables_import
+    assert list(columns_def.labels_for_export) == export_labels
 
 
 @pytest.mark.parametrize(
