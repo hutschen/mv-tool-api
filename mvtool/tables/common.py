@@ -80,11 +80,15 @@ class ColumnsDef(Generic[I, E]):
 
     @property
     def is_export(self) -> bool:
-        return any(c.is_export for c in self.children)
+        for _ in self.children_for_export:
+            return True
+        return False
 
     @property
     def is_import(self) -> bool:
-        return any(c.is_import for c in self.children)
+        for _ in self.children_for_import:
+            return True
+        return False
 
     @property
     def children_for_export(self) -> "Generator[ColumnDef | ColumnsDef]":
