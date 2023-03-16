@@ -56,7 +56,7 @@ def persons() -> list[Person]:
     return create_persons()
 
 
-def create_person_columns_def():
+def create_person_column_group():
     return ColumnGroup[Person, Person](
         Person,
         "Person",
@@ -78,12 +78,12 @@ def create_person_columns_def():
 
 
 @pytest.fixture
-def person_columns_def() -> ColumnGroup[Person, Person]:
-    return create_person_columns_def()
+def person_column_group() -> ColumnGroup[Person, Person]:
+    return create_person_column_group()
 
 
 @pytest.mark.parametrize(
-    "column_def,is_export,is_import,required,hidden",
+    "column,is_export,is_import,required,hidden",
     [
         (Column("Name", "name"), True, True, False, False),
         (Column("Name", "name", Column.IMPORT_EXPORT), True, True, False, False),
@@ -94,38 +94,30 @@ def person_columns_def() -> ColumnGroup[Person, Person]:
         (Column("Name", "name", hidden=True, required=True), False, True, True, True),
     ],
 )
-def test_column_def(column_def, is_export, is_import, required, hidden):
-    assert column_def.is_export == is_export
-    assert column_def.is_import == is_import
-    assert column_def.required == required
-    assert column_def.hidden == hidden
+def test_column(column, is_export, is_import, required, hidden):
+    assert column.is_export == is_export
+    assert column.is_import == is_import
+    assert column.required == required
+    assert column.hidden == hidden
 
 
 @pytest.mark.parametrize(
-    "columns_def,is_export,is_import,child_labels_export,child_lables_import,export_labels",
+    "column_group,is_export,is_import,child_labels_export,child_lables_import",
     [
         (
-            create_person_columns_def(),
+            create_person_column_group(),
             True,
             True,
             ["Name", "Age", "Address"],
             ["Name", "Age", "Address"],
-            [
-                "Person Name",
-                "Person Age",
-                "Address Street",
-                "Address ZIP",
-                "Address City",
-            ],
         ),
-        (ColumnGroup(Person, "Person", []), False, False, [], [], []),
+        (ColumnGroup(Person, "Person", []), False, False, [], []),
         (
             ColumnGroup(Person, "Person", [Column("Name", "name", Column.EXPORT_ONLY)]),
             True,
             False,
             ["Name"],
             [],
-            ["Person Name"],
         ),
         (
             ColumnGroup(Person, "Person", [Column("Name", "name", Column.IMPORT_ONLY)]),
@@ -133,23 +125,20 @@ def test_column_def(column_def, is_export, is_import, required, hidden):
             True,
             [],
             ["Name"],
-            [],
         ),
     ],
 )
-def test_columns_def(
-    columns_def: ColumnGroup,
+def test_column_group(
+    column_group: ColumnGroup,
     is_export,
     is_import,
     child_labels_export,
     child_lables_import,
-    export_labels,
 ):
-    assert columns_def.is_export == is_export
-    assert columns_def.is_import == is_import
-    assert [c.label for c in columns_def.export_columns] == child_labels_export
-    assert [c.label for c in columns_def.import_columns] == child_lables_import
-    assert list(columns_def.export_labels) == export_labels
+    assert column_group.is_export == is_export
+    assert column_group.is_import == is_import
+    assert [c.label for c in column_group.export_columns] == child_labels_export
+    assert [c.label for c in column_group.import_columns] == child_lables_import
 
 
 @pytest.mark.parametrize(
@@ -178,16 +167,18 @@ def test_columns_def(
     ],
 )
 def test_export_to_row(
-    person_columns_def: ColumnGroup[Person, Person], person: Person, labels: list[str]
+    person_column_group: ColumnGroup[Person, Person],
+    person: Person,
+    labels: list[str],
 ):
-    cells = person_columns_def.export_to_row(person)
+    cells = person_column_group.export_to_row(person)
     assert [cell.label for cell in cells] == labels
 
 
 def test_export_to_dataframe(
-    person_columns_def: ColumnGroup[Person, Person], persons: list[Person]
+    person_column_group: ColumnGroup[Person, Person], persons: list[Person]
 ):
-    df = person_columns_def.export_to_dataframe(persons)
+    df = person_column_group.export_to_dataframe(persons)
     assert df.shape == (3, 5)
     assert df.columns.tolist() == [
         "Person Name",
@@ -200,18 +191,18 @@ def test_export_to_dataframe(
 
 @pytest.mark.parametrize("person", create_persons())
 def test_import_from_row(
-    person_columns_def: ColumnGroup[Person, Person], person: Person
+    person_column_group: ColumnGroup[Person, Person], person: Person
 ):
-    cells = person_columns_def.export_to_row(person)
-    imported_person = person_columns_def.import_from_row(cells)
+    cells = person_column_group.export_to_row(person)
+    imported_person = person_column_group.import_from_row(cells)
     assert person.dict() == imported_person.dict()
 
 
 def test_import_from_dataframe(
-    person_columns_def: ColumnGroup[Person, Person], persons: list[Person]
+    person_column_group: ColumnGroup[Person, Person], persons: list[Person]
 ):
-    df = person_columns_def.export_to_dataframe(persons)
-    imported_persons = person_columns_def.import_from_dataframe(df)
+    df = person_column_group.export_to_dataframe(persons)
+    imported_persons = person_column_group.import_from_dataframe(df)
     assert [person.dict() for person in persons] == [
         person.dict() for person in imported_persons
     ]
