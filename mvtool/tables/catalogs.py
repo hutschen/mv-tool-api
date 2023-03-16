@@ -23,7 +23,7 @@ from pydantic import BaseModel
 from ..models import Catalog, CatalogOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.catalogs import CatalogsView, get_catalog_filters, get_catalog_sort
-from .common import Column, ColumnsDef
+from .common import Column, ColumnGroup
 
 
 class CatalogImport(BaseModel):
@@ -33,8 +33,8 @@ class CatalogImport(BaseModel):
     description: str | None
 
 
-def get_catalog_columns_def() -> ColumnsDef[CatalogImport, Catalog]:
-    return ColumnsDef(
+def get_catalog_columns_def() -> ColumnGroup[CatalogImport, Catalog]:
+    return ColumnGroup(
         CatalogImport,
         "Catalog",
         [
@@ -54,7 +54,7 @@ def download_catalogs_excel(
     catalogs_view: CatalogsView = Depends(),
     where_clauses=Depends(get_catalog_filters),
     sort_clauses=Depends(get_catalog_sort),
-    columns_def: ColumnsDef = Depends(get_catalog_columns_def),
+    columns_def: ColumnGroup = Depends(get_catalog_columns_def),
     temp_file=Depends(get_temp_file(".xlsx")),
     sheet_name="Catalogs",
     filename="catalogs.xlsx",
@@ -73,7 +73,7 @@ def download_catalogs_excel(
 )
 def upload_catalogs_excel(
     catalogs_view: CatalogsView = Depends(),
-    columns_def: ColumnsDef = Depends(get_catalog_columns_def),
+    columns_def: ColumnGroup = Depends(get_catalog_columns_def),
     temp_file=Depends(copy_upload_to_temp_file),
     dry_run: bool = False,  # don't save to database
 ) -> list[Catalog]:

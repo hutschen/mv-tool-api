@@ -24,7 +24,7 @@ from ..models import AbstractMeasureInput, Measure, MeasureOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.documents import get_document_filters, get_document_sort
 from ..views.measures import MeasuresView
-from .common import Column, ColumnsDef
+from .common import Column, ColumnGroup
 from .documents import DocumentImport, get_document_only_columns_def
 from .jira_ import JiraIssueImport, get_jira_issue_columns_def
 from .requirements import RequirementImport, get_requirement_columns_def
@@ -38,15 +38,15 @@ class MeasureImport(AbstractMeasureInput):
 
 
 def get_measure_columns_def(
-    requirement_columns_def: ColumnsDef = Depends(get_requirement_columns_def),
-    document_only_columns_def: ColumnsDef = Depends(get_document_only_columns_def),
-    jira_issue_columns_def: ColumnsDef = Depends(get_jira_issue_columns_def),
-) -> ColumnsDef[MeasureImport, Measure]:
+    requirement_columns_def: ColumnGroup = Depends(get_requirement_columns_def),
+    document_only_columns_def: ColumnGroup = Depends(get_document_only_columns_def),
+    jira_issue_columns_def: ColumnGroup = Depends(get_jira_issue_columns_def),
+) -> ColumnGroup[MeasureImport, Measure]:
     requirement_columns_def.attr_name = "requirement"
     document_only_columns_def.attr_name = "document"
     jira_issue_columns_def.attr_name = "jira_issue"
 
-    return ColumnsDef(
+    return ColumnGroup(
         MeasureImport,
         "Measure",
         [
@@ -75,7 +75,7 @@ def download_measures_excel(
     where_clauses=Depends(get_document_filters),
     sort_clauses=Depends(get_document_sort),
     hidden_columns: list[str] | None = Query(None),
-    columns_def: ColumnsDef = Depends(get_measure_columns_def),
+    columns_def: ColumnGroup = Depends(get_measure_columns_def),
     temp_file=Depends(get_temp_file(".xlsx")),
     sheet_name="Measures",
     filename="measures.xlsx",
@@ -96,7 +96,7 @@ def download_measures_excel(
 )
 def upload_measures_excel(
     measures_view: MeasuresView = Depends(),
-    columns_def: ColumnsDef = Depends(get_measure_columns_def),
+    columns_def: ColumnGroup = Depends(get_measure_columns_def),
     temp_file=Depends(copy_upload_to_temp_file),
     dry_run: bool = False,
 ) -> list[Measure]:

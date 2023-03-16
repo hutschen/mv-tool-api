@@ -31,7 +31,7 @@ from mvtool.views.catalog_requirements import (
 )
 
 from .catalog_modules import CatalogModuleImport, get_catalog_module_columns_def
-from .common import Column, ColumnsDef
+from .common import Column, ColumnGroup
 
 
 class CatalogRequirementImport(BaseModel):
@@ -45,11 +45,11 @@ class CatalogRequirementImport(BaseModel):
 
 
 def get_catalog_requirement_columns_def(
-    catalog_module_columns_def: ColumnsDef = Depends(get_catalog_module_columns_def),
-) -> ColumnsDef[CatalogRequirementImport, CatalogRequirement]:
+    catalog_module_columns_def: ColumnGroup = Depends(get_catalog_module_columns_def),
+) -> ColumnGroup[CatalogRequirementImport, CatalogRequirement]:
     catalog_module_columns_def.attr_name = "catalog_module"
 
-    return ColumnsDef(
+    return ColumnGroup(
         CatalogRequirementImport,
         "Catalog Requirement",
         [
@@ -76,7 +76,7 @@ def download_catalog_requirements_excel(
     catalog_requirements_view: CatalogRequirementsView = Depends(),
     where_clauses=Depends(get_catalog_requirement_filters),
     sort_clauses=Depends(get_catalog_requirement_sort),
-    columns_def: ColumnsDef = Depends(get_catalog_requirement_columns_def),
+    columns_def: ColumnGroup = Depends(get_catalog_requirement_columns_def),
     temp_file: NamedTemporaryFile = Depends(get_temp_file(".xlsx")),
     sheet_name="Catalog Requirements",
     filename="catalog_requirements.xlsx",
@@ -97,7 +97,7 @@ def download_catalog_requirements_excel(
 )
 def upload_catalog_requirements_excel(
     catalog_requirements_view: CatalogRequirementsView = Depends(),
-    columns_def: ColumnsDef = Depends(get_catalog_requirement_columns_def),
+    columns_def: ColumnGroup = Depends(get_catalog_requirement_columns_def),
     temp_file: NamedTemporaryFile = Depends(copy_upload_to_temp_file),
     dry_run: bool = False,
 ) -> list[CatalogRequirementOutput]:

@@ -22,7 +22,7 @@ from pydantic import BaseModel
 from ..models import Project, ProjectOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.projects import ProjectsView, get_project_filters, get_project_sort
-from .common import Column, ColumnsDef
+from .common import Column, ColumnGroup
 from .jira_ import JiraProjectImport, get_jira_project_columns_def
 
 
@@ -34,11 +34,11 @@ class ProjectImport(BaseModel):
 
 
 def get_project_columns_def(
-    jira_project_columns_def: ColumnsDef = Depends(get_jira_project_columns_def),
-) -> ColumnsDef[ProjectImport, Project]:
+    jira_project_columns_def: ColumnGroup = Depends(get_jira_project_columns_def),
+) -> ColumnGroup[ProjectImport, Project]:
     jira_project_columns_def.attr_name = "jira_project"
 
-    return ColumnsDef(
+    return ColumnGroup(
         ProjectImport,
         "Project",
         [
@@ -68,7 +68,7 @@ def download_projects_excel(
     projects_view: ProjectsView = Depends(),
     where_clauses=Depends(get_project_filters),
     sort_clauses=Depends(get_project_sort),
-    columns_def: ColumnsDef = Depends(get_project_columns_def),
+    columns_def: ColumnGroup = Depends(get_project_columns_def),
     temp_file=Depends(get_temp_file(".xlsx")),
     sheet_name="Projects",
     filename="projects.xlsx",
@@ -87,7 +87,7 @@ def download_projects_excel(
 )
 def upload_projects_excel(
     projects_view: ProjectsView = Depends(),
-    columns_def: ColumnsDef = Depends(get_project_columns_def),
+    columns_def: ColumnGroup = Depends(get_project_columns_def),
     temp_file=Depends(copy_upload_to_temp_file),
     dry_run: bool = False,  # don't save to database
 ) -> list[Project]:

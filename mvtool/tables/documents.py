@@ -28,7 +28,7 @@ from mvtool.views.documents import (
 )
 
 from ..models import Document, DocumentInput, DocumentOutput
-from .common import Column, ColumnsDef
+from .common import Column, ColumnGroup
 from .projects import get_project_columns_def
 
 
@@ -36,8 +36,8 @@ class DocumentImport(DocumentInput):
     id: int | None = None
 
 
-def get_document_only_columns_def() -> ColumnsDef[DocumentImport, Document]:
-    return ColumnsDef(
+def get_document_only_columns_def() -> ColumnGroup[DocumentImport, Document]:
+    return ColumnGroup(
         DocumentImport,
         "Document",
         [
@@ -50,9 +50,9 @@ def get_document_only_columns_def() -> ColumnsDef[DocumentImport, Document]:
 
 
 def get_document_columns_def(
-    project_columns_def: ColumnsDef = Depends(get_project_columns_def),
-    document_only_columns_def: ColumnsDef = Depends(get_document_only_columns_def),
-) -> ColumnsDef[DocumentImport, Document]:
+    project_columns_def: ColumnGroup = Depends(get_project_columns_def),
+    document_only_columns_def: ColumnGroup = Depends(get_document_only_columns_def),
+) -> ColumnGroup[DocumentImport, Document]:
     project_columns_def.attr_name = "project"
     document_only_columns_def.children.insert(0, project_columns_def)
     return document_only_columns_def
@@ -66,7 +66,7 @@ def download_documents_excel(
     documents_view: DocumentsView = Depends(),
     where_clauses=Depends(get_document_filters),
     sort_clauses=Depends(get_document_sort),
-    columns_def: ColumnsDef = Depends(get_document_columns_def),
+    columns_def: ColumnGroup = Depends(get_document_columns_def),
     temp_file=Depends(get_temp_file(".xlsx")),
     sheet_name="Documents",
     filename="documents.xlsx",
@@ -85,7 +85,7 @@ def download_documents_excel(
 )
 def upload_documents_excel(
     documents_view: DocumentsView = Depends(),
-    columns_def: ColumnsDef = Depends(get_document_columns_def),
+    columns_def: ColumnGroup = Depends(get_document_columns_def),
     temp_file=Depends(copy_upload_to_temp_file),
     dry_run: bool = False,
 ) -> list[Document]:

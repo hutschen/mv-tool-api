@@ -19,7 +19,7 @@
 import pytest
 from pydantic import BaseModel
 
-from mvtool.tables.common import Column, ColumnsDef
+from mvtool.tables.common import Column, ColumnGroup
 
 
 # define example models
@@ -57,13 +57,13 @@ def persons() -> list[Person]:
 
 
 def create_person_columns_def():
-    return ColumnsDef[Person, Person](
+    return ColumnGroup[Person, Person](
         Person,
         "Person",
         [
             Column("Name", "name", required=True),
             Column("Age", "age"),
-            ColumnsDef[Address, Address](
+            ColumnGroup[Address, Address](
                 Address,
                 "Address",
                 [
@@ -78,7 +78,7 @@ def create_person_columns_def():
 
 
 @pytest.fixture
-def person_columns_def() -> ColumnsDef[Person, Person]:
+def person_columns_def() -> ColumnGroup[Person, Person]:
     return create_person_columns_def()
 
 
@@ -117,9 +117,9 @@ def test_column_def(column_def, is_export, is_import, required, hidden):
                 "Address City",
             ],
         ),
-        (ColumnsDef(Person, "Person", []), False, False, [], [], []),
+        (ColumnGroup(Person, "Person", []), False, False, [], [], []),
         (
-            ColumnsDef(Person, "Person", [Column("Name", "name", Column.EXPORT_ONLY)]),
+            ColumnGroup(Person, "Person", [Column("Name", "name", Column.EXPORT_ONLY)]),
             True,
             False,
             ["Name"],
@@ -127,7 +127,7 @@ def test_column_def(column_def, is_export, is_import, required, hidden):
             ["Person Name"],
         ),
         (
-            ColumnsDef(Person, "Person", [Column("Name", "name", Column.IMPORT_ONLY)]),
+            ColumnGroup(Person, "Person", [Column("Name", "name", Column.IMPORT_ONLY)]),
             False,
             True,
             [],
@@ -137,7 +137,7 @@ def test_column_def(column_def, is_export, is_import, required, hidden):
     ],
 )
 def test_columns_def(
-    columns_def: ColumnsDef,
+    columns_def: ColumnGroup,
     is_export,
     is_import,
     child_labels_export,
@@ -177,14 +177,14 @@ def test_columns_def(
     ],
 )
 def test_export_to_row(
-    person_columns_def: ColumnsDef[Person, Person], person: Person, labels: list[str]
+    person_columns_def: ColumnGroup[Person, Person], person: Person, labels: list[str]
 ):
     cells = person_columns_def.export_to_row(person)
     assert [cell.label for cell in cells] == labels
 
 
 def test_export_to_dataframe(
-    person_columns_def: ColumnsDef[Person, Person], persons: list[Person]
+    person_columns_def: ColumnGroup[Person, Person], persons: list[Person]
 ):
     df = person_columns_def.export_to_dataframe(persons)
     assert df.shape == (3, 5)
@@ -199,7 +199,7 @@ def test_export_to_dataframe(
 
 @pytest.mark.parametrize("person", create_persons())
 def test_import_from_row(
-    person_columns_def: ColumnsDef[Person, Person], person: Person
+    person_columns_def: ColumnGroup[Person, Person], person: Person
 ):
     cells = person_columns_def.export_to_row(person)
     imported_person = person_columns_def.import_from_row(cells)
@@ -207,7 +207,7 @@ def test_import_from_row(
 
 
 def test_import_from_dataframe(
-    person_columns_def: ColumnsDef[Person, Person], persons: list[Person]
+    person_columns_def: ColumnGroup[Person, Person], persons: list[Person]
 ):
     df = person_columns_def.export_to_dataframe(persons)
     imported_persons = person_columns_def.import_from_dataframe(df)

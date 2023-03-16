@@ -33,7 +33,7 @@ from .catalog_requirements import (
     CatalogRequirementImport,
     get_catalog_requirement_columns_def,
 )
-from .common import Column, ColumnsDef
+from .common import Column, ColumnGroup
 from .projects import get_project_columns_def
 
 
@@ -48,15 +48,15 @@ class RequirementImport(AbstractComplianceInput):
 
 
 def get_requirement_columns_def(
-    catalog_requirement_columns_def: ColumnsDef = Depends(
+    catalog_requirement_columns_def: ColumnGroup = Depends(
         get_catalog_requirement_columns_def
     ),
-    project_columns_def: ColumnsDef = Depends(get_project_columns_def),
-) -> ColumnsDef[RequirementImport, Requirement]:
+    project_columns_def: ColumnGroup = Depends(get_project_columns_def),
+) -> ColumnGroup[RequirementImport, Requirement]:
     catalog_requirement_columns_def.attr_name = "catalog_requirement"
     project_columns_def.attr_name = "project"
 
-    return ColumnsDef(
+    return ColumnGroup(
         RequirementImport,
         "Requirement",
         [
@@ -86,7 +86,7 @@ def download_requirements_excel(
     requirements_view: RequirementsView = Depends(),
     where_clauses=Depends(get_catalog_requirement_filters),
     sort_clauses=Depends(get_catalog_requirement_sort),
-    columns_def: ColumnsDef = Depends(get_requirement_columns_def),
+    columns_def: ColumnGroup = Depends(get_requirement_columns_def),
     temp_file: NamedTemporaryFile = Depends(get_temp_file(".xlsx")),
     sheet_name="Requirements",
     filename="requirements.xlsx",
@@ -105,7 +105,7 @@ def download_requirements_excel(
 )
 def upload_requirements_excel(
     requirements_view: RequirementsView = Depends(),
-    columns_def: ColumnsDef = Depends(get_requirement_columns_def),
+    columns_def: ColumnGroup = Depends(get_requirement_columns_def),
     temp_file: NamedTemporaryFile = Depends(copy_upload_to_temp_file),
     dry_run: bool = False,
 ) -> list[RequirementOutput]:

@@ -30,7 +30,7 @@ from ..views.catalog_modules import (
     get_catalog_module_sort,
 )
 from .catalogs import CatalogImport, get_catalog_columns_def
-from .common import Column, ColumnsDef
+from .common import Column, ColumnGroup
 
 
 class CatalogModuleImport(BaseModel):
@@ -42,11 +42,11 @@ class CatalogModuleImport(BaseModel):
 
 
 def get_catalog_module_columns_def(
-    catalog_columns_def: ColumnsDef = Depends(get_catalog_columns_def),
-) -> ColumnsDef[CatalogModuleImport, CatalogModule]:
+    catalog_columns_def: ColumnGroup = Depends(get_catalog_columns_def),
+) -> ColumnGroup[CatalogModuleImport, CatalogModule]:
     catalog_columns_def.attr_name = "catalog"
 
-    return ColumnsDef(
+    return ColumnGroup(
         CatalogModuleImport,
         "Catalog Module",
         [
@@ -69,7 +69,7 @@ def download_catalog_modules_excel(
     catalog_modules_view: CatalogModulesView = Depends(),
     where_clauses=Depends(get_catalog_module_filters),
     sort_clauses=Depends(get_catalog_module_sort),
-    columns_def: ColumnsDef = Depends(get_catalog_module_columns_def),
+    columns_def: ColumnGroup = Depends(get_catalog_module_columns_def),
     temp_file=Depends(get_temp_file(".xlsx")),
     sheet_name="Catalog Modules",
     filename="catalog_modules.xlsx",
@@ -90,7 +90,7 @@ def download_catalog_modules_excel(
 )
 def upload_catalog_modules_excel(
     catalog_modules_view: CatalogModulesView = Depends(),
-    columns_def: ColumnsDef = Depends(get_catalog_module_columns_def),
+    columns_def: ColumnGroup = Depends(get_catalog_module_columns_def),
     temp_file=Depends(copy_upload_to_temp_file),
     dry_run: bool = False,  # don't save to database
 ) -> list[CatalogModuleOutput]:

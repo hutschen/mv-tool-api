@@ -68,12 +68,12 @@ class Column:
         return self._mode in (self.IMPORT_EXPORT, self.IMPORT_ONLY)
 
 
-class ColumnsDef(Generic[I, E]):
+class ColumnGroup(Generic[I, E]):
     def __init__(
         self,
         import_model: type[I],
         label: str,
-        children: "list[Column | ColumnsDef]",
+        children: "list[Column | ColumnGroup]",
         attr_name: str | None = None,  # must be set if this is a child
     ):
         self.import_model = import_model
@@ -94,24 +94,24 @@ class ColumnsDef(Generic[I, E]):
         return False
 
     @property
-    def children_for_export(self) -> "Generator[Column | ColumnsDef]":
+    def children_for_export(self) -> "Generator[Column | ColumnGroup]":
         return (c for c in self.children if c.is_export)
 
     @property
-    def children_for_import(self) -> "Generator[Column | ColumnsDef]":
+    def children_for_import(self) -> "Generator[Column | ColumnGroup]":
         return (c for c in self.children if c.is_import)
 
     @property
     def labels_for_export(self) -> "Generator[str]":
         for child in self.children_for_export:
-            if isinstance(child, ColumnsDef):
+            if isinstance(child, ColumnGroup):
                 yield from child.labels_for_export
             else:
                 yield f"{self.label} {child.label}"
 
     def hide_columns(self, labels: list[str]) -> None:
         for child in self.children:
-            if isinstance(child, ColumnsDef):
+            if isinstance(child, ColumnGroup):
                 child.hide_columns(labels)
             else:
                 child.hidden = f"{self.label} {child.label}" in labels
@@ -119,7 +119,7 @@ class ColumnsDef(Generic[I, E]):
     def export_to_row(self, obj: E) -> Iterator[Cell]:
         for child in self.children_for_export:
             value = getattr(obj, child.attr_name)
-            if isinstance(child, ColumnsDef):
+            if isinstance(child, ColumnGroup):
                 if value is not None:  # when value is not None, it must be an object
                     yield from child.export_to_row(value)
             else:
@@ -138,7 +138,7 @@ class ColumnsDef(Generic[I, E]):
         row = tuple(row)  # make sure we can iterate multiple times
         column_defs: dict[str, Column] = {}  # associate cell labels and column defs
         required_labels: set[str] = set()  # required labels
-        columns_defs: list[ColumnsDef] = []  # subordinated columns defs (nodes)
+        columns_defs: list[ColumnGroup] = []  # subordinated columns defs (nodes)
 
         for child in self.children_for_import:
             if isinstance(child, Column):
