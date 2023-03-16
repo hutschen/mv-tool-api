@@ -90,7 +90,8 @@ def person_columns_def() -> ColumnGroup[Person, Person]:
         (Column("Name", "name", Column.IMPORT_ONLY), False, True, False, False),
         (Column("Name", "name", Column.EXPORT_ONLY), True, False, False, False),
         (Column("Name", "name", required=True), True, True, True, False),
-        (Column("Name", "name", hidden=True), False, True, False, True),
+        (Column("Name", "name", hidden=True), False, False, False, True),
+        (Column("Name", "name", hidden=True, required=True), False, True, True, True),
     ],
 )
 def test_column_def(column_def, is_export, is_import, required, hidden):

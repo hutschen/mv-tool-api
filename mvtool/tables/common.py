@@ -74,7 +74,8 @@ class Column:
 
     @property
     def is_import(self) -> bool:
-        return self._mode in (self.IMPORT_EXPORT, self.IMPORT_ONLY)
+        not_hidden = self.required or not self.hidden
+        return not_hidden and self._mode in (self.IMPORT_EXPORT, self.IMPORT_ONLY)
 
 
 class ColumnGroup(Generic[I, E]):
