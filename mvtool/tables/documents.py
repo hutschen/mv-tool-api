@@ -54,7 +54,7 @@ def get_document_columns_def(
     document_only_columns_def: ColumnGroup = Depends(get_document_only_columns_def),
 ) -> ColumnGroup[DocumentImport, Document]:
     project_columns_def.attr_name = "project"
-    document_only_columns_def.children.insert(0, project_columns_def)
+    document_only_columns_def.columns.insert(0, project_columns_def)
     return document_only_columns_def
 
 

@@ -15,7 +15,16 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any, Generator, Generic, Iterable, Iterator, NamedTuple, TypeVar
+from typing import (
+    Any,
+    Collection,
+    Generator,
+    Generic,
+    Iterable,
+    Iterator,
+    NamedTuple,
+    TypeVar,
+)
 
 import pandas as pd
 from pydantic import BaseModel
@@ -48,7 +57,7 @@ class Column:
         attr_name: str,
         mode: int | None = None,
         required: bool = False,  # only used for import
-        hidden: bool = False,  # only used for export
+        hidden: bool = False,  # only used for export and not required import columns
     ):
         self.label = label
         self.attr_name = attr_name
@@ -73,90 +82,96 @@ class ColumnGroup(Generic[I, E]):
         self,
         import_model: type[I],
         label: str,
-        children: "list[Column | ColumnGroup]",
-        attr_name: str | None = None,  # must be set if this is a child
+        columns: "list[Column | ColumnGroup]",
+        attr_name: str | None = None,  # must be set if this is part of another group
     ):
         self.import_model = import_model
         self.label = label
-        self.children = children
+        self.columns = columns
         self.attr_name = attr_name
 
     @property
     def is_export(self) -> bool:
-        for _ in self.children_for_export:
+        for _ in self.export_columns:
             return True
         return False
 
     @property
     def is_import(self) -> bool:
-        for _ in self.children_for_import:
+        for _ in self.import_columns:
             return True
         return False
 
     @property
-    def children_for_export(self) -> "Generator[Column | ColumnGroup]":
-        return (c for c in self.children if c.is_export)
+    def export_columns(self) -> "Generator[Column | ColumnGroup]":
+        return (c for c in self.columns if c.is_export)
 
     @property
-    def children_for_import(self) -> "Generator[Column | ColumnGroup]":
-        return (c for c in self.children if c.is_import)
+    def import_columns(self) -> "Generator[Column | ColumnGroup]":
+        return (c for c in self.columns if c.is_import)
 
     @property
-    def labels_for_export(self) -> "Generator[str]":
-        for child in self.children_for_export:
-            if isinstance(child, ColumnGroup):
-                yield from child.labels_for_export
+    def export_labels(self) -> "Generator[str]":
+        for column in self.export_columns:
+            if isinstance(column, Column):
+                yield f"{self.label} {column.label}"
             else:
-                yield f"{self.label} {child.label}"
+                yield from column.export_labels
 
-    def hide_columns(self, labels: list[str]) -> None:
-        for child in self.children:
-            if isinstance(child, ColumnGroup):
-                child.hide_columns(labels)
+    @property
+    def import_labels(self) -> "Generator[str]":
+        for column in self.import_columns:
+            if isinstance(column, Column):
+                yield f"{self.label} {column.label}"
             else:
-                child.hidden = f"{self.label} {child.label}" in labels
+                yield from column.import_labels
+
+    def hide_columns(self, labels: Collection[str] | None = None) -> None:
+        labels = labels or []  # passing None unhides all columns
+        for column in self.columns:
+            if isinstance(column, Column):
+                column.hidden = f"{self.label} {column.label}" in labels
+            else:
+                column.hide_columns(labels)
 
     def export_to_row(self, obj: E) -> Iterator[Cell]:
-        for child in self.children_for_export:
-            value = getattr(obj, child.attr_name)
-            if isinstance(child, ColumnGroup):
+        for column in self.export_columns:
+            value = getattr(obj, column.attr_name)
+            if isinstance(column, ColumnGroup):
                 if value is not None:  # when value is not None, it must be an object
-                    yield from child.export_to_row(value)
+                    yield from column.export_to_row(value)
             else:
                 if value is not None and value != "":
-                    yield Cell(f"{self.label} {child.label}", value)
+                    yield Cell(f"{self.label} {column.label}", value)
 
     def export_to_dataframe(self, objs: Iterable[E]) -> pd.DataFrame:
         df = pd.DataFrame(dict(self.export_to_row(o)) for o in objs)
-
-        # reorder columns
-        labels_in_df = df.columns.to_list()
-        ordered_labels = [l for l in self.labels_for_export if l in labels_in_df]
+        ordered_labels = [l for l in self.export_labels if l in df.columns.to_list()]
         return df[ordered_labels]
 
     def import_from_row(self, row: Iterable[Cell]) -> I:
         row = tuple(row)  # make sure we can iterate multiple times
-        column_defs: dict[str, Column] = {}  # associate cell labels and column defs
+        columns: dict[str, Column] = {}  # associate cell labels and columns
         required_labels: set[str] = set()  # required labels
-        columns_defs: list[ColumnGroup] = []  # subordinated columns defs (nodes)
+        column_groups: list[ColumnGroup] = []  # subordinated columns groups (nodes)
 
-        for child in self.children_for_import:
-            if isinstance(child, Column):
-                label = f"{self.label} {child.label}"
-                column_defs[label] = child
-                if child.required:
+        for column in self.import_columns:
+            if isinstance(column, Column):
+                label = f"{self.label} {column.label}"
+                columns[label] = column
+                if column.required:
                     required_labels.add(label)
             else:
-                columns_defs.append(child)
+                column_groups.append(column)
 
         model_kwargs = {}  # kwargs for the model constructor
 
         existing_labels = set()
         for cell in row:
-            column_def = column_defs.get(cell.label, None)
-            if column_def:
+            column = columns.get(cell.label, None)
+            if column:
                 existing_labels.add(cell.label)
-                model_kwargs[column_def.attr_name] = cell.value
+                model_kwargs[column.attr_name] = cell.value
 
         if model_kwargs:
             # check if all required labels (columns) are present
@@ -164,8 +179,8 @@ class ColumnGroup(Generic[I, E]):
             if missing_labels:
                 raise MissingColumnsError(missing_labels)
 
-            # proceed with subordinated columns defs (nodes)
-            for columns_def in columns_defs:
+            # proceed with subordinated column groups (nodes)
+            for columns_def in column_groups:
                 model_kwargs[columns_def.attr_name] = columns_def.import_from_row(row)
 
             return self.import_model(**model_kwargs)  # TODO: handle validation errors

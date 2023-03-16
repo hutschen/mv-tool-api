@@ -146,9 +146,9 @@ def test_columns_def(
 ):
     assert columns_def.is_export == is_export
     assert columns_def.is_import == is_import
-    assert [c.label for c in columns_def.children_for_export] == child_labels_export
-    assert [c.label for c in columns_def.children_for_import] == child_lables_import
-    assert list(columns_def.labels_for_export) == export_labels
+    assert [c.label for c in columns_def.export_columns] == child_labels_export
+    assert [c.label for c in columns_def.import_columns] == child_lables_import
+    assert list(columns_def.export_labels) == export_labels
 
 
 @pytest.mark.parametrize(
