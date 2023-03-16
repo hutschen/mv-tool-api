@@ -19,7 +19,7 @@
 import pytest
 from pydantic import BaseModel
 
-from mvtool.tables.common import ColumnDef, ColumnsDef
+from mvtool.tables.common import Column, ColumnsDef
 
 
 # define example models
@@ -61,15 +61,15 @@ def create_person_columns_def():
         Person,
         "Person",
         [
-            ColumnDef("Name", "name", required=True),
-            ColumnDef("Age", "age"),
+            Column("Name", "name", required=True),
+            Column("Age", "age"),
             ColumnsDef[Address, Address](
                 Address,
                 "Address",
                 [
-                    ColumnDef("Street", "street", required=True),
-                    ColumnDef("ZIP", "zip", required=True),
-                    ColumnDef("City", "city", required=True),
+                    Column("Street", "street", required=True),
+                    Column("ZIP", "zip", required=True),
+                    Column("City", "city", required=True),
                 ],
                 "address",
             ),
@@ -85,12 +85,12 @@ def person_columns_def() -> ColumnsDef[Person, Person]:
 @pytest.mark.parametrize(
     "column_def,is_export,is_import,required,hidden",
     [
-        (ColumnDef("Name", "name"), True, True, False, False),
-        (ColumnDef("Name", "name", ColumnDef.IMPORT_EXPORT), True, True, False, False),
-        (ColumnDef("Name", "name", ColumnDef.IMPORT_ONLY), False, True, False, False),
-        (ColumnDef("Name", "name", ColumnDef.EXPORT_ONLY), True, False, False, False),
-        (ColumnDef("Name", "name", required=True), True, True, True, False),
-        (ColumnDef("Name", "name", hidden=True), False, True, False, True),
+        (Column("Name", "name"), True, True, False, False),
+        (Column("Name", "name", Column.IMPORT_EXPORT), True, True, False, False),
+        (Column("Name", "name", Column.IMPORT_ONLY), False, True, False, False),
+        (Column("Name", "name", Column.EXPORT_ONLY), True, False, False, False),
+        (Column("Name", "name", required=True), True, True, True, False),
+        (Column("Name", "name", hidden=True), False, True, False, True),
     ],
 )
 def test_column_def(column_def, is_export, is_import, required, hidden):
@@ -119,9 +119,7 @@ def test_column_def(column_def, is_export, is_import, required, hidden):
         ),
         (ColumnsDef(Person, "Person", []), False, False, [], [], []),
         (
-            ColumnsDef(
-                Person, "Person", [ColumnDef("Name", "name", ColumnDef.EXPORT_ONLY)]
-            ),
+            ColumnsDef(Person, "Person", [Column("Name", "name", Column.EXPORT_ONLY)]),
             True,
             False,
             ["Name"],
@@ -129,9 +127,7 @@ def test_column_def(column_def, is_export, is_import, required, hidden):
             ["Person Name"],
         ),
         (
-            ColumnsDef(
-                Person, "Person", [ColumnDef("Name", "name", ColumnDef.IMPORT_ONLY)]
-            ),
+            ColumnsDef(Person, "Person", [Column("Name", "name", Column.IMPORT_ONLY)]),
             False,
             True,
             [],

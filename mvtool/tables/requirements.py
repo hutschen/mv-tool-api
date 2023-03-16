@@ -33,7 +33,7 @@ from .catalog_requirements import (
     CatalogRequirementImport,
     get_catalog_requirement_columns_def,
 )
-from .common import ColumnDef, ColumnsDef
+from .common import Column, ColumnsDef
 from .projects import get_project_columns_def
 
 
@@ -62,14 +62,14 @@ def get_requirement_columns_def(
         [
             catalog_requirement_columns_def,
             project_columns_def,
-            ColumnDef("ID", "id"),
-            ColumnDef("Reference", "reference"),
-            ColumnDef("Summary", "summary", required=True),
-            ColumnDef("Description", "description"),
-            ColumnDef("Compliance Status", "compliance_status"),
-            ColumnDef("Compliance Comment", "compliance_comment"),
-            ColumnDef("Target Object", "target_object"),
-            ColumnDef("Milestone", "milestone"),
+            Column("ID", "id"),
+            Column("Reference", "reference"),
+            Column("Summary", "summary", required=True),
+            Column("Description", "description"),
+            Column("Compliance Status", "compliance_status"),
+            Column("Compliance Comment", "compliance_comment"),
+            Column("Target Object", "target_object"),
+            Column("Milestone", "milestone"),
         ],
     )
 

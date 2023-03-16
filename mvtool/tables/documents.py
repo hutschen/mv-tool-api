@@ -28,7 +28,7 @@ from mvtool.views.documents import (
 )
 
 from ..models import Document, DocumentInput, DocumentOutput
-from .common import ColumnDef, ColumnsDef
+from .common import Column, ColumnsDef
 from .projects import get_project_columns_def
 
 
@@ -41,10 +41,10 @@ def get_document_only_columns_def() -> ColumnsDef[DocumentImport, Document]:
         DocumentImport,
         "Document",
         [
-            ColumnDef("ID", "id"),
-            ColumnDef("Reference", "reference"),
-            ColumnDef("Title", "title", required=True),
-            ColumnDef("Description", "description"),
+            Column("ID", "id"),
+            Column("Reference", "reference"),
+            Column("Title", "title", required=True),
+            Column("Description", "description"),
         ],
     )
 

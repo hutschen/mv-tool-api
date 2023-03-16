@@ -30,7 +30,7 @@ from ..views.catalog_modules import (
     get_catalog_module_sort,
 )
 from .catalogs import CatalogImport, get_catalog_columns_def
-from .common import ColumnDef, ColumnsDef
+from .common import Column, ColumnsDef
 
 
 class CatalogModuleImport(BaseModel):
@@ -51,10 +51,10 @@ def get_catalog_module_columns_def(
         "Catalog Module",
         [
             catalog_columns_def,
-            ColumnDef("ID", "id"),
-            ColumnDef("Reference", "reference"),
-            ColumnDef("Title", "title", required=True),
-            ColumnDef("Description", "description"),
+            Column("ID", "id"),
+            Column("Reference", "reference"),
+            Column("Title", "title", required=True),
+            Column("Description", "description"),
         ],
     )
 

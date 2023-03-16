@@ -23,7 +23,7 @@ from pydantic import BaseModel
 from ..models import Catalog, CatalogOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.catalogs import CatalogsView, get_catalog_filters, get_catalog_sort
-from .common import ColumnDef, ColumnsDef
+from .common import Column, ColumnsDef
 
 
 class CatalogImport(BaseModel):
@@ -38,10 +38,10 @@ def get_catalog_columns_def() -> ColumnsDef[CatalogImport, Catalog]:
         CatalogImport,
         "Catalog",
         [
-            ColumnDef("ID", "id"),
-            ColumnDef("Reference", "reference"),
-            ColumnDef("Title", "title", required=True),
-            ColumnDef("Description", "description"),
+            Column("ID", "id"),
+            Column("Reference", "reference"),
+            Column("Title", "title", required=True),
+            Column("Description", "description"),
         ],
     )
 

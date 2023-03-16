@@ -37,7 +37,7 @@ class Cell(NamedTuple):
     value: Any
 
 
-class ColumnDef:
+class Column:
     IMPORT_EXPORT = 0
     IMPORT_ONLY = 1
     EXPORT_ONLY = 2
@@ -73,7 +73,7 @@ class ColumnsDef(Generic[I, E]):
         self,
         import_model: type[I],
         label: str,
-        children: "list[ColumnDef | ColumnsDef]",
+        children: "list[Column | ColumnsDef]",
         attr_name: str | None = None,  # must be set if this is a child
     ):
         self.import_model = import_model
@@ -94,11 +94,11 @@ class ColumnsDef(Generic[I, E]):
         return False
 
     @property
-    def children_for_export(self) -> "Generator[ColumnDef | ColumnsDef]":
+    def children_for_export(self) -> "Generator[Column | ColumnsDef]":
         return (c for c in self.children if c.is_export)
 
     @property
-    def children_for_import(self) -> "Generator[ColumnDef | ColumnsDef]":
+    def children_for_import(self) -> "Generator[Column | ColumnsDef]":
         return (c for c in self.children if c.is_import)
 
     @property
@@ -136,12 +136,12 @@ class ColumnsDef(Generic[I, E]):
 
     def import_from_row(self, row: Iterable[Cell]) -> I:
         row = tuple(row)  # make sure we can iterate multiple times
-        column_defs: dict[str, ColumnDef] = {}  # associate cell labels and column defs
+        column_defs: dict[str, Column] = {}  # associate cell labels and column defs
         required_labels: set[str] = set()  # required labels
         columns_defs: list[ColumnsDef] = []  # subordinated columns defs (nodes)
 
         for child in self.children_for_import:
-            if isinstance(child, ColumnDef):
+            if isinstance(child, Column):
                 label = f"{self.label} {child.label}"
                 column_defs[label] = child
                 if child.required:

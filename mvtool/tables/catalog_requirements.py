@@ -31,7 +31,7 @@ from mvtool.views.catalog_requirements import (
 )
 
 from .catalog_modules import CatalogModuleImport, get_catalog_module_columns_def
-from .common import ColumnDef, ColumnsDef
+from .common import Column, ColumnsDef
 
 
 class CatalogRequirementImport(BaseModel):
@@ -54,12 +54,12 @@ def get_catalog_requirement_columns_def(
         "Catalog Requirement",
         [
             catalog_module_columns_def,
-            ColumnDef("ID", "id"),
-            ColumnDef("Reference", "reference"),
-            ColumnDef("Summary", "summary", required=True),
-            ColumnDef("Description", "description"),
-            ColumnDef("GS Absicherung", "gs_absicherung"),
-            ColumnDef("GS Verantwortliche", "gs_verantwortliche"),
+            Column("ID", "id"),
+            Column("Reference", "reference"),
+            Column("Summary", "summary", required=True),
+            Column("Description", "description"),
+            Column("GS Absicherung", "gs_absicherung"),
+            Column("GS Verantwortliche", "gs_verantwortliche"),
         ],
     )
 

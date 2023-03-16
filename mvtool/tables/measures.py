@@ -24,7 +24,7 @@ from ..models import AbstractMeasureInput, Measure, MeasureOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.documents import get_document_filters, get_document_sort
 from ..views.measures import MeasuresView
-from .common import ColumnDef, ColumnsDef
+from .common import Column, ColumnsDef
 from .documents import DocumentImport, get_document_only_columns_def
 from .jira_ import JiraIssueImport, get_jira_issue_columns_def
 from .requirements import RequirementImport, get_requirement_columns_def
@@ -51,17 +51,17 @@ def get_measure_columns_def(
         "Measure",
         [
             requirement_columns_def,
-            ColumnDef("ID", "id"),
-            ColumnDef("Reference", "reference"),
-            ColumnDef("Summary", "summary", required=True),
-            ColumnDef("Description", "description"),
+            Column("ID", "id"),
+            Column("Reference", "reference"),
+            Column("Summary", "summary", required=True),
+            Column("Description", "description"),
             document_only_columns_def,
             jira_issue_columns_def,
-            ColumnDef("Completion Status", "completion_status"),
-            ColumnDef("Completion Comment", "completion_comment"),
-            ColumnDef("Verification Method", "verification_method"),
-            ColumnDef("Verification Status", "verification_status"),
-            ColumnDef("Verification Comment", "verification_comment"),
+            Column("Completion Status", "completion_status"),
+            Column("Completion Comment", "completion_comment"),
+            Column("Verification Method", "verification_method"),
+            Column("Verification Status", "verification_status"),
+            Column("Verification Comment", "verification_comment"),
         ],
     )
 

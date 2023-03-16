@@ -22,7 +22,7 @@ from pydantic import BaseModel
 from ..models import Project, ProjectOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.projects import ProjectsView, get_project_filters, get_project_sort
-from .common import ColumnDef, ColumnsDef
+from .common import Column, ColumnsDef
 from .jira_ import JiraProjectImport, get_jira_project_columns_def
 
 
@@ -42,19 +42,19 @@ def get_project_columns_def(
         ProjectImport,
         "Project",
         [
-            ColumnDef("ID", "id"),
-            ColumnDef("Name", "name", required=True),
-            ColumnDef("Description", "description"),
+            Column("ID", "id"),
+            Column("Name", "name", required=True),
+            Column("Description", "description"),
             jira_project_columns_def,
-            ColumnDef(
+            Column(
                 "Completion Progress",
                 "completion_progress",
-                ColumnDef.EXPORT_ONLY,
+                Column.EXPORT_ONLY,
             ),
-            ColumnDef(
+            Column(
                 "Verification Progress",
                 "verification_progress",
-                ColumnDef.EXPORT_ONLY,
+                Column.EXPORT_ONLY,
             ),
         ],
     )
