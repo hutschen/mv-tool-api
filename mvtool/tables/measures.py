@@ -25,9 +25,9 @@ from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.documents import get_document_filters, get_document_sort
 from ..views.measures import MeasuresView
 from .common import Column, ColumnGroup
-from .documents import DocumentImport, get_document_only_columns_def
-from .jira_ import JiraIssueImport, get_jira_issue_columns_def
-from .requirements import RequirementImport, get_requirement_columns_def
+from .documents import DocumentImport, get_document_only_columns
+from .jira_ import JiraIssueImport, get_jira_issue_columns
+from .requirements import RequirementImport, get_requirement_columns
 
 
 class MeasureImport(AbstractMeasureInput):
@@ -37,26 +37,26 @@ class MeasureImport(AbstractMeasureInput):
     jira_issue: JiraIssueImport | None
 
 
-def get_measure_columns_def(
-    requirement_columns_def: ColumnGroup = Depends(get_requirement_columns_def),
-    document_only_columns_def: ColumnGroup = Depends(get_document_only_columns_def),
-    jira_issue_columns_def: ColumnGroup = Depends(get_jira_issue_columns_def),
+def get_measure_columns(
+    requirement_columns: ColumnGroup = Depends(get_requirement_columns),
+    document_only_columns: ColumnGroup = Depends(get_document_only_columns),
+    jira_issue_columns: ColumnGroup = Depends(get_jira_issue_columns),
 ) -> ColumnGroup[MeasureImport, Measure]:
-    requirement_columns_def.attr_name = "requirement"
-    document_only_columns_def.attr_name = "document"
-    jira_issue_columns_def.attr_name = "jira_issue"
+    requirement_columns.attr_name = "requirement"
+    document_only_columns.attr_name = "document"
+    jira_issue_columns.attr_name = "jira_issue"
 
     return ColumnGroup(
         MeasureImport,
         "Measure",
         [
-            requirement_columns_def,
+            requirement_columns,
             Column("ID", "id"),
             Column("Reference", "reference"),
             Column("Summary", "summary", required=True),
             Column("Description", "description"),
-            document_only_columns_def,
-            jira_issue_columns_def,
+            document_only_columns,
+            jira_issue_columns,
             Column("Completion Status", "completion_status"),
             Column("Completion Comment", "completion_comment"),
             Column("Verification Method", "verification_method"),
@@ -75,15 +75,14 @@ def download_measures_excel(
     where_clauses=Depends(get_document_filters),
     sort_clauses=Depends(get_document_sort),
     hidden_columns: list[str] | None = Query(None),
-    columns_def: ColumnGroup = Depends(get_measure_columns_def),
+    columns: ColumnGroup = Depends(get_measure_columns),
     temp_file=Depends(get_temp_file(".xlsx")),
     sheet_name="Measures",
     filename="measures.xlsx",
 ) -> FileResponse:
-    if hidden_columns:
-        columns_def.hide_columns(hidden_columns)
+    columns.hide_columns(hidden_columns)
     measures = measures_view.list_measures(where_clauses, sort_clauses)
-    df = columns_def.export_to_dataframe(measures)
+    df = columns.export_to_dataframe(measures)
     df.to_excel(temp_file, sheet_name=sheet_name, index=False, engine="openpyxl")
     return FileResponse(temp_file.name, filename=filename)
 
@@ -96,12 +95,12 @@ def download_measures_excel(
 )
 def upload_measures_excel(
     measures_view: MeasuresView = Depends(),
-    columns_def: ColumnGroup = Depends(get_measure_columns_def),
+    columns: ColumnGroup = Depends(get_measure_columns),
     temp_file=Depends(copy_upload_to_temp_file),
     dry_run: bool = False,
 ) -> list[Measure]:
     df = pd.read_excel(temp_file, engine="openpyxl")
-    measure_imports = columns_def.import_from_dataframe(df)
+    measure_imports = columns.import_from_dataframe(df)
     list(measure_imports)
     # TODO: validate measure imports and perform import
     return []

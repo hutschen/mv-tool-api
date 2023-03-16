@@ -29,7 +29,7 @@ from ..views.catalog_modules import (
     get_catalog_module_filters,
     get_catalog_module_sort,
 )
-from .catalogs import CatalogImport, get_catalog_columns_def
+from .catalogs import CatalogImport, get_catalog_columns
 from .common import Column, ColumnGroup
 
 
@@ -41,16 +41,16 @@ class CatalogModuleImport(BaseModel):
     catalog: CatalogImport | None = None
 
 
-def get_catalog_module_columns_def(
-    catalog_columns_def: ColumnGroup = Depends(get_catalog_columns_def),
+def get_catalog_module_columns(
+    catalog_columns: ColumnGroup = Depends(get_catalog_columns),
 ) -> ColumnGroup[CatalogModuleImport, CatalogModule]:
-    catalog_columns_def.attr_name = "catalog"
+    catalog_columns.attr_name = "catalog"
 
     return ColumnGroup(
         CatalogModuleImport,
         "Catalog Module",
         [
-            catalog_columns_def,
+            catalog_columns,
             Column("ID", "id"),
             Column("Reference", "reference"),
             Column("Title", "title", required=True),
@@ -69,7 +69,7 @@ def download_catalog_modules_excel(
     catalog_modules_view: CatalogModulesView = Depends(),
     where_clauses=Depends(get_catalog_module_filters),
     sort_clauses=Depends(get_catalog_module_sort),
-    columns_def: ColumnGroup = Depends(get_catalog_module_columns_def),
+    columns: ColumnGroup = Depends(get_catalog_module_columns),
     temp_file=Depends(get_temp_file(".xlsx")),
     sheet_name="Catalog Modules",
     filename="catalog_modules.xlsx",
@@ -77,7 +77,7 @@ def download_catalog_modules_excel(
     catalog_modules = catalog_modules_view.list_catalog_modules(
         where_clauses, sort_clauses
     )
-    df = columns_def.export_to_dataframe(catalog_modules)
+    df = columns.export_to_dataframe(catalog_modules)
     df.to_excel(temp_file, sheet_name=sheet_name, index=False)
     return FileResponse(temp_file.name, filename=filename)
 
@@ -90,12 +90,12 @@ def download_catalog_modules_excel(
 )
 def upload_catalog_modules_excel(
     catalog_modules_view: CatalogModulesView = Depends(),
-    columns_def: ColumnGroup = Depends(get_catalog_module_columns_def),
+    columns: ColumnGroup = Depends(get_catalog_module_columns),
     temp_file=Depends(copy_upload_to_temp_file),
     dry_run: bool = False,  # don't save to database
 ) -> list[CatalogModuleOutput]:
     df = pd.read_excel(temp_file, engine="openpyxl")
-    catalog_module_imports = columns_def.import_from_dataframe(df)
+    catalog_module_imports = columns.import_from_dataframe(df)
     list(catalog_module_imports)
     # TODO: validate catalog module imports and perform import
     return []

@@ -31,10 +31,10 @@ from ..views.catalog_requirements import (
 from ..views.requirements import RequirementsView
 from .catalog_requirements import (
     CatalogRequirementImport,
-    get_catalog_requirement_columns_def,
+    get_catalog_requirement_columns,
 )
 from .common import Column, ColumnGroup
-from .projects import get_project_columns_def
+from .projects import get_project_columns
 
 
 class RequirementImport(AbstractComplianceInput):
@@ -47,21 +47,19 @@ class RequirementImport(AbstractComplianceInput):
     milestone: str | None
 
 
-def get_requirement_columns_def(
-    catalog_requirement_columns_def: ColumnGroup = Depends(
-        get_catalog_requirement_columns_def
-    ),
-    project_columns_def: ColumnGroup = Depends(get_project_columns_def),
+def get_requirement_columns(
+    catalog_requirement_columns: ColumnGroup = Depends(get_catalog_requirement_columns),
+    project_columns: ColumnGroup = Depends(get_project_columns),
 ) -> ColumnGroup[RequirementImport, Requirement]:
-    catalog_requirement_columns_def.attr_name = "catalog_requirement"
-    project_columns_def.attr_name = "project"
+    catalog_requirement_columns.attr_name = "catalog_requirement"
+    project_columns.attr_name = "project"
 
     return ColumnGroup(
         RequirementImport,
         "Requirement",
         [
-            catalog_requirement_columns_def,
-            project_columns_def,
+            catalog_requirement_columns,
+            project_columns,
             Column("ID", "id"),
             Column("Reference", "reference"),
             Column("Summary", "summary", required=True),
@@ -86,13 +84,13 @@ def download_requirements_excel(
     requirements_view: RequirementsView = Depends(),
     where_clauses=Depends(get_catalog_requirement_filters),
     sort_clauses=Depends(get_catalog_requirement_sort),
-    columns_def: ColumnGroup = Depends(get_requirement_columns_def),
+    columns: ColumnGroup = Depends(get_requirement_columns),
     temp_file: NamedTemporaryFile = Depends(get_temp_file(".xlsx")),
     sheet_name="Requirements",
     filename="requirements.xlsx",
 ) -> FileResponse:
     requirements = requirements_view.list_requirements(where_clauses, sort_clauses)
-    df = columns_def.export_to_dataframe(requirements)
+    df = columns.export_to_dataframe(requirements)
     df.to_excel(temp_file.name, sheet_name=sheet_name, index=False)
     return FileResponse(temp_file.name, filename=filename)
 
@@ -105,12 +103,12 @@ def download_requirements_excel(
 )
 def upload_requirements_excel(
     requirements_view: RequirementsView = Depends(),
-    columns_def: ColumnGroup = Depends(get_requirement_columns_def),
+    columns: ColumnGroup = Depends(get_requirement_columns),
     temp_file: NamedTemporaryFile = Depends(copy_upload_to_temp_file),
     dry_run: bool = False,
 ) -> list[RequirementOutput]:
     df = pd.read_excel(temp_file, engine="openpyxl")
-    requirement_imports = columns_def.import_from_dataframe(df)
+    requirement_imports = columns.import_from_dataframe(df)
     list(requirement_imports)
     # TODO: validate requirements imports and perform import
     return []

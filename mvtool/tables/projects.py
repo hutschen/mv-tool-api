@@ -23,7 +23,7 @@ from ..models import Project, ProjectOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.projects import ProjectsView, get_project_filters, get_project_sort
 from .common import Column, ColumnGroup
-from .jira_ import JiraProjectImport, get_jira_project_columns_def
+from .jira_ import JiraProjectImport, get_jira_project_columns
 
 
 class ProjectImport(BaseModel):
@@ -33,10 +33,10 @@ class ProjectImport(BaseModel):
     jira_project: JiraProjectImport | None = None
 
 
-def get_project_columns_def(
-    jira_project_columns_def: ColumnGroup = Depends(get_jira_project_columns_def),
+def get_project_columns(
+    jira_project_columns: ColumnGroup = Depends(get_jira_project_columns),
 ) -> ColumnGroup[ProjectImport, Project]:
-    jira_project_columns_def.attr_name = "jira_project"
+    jira_project_columns.attr_name = "jira_project"
 
     return ColumnGroup(
         ProjectImport,
@@ -45,7 +45,7 @@ def get_project_columns_def(
             Column("ID", "id"),
             Column("Name", "name", required=True),
             Column("Description", "description"),
-            jira_project_columns_def,
+            jira_project_columns,
             Column(
                 "Completion Progress",
                 "completion_progress",
@@ -68,13 +68,13 @@ def download_projects_excel(
     projects_view: ProjectsView = Depends(),
     where_clauses=Depends(get_project_filters),
     sort_clauses=Depends(get_project_sort),
-    columns_def: ColumnGroup = Depends(get_project_columns_def),
+    columns: ColumnGroup = Depends(get_project_columns),
     temp_file=Depends(get_temp_file(".xlsx")),
     sheet_name="Projects",
     filename="projects.xlsx",
 ) -> FileResponse:
     projects = projects_view.list_projects(where_clauses, sort_clauses)
-    df = columns_def.export_to_dataframe(projects)
+    df = columns.export_to_dataframe(projects)
     df.to_excel(temp_file, sheet_name=sheet_name, index=False, engine="openpyxl")
     return FileResponse(temp_file.name, filename=filename)
 
@@ -87,12 +87,12 @@ def download_projects_excel(
 )
 def upload_projects_excel(
     projects_view: ProjectsView = Depends(),
-    columns_def: ColumnGroup = Depends(get_project_columns_def),
+    columns: ColumnGroup = Depends(get_project_columns),
     temp_file=Depends(copy_upload_to_temp_file),
     dry_run: bool = False,  # don't save to database
 ) -> list[Project]:
     df = pd.read_excel(temp_file, engine="openpyxl")
-    project_imports = columns_def.import_from_dataframe(df)
+    project_imports = columns.import_from_dataframe(df)
     list(project_imports)
     # TODO: validate project imports and perform import
     return []

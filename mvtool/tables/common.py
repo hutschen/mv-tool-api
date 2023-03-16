@@ -181,8 +181,8 @@ class ColumnGroup(Generic[I, E]):
                 raise MissingColumnsError(missing_labels)
 
             # proceed with subordinated column groups (nodes)
-            for columns_def in column_groups:
-                model_kwargs[columns_def.attr_name] = columns_def.import_from_row(row)
+            for column_group in column_groups:
+                model_kwargs[column_group.attr_name] = column_group.import_from_row(row)
 
             return self.import_model(**model_kwargs)  # TODO: handle validation errors
 

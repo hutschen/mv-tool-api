@@ -30,7 +30,7 @@ from mvtool.views.catalog_requirements import (
     get_catalog_requirement_sort,
 )
 
-from .catalog_modules import CatalogModuleImport, get_catalog_module_columns_def
+from .catalog_modules import CatalogModuleImport, get_catalog_module_columns
 from .common import Column, ColumnGroup
 
 
@@ -44,16 +44,16 @@ class CatalogRequirementImport(BaseModel):
     catalog_module: CatalogModuleImport | None = None
 
 
-def get_catalog_requirement_columns_def(
-    catalog_module_columns_def: ColumnGroup = Depends(get_catalog_module_columns_def),
+def get_catalog_requirement_columns(
+    catalog_module_columns: ColumnGroup = Depends(get_catalog_module_columns),
 ) -> ColumnGroup[CatalogRequirementImport, CatalogRequirement]:
-    catalog_module_columns_def.attr_name = "catalog_module"
+    catalog_module_columns.attr_name = "catalog_module"
 
     return ColumnGroup(
         CatalogRequirementImport,
         "Catalog Requirement",
         [
-            catalog_module_columns_def,
+            catalog_module_columns,
             Column("ID", "id"),
             Column("Reference", "reference"),
             Column("Summary", "summary", required=True),
@@ -76,7 +76,7 @@ def download_catalog_requirements_excel(
     catalog_requirements_view: CatalogRequirementsView = Depends(),
     where_clauses=Depends(get_catalog_requirement_filters),
     sort_clauses=Depends(get_catalog_requirement_sort),
-    columns_def: ColumnGroup = Depends(get_catalog_requirement_columns_def),
+    columns: ColumnGroup = Depends(get_catalog_requirement_columns),
     temp_file: NamedTemporaryFile = Depends(get_temp_file(".xlsx")),
     sheet_name="Catalog Requirements",
     filename="catalog_requirements.xlsx",
@@ -84,7 +84,7 @@ def download_catalog_requirements_excel(
     catalog_requirements = catalog_requirements_view.list_catalog_requirements(
         where_clauses, sort_clauses
     )
-    df = columns_def.export_to_dataframe(catalog_requirements)
+    df = columns.export_to_dataframe(catalog_requirements)
     df.to_excel(temp_file.file, sheet_name=sheet_name, index=False)
     return FileResponse(temp_file.name, filename=filename)
 
@@ -97,11 +97,11 @@ def download_catalog_requirements_excel(
 )
 def upload_catalog_requirements_excel(
     catalog_requirements_view: CatalogRequirementsView = Depends(),
-    columns_def: ColumnGroup = Depends(get_catalog_requirement_columns_def),
+    columns: ColumnGroup = Depends(get_catalog_requirement_columns),
     temp_file: NamedTemporaryFile = Depends(copy_upload_to_temp_file),
     dry_run: bool = False,
 ) -> list[CatalogRequirementOutput]:
     df = pd.read_excel(temp_file, engine="openpyxl")
-    catalog_requirement_imports = columns_def.import_from_dataframe(df)
+    catalog_requirement_imports = columns.import_from_dataframe(df)
     list(catalog_requirement_imports)
     return []

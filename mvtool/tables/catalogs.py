@@ -33,7 +33,7 @@ class CatalogImport(BaseModel):
     description: str | None
 
 
-def get_catalog_columns_def() -> ColumnGroup[CatalogImport, Catalog]:
+def get_catalog_columns() -> ColumnGroup[CatalogImport, Catalog]:
     return ColumnGroup(
         CatalogImport,
         "Catalog",
@@ -54,13 +54,13 @@ def download_catalogs_excel(
     catalogs_view: CatalogsView = Depends(),
     where_clauses=Depends(get_catalog_filters),
     sort_clauses=Depends(get_catalog_sort),
-    columns_def: ColumnGroup = Depends(get_catalog_columns_def),
+    columns: ColumnGroup = Depends(get_catalog_columns),
     temp_file=Depends(get_temp_file(".xlsx")),
     sheet_name="Catalogs",
     filename="catalogs.xlsx",
 ) -> FileResponse:
     catalogs = catalogs_view.list_catalogs(where_clauses, sort_clauses)
-    df = columns_def.export_to_dataframe(catalogs)
+    df = columns.export_to_dataframe(catalogs)
     df.to_excel(temp_file, sheet_name=sheet_name, index=False)
     return FileResponse(temp_file.name, filename=filename)
 
@@ -73,12 +73,12 @@ def download_catalogs_excel(
 )
 def upload_catalogs_excel(
     catalogs_view: CatalogsView = Depends(),
-    columns_def: ColumnGroup = Depends(get_catalog_columns_def),
+    columns: ColumnGroup = Depends(get_catalog_columns),
     temp_file=Depends(copy_upload_to_temp_file),
     dry_run: bool = False,  # don't save to database
 ) -> list[Catalog]:
     df = pd.read_excel(temp_file, engine="openpyxl")
-    catalog_imports = columns_def.import_from_dataframe(df)
+    catalog_imports = columns.import_from_dataframe(df)
     list(catalog_imports)
     # TODO: validate catalog imports and perform import
     return []

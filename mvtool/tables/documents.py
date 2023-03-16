@@ -29,14 +29,14 @@ from mvtool.views.documents import (
 
 from ..models import Document, DocumentInput, DocumentOutput
 from .common import Column, ColumnGroup
-from .projects import get_project_columns_def
+from .projects import get_project_columns
 
 
 class DocumentImport(DocumentInput):
     id: int | None = None
 
 
-def get_document_only_columns_def() -> ColumnGroup[DocumentImport, Document]:
+def get_document_only_columns() -> ColumnGroup[DocumentImport, Document]:
     return ColumnGroup(
         DocumentImport,
         "Document",
@@ -49,13 +49,13 @@ def get_document_only_columns_def() -> ColumnGroup[DocumentImport, Document]:
     )
 
 
-def get_document_columns_def(
-    project_columns_def: ColumnGroup = Depends(get_project_columns_def),
-    document_only_columns_def: ColumnGroup = Depends(get_document_only_columns_def),
+def get_document_columns(
+    project_columns: ColumnGroup = Depends(get_project_columns),
+    document_only_columns: ColumnGroup = Depends(get_document_only_columns),
 ) -> ColumnGroup[DocumentImport, Document]:
-    project_columns_def.attr_name = "project"
-    document_only_columns_def.columns.insert(0, project_columns_def)
-    return document_only_columns_def
+    project_columns.attr_name = "project"
+    document_only_columns.columns.insert(0, project_columns)
+    return document_only_columns
 
 
 router = APIRouter()
@@ -66,13 +66,13 @@ def download_documents_excel(
     documents_view: DocumentsView = Depends(),
     where_clauses=Depends(get_document_filters),
     sort_clauses=Depends(get_document_sort),
-    columns_def: ColumnGroup = Depends(get_document_columns_def),
+    columns: ColumnGroup = Depends(get_document_columns),
     temp_file=Depends(get_temp_file(".xlsx")),
     sheet_name="Documents",
     filename="documents.xlsx",
 ) -> FileResponse:
     documents = documents_view.list_documents(where_clauses, sort_clauses)
-    df = columns_def.export_to_dataframe(documents)
+    df = columns.export_to_dataframe(documents)
     df.to_excel(temp_file, sheet_name=sheet_name, index=False, engine="openpyxl")
     return FileResponse(temp_file.name, filename=filename)
 
@@ -85,12 +85,12 @@ def download_documents_excel(
 )
 def upload_documents_excel(
     documents_view: DocumentsView = Depends(),
-    columns_def: ColumnGroup = Depends(get_document_columns_def),
+    columns: ColumnGroup = Depends(get_document_columns),
     temp_file=Depends(copy_upload_to_temp_file),
     dry_run: bool = False,
 ) -> list[Document]:
     df = pd.read_excel(temp_file, engine="openpyxl")
-    document_imports = columns_def.import_from_dataframe(df)
+    document_imports = columns.import_from_dataframe(df)
     list(document_imports)
     # TODO: validate document imports and perform import
     return []

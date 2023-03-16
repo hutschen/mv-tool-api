@@ -26,7 +26,7 @@ class JiraProjectImport(BaseModel):
     key: str
 
 
-def get_jira_project_columns_def() -> ColumnGroup[JiraProjectImport, JiraProject]:
+def get_jira_project_columns() -> ColumnGroup[JiraProjectImport, JiraProject]:
     return ColumnGroup(
         JiraProjectImport,
         "Jira Project",
@@ -42,7 +42,7 @@ class JiraIssueImport(BaseModel):
     key: str
 
 
-def get_jira_issue_columns_def() -> ColumnGroup[JiraIssueImport, JiraIssue]:
+def get_jira_issue_columns() -> ColumnGroup[JiraIssueImport, JiraIssue]:
     return ColumnGroup(
         JiraIssueImport,
         "Jira Issue",
