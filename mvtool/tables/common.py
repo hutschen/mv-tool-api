@@ -27,7 +27,7 @@ from typing import (
 )
 
 import pandas as pd
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from ..utils.errors import ValueHttpError
 
@@ -39,6 +39,25 @@ class MissingColumnsError(ValueHttpError):
     def __init__(self, missing_labels: set[str]) -> None:
         self.missing_labels = missing_labels
         super().__init__(f"Missing columns: {', '.join(missing_labels)}")
+
+
+class RowValidationError(ValueHttpError):
+    def __init__(
+        self, column_group: "ColumnGroup", validation_error: ValidationError
+    ) -> None:
+        columns = {c.attr_name: c for c in column_group.columns if c.attr_name}
+        messages = []
+
+        for error in validation_error.errors():
+            attr_name = error["loc"][0]
+            message = error["msg"]
+            column = columns.get(attr_name, None)
+            if column is not None:
+                messages.append(f'Invalid value in "{column.label}": f{message}')
+            else:
+                messages.append(message)
+
+        super().__init__(messages)
 
 
 class Cell(NamedTuple):
@@ -184,7 +203,10 @@ class ColumnGroup(Generic[I, E]):
             for column_group in column_groups:
                 model_kwargs[column_group.attr_name] = column_group.import_from_row(row)
 
-            return self.import_model(**model_kwargs)  # TODO: handle validation errors
+            try:
+                return self.import_model(**model_kwargs)
+            except ValidationError as e:
+                raise RowValidationError(self, e)
 
     def import_from_dataframe(self, df: pd.DataFrame) -> Iterator[I]:
         lables = df.columns.to_list()
