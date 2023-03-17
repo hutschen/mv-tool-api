@@ -21,43 +21,14 @@ from pydantic import PrivateAttr, confloat, constr, validator
 from sqlmodel import Field, Relationship, Session, SQLModel, func, or_, select
 
 from .common import CommonFieldsMixin
-
-
-class JiraUser(SQLModel):
-    display_name: str
-    email_address: str
-
-
-class JiraProject(SQLModel):
-    id: str
-    key: str
-    name: str
-    url: str
-
-
-class JiraIssueType(SQLModel):
-    id: str
-    name: str
-
-
-class JiraIssueStatus(SQLModel):
-    name: str
-    color_name: str
-    completed: bool
-
-
-class JiraIssueInput(SQLModel):
-    summary: str
-    description: str | None
-    issuetype_id: str
-
-
-class JiraIssue(JiraIssueInput):
-    id: str
-    key: str
-    project_id: str
-    status: JiraIssueStatus
-    url: str
+from .jira_ import (
+    JiraUser,
+    JiraProject,
+    JiraIssueType,
+    JiraIssueStatus,
+    JiraIssueInput,
+    JiraIssue,
+)
 
 
 class AbstractComplianceInput(SQLModel):
