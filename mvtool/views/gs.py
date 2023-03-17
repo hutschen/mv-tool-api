@@ -24,10 +24,10 @@ from fastapi import APIRouter, Depends, UploadFile
 
 from .catalogs import CatalogsView
 from .catalog_modules import CatalogModulesView
-from ..utils import get_temp_file
+from ..utils.temp_file import get_temp_file
 from ..models import CatalogModule, CatalogRequirement
 from ..database import CRUDOperations
-from .. import errors
+from ..utils import errors
 
 
 class ParagraphsWrapper:

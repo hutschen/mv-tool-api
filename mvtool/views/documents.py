@@ -30,7 +30,7 @@ from ..utils.filtering import (
     filter_for_existence,
     search_columns,
 )
-from ..errors import NotFoundError
+from ..utils.errors import NotFoundError
 from ..database import CRUDOperations
 from .projects import ProjectsView
 from ..models import (

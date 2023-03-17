@@ -20,7 +20,7 @@ from unittest.mock import Mock
 import pytest
 from openpyxl import Workbook
 
-from mvtool.utils import get_temp_file
+from mvtool.utils.temp_file import get_temp_file
 from mvtool.views.excel.catalog_modules import (
     CatalogModulesExcelView,
     get_catalog_module_excel_headers,

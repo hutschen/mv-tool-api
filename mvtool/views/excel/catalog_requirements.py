@@ -22,7 +22,7 @@ from tempfile import NamedTemporaryFile
 from typing import Any
 
 from ...models import CatalogRequirement
-from ...utils import get_temp_file
+from ...utils.temp_file import get_temp_file
 from ..catalog_requirements import CatalogRequirementsView
 from ..catalogs import get_catalog_filters, get_catalog_sort
 from .catalog_modules import (

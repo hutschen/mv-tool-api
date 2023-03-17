@@ -29,7 +29,7 @@ from ..utils.filtering import (
     filter_for_existence,
     search_columns,
 )
-from ..errors import NotFoundError
+from ..utils.errors import NotFoundError
 from ..auth import get_jira
 from ..models import Catalog, CatalogInput, CatalogOutput, CatalogRepresentation
 from ..database import CRUDOperations

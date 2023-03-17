@@ -21,12 +21,13 @@ from tempfile import NamedTemporaryFile
 from typing import Collection, Generic, Iterator, TypeVar
 from fastapi import UploadFile
 from fastapi.responses import FileResponse
+import pandas as pd
 from pydantic import BaseModel, constr
 from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl import Workbook, load_workbook
 from openpyxl.worksheet.table import Table
 
-from ... import errors
+from ...utils import errors
 
 
 class IdModel(BaseModel):
@@ -75,31 +76,16 @@ class ExcelView(Generic[T]):
         data: Iterator[T],
         *args,
     ):
-        # Convert data to rows and determine optional headers
-        header_flags = OrderedDict(
-            (h.name, not h.optional) for h in self._write_headers
-        )
-        rows = []
+        df = pd.DataFrame(self._convert_to_row(d, *args) for d in data)
+        df = df.loc[:, df.any()]  # remove empty columns
 
-        for row_data in data:
-            row = self._convert_to_row(row_data, *args)
-            for header_name, header_flag in header_flags.items():
-                if not header_flag and not row[header_name]:
-                    continue
-                header_flags[header_name] = True
-            rows.append(row)
+        # write to worksheet
+        worksheet.append(df.columns.to_list())
+        for row in df.itertuples(index=False):
+            worksheet.append(row)
 
-        # Fill worksheet with data
-        header_names = [h_name for h_name, h_flag in header_flags.items() if h_flag]
-        worksheet.append(header_names)
-        is_empty = True
-        for row in rows:
-            values = [row.get(h_name, "") for h_name in header_names]
-            worksheet.append(values)
-            is_empty = False
-
-        # Add table to worksheet
-        if not is_empty:
+        # add table to worksheet
+        if 0 < len(df):
             table = Table(
                 displayName=worksheet.title, ref=worksheet.calculate_dimension()
             )

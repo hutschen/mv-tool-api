@@ -32,7 +32,7 @@ from ..catalog_modules import (
     get_catalog_module_filters,
     get_catalog_module_sort,
 )
-from ...utils import get_temp_file
+from ...utils.temp_file import get_temp_file
 from ...models import CatalogModule
 
 router = APIRouter()

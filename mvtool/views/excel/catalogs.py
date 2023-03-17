@@ -23,7 +23,7 @@ from fastapi import APIRouter, Depends
 
 from .common import ExcelHeader, ExcelView
 from ..catalogs import CatalogsView, get_catalog_filters, get_catalog_sort
-from ...utils import get_temp_file
+from ...utils.temp_file import get_temp_file
 from ...models import Catalog
 
 router = APIRouter()

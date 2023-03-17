@@ -39,7 +39,7 @@ from mvtool.models import (
     Requirement,
     RequirementInput,
 )
-from mvtool.utils import get_temp_file
+from mvtool.utils.temp_file import get_temp_file
 from mvtool.views.catalog_modules import CatalogModulesView
 from mvtool.views.catalog_requirements import CatalogRequirementsView
 from mvtool.views.catalogs import CatalogsView
