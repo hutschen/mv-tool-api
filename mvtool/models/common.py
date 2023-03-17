@@ -17,6 +17,7 @@
 
 from datetime import datetime
 
+from pydantic import constr, validator
 from sqlmodel import Field, SQLModel
 
 
@@ -27,3 +28,24 @@ class CommonFieldsMixin(SQLModel):
         default_factory=datetime.utcnow,
         sa_column_kwargs=dict(onupdate=datetime.utcnow),
     )
+
+
+class AbstractComplianceInput(SQLModel):
+    compliance_status: constr(regex=r"^(C|PC|NC|N/A)$") | None
+    compliance_comment: str | None
+
+    @classmethod
+    def _dependent_field_validator(
+        cls, dependent_fieldname, fieldname, dependent_value, values: dict
+    ):
+        if not values.get(fieldname, False) and dependent_value:
+            raise ValueError(
+                f"{dependent_fieldname} cannot be set when {fieldname} is not set"
+            )
+        return dependent_value
+
+    @validator("compliance_comment")
+    def compliance_comment_validator(cls, v, values):
+        return cls._dependent_field_validator(
+            "compliance_comment", "compliance_status", v, values
+        )
