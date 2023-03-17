@@ -17,14 +17,27 @@
 
 
 from fastapi import Depends, Query
+
+from ..auth import get_jira
 from .common import ColumnGroup
 
 
 def hide_columns(get_columns: callable) -> callable:
     def handler(
-        hidden_columns: list[str] | None = Query(None), columns=Depends(get_columns)
+        hidden_columns: list[str] | None = Query(None),
+        columns: ColumnGroup = Depends(get_columns),
     ) -> ColumnGroup:
         columns.hide_columns(hidden_columns)
         return columns
+
+    return handler
+
+
+def get_export_labels_handler(get_columns: callable) -> callable:
+    def handler(
+        columns: ColumnGroup = Depends(get_columns),
+        _=Depends(get_jira),  # get jira to enforce login
+    ) -> list[str]:
+        return columns.export_labels
 
     return handler

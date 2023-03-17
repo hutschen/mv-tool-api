@@ -31,7 +31,7 @@ from ..views.catalog_requirements import (
 )
 from .catalog_modules import CatalogModuleImport, get_catalog_module_columns
 from .common import Column, ColumnGroup
-from .handlers import hide_columns
+from .handlers import get_export_labels_handler, hide_columns
 
 
 class CatalogRequirementImport(BaseModel):
@@ -65,6 +65,14 @@ def get_catalog_requirement_columns(
 
 
 router = APIRouter()
+
+
+router.get(
+    "/excel/catalog_requirements/column-names",
+    summary="Get columns names for catalog requirements Excel export",
+    response_model=list[str],
+    **CatalogRequirementsView.kwargs
+)(get_export_labels_handler(get_catalog_requirement_columns))
 
 
 @router.get(

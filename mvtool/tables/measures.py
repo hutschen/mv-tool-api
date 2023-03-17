@@ -26,7 +26,7 @@ from ..views.documents import get_document_filters, get_document_sort
 from ..views.measures import MeasuresView
 from .common import Column, ColumnGroup
 from .documents import DocumentImport, get_document_only_columns
-from .handlers import hide_columns
+from .handlers import get_export_labels_handler, hide_columns
 from .jira_ import JiraIssueImport, get_jira_issue_columns
 from .requirements import RequirementImport, get_requirement_columns
 
@@ -69,6 +69,13 @@ def get_measure_columns(
 
 router = APIRouter()
 
+router.get(
+    "/excel/measures/column-names",
+    summary="Get column names for measures Excel export",
+    response_model=list[str],
+    **MeasuresView.kwargs,
+)(get_export_labels_handler(get_measure_columns))
+
 
 @router.get("/excel/measures", response_class=FileResponse, **MeasuresView.kwargs)
 def download_measures_excel(
@@ -90,7 +97,7 @@ def download_measures_excel(
     "/excel/measures",
     status_code=201,
     response_model=list[MeasureOutput],
-    **MeasuresView.kwargs
+    **MeasuresView.kwargs,
 )
 def upload_measures_excel(
     measures_view: MeasuresView = Depends(),

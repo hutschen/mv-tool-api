@@ -34,7 +34,7 @@ from .catalog_requirements import (
     get_catalog_requirement_columns,
 )
 from .common import Column, ColumnGroup
-from .handlers import hide_columns
+from .handlers import get_export_labels_handler, hide_columns
 from .projects import get_project_columns
 
 
@@ -74,6 +74,13 @@ def get_requirement_columns(
 
 
 router = APIRouter()
+
+router.get(
+    "/excel/requirements/column-names",
+    summary="Get column names for requirements Excel export",
+    response_model=list[str],
+    **RequirementsView.kwargs,
+)(get_export_labels_handler(get_requirement_columns))
 
 
 @router.get(

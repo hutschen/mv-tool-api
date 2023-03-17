@@ -24,7 +24,7 @@ from ..models import Document, DocumentInput, DocumentOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.documents import DocumentsView, get_document_filters, get_document_sort
 from .common import Column, ColumnGroup
-from .handlers import hide_columns
+from .handlers import get_export_labels_handler, hide_columns
 from .projects import get_project_columns
 
 
@@ -55,6 +55,14 @@ def get_document_columns(
 
 
 router = APIRouter()
+
+
+router.get(
+    "/excel/documents/column-names",
+    summary="Get column names for documents Excel export",
+    response_model=list[str],
+    **DocumentsView.kwargs
+)(get_export_labels_handler(get_document_columns))
 
 
 @router.get("/excel/documents", response_class=FileResponse, **DocumentsView.kwargs)

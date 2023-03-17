@@ -24,7 +24,7 @@ from ..models import Catalog, CatalogOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.catalogs import CatalogsView, get_catalog_filters, get_catalog_sort
 from .common import Column, ColumnGroup
-from .handlers import hide_columns
+from .handlers import get_export_labels_handler, hide_columns
 
 
 class CatalogImport(BaseModel):
@@ -48,6 +48,13 @@ def get_catalog_columns() -> ColumnGroup[CatalogImport, Catalog]:
 
 
 router = APIRouter()
+
+router.get(
+    "/excel/catalogs/column-names",
+    summary="Get column names for catalogs Excel export",
+    response_model=list[str],
+    **CatalogsView.kwargs
+)(get_export_labels_handler(get_catalog_columns))
 
 
 @router.get("/excel/catalogs", response_class=FileResponse, **CatalogsView.kwargs)

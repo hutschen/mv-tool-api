@@ -30,7 +30,7 @@ from ..views.catalog_modules import (
 )
 from .catalogs import CatalogImport, get_catalog_columns
 from .common import Column, ColumnGroup
-from .handlers import hide_columns
+from .handlers import get_export_labels_handler, hide_columns
 
 
 class CatalogModuleImport(BaseModel):
@@ -60,6 +60,13 @@ def get_catalog_module_columns(
 
 
 router = APIRouter()
+
+router.get(
+    "/excel/catalog_modules/column-names",
+    summary="Get column names for catalog module Excel export",
+    response_model=list[str],
+    **CatalogModulesView.kwargs,
+)(get_export_labels_handler(get_catalog_module_columns))
 
 
 @router.get(
