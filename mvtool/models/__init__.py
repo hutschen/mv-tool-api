@@ -15,19 +15,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from datetime import datetime
 from typing import Callable
+
 from pydantic import PrivateAttr, confloat, constr, validator
-from sqlmodel import SQLModel, Field, Relationship, Session, select, func, or_
+from sqlmodel import Field, Relationship, Session, SQLModel, func, or_, select
 
-
-class CommonFieldsMixin(SQLModel):
-    id: int = Field(default=None, primary_key=True)
-    created: datetime = Field(default_factory=datetime.utcnow)
-    updated: datetime = Field(
-        default_factory=datetime.utcnow,
-        sa_column_kwargs=dict(onupdate=datetime.utcnow),
-    )
+from .common import CommonFieldsMixin
 
 
 class JiraUser(SQLModel):
