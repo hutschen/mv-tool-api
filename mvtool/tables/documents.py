@@ -16,19 +16,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
-import pandas as pd
-
-from mvtool.utils.temp_file import copy_upload_to_temp_file, get_temp_file
-from mvtool.views.documents import (
-    DocumentsView,
-    get_document_filters,
-    get_document_sort,
-)
 
 from ..models import Document, DocumentInput, DocumentOutput
+from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
+from ..views.documents import DocumentsView, get_document_filters, get_document_sort
 from .common import Column, ColumnGroup
+from .handlers import hide_columns
 from .projects import get_project_columns
 
 
@@ -66,7 +62,7 @@ def download_documents_excel(
     documents_view: DocumentsView = Depends(),
     where_clauses=Depends(get_document_filters),
     sort_clauses=Depends(get_document_sort),
-    columns: ColumnGroup = Depends(get_document_columns),
+    columns: ColumnGroup = Depends(hide_columns(get_document_columns)),
     temp_file=Depends(get_temp_file(".xlsx")),
     sheet_name="Documents",
     filename="documents.xlsx",

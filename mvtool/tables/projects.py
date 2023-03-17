@@ -23,6 +23,7 @@ from ..models import Project, ProjectOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.projects import ProjectsView, get_project_filters, get_project_sort
 from .common import Column, ColumnGroup
+from .handlers import hide_columns
 from .jira_ import JiraProjectImport, get_jira_project_columns
 
 
@@ -68,7 +69,7 @@ def download_projects_excel(
     projects_view: ProjectsView = Depends(),
     where_clauses=Depends(get_project_filters),
     sort_clauses=Depends(get_project_sort),
-    columns: ColumnGroup = Depends(get_project_columns),
+    columns: ColumnGroup = Depends(hide_columns(get_project_columns)),
     temp_file=Depends(get_temp_file(".xlsx")),
     sheet_name="Projects",
     filename="projects.xlsx",

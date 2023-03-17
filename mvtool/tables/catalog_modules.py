@@ -21,9 +21,8 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from mvtool.utils.temp_file import copy_upload_to_temp_file, get_temp_file
-
 from ..models import CatalogModule, CatalogModuleOutput
+from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.catalog_modules import (
     CatalogModulesView,
     get_catalog_module_filters,
@@ -31,6 +30,7 @@ from ..views.catalog_modules import (
 )
 from .catalogs import CatalogImport, get_catalog_columns
 from .common import Column, ColumnGroup
+from .handlers import hide_columns
 
 
 class CatalogModuleImport(BaseModel):
@@ -69,7 +69,7 @@ def download_catalog_modules_excel(
     catalog_modules_view: CatalogModulesView = Depends(),
     where_clauses=Depends(get_catalog_module_filters),
     sort_clauses=Depends(get_catalog_module_sort),
-    columns: ColumnGroup = Depends(get_catalog_module_columns),
+    columns: ColumnGroup = Depends(hide_columns(get_catalog_module_columns)),
     temp_file=Depends(get_temp_file(".xlsx")),
     sheet_name="Catalog Modules",
     filename="catalog_modules.xlsx",

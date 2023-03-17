@@ -34,6 +34,7 @@ from .catalog_requirements import (
     get_catalog_requirement_columns,
 )
 from .common import Column, ColumnGroup
+from .handlers import hide_columns
 from .projects import get_project_columns
 
 
@@ -84,7 +85,7 @@ def download_requirements_excel(
     requirements_view: RequirementsView = Depends(),
     where_clauses=Depends(get_catalog_requirement_filters),
     sort_clauses=Depends(get_catalog_requirement_sort),
-    columns: ColumnGroup = Depends(get_requirement_columns),
+    columns: ColumnGroup = Depends(hide_columns(get_requirement_columns)),
     temp_file: NamedTemporaryFile = Depends(get_temp_file(".xlsx")),
     sheet_name="Requirements",
     filename="requirements.xlsx",

@@ -24,6 +24,7 @@ from ..models import Catalog, CatalogOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.catalogs import CatalogsView, get_catalog_filters, get_catalog_sort
 from .common import Column, ColumnGroup
+from .handlers import hide_columns
 
 
 class CatalogImport(BaseModel):
@@ -54,7 +55,7 @@ def download_catalogs_excel(
     catalogs_view: CatalogsView = Depends(),
     where_clauses=Depends(get_catalog_filters),
     sort_clauses=Depends(get_catalog_sort),
-    columns: ColumnGroup = Depends(get_catalog_columns),
+    columns: ColumnGroup = Depends(hide_columns(get_catalog_columns)),
     temp_file=Depends(get_temp_file(".xlsx")),
     sheet_name="Catalogs",
     filename="catalogs.xlsx",

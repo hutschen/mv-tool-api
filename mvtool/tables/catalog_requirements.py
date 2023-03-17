@@ -22,16 +22,16 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, constr
 
-from mvtool.models import CatalogRequirement, CatalogRequirementOutput
-from mvtool.utils.temp_file import copy_upload_to_temp_file, get_temp_file
-from mvtool.views.catalog_requirements import (
+from ..models import CatalogRequirement, CatalogRequirementOutput
+from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
+from ..views.catalog_requirements import (
     CatalogRequirementsView,
     get_catalog_requirement_filters,
     get_catalog_requirement_sort,
 )
-
 from .catalog_modules import CatalogModuleImport, get_catalog_module_columns
 from .common import Column, ColumnGroup
+from .handlers import hide_columns
 
 
 class CatalogRequirementImport(BaseModel):
@@ -76,7 +76,7 @@ def download_catalog_requirements_excel(
     catalog_requirements_view: CatalogRequirementsView = Depends(),
     where_clauses=Depends(get_catalog_requirement_filters),
     sort_clauses=Depends(get_catalog_requirement_sort),
-    columns: ColumnGroup = Depends(get_catalog_requirement_columns),
+    columns: ColumnGroup = Depends(hide_columns(get_catalog_requirement_columns)),
     temp_file: NamedTemporaryFile = Depends(get_temp_file(".xlsx")),
     sheet_name="Catalog Requirements",
     filename="catalog_requirements.xlsx",

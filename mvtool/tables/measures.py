@@ -17,7 +17,7 @@
 
 
 import pandas as pd
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 
 from ..models import AbstractMeasureInput, Measure, MeasureOutput
@@ -26,6 +26,7 @@ from ..views.documents import get_document_filters, get_document_sort
 from ..views.measures import MeasuresView
 from .common import Column, ColumnGroup
 from .documents import DocumentImport, get_document_only_columns
+from .handlers import hide_columns
 from .jira_ import JiraIssueImport, get_jira_issue_columns
 from .requirements import RequirementImport, get_requirement_columns
 
@@ -74,13 +75,11 @@ def download_measures_excel(
     measures_view: MeasuresView = Depends(),
     where_clauses=Depends(get_document_filters),
     sort_clauses=Depends(get_document_sort),
-    hidden_columns: list[str] | None = Query(None),
-    columns: ColumnGroup = Depends(get_measure_columns),
+    columns: ColumnGroup = Depends(hide_columns(get_measure_columns)),
     temp_file=Depends(get_temp_file(".xlsx")),
     sheet_name="Measures",
     filename="measures.xlsx",
 ) -> FileResponse:
-    columns.hide_columns(hidden_columns)
     measures = measures_view.list_measures(where_clauses, sort_clauses)
     df = columns.export_to_dataframe(measures)
     df.to_excel(temp_file, sheet_name=sheet_name, index=False, engine="openpyxl")
