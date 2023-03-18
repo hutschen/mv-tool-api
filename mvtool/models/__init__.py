@@ -19,13 +19,14 @@ from sqlmodel import SQLModel
 
 from .catalog_modules import (
     CatalogModule,
+    CatalogModuleImport,
     CatalogModuleInput,
     CatalogModuleOutput,
     CatalogModuleRepresentation,
-    CatalogModuleImport,
 )
 from .catalog_requirements import (
     CatalogRequirement,
+    CatalogRequirementImport,
     CatalogRequirementInput,
     CatalogRequirementOutput,
     CatalogRequirementRepresentation,
@@ -77,11 +78,15 @@ MeasureOutput.update_forward_refs(
 RequirementOutput.update_forward_refs(
     ProjectOutput=ProjectOutput, CatalogRequirementOutput=CatalogRequirementOutput
 )
-CatalogRequirementOutput.update_forward_refs(CatalogModuleOutput=CatalogModuleOutput)
 
 # Update forward references for catalog module models
 CatalogModuleImport.update_forward_refs(CatalogImport=CatalogImport)
 CatalogModule.update_forward_refs(Catalog=Catalog)
 CatalogModuleOutput.update_forward_refs(CatalogOutput=CatalogOutput)
+
+# Update forward references for catalog requirement models
+CatalogRequirementImport.update_forward_refs(CatalogModuleImport=CatalogModuleImport)
+CatalogRequirement.update_forward_refs(CatalogModule=CatalogModule)
+CatalogRequirementOutput.update_forward_refs(CatalogModuleOutput=CatalogModuleOutput)
 
 DocumentOutput.update_forward_refs(ProjectOutput=ProjectOutput)

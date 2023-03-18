@@ -25,13 +25,23 @@ from .common import CommonFieldsMixin
 from .requirements import AbstractRequirementInput, Requirement
 
 if TYPE_CHECKING:
-    from .catalog_modules import CatalogModule, CatalogModuleOutput
+    from .catalog_modules import CatalogModule, CatalogModuleImport, CatalogModuleOutput
 
 
 class CatalogRequirementInput(AbstractRequirementInput):
     # Special fields for IT Grundschutz Kompendium
     gs_absicherung: constr(regex=r"^(B|S|H)$") | None
     gs_verantwortliche: str | None
+
+
+class CatalogRequirementImport(SQLModel):
+    id: int | None = None
+    reference: str | None
+    summary: str
+    description: str | None
+    gs_absicherung: constr(regex=r"^(B|S|H)$") | None
+    gs_verantwortliche: str | None
+    catalog_module: "CatalogModuleImport | None" = None
 
 
 class CatalogRequirement(CatalogRequirementInput, CommonFieldsMixin, table=True):
