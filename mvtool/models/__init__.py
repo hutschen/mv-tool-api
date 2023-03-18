@@ -17,7 +17,7 @@
 
 from typing import Callable
 
-from pydantic import PrivateAttr, confloat, constr
+from pydantic import PrivateAttr, confloat
 from sqlmodel import Field, Relationship, Session, SQLModel, func, or_, select
 
 from .common import CommonFieldsMixin, AbstractComplianceInput
@@ -55,20 +55,7 @@ from .catalog_modules import (
     CatalogModuleRepresentation,
     CatalogModuleOutput,
 )
-
-
-class CatalogInput(SQLModel):
-    reference: str | None
-    title: str
-    description: str | None
-
-
-class Catalog(CatalogInput, CommonFieldsMixin, table=True):
-    __tablename__ = "catalog"
-    catalog_modules: list[CatalogModule] = Relationship(
-        back_populates="catalog",
-        sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
-    )
+from .catalogs import CatalogInput, Catalog, CatalogRepresentation, CatalogOutput
 
 
 class DocumentInput(SQLModel):
@@ -158,16 +145,6 @@ class Project(ProjectInput, CommonFieldsMixin, table=True):
         verified = session.execute(verified_query).scalar()
 
         return verified / total if total else None
-
-
-class CatalogRepresentation(SQLModel):
-    id: int
-    reference: str | None
-    title: str
-
-
-class CatalogOutput(CatalogInput):
-    id: int
 
 
 class ProjectRepresentation(SQLModel):
