@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from sqlmodel import SQLModel
+
 from .catalog_modules import (
     CatalogModule,
     CatalogModuleInput,

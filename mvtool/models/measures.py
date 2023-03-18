@@ -17,13 +17,16 @@
 
 
 from typing import TYPE_CHECKING, Callable
+
 from pydantic import PrivateAttr, constr, validator
 from sqlmodel import Field, Relationship, SQLModel
-from mvtool.models.common import AbstractComplianceInput, CommonFieldsMixin
-from mvtool.models.jira_ import JiraIssue
+
+from .common import AbstractComplianceInput, CommonFieldsMixin
+from .jira_ import JiraIssue
 
 if TYPE_CHECKING:
-    from . import Requirement, Document, RequirementOutput, DocumentOutput
+    from .documents import Document, DocumentOutput
+    from .requirements import Requirement, RequirementOutput
 
 
 class AbstractMeasureInput(AbstractComplianceInput):

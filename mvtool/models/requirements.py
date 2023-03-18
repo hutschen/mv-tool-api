@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from typing import TYPE_CHECKING
+
 from pydantic import confloat
 from sqlmodel import Field, Relationship, Session, SQLModel, func, or_, select
 
@@ -23,12 +24,8 @@ from .common import AbstractComplianceInput, CommonFieldsMixin
 from .measures import Measure
 
 if TYPE_CHECKING:
-    from . import (
-        Project,
-        CatalogRequirement,
-        ProjectOutput,
-        CatalogRequirementOutput,
-    )
+    from .catalog_requirements import CatalogRequirement, CatalogRequirementOutput
+    from .projects import Project, ProjectOutput
 
 
 class AbstractRequirementInput(SQLModel):

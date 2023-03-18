@@ -17,13 +17,14 @@
 
 
 from typing import TYPE_CHECKING
+
 from sqlmodel import Field, Relationship, SQLModel
 
 from .common import CommonFieldsMixin
 from .measures import Measure
 
 if TYPE_CHECKING:
-    from . import Project, ProjectOutput
+    from .projects import Project, ProjectOutput
 
 
 class DocumentInput(SQLModel):

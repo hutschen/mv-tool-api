@@ -17,13 +17,15 @@
 
 
 from typing import TYPE_CHECKING
+
 from pydantic import constr
-from sqlmodel import Relationship, Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
+
 from .common import CommonFieldsMixin
 from .requirements import AbstractRequirementInput, Requirement
 
 if TYPE_CHECKING:
-    from . import CatalogModule, CatalogModuleOutput
+    from .catalog_modules import CatalogModule, CatalogModuleOutput
 
 
 class CatalogRequirementInput(AbstractRequirementInput):
