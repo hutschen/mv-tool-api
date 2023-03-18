@@ -38,7 +38,13 @@ from .catalogs import (
     CatalogOutput,
     CatalogRepresentation,
 )
-from .documents import Document, DocumentInput, DocumentOutput, DocumentRepresentation
+from .documents import (
+    Document,
+    DocumentImport,
+    DocumentInput,
+    DocumentOutput,
+    DocumentRepresentation,
+)
 from .jira_ import (
     JiraIssue,
     JiraIssueImport,
@@ -93,5 +99,7 @@ RequirementOutput.update_forward_refs(
     ProjectOutput=ProjectOutput, CatalogRequirementOutput=CatalogRequirementOutput
 )
 
-
+# Update forward references for document models
+DocumentImport.update_forward_refs(ProjectImport=ProjectImport)
+Document.update_forward_refs(Project=Project)
 DocumentOutput.update_forward_refs(ProjectOutput=ProjectOutput)

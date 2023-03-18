@@ -20,16 +20,12 @@ import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 
-from ..models import Document, DocumentInput, DocumentOutput
+from ..models import Document, DocumentImport, DocumentOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.documents import DocumentsView, get_document_filters, get_document_sort
 from .common import Column, ColumnGroup
 from .handlers import get_export_labels_handler, hide_columns
 from .projects import get_project_columns
-
-
-class DocumentImport(DocumentInput):
-    id: int | None = None
 
 
 def get_document_only_columns() -> ColumnGroup[DocumentImport, Document]:

@@ -24,13 +24,18 @@ from .common import CommonFieldsMixin
 from .measures import Measure
 
 if TYPE_CHECKING:
-    from .projects import Project, ProjectOutput
+    from .projects import Project, ProjectImport, ProjectOutput
 
 
 class DocumentInput(SQLModel):
     reference: str | None
     title: str
     description: str | None
+
+
+class DocumentImport(DocumentInput):
+    id: int | None = None
+    project: "ProjectImport | None"
 
 
 class Document(DocumentInput, CommonFieldsMixin, table=True):
