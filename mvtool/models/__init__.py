@@ -29,7 +29,13 @@ from .catalog_requirements import (
     CatalogRequirementOutput,
     CatalogRequirementRepresentation,
 )
-from .catalogs import Catalog, CatalogInput, CatalogOutput, CatalogRepresentation
+from .catalogs import (
+    Catalog,
+    CatalogImport,
+    CatalogInput,
+    CatalogOutput,
+    CatalogRepresentation,
+)
 from .common import AbstractComplianceInput, CommonFieldsMixin
 from .documents import Document, DocumentInput, DocumentOutput, DocumentRepresentation
 from .jira_ import (

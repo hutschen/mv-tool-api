@@ -28,6 +28,13 @@ class CatalogInput(SQLModel):
     description: str | None
 
 
+class CatalogImport(SQLModel):
+    id: int | None = None
+    reference: str | None
+    title: str
+    description: str | None
+
+
 class Catalog(CatalogInput, CommonFieldsMixin, table=True):
     __tablename__ = "catalog"
     catalog_modules: list[CatalogModule] = Relationship(
