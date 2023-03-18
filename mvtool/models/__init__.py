@@ -34,10 +34,12 @@ from .common import AbstractComplianceInput, CommonFieldsMixin
 from .documents import Document, DocumentInput, DocumentOutput, DocumentRepresentation
 from .jira_ import (
     JiraIssue,
+    JiraIssueImport,
     JiraIssueInput,
     JiraIssueStatus,
     JiraIssueType,
     JiraProject,
+    JiraProjectImport,
     JiraUser,
 )
 from .measures import (

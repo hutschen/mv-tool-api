@@ -24,7 +24,11 @@ class JiraUser(SQLModel):
     email_address: str
 
 
-class JiraProject(SQLModel):
+class JiraProjectImport(SQLModel):
+    key: str
+
+
+class JiraProject(JiraProjectImport):
     id: str
     key: str
     name: str
@@ -46,6 +50,10 @@ class JiraIssueInput(SQLModel):
     summary: str
     description: str | None
     issuetype_id: str
+
+
+class JiraIssueImport(SQLModel):
+    key: str
 
 
 class JiraIssue(JiraIssueInput):
