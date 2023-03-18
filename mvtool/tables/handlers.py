@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from typing import Callable
 
 from fastapi import Depends, Query
 
@@ -22,7 +23,7 @@ from ..auth import get_jira
 from .common import ColumnGroup
 
 
-def hide_columns(get_columns: callable) -> callable:
+def hide_columns(get_columns: Callable) -> Callable:
     def handler(
         hidden_columns: list[str] | None = Query(None),
         columns: ColumnGroup = Depends(get_columns),
@@ -33,7 +34,7 @@ def hide_columns(get_columns: callable) -> callable:
     return handler
 
 
-def get_export_labels_handler(get_columns: callable) -> callable:
+def get_export_labels_handler(get_columns: Callable) -> Callable:
     def handler(
         columns: ColumnGroup = Depends(get_columns),
         _=Depends(get_jira),  # get jira to enforce login

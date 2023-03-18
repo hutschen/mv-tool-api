@@ -17,11 +17,12 @@
 
 import shutil
 from tempfile import NamedTemporaryFile
+from typing import Callable
 
 from fastapi import Depends, UploadFile
 
 
-def get_temp_file(suffix: str | None = None) -> callable:
+def get_temp_file(suffix: str | None = None) -> Callable:
     """Creates a callable that returns a context manager which yields a temporary file.
 
     This should be used together with fastapi's Depends() function.

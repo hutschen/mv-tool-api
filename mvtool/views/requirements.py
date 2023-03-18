@@ -15,35 +15,36 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any
+from typing import Any, Callable
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_utils.cbv import cbv
 from pydantic import constr
 from sqlmodel import Column, func, or_, select
 from sqlmodel.sql.expression import Select
 
+from ..database import CRUDOperations
+from ..models import (
+    Catalog,
+    CatalogModule,
+    CatalogRequirement,
+    Project,
+    Requirement,
+    RequirementInput,
+    RequirementOutput,
+    RequirementRepresentation,
+)
 from ..utils import combine_flags
-from ..utils.pagination import Page, page_params
+from ..utils.errors import NotFoundError
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
     search_columns,
 )
-from ..utils.errors import NotFoundError
-from ..database import CRUDOperations
-from .projects import ProjectsView
+from ..utils.pagination import Page, page_params
 from .catalog_requirements import CatalogRequirementsView
-from ..models import (
-    Catalog,
-    CatalogModule,
-    CatalogRequirement,
-    Project,
-    RequirementInput,
-    Requirement,
-    RequirementOutput,
-    RequirementRepresentation,
-)
+from .projects import ProjectsView
 
 router = APIRouter()
 
@@ -479,7 +480,7 @@ def get_requirement_field_names(
     return field_names
 
 
-def _create_requirement_field_values_handler(column: Column) -> callable:
+def _create_requirement_field_values_handler(column: Column) -> Callable:
     def handler(
         where_clauses=Depends(get_requirement_filters),
         local_search: str | None = None,
