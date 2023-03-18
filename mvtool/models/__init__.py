@@ -43,22 +43,12 @@ from .requirements import (
     RequirementRepresentation,
     RequirementOutput,
 )
-
-
-class CatalogRequirementInput(AbstractRequirementInput):
-    # Special fields for IT Grundschutz Kompendium
-    gs_absicherung: constr(regex=r"^(B|S|H)$") | None
-    gs_verantwortliche: str | None
-
-
-class CatalogRequirement(CatalogRequirementInput, CommonFieldsMixin, table=True):
-    __tablename__ = "catalog_requirement"
-    catalog_module_id: int | None = Field(default=None, foreign_key="catalog_module.id")
-    catalog_module: "CatalogModule" = Relationship(
-        back_populates="catalog_requirements",
-        sa_relationship_kwargs=dict(lazy="joined"),
-    )
-    requirements: list[Requirement] = Relationship(back_populates="catalog_requirement")
+from .catalog_requirements import (
+    CatalogRequirementInput,
+    CatalogRequirement,
+    CatalogRequirementRepresentation,
+    CatalogRequirementOutput,
+)
 
 
 class CatalogModuleInput(SQLModel):
@@ -226,24 +216,10 @@ class DocumentOutput(DocumentInput):
     project: ProjectOutput
 
 
-class CatalogRequirementRepresentation(SQLModel):
-    id: int
-    reference: str | None
-    summary: str
-
-
-class CatalogRequirementOutput(CatalogRequirementInput):
-    id: int
-    catalog_module: CatalogModuleOutput
-
-    # Special fields for IT Grundschutz Kompendium
-    gs_absicherung: constr(regex=r"^(B|S|H)$") | None
-    gs_verantwortliche: str | None
-
-
 MeasureOutput.update_forward_refs(
     RequirementOutput=RequirementOutput, DocumentOutput=DocumentOutput
 )
 RequirementOutput.update_forward_refs(
     ProjectOutput=ProjectOutput, CatalogRequirementOutput=CatalogRequirementOutput
 )
+CatalogRequirementOutput.update_forward_refs(CatalogModuleOutput=CatalogModuleOutput)
