@@ -22,6 +22,7 @@ from .catalog_modules import (
     CatalogModuleInput,
     CatalogModuleOutput,
     CatalogModuleRepresentation,
+    CatalogModuleImport,
 )
 from .catalog_requirements import (
     CatalogRequirement,
@@ -77,5 +78,10 @@ RequirementOutput.update_forward_refs(
     ProjectOutput=ProjectOutput, CatalogRequirementOutput=CatalogRequirementOutput
 )
 CatalogRequirementOutput.update_forward_refs(CatalogModuleOutput=CatalogModuleOutput)
+
+# Update forward references for catalog module models
+CatalogModuleImport.update_forward_refs(CatalogImport=CatalogImport)
+CatalogModule.update_forward_refs(Catalog=Catalog)
 CatalogModuleOutput.update_forward_refs(CatalogOutput=CatalogOutput)
+
 DocumentOutput.update_forward_refs(ProjectOutput=ProjectOutput)

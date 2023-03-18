@@ -24,13 +24,21 @@ from .catalog_requirements import CatalogRequirement
 from .common import CommonFieldsMixin
 
 if TYPE_CHECKING:
-    from . import Catalog, CatalogOutput
+    from . import Catalog, CatalogOutput, CatalogImport
 
 
 class CatalogModuleInput(SQLModel):
     reference: str | None
     title: str
     description: str | None
+
+
+class CatalogModuleImport(SQLModel):
+    id: int | None = None
+    reference: str | None
+    title: str
+    description: str | None
+    catalog: "CatalogImport | None" = None
 
 
 class CatalogModule(CatalogModuleInput, CommonFieldsMixin, table=True):
