@@ -20,28 +20,21 @@ from tempfile import NamedTemporaryFile
 import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, constr
 
-from ..models import CatalogRequirement, CatalogRequirementOutput
+from ..models import (
+    CatalogRequirement,
+    CatalogRequirementImport,
+    CatalogRequirementOutput,
+)
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.catalog_requirements import (
     CatalogRequirementsView,
     get_catalog_requirement_filters,
     get_catalog_requirement_sort,
 )
-from .catalog_modules import CatalogModuleImport, get_catalog_module_columns
+from .catalog_modules import get_catalog_module_columns
 from .common import Column, ColumnGroup
 from .handlers import get_export_labels_handler, hide_columns
-
-
-class CatalogRequirementImport(BaseModel):
-    id: int | None = None
-    reference: str | None
-    summary: str
-    description: str | None
-    gs_absicherung: constr(regex=r"^(B|S|H)$") | None
-    gs_verantwortliche: str | None
-    catalog_module: CatalogModuleImport | None = None
 
 
 def get_catalog_requirement_columns(

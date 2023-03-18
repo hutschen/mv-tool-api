@@ -16,14 +16,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from pydantic import BaseModel
-
-from ..models import JiraIssue, JiraProject
+from ..models import JiraIssue, JiraIssueImport, JiraProject, JiraProjectImport
 from .common import Column, ColumnGroup
-
-
-class JiraProjectImport(BaseModel):
-    key: str
 
 
 def get_jira_project_columns() -> ColumnGroup[JiraProjectImport, JiraProject]:
@@ -36,10 +30,6 @@ def get_jira_project_columns() -> ColumnGroup[JiraProjectImport, JiraProject]:
             Column("Link", "url", Column.EXPORT_ONLY),
         ],
     )
-
-
-class JiraIssueImport(BaseModel):
-    key: str
 
 
 def get_jira_issue_columns() -> ColumnGroup[JiraIssueImport, JiraIssue]:

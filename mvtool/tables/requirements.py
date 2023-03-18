@@ -22,30 +22,19 @@ import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 
-from ..models import AbstractComplianceInput, Requirement, RequirementOutput
+from mvtool.models.requirements import RequirementImport
+
+from ..models import Requirement, RequirementOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.catalog_requirements import (
     get_catalog_requirement_filters,
     get_catalog_requirement_sort,
 )
 from ..views.requirements import RequirementsView
-from .catalog_requirements import (
-    CatalogRequirementImport,
-    get_catalog_requirement_columns,
-)
+from .catalog_requirements import get_catalog_requirement_columns
 from .common import Column, ColumnGroup
 from .handlers import get_export_labels_handler, hide_columns
 from .projects import get_project_columns
-
-
-class RequirementImport(AbstractComplianceInput):
-    id: int | None = None
-    reference: str | None
-    summary: str
-    description: str | None
-    catalog_requirement: CatalogRequirementImport | None
-    target_object: str | None
-    milestone: str | None
 
 
 def get_requirement_columns(
