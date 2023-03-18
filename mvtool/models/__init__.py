@@ -56,20 +56,7 @@ from .catalog_modules import (
     CatalogModuleOutput,
 )
 from .catalogs import CatalogInput, Catalog, CatalogRepresentation, CatalogOutput
-
-
-class DocumentInput(SQLModel):
-    reference: str | None
-    title: str
-    description: str | None
-
-
-class Document(DocumentInput, CommonFieldsMixin, table=True):
-    project_id: int | None = Field(default=None, foreign_key="project.id")
-    project: "Project" = Relationship(
-        back_populates="documents", sa_relationship_kwargs=dict(lazy="joined")
-    )
-    measures: list[Measure] = Relationship(back_populates="document")
+from .documents import DocumentInput, Document, DocumentRepresentation, DocumentOutput
 
 
 class ProjectInput(SQLModel):
@@ -159,17 +146,6 @@ class ProjectOutput(ProjectInput):
     verification_progress: confloat(ge=0, le=1) | None
 
 
-class DocumentRepresentation(SQLModel):
-    id: int
-    reference: str | None
-    title: str
-
-
-class DocumentOutput(DocumentInput):
-    id: int
-    project: ProjectOutput
-
-
 MeasureOutput.update_forward_refs(
     RequirementOutput=RequirementOutput, DocumentOutput=DocumentOutput
 )
@@ -178,3 +154,4 @@ RequirementOutput.update_forward_refs(
 )
 CatalogRequirementOutput.update_forward_refs(CatalogModuleOutput=CatalogModuleOutput)
 CatalogModuleOutput.update_forward_refs(CatalogOutput=CatalogOutput)
+DocumentOutput.update_forward_refs(ProjectOutput=ProjectOutput)
