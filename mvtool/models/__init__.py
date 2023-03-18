@@ -38,7 +38,6 @@ from .catalogs import (
     CatalogOutput,
     CatalogRepresentation,
 )
-from .common import AbstractComplianceInput, CommonFieldsMixin
 from .documents import Document, DocumentInput, DocumentOutput, DocumentRepresentation
 from .jira_ import (
     JiraIssue,
@@ -67,6 +66,7 @@ from .projects import (
 from .requirements import (
     AbstractRequirementInput,
     Requirement,
+    RequirementImport,
     RequirementInput,
     RequirementOutput,
     RequirementRepresentation,
@@ -74,9 +74,6 @@ from .requirements import (
 
 MeasureOutput.update_forward_refs(
     RequirementOutput=RequirementOutput, DocumentOutput=DocumentOutput
-)
-RequirementOutput.update_forward_refs(
-    ProjectOutput=ProjectOutput, CatalogRequirementOutput=CatalogRequirementOutput
 )
 
 # Update forward references for catalog module models
@@ -88,5 +85,13 @@ CatalogModuleOutput.update_forward_refs(CatalogOutput=CatalogOutput)
 CatalogRequirementImport.update_forward_refs(CatalogModuleImport=CatalogModuleImport)
 CatalogRequirement.update_forward_refs(CatalogModule=CatalogModule)
 CatalogRequirementOutput.update_forward_refs(CatalogModuleOutput=CatalogModuleOutput)
+
+# Update forward references for requirement models
+RequirementImport.update_forward_refs(CatalogRequirementImport=CatalogRequirementImport)
+Requirement.update_forward_refs(CatalogRequirement=CatalogRequirement)
+RequirementOutput.update_forward_refs(
+    ProjectOutput=ProjectOutput, CatalogRequirementOutput=CatalogRequirementOutput
+)
+
 
 DocumentOutput.update_forward_refs(ProjectOutput=ProjectOutput)

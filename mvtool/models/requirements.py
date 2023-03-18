@@ -24,7 +24,11 @@ from .common import AbstractComplianceInput, CommonFieldsMixin
 from .measures import Measure
 
 if TYPE_CHECKING:
-    from .catalog_requirements import CatalogRequirement, CatalogRequirementOutput
+    from .catalog_requirements import (
+        CatalogRequirement,
+        CatalogRequirementImport,
+        CatalogRequirementOutput,
+    )
     from .projects import Project, ProjectOutput
 
 
@@ -36,6 +40,16 @@ class AbstractRequirementInput(SQLModel):
 
 class RequirementInput(AbstractRequirementInput, AbstractComplianceInput):
     catalog_requirement_id: int | None
+    target_object: str | None
+    milestone: str | None
+
+
+class RequirementImport(AbstractComplianceInput):
+    id: int | None = None
+    reference: str | None
+    summary: str
+    description: str | None
+    catalog_requirement: "CatalogRequirementImport | None"
     target_object: str | None
     milestone: str | None
 
