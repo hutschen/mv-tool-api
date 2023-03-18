@@ -29,7 +29,7 @@ if TYPE_CHECKING:
         CatalogRequirementImport,
         CatalogRequirementOutput,
     )
-    from .projects import Project, ProjectOutput
+    from .projects import Project, ProjectImport, ProjectOutput
 
 
 class AbstractRequirementInput(SQLModel):
@@ -52,6 +52,7 @@ class RequirementImport(AbstractComplianceInput):
     catalog_requirement: "CatalogRequirementImport | None"
     target_object: str | None
     milestone: str | None
+    project: "ProjectImport | None"
 
 
 class Requirement(RequirementInput, CommonFieldsMixin, table=True):

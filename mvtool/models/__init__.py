@@ -93,7 +93,9 @@ CatalogRequirement.update_forward_refs(CatalogModule=CatalogModule)
 CatalogRequirementOutput.update_forward_refs(CatalogModuleOutput=CatalogModuleOutput)
 
 # Update forward references for requirement models
-RequirementImport.update_forward_refs(CatalogRequirementImport=CatalogRequirementImport)
+RequirementImport.update_forward_refs(
+    CatalogRequirementImport=CatalogRequirementImport, ProjectImport=ProjectImport
+)
 Requirement.update_forward_refs(CatalogRequirement=CatalogRequirement)
 RequirementOutput.update_forward_refs(
     ProjectOutput=ProjectOutput, CatalogRequirementOutput=CatalogRequirementOutput
