@@ -49,7 +49,13 @@ from .measures import (
     MeasureOutput,
     MeasureRepresentation,
 )
-from .projects import Project, ProjectInput, ProjectOutput, ProjectRepresentation
+from .projects import (
+    Project,
+    ProjectImport,
+    ProjectInput,
+    ProjectOutput,
+    ProjectRepresentation,
+)
 from .requirements import (
     AbstractRequirementInput,
     Requirement,

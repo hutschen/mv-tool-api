@@ -22,7 +22,7 @@ from sqlmodel import Relationship, Session, SQLModel, func, or_, select
 
 from .common import CommonFieldsMixin
 from .documents import Document
-from .jira_ import JiraProject
+from .jira_ import JiraProject, JiraProjectImport
 from .measures import Measure
 from .requirements import Requirement
 
@@ -31,6 +31,13 @@ class ProjectInput(SQLModel):
     name: str
     description: str | None
     jira_project_id: str | None
+
+
+class ProjectImport(SQLModel):
+    id: int | None = None
+    name: str
+    description: str | None
+    jira_project: JiraProjectImport | None = None
 
 
 class Project(ProjectInput, CommonFieldsMixin, table=True):

@@ -17,21 +17,13 @@
 import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
 
-from ..models import Project, ProjectOutput
+from ..models import Project, ProjectImport, ProjectOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.projects import ProjectsView, get_project_filters, get_project_sort
 from .common import Column, ColumnGroup
 from .handlers import get_export_labels_handler, hide_columns
-from .jira_ import JiraProjectImport, get_jira_project_columns
-
-
-class ProjectImport(BaseModel):
-    id: int | None = None
-    name: str
-    description: str | None
-    jira_project: JiraProjectImport | None = None
+from .jira_ import get_jira_project_columns
 
 
 def get_project_columns(
