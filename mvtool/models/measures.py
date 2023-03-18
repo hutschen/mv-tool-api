@@ -22,11 +22,11 @@ from pydantic import PrivateAttr, constr, validator
 from sqlmodel import Field, Relationship, SQLModel
 
 from .common import AbstractComplianceInput, CommonFieldsMixin
-from .jira_ import JiraIssue
+from .jira_ import JiraIssue, JiraIssueImport
 
 if TYPE_CHECKING:
-    from .documents import Document, DocumentOutput
-    from .requirements import Requirement, RequirementOutput
+    from .documents import Document, DocumentOutput, DocumentImport
+    from .requirements import Requirement, RequirementOutput, RequirementImport
 
 
 class AbstractMeasureInput(AbstractComplianceInput):
@@ -63,6 +63,13 @@ class AbstractMeasureInput(AbstractComplianceInput):
 class MeasureInput(AbstractMeasureInput):
     document_id: int | None
     jira_issue_id: str | None
+
+
+class MeasureImport(AbstractMeasureInput):
+    id: int | None = None
+    requirement: "RequirementImport | None"
+    document: "DocumentImport | None"
+    jira_issue: JiraIssueImport | None
 
 
 class Measure(MeasureInput, CommonFieldsMixin, table=True):

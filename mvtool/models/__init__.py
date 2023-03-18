@@ -58,6 +58,7 @@ from .jira_ import (
 from .measures import (
     AbstractMeasureInput,
     Measure,
+    MeasureImport,
     MeasureInput,
     MeasureOutput,
     MeasureRepresentation,
@@ -76,10 +77,6 @@ from .requirements import (
     RequirementInput,
     RequirementOutput,
     RequirementRepresentation,
-)
-
-MeasureOutput.update_forward_refs(
-    RequirementOutput=RequirementOutput, DocumentOutput=DocumentOutput
 )
 
 # Update forward references for catalog module models
@@ -105,3 +102,12 @@ RequirementOutput.update_forward_refs(
 DocumentImport.update_forward_refs(ProjectImport=ProjectImport)
 Document.update_forward_refs(Project=Project)
 DocumentOutput.update_forward_refs(ProjectOutput=ProjectOutput)
+
+# Update forward references for measure models
+MeasureImport.update_forward_refs(
+    RequirementImport=RequirementImport, DocumentImport=DocumentImport
+)
+Measure.update_forward_refs(Requirement=Requirement, Document=Document)
+MeasureOutput.update_forward_refs(
+    RequirementOutput=RequirementOutput, DocumentOutput=DocumentOutput
+)

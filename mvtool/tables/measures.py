@@ -20,22 +20,15 @@ import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 
-from ..models import AbstractMeasureInput, Measure, MeasureOutput
+from ..models import Measure, MeasureImport, MeasureOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.documents import get_document_filters, get_document_sort
 from ..views.measures import MeasuresView
 from .common import Column, ColumnGroup
-from .documents import DocumentImport, get_document_only_columns
+from .documents import get_document_only_columns
 from .handlers import get_export_labels_handler, hide_columns
-from .jira_ import JiraIssueImport, get_jira_issue_columns
-from .requirements import RequirementImport, get_requirement_columns
-
-
-class MeasureImport(AbstractMeasureInput):
-    id: int | None = None
-    requirement: RequirementImport | None
-    document: DocumentImport | None
-    jira_issue: JiraIssueImport | None
+from .jira_ import get_jira_issue_columns
+from .requirements import get_requirement_columns
 
 
 def get_measure_columns(
