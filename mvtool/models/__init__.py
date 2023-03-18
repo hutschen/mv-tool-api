@@ -17,7 +17,7 @@
 
 from typing import Callable
 
-from pydantic import PrivateAttr, confloat, constr, validator
+from pydantic import PrivateAttr, confloat, constr
 from sqlmodel import Field, Relationship, Session, SQLModel, func, or_, select
 
 from .common import CommonFieldsMixin, AbstractComplianceInput
@@ -36,110 +36,13 @@ from .measures import (
     MeasureRepresentation,
     MeasureOutput,
 )
-
-
-class AbstractRequirementInput(SQLModel):
-    reference: str | None
-    summary: str
-    description: str | None
-
-
-class RequirementInput(AbstractRequirementInput, AbstractComplianceInput):
-    catalog_requirement_id: int | None
-    target_object: str | None
-    milestone: str | None
-
-
-class Requirement(RequirementInput, CommonFieldsMixin, table=True):
-    project_id: int | None = Field(default=None, foreign_key="project.id")
-    project: "Project" = Relationship(
-        back_populates="requirements", sa_relationship_kwargs=dict(lazy="joined")
-    )
-    catalog_requirement_id: int | None = Field(
-        default=None, foreign_key="catalog_requirement.id"
-    )
-    catalog_requirement: "CatalogRequirement" = Relationship(
-        back_populates="requirements", sa_relationship_kwargs=dict(lazy="joined")
-    )
-    measures: list[Measure] = Relationship(
-        back_populates="requirement",
-        sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
-    )
-
-    @property
-    def compliance_status_hint(self):
-        session = Session.object_session(self)
-
-        # get the compliance states of all measures subordinated to this requirement
-        compliance_query = select([Measure.compliance_status]).where(
-            Measure.requirement_id == self.id, Measure.compliance_status != None
-        )
-        compliance_states = session.execute(compliance_query).scalars().all()
-
-        # compute the compliance status hint
-        exists = lambda x: any(x == c in compliance_states for c in compliance_states)
-        every = lambda x: all(x == c for c in compliance_states)
-
-        if exists("C") and not (exists("PC") or exists("NC")):
-            return "C"
-        elif exists("PC") or (exists("C") and exists("NC")):
-            return "PC"
-        elif exists("NC") and not (exists("C") or exists("PC")):
-            return "NC"
-        elif every("N/A") and len(compliance_states) > 0:
-            return "N/A"
-        else:
-            return None
-
-    @property
-    def _compliant_count_query(self):
-        return (
-            select([func.count()])
-            .select_from(Measure)
-            .where(
-                Measure.requirement_id == self.id,
-                or_(
-                    Measure.compliance_status.in_(("C", "PC")),
-                    Measure.compliance_status.is_(None),
-                ),
-            )
-        )
-
-    @property
-    def completion_progress(self) -> float | None:
-        if self.compliance_status not in ("C", "PC", None):
-            return None
-
-        session = Session.object_session(self)
-
-        # get the total number of measures subordinated to this requirement
-        total = session.execute(self._compliant_count_query).scalar()
-
-        # get the number of completed measures subordinated to this requirement
-        completed_query = self._compliant_count_query.where(
-            Measure.completion_status == "completed"
-        )
-        completed = session.execute(completed_query).scalar()
-
-        return completed / total if total else 0.0
-
-    @property
-    def verification_progress(self) -> float | None:
-        if self.compliance_status not in ("C", "PC", None):
-            return None
-
-        session = Session.object_session(self)
-
-        # get the total number of measures subordinated to this requirement
-        total = session.execute(self._compliant_count_query).scalar()
-
-        # get the number of verified measures subordinated to this requirement
-        verified_query = self._compliant_count_query.where(
-            Measure.verification_status == "verified"
-        )
-        verified = session.execute(verified_query).scalar()
-
-        return verified / total if total else 0.0
+from .requirements import (
+    AbstractRequirementInput,
+    RequirementInput,
+    Requirement,
+    RequirementRepresentation,
+    RequirementOutput,
+)
 
 
 class CatalogRequirementInput(AbstractRequirementInput):
@@ -338,25 +241,9 @@ class CatalogRequirementOutput(CatalogRequirementInput):
     gs_verantwortliche: str | None
 
 
-class RequirementRepresentation(SQLModel):
-    id: int
-    reference: str | None
-    summary: str
-
-
-class RequirementOutput(AbstractRequirementInput):
-    id: int
-    project: ProjectOutput
-    catalog_requirement: CatalogRequirementOutput | None
-    target_object: str | None
-    milestone: str | None
-    compliance_status: str | None
-    compliance_status_hint: str | None
-    compliance_comment: str | None
-    completion_progress: confloat(ge=0, le=1) | None
-    verification_progress: confloat(ge=0, le=1) | None
-
-
 MeasureOutput.update_forward_refs(
     RequirementOutput=RequirementOutput, DocumentOutput=DocumentOutput
+)
+RequirementOutput.update_forward_refs(
+    ProjectOutput=ProjectOutput, CatalogRequirementOutput=CatalogRequirementOutput
 )
