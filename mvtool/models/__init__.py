@@ -49,24 +49,12 @@ from .catalog_requirements import (
     CatalogRequirementRepresentation,
     CatalogRequirementOutput,
 )
-
-
-class CatalogModuleInput(SQLModel):
-    reference: str | None
-    title: str
-    description: str | None
-
-
-class CatalogModule(CatalogModuleInput, CommonFieldsMixin, table=True):
-    __tablename__ = "catalog_module"
-    catalog_requirements: list[CatalogRequirement] = Relationship(
-        back_populates="catalog_module",
-        sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
-    )
-    catalog_id: int | None = Field(default=None, foreign_key="catalog.id")
-    catalog: "Catalog" = Relationship(
-        back_populates="catalog_modules", sa_relationship_kwargs=dict(lazy="joined")
-    )
+from .catalog_modules import (
+    CatalogModuleInput,
+    CatalogModule,
+    CatalogModuleRepresentation,
+    CatalogModuleOutput,
+)
 
 
 class CatalogInput(SQLModel):
@@ -182,17 +170,6 @@ class CatalogOutput(CatalogInput):
     id: int
 
 
-class CatalogModuleRepresentation(SQLModel):
-    id: int
-    reference: str | None
-    title: str
-
-
-class CatalogModuleOutput(CatalogModuleInput):
-    id: int
-    catalog: CatalogOutput
-
-
 class ProjectRepresentation(SQLModel):
     id: int
     name: str
@@ -223,3 +200,4 @@ RequirementOutput.update_forward_refs(
     ProjectOutput=ProjectOutput, CatalogRequirementOutput=CatalogRequirementOutput
 )
 CatalogRequirementOutput.update_forward_refs(CatalogModuleOutput=CatalogModuleOutput)
+CatalogModuleOutput.update_forward_refs(CatalogOutput=CatalogOutput)
