@@ -160,9 +160,28 @@ class CatalogsView:
     def bulk_create_patch_catalogs(
         self, catalog_imports: Iterable[CatalogImport], dry_run: bool = False
     ) -> list[Catalog]:
+        """Create and update catalogs in bulk using the provided catalog imports.
+
+        This method processes a collection of catalog imports, separating them into new
+        catalogs to be created and existing catalogs to be updated. It then creates and
+        updates the catalogs accordingly.
+
+        Args:
+            catalog_imports (Iterable[CatalogImport]): An iterable of catalog imports
+                containing the data for creating or updating catalogs.
+            dry_run (bool, optional): If True, the changes are not written to the
+                database, and an empty list is returned. Defaults to False.
+
+        Returns:
+            list[Catalog]: A list of created and updated catalogs.
+
+        Raises:
+            NotFoundError: If a catalog to be updated is not found in the database.
+        """
         # Split catalogs into those to be created and those to be updated
-        patches = [c for c in catalog_imports if c.id is not None]
-        creations = [c for c in catalog_imports if c.id is None]
+        creations, patches = [], []
+        for c in catalog_imports:
+            (creations if c.id is None else patches).append(c)
 
         # Get catalogs to be patched from the database
         ids = [c.id for c in patches]
@@ -170,22 +189,24 @@ class CatalogsView:
             c.id: c for c in (self.list_catalogs([Catalog.id.in_(ids)]) if ids else [])
         }
 
+        # Prepare return value
+        catalogs = []
+
         # Patch outdated catalogs
         for patch in patches:
             catalog = catalogs_to_patch.get(patch.id)
             if catalog is None:
                 raise NotFoundError(f"No catalog with id={patch.id}.")
             self._update_catalog(catalog, patch, exclude={"id"}, exclude_unset=True)
+            catalogs.append(catalog)
 
         # Create new catalogs
-        for creation in creations:
-            self._create_catalog(creation)
+        catalogs.extend(self._create_catalog(c) for c in creations)
 
         # Write changes to the database and return catalogs
         if not dry_run:
             self._session.flush()
-            return self.list_catalogs()
-        return []
+        return catalogs
 
 
 def get_catalog_filters(

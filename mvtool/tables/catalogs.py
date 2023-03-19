@@ -77,8 +77,11 @@ def upload_catalogs_excel(
     temp_file=Depends(copy_upload_to_temp_file),
     dry_run: bool = False,  # don't save to database
 ) -> list[Catalog]:
+    # Create data frame from uploaded file
     df = pd.read_excel(temp_file, engine="openpyxl")
+    df.drop_duplicates(keep="last", inplace=True)
+
+    # Import data frame into database
     catalog_imports = columns.import_from_dataframe(df)
-    list(catalog_imports)
-    # TODO: validate catalog imports and perform import
-    return []
+    catalogs = catalogs_view.bulk_create_patch_catalogs(catalog_imports, dry_run)
+    return [] if dry_run else catalogs
