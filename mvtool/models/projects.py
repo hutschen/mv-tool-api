@@ -20,7 +20,7 @@ from typing import Callable
 from pydantic import PrivateAttr, confloat
 from sqlmodel import Relationship, Session, SQLModel, func, or_, select
 
-from .common import CommonFieldsMixin
+from .common import CommonFieldsMixin, EqualityMixin
 from .documents import Document
 from .jira_ import JiraProject, JiraProjectImport
 from .measures import Measure
@@ -33,7 +33,7 @@ class ProjectInput(SQLModel):
     jira_project_id: str | None
 
 
-class ProjectImport(SQLModel):
+class ProjectImport(EqualityMixin):
     id: int | None = None
     name: str
     description: str | None

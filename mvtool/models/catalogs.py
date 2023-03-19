@@ -19,7 +19,7 @@
 from sqlmodel import Relationship, SQLModel
 
 from .catalog_modules import CatalogModule
-from .common import CommonFieldsMixin
+from .common import CommonFieldsMixin, EqualityMixin
 
 
 class CatalogInput(SQLModel):
@@ -28,7 +28,7 @@ class CatalogInput(SQLModel):
     description: str | None
 
 
-class CatalogImport(SQLModel):
+class CatalogImport(EqualityMixin):
     id: int | None = None
     reference: str | None
     title: str
