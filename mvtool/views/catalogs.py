@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any
+from typing import Any, Iterable
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_utils.cbv import cbv
 from pydantic import constr
@@ -31,7 +31,13 @@ from ..utils.filtering import (
 )
 from ..utils.errors import NotFoundError
 from ..auth import get_jira
-from ..models import Catalog, CatalogInput, CatalogOutput, CatalogRepresentation
+from ..models import (
+    Catalog,
+    CatalogInput,
+    CatalogOutput,
+    CatalogRepresentation,
+    CatalogImport,
+)
 from ..database import CRUDOperations
 
 router = APIRouter()
@@ -137,6 +143,49 @@ class CatalogsView:
     @router.delete("/catalogs/{catalog_id}", status_code=204, **kwargs)
     def delete_catalog(self, catalog_id: int) -> None:
         return self._crud.delete_from_db(Catalog, catalog_id)
+
+    def _update_catalog(
+        self, catalog: Catalog, update: CatalogImport | CatalogInput, **kwargs: Any
+    ) -> None:
+        """Update a catalog with the values from a given update object."""
+        for key, value in update.dict(**kwargs).items():
+            setattr(catalog, key, value)
+
+    def _create_catalog(self, creation: CatalogImport | CatalogInput) -> Catalog:
+        """Create a catalog from a given creation object."""
+        catalog = Catalog.from_orm(creation)
+        self._session.add(catalog)
+        return catalog
+
+    def bulk_create_patch_catalogs(
+        self, catalog_imports: Iterable[CatalogImport], dry_run: bool = False
+    ) -> list[Catalog]:
+        # Split catalogs into those to be created and those to be updated
+        patches = [c for c in catalog_imports if c.id is not None]
+        creations = [c for c in catalog_imports if c.id is None]
+
+        # Get catalogs to be patched from the database
+        ids = [c.id for c in patches]
+        catalogs_to_patch = {
+            c.id: c for c in (self.list_catalogs([Catalog.id.in_(ids)]) if ids else [])
+        }
+
+        # Patch outdated catalogs
+        for patch in patches:
+            catalog = catalogs_to_patch.get(patch.id)
+            if catalog is None:
+                raise NotFoundError(f"No catalog with id={patch.id}.")
+            self._update_catalog(catalog, patch, exclude={"id"}, exclude_unset=True)
+
+        # Create new catalogs
+        for creation in creations:
+            self._create_catalog(creation)
+
+        # Write changes to the database and return catalogs
+        if not dry_run:
+            self._session.flush()
+            return self.list_catalogs()
+        return []
 
 
 def get_catalog_filters(
