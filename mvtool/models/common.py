@@ -78,7 +78,7 @@ class EqualityMixin(SQLModel):
             or the value unchanged.
         """
         if isinstance(value, EqualityMixin):
-            return value.__hash__()
+            return hash(value)
         return value
 
 
