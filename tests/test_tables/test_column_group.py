@@ -30,7 +30,7 @@ class NestedModel(BaseModel):
     field3: str
 
 
-class TestModel(BaseModel):
+class MainModel(BaseModel):
     field1: str
     field2: int
     nested: NestedModel
@@ -47,7 +47,7 @@ def column_group():
         "nested",
     )
     return ColumnGroup(
-        TestModel,
+        MainModel,
         "Group",
         [
             Column("Field 1", "field1", Column.IMPORT_EXPORT, True),
@@ -77,7 +77,7 @@ def test_column_group_import_labels(column_group):
 
 
 def test_column_group_export_to_row(column_group: ColumnGroup):
-    obj = TestModel(field1="A", field2=1, nested=NestedModel(field3="C"))
+    obj = MainModel(field1="A", field2=1, nested=NestedModel(field3="C"))
     exported_row = list(column_group.export_to_row(obj))
     expected_row = [
         Cell("Group Field 1", "A"),
@@ -93,7 +93,7 @@ def test_column_group_import_from_row(column_group: ColumnGroup):
         Cell("Group Field 2", 1),
         Cell("Nested Field 3", "C"),
     ]
-    imported_obj: TestModel = column_group.import_from_row(row)
+    imported_obj: MainModel = column_group.import_from_row(row)
     assert imported_obj.field1 == "A"
     assert imported_obj.field2 == 1
     assert imported_obj.nested.field3 == "C"
@@ -117,8 +117,8 @@ def test_column_group_import_from_row_validation_error(column_group):
 
 def test_column_group_export_to_dataframe(column_group: ColumnGroup):
     objs = [
-        TestModel(field1="A", field2=1, nested=NestedModel(field3="C")),
-        TestModel(field1="D", field2=3, nested=NestedModel(field3="F")),
+        MainModel(field1="A", field2=1, nested=NestedModel(field3="C")),
+        MainModel(field1="D", field2=3, nested=NestedModel(field3="F")),
     ]
     df = column_group.export_to_dataframe(objs)
     expected_df = pd.DataFrame(
@@ -139,7 +139,7 @@ def test_column_group_import_from_dataframe(column_group: ColumnGroup):
             "Nested Field 3": ["C", "F"],
         }
     )
-    imported_objs: list[TestModel] = list(column_group.import_from_dataframe(df))
+    imported_objs: list[MainModel] = list(column_group.import_from_dataframe(df))
     assert len(imported_objs) == 2
     assert imported_objs[0].field1 == "A"
     assert imported_objs[0].field2 == 1
