@@ -120,11 +120,6 @@ class CatalogsView:
         )
         return self._session.execute(query).scalar()
 
-    @router.post("/catalogs", status_code=201, response_model=CatalogOutput, **kwargs)
-    def create_catalog(self, catalog_input: CatalogInput) -> Catalog:
-        catalog = Catalog.from_orm(catalog_input)
-        return self._crud.create_in_db(catalog)
-
     @router.get("/catalogs/{catalog_id}", response_model=CatalogOutput, **kwargs)
     def get_catalog(self, catalog_id: int) -> Catalog:
         return self._crud.read_from_db(Catalog, catalog_id)
@@ -151,10 +146,16 @@ class CatalogsView:
         for key, value in update.dict(**kwargs).items():
             setattr(catalog, key, value)
 
-    def _create_catalog(self, creation: CatalogImport | CatalogInput) -> Catalog:
+    def create_catalog(
+        self, creation: CatalogImport | CatalogInput, skip_flush: bool = False
+    ) -> Catalog:
         """Create a catalog from a given creation object."""
+        if isinstance(creation, CatalogImport):
+            creation.id = None
         catalog = Catalog.from_orm(creation)
         self._session.add(catalog)
+        if not skip_flush:
+            self._session.flush()
         return catalog
 
     def bulk_create_patch_catalogs(
@@ -201,7 +202,7 @@ class CatalogsView:
             catalogs.append(catalog)
 
         # Create new catalogs
-        catalogs.extend(self._create_catalog(c) for c in creations)
+        catalogs.extend(self.create_catalog(c) for c in creations)
 
         # Write changes to the database and return catalogs
         if not dry_run:
@@ -311,6 +312,16 @@ def get_catalogs(
         return Page[CatalogOutput](items=catalogs, total_count=catalogs_count)
     else:
         return catalogs
+
+
+@router.post(
+    "/catalogs", status_code=201, response_model=CatalogOutput, **CatalogsView.kwargs
+)
+def create_catalog(
+    catalog: CatalogInput,
+    catalogs_view: CatalogsView = Depends(),
+) -> Catalog:
+    return catalogs_view.create_catalog(catalog)
 
 
 @router.get(
