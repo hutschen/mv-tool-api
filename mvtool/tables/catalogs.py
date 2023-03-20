@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from typing import Iterable, Iterator
 import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
@@ -83,5 +84,9 @@ def upload_catalogs_excel(
 
     # Import data frame into database
     catalog_imports = columns.import_from_dataframe(df)
-    catalogs = catalogs_view.bulk_create_patch_catalogs(catalog_imports, dry_run)
+    catalogs = list(
+        catalogs_view.bulk_create_update_catalogs(
+            catalog_imports, patch=True, skip_flush=dry_run
+        )
+    )
     return [] if dry_run else catalogs
