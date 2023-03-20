@@ -313,7 +313,7 @@ class ColumnGroup(Generic[I, E]):
                 existing_labels.add(cell.label)
                 model_kwargs[column.attr_name] = cell.value
 
-        if model_kwargs:
+        if model_kwargs and not all(v is None for v in model_kwargs.values()):
             # check if all required labels (columns) are present
             missing_labels = required_labels - existing_labels
             if missing_labels:
@@ -328,17 +328,22 @@ class ColumnGroup(Generic[I, E]):
             except ValidationError as e:
                 raise RowValidationError(self, e)
 
-    def import_from_dataframe(self, df: pd.DataFrame) -> Iterator[I]:
-        """Import data from a Pandas DataFrame using the import columns of the column group and create instances of the import model.
+    def import_from_dataframe(self, df: pd.DataFrame, skip_nan=True) -> Iterator[I]:
+        """Import data from a Pandas DataFrame using the import columns of the column
+        group and create instances of the import model.
 
         Args:
             df (pd.DataFrame): A Pandas DataFrame containing the data to import.
+            skip_nan (bool, optional): Ignore cells with NaN values. Defaults to True.
 
         Returns:
             Iterator[I]: An iterator of instances of the import model.
         """
         lables = df.columns.to_list()
         for values in df.itertuples(index=False):
-            yield self.import_from_row(
-                Cell(l, v) for l, v in zip(lables, values) if not pd.isna(v)
-            )
+            l_v = zip(lables, values)
+            if skip_nan:
+                row = (Cell(l, v) for l, v in l_v if not pd.isna(v))
+            else:
+                row = (Cell(l, (None if pd.isna(v) else v)) for l, v in l_v)
+            yield self.import_from_row(row)
