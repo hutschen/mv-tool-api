@@ -158,6 +158,15 @@ class CatalogsView:
             self._session.flush()
         return catalog
 
+    def bulk_create_catalogs(
+        self,
+        creations: Iterable[CatalogImport | CatalogInput],
+        skip_flush: bool = False,
+    ) -> Iterable[Catalog]:
+        yield from (self.create_catalog(c, skip_flush) for c in creations)
+        if not skip_flush:
+            self._session.flush()
+
     def bulk_create_patch_catalogs(
         self, catalog_imports: Iterable[CatalogImport], dry_run: bool = False
     ) -> list[Catalog]:
