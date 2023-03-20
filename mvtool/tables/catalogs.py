@@ -76,6 +76,7 @@ def upload_catalogs_excel(
     catalogs_view: CatalogsView = Depends(),
     columns: ColumnGroup = Depends(get_catalog_columns),
     temp_file=Depends(copy_upload_to_temp_file),
+    skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
 ) -> list[Catalog]:
     # Create data frame from uploaded file
@@ -83,7 +84,7 @@ def upload_catalogs_excel(
     df.drop_duplicates(keep="last", inplace=True)
 
     # Import data frame into database
-    catalog_imports = columns.import_from_dataframe(df)
+    catalog_imports = columns.import_from_dataframe(df, skip_nan=skip_blanks)
     catalogs = list(
         catalogs_view.bulk_create_update_catalogs(
             catalog_imports, patch=True, skip_flush=dry_run
