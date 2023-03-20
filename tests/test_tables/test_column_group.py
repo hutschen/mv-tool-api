@@ -15,8 +15,8 @@
 
 import pandas as pd
 import pytest
-from pydantic import BaseModel
 
+from mvtool.models.common import EqualityMixin
 from mvtool.tables.common import (
     Cell,
     Column,
@@ -26,11 +26,11 @@ from mvtool.tables.common import (
 )
 
 
-class NestedModel(BaseModel):
+class NestedModel(EqualityMixin):
     field3: str
 
 
-class MainModel(BaseModel):
+class MainModel(EqualityMixin):
     field1: str
     field2: int
     nested: NestedModel
