@@ -15,20 +15,22 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Iterable
+from typing import Generic, Iterable, Iterator, TypeVar
+
+T = TypeVar("T")
 
 
-class CachedIterable:
+class CachedIterable(Generic[T]):
     """A caching iterable that allows multiple iterations over any iterable.
     The first iteration caches the elements, and subsequent iterations
     use the cached elements.
     """
 
-    def __init__(self, iterable: Iterable):
+    def __init__(self, iterable: Iterable[T]):
         self.iterable = iter(iterable)
         self.cache = []
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[T]:
         for item in self.cache:
             yield item
 
