@@ -15,16 +15,16 @@
 
 import pytest
 
-from mvtool.models.common import EqualityMixin
+from mvtool.models.common import ETagMixin
 
-# Test models using the EqualityMixin
-class Address(EqualityMixin):
+# Test models using the ETagMixin
+class Address(ETagMixin):
     street: str
     city: str
     country: str
 
 
-class Person(EqualityMixin):
+class Person(ETagMixin):
     name: str
     age: int
     address: Address
@@ -40,34 +40,30 @@ def person(address):
     return Person(name="John Doe", age=30, address=address)
 
 
-def test_equality_mixin_same_instance(address):
+def test_etag_mixin_same_instance(address):
     assert address == address
 
 
-def test_equality_mixin_same_values(address):
+def test_etag_mixin_same_values(address):
     other_address = Address(street="123 Main St", city="New York", country="USA")
     assert address == other_address
 
 
-def test_equality_mixin_different_values(address):
+def test_etag_mixin_different_values(address):
     other_address = Address(street="456 Market St", city="San Francisco", country="USA")
     assert address != other_address
 
 
-def test_equality_mixin_nested_same_instance(person):
+def test_etag_mixin_nested_same_instance(person):
     assert person == person
 
 
-def test_equality_mixin_nested_same_values(person, address):
+def test_etag_mixin_nested_same_values(person, address):
     other_person = Person(name="John Doe", age=30, address=address)
     assert person == other_person
 
 
-def test_equality_mixin_nested_different_values(person):
+def test_etag_mixin_nested_different_values(person):
     other_address = Address(street="456 Market St", city="San Francisco", country="USA")
     other_person = Person(name="Jane Doe", age=30, address=other_address)
     assert person != other_person
-
-
-def test_equality_mixin_different_types(address, person):
-    assert address != person

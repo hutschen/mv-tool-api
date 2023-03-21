@@ -18,7 +18,7 @@
 
 from sqlmodel import SQLModel
 
-from mvtool.models.common import EqualityMixin
+from mvtool.models.common import ETagMixin
 
 
 class JiraUser(SQLModel):
@@ -26,7 +26,7 @@ class JiraUser(SQLModel):
     email_address: str
 
 
-class JiraProjectImport(EqualityMixin):
+class JiraProjectImport(ETagMixin):
     key: str
 
 
@@ -54,7 +54,7 @@ class JiraIssueInput(SQLModel):
     issuetype_id: str
 
 
-class JiraIssueImport(EqualityMixin):
+class JiraIssueImport(ETagMixin):
     key: str
 
 

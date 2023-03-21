@@ -15,11 +15,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from mvtool.models.common import EqualityMixin
+from mvtool.models.common import ETagMixin
 from mvtool.tables.caching import ModelsCache
 
 
-class Model(EqualityMixin):
+class Model(ETagMixin):
     field1: str
     field2: int
 

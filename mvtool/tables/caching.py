@@ -15,31 +15,29 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from ..models.common import EqualityMixin
+from ..models.common import ETagMixin
 
 
 class ModelsCache:
-    """A cache for instances of a single model derived from the EqualityMixin class.
+    """A cache for instances of a single model derived from the ETagMixin class.
 
     The ModelsCache class provides a factory method `get_or_create` that takes the
     constructor arguments for a single model class as input. If an instance with the
     same values has already been created, it returns the cached instance. Otherwise, it
     creates a new instance, stores it in the cache, and returns it.
 
-    The cache relies on the __eq__ and __hash__ methods provided by the EqualityMixin
+    The cache relies on the __eq__ and etag methods provided by the EtagMixin
     class to determine if two instances are equal.
 
     Attributes:
-        _cache (Dict[int, EqualityMixin]): A dictionary storing the cached instances.
-        model_class (Type[EqualityMixin]): The class of the model to be cached, derived
-        from EqualityMixin.
+        _cache (Dict[int, ETagMixin]): A dictionary storing the cached instances.
+        model_class (Type[ETagMixin]): The class of the model to be cached, derived
+        from ETagMixin.
     """
 
     def __init__(self, model_class):
-        if not issubclass(model_class, EqualityMixin):
-            raise ValueError(
-                f"{model_class.__name__} must be a subclass of EqualityMixin"
-            )
+        if not issubclass(model_class, ETagMixin):
+            raise ValueError(f"{model_class.__name__} must be a subclass of ETagMixin.")
 
         self._cache = {}
         self.model_class = model_class
@@ -53,7 +51,7 @@ class ModelsCache:
         """
         return len(self._cache)
 
-    def get_or_create(self, *args, **kwargs) -> EqualityMixin:
+    def get_or_create(self, *args, **kwargs) -> ETagMixin:
         """Retrieve an existing instance of a model from the cache or create and cache a
         new one.
 
@@ -62,17 +60,17 @@ class ModelsCache:
             **kwargs: The keyword arguments to pass to the model's constructor.
 
         Returns:
-            EqualityMixin: The cached or newly created instance of the model.
+            ETagMixin: The cached or newly created instance of the model.
         """
         instance = self.model_class(*args, **kwargs)
 
-        # Check if an instance with the same hash value already exists in the cache
-        instance_hash = hash(instance)
-        cached_instance = self._cache.get(instance_hash, None)
+        # Check if an instance with the same etag already exists in the cache
+        etag = instance.etag
+        cached_instance = self._cache.get(etag, None)
         if cached_instance is not None:
             return cached_instance
         else:
-            self._cache[instance_hash] = instance
+            self._cache[etag] = instance
             return instance
 
     def clear(self):

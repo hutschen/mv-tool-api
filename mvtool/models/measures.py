@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Callable
 from pydantic import PrivateAttr, constr, validator
 from sqlmodel import Field, Relationship, SQLModel
 
-from .common import AbstractComplianceInput, CommonFieldsMixin, EqualityMixin
+from .common import AbstractComplianceInput, CommonFieldsMixin, ETagMixin
 from .jira_ import JiraIssue, JiraIssueImport
 
 if TYPE_CHECKING:
@@ -65,7 +65,7 @@ class MeasureInput(AbstractMeasureInput):
     jira_issue_id: str | None
 
 
-class MeasureImport(EqualityMixin, AbstractMeasureInput):
+class MeasureImport(ETagMixin, AbstractMeasureInput):
     id: int | None = None
     requirement: "RequirementImport | None"
     document: "DocumentImport | None"

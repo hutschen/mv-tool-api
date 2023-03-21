@@ -16,9 +16,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from datetime import datetime
+from hashlib import md5
 from typing import Any
 
-from pydantic import constr, validator
+from pydantic import BaseModel, constr, validator
 from sqlmodel import Field, SQLModel
 
 
@@ -31,55 +32,14 @@ class CommonFieldsMixin(SQLModel):
     )
 
 
-class EqualityMixin(SQLModel):
-    """A mixin class for Pydantic models that adds hash and equality functionality.
-
-    This mixin provides `__hash__` and `__eq__` methods that allow for comparing
-    Pydantic models based on their field values, including nested Pydantic models. It is
-    intended to be used with Pydantic models that inherit from SQLModel.
-
-    Note: Do not use this mixin with models that have fields like `list` or `dict`
-    because this mutable types are not hashable.
-    """
-
-    def __hash__(self):
-        """Calculate the hash value of a Pydantic model based on its field values.
-
-        Returns:
-            int: The hash value of the model.
-        """
-        return hash(
-            tuple(
-                self.__hash_nested(getattr(self, name))
-                for name in sorted(self.__fields__.keys())
-            )
-        )
+class ETagMixin(BaseModel):
+    @property
+    def etag(self) -> str:
+        model_json = self.json(sort_keys=True, ensure_ascii=False).encode("utf-8")
+        return md5(model_json).hexdigest()
 
     def __eq__(self, other: Any):
-        """Compare the equality of two Pydantic models based on their field values.
-
-        Args:
-            other (Any): The object to compare with this model.
-
-        Returns:
-            bool: True if the models are instances of the same class and have equal
-            field values, False otherwise.
-        """
-        return isinstance(other, self.__class__) and self.__hash__() == other.__hash__()
-
-    def __hash_nested(self, value):
-        """Helper method to calculate the hash value of a nested model.
-
-        Args:
-            value (Any): The field value.
-
-        Returns:
-            Any: The hash value of the field value if it is an instance of HashEqMixin,
-            or the value unchanged.
-        """
-        if isinstance(value, EqualityMixin):
-            return hash(value)
-        return value
+        return isinstance(other, self.__class__) and self.etag == other.etag
 
 
 class AbstractComplianceInput(SQLModel):

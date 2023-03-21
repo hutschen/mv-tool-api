@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 from pydantic import constr
 from sqlmodel import Field, Relationship, SQLModel
 
-from .common import CommonFieldsMixin, EqualityMixin
+from .common import CommonFieldsMixin, ETagMixin
 from .requirements import AbstractRequirementInput, Requirement
 
 if TYPE_CHECKING:
@@ -34,7 +34,7 @@ class CatalogRequirementInput(AbstractRequirementInput):
     gs_verantwortliche: str | None
 
 
-class CatalogRequirementImport(EqualityMixin):
+class CatalogRequirementImport(ETagMixin):
     id: int | None = None
     reference: str | None
     summary: str

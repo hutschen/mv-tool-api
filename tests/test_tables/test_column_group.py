@@ -16,7 +16,7 @@
 import pandas as pd
 import pytest
 
-from mvtool.models.common import EqualityMixin
+from mvtool.models.common import ETagMixin
 from mvtool.tables.common import (
     Cell,
     Column,
@@ -26,11 +26,11 @@ from mvtool.tables.common import (
 )
 
 
-class NestedModel(EqualityMixin):
+class NestedModel(ETagMixin):
     field3: str
 
 
-class MainModel(EqualityMixin):
+class MainModel(ETagMixin):
     field1: str
     field2: int
     nested: NestedModel

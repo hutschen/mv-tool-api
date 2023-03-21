@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 from sqlmodel import Field, Relationship, SQLModel
 
 from .catalog_requirements import CatalogRequirement
-from .common import CommonFieldsMixin, EqualityMixin
+from .common import CommonFieldsMixin, ETagMixin
 
 if TYPE_CHECKING:
     from . import Catalog, CatalogOutput, CatalogImport
@@ -33,7 +33,7 @@ class CatalogModuleInput(SQLModel):
     description: str | None
 
 
-class CatalogModuleImport(EqualityMixin):
+class CatalogModuleImport(ETagMixin):
     id: int | None = None
     reference: str | None
     title: str
