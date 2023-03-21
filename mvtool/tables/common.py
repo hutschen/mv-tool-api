@@ -29,9 +29,9 @@ from typing import (
 import pandas as pd
 from pydantic import BaseModel, ValidationError
 
-from mvtool.tables.caching import ModelsCache
-
 from ..utils.errors import ValueHttpError
+from ..utils.iteration import CachedIterable
+from .caching import ModelsCache
 
 E = TypeVar("E", bound=BaseModel)  # Export model
 I = TypeVar("I", bound=BaseModel)  # Import model
@@ -290,7 +290,7 @@ class ColumnGroup(Generic[I, E]):
             MissingColumnsError: If there are any missing required columns in the row.
             RowValidationError: If there is a validation error while creating the import model instance.
         """
-        row = tuple(row)  # make sure we can iterate multiple times
+        row = CachedIterable(row)  # make sure we can iterate multiple times
         columns: dict[str, Column] = {}  # associate cell labels and columns
         required_labels: set[str] = set()  # required labels
         column_groups: list[ColumnGroup] = []  # subordinated columns groups (nodes)
