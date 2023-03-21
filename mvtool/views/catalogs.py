@@ -15,30 +15,32 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any, Generator, Iterable, Iterator
+from typing import Any, Iterable, Iterator
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_utils.cbv import cbv
 from pydantic import constr
 from sqlmodel import Column, func, or_, select
 from sqlmodel.sql.expression import Select
 
-from ..utils.pagination import Page, page_params
+from ..auth import get_jira
+from ..database import CRUDOperations
+from ..models import (
+    Catalog,
+    CatalogImport,
+    CatalogInput,
+    CatalogOutput,
+    CatalogRepresentation,
+)
+from ..utils.errors import NotFoundError
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
     search_columns,
 )
-from ..utils.errors import NotFoundError
-from ..auth import get_jira
-from ..models import (
-    Catalog,
-    CatalogInput,
-    CatalogOutput,
-    CatalogRepresentation,
-    CatalogImport,
-)
-from ..database import CRUDOperations
+from ..utils.iteration import CachedIterable
+from ..utils.pagination import Page, page_params
 
 router = APIRouter()
 
@@ -161,26 +163,13 @@ class CatalogsView:
             self._session.flush()
         return catalog
 
-    def bulk_create_catalogs(
-        self,
-        creations: Iterable[CatalogImport | CatalogInput],
-        skip_flush: bool = False,
-    ) -> Iterator[Catalog]:
-        yield from (self.create_catalog(c, skip_flush) for c in creations)
-        if not skip_flush:
-            self._session.flush()
-
     def bulk_create_update_catalogs(
         self,
         catalog_imports: Iterable[CatalogImport],
         patch: bool,
         skip_flush: bool = False,
     ) -> Iterator[Catalog]:
-        """Create and update catalogs in bulk using the provided catalog imports.
-
-        This method processes a collection of catalog imports, separating them into new
-        catalogs to be created and existing catalogs to be updated. It then creates and
-        updates the catalogs accordingly.
+        """Create or update catalogs in bulk using the provided catalog imports.
 
         Args:
             catalog_imports (Iterable[CatalogImport]): An iterable of catalog imports
@@ -191,32 +180,32 @@ class CatalogsView:
                 database, and an empty list is returned. Defaults to False.
 
         Returns:
-            list[Catalog]: A list of created and updated catalogs.
+            Iterator[Catalog]: An iterator over the catalogs that were created or
+                updated.
 
         Raises:
             NotFoundError: If a catalog to be updated is not found in the database.
         """
-        # Split catalogs into those to be created and those to be updated
-        creations, updates = [], []
-        for c in catalog_imports:
-            (creations if c.id is None else updates).append(c)
-
-        # Create new catalogs
-        yield from self.bulk_create_catalogs(creations, skip_flush=True)
+        catalog_imports = CachedIterable(catalog_imports)
 
         # Get catalogs to be updated from the database
-        ids = [c.id for c in updates]
+        ids = [c.id for c in catalog_imports if c.id is not None]
         catalogs_to_update = {
             c.id: c for c in (self.list_catalogs([Catalog.id.in_(ids)]) if ids else [])
         }
 
         # Update catalogs
-        for update in updates:
-            catalog = catalogs_to_update.get(update.id, None)
-            if catalog is None:
-                raise NotFoundError(f"No catalog with id={update.id}.")
-            self.merge_catalog(catalog, update, patch=patch)
-            yield catalog
+        for catalog_import in catalog_imports:
+            if catalog_import.id is None:
+                # Create new catalog
+                yield self.create_catalog(catalog_import, skip_flush=True)
+            else:
+                # Update existing catalog
+                catalog = catalogs_to_update.get(catalog_import.id, None)
+                if catalog is None:
+                    raise NotFoundError(f"No catalog with id={catalog_import.id}.")
+                self.merge_catalog(catalog, catalog_import, patch=patch)
+                yield catalog
 
         # Write changes to the database
         if not skip_flush:
