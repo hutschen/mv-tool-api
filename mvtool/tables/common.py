@@ -31,7 +31,6 @@ from pydantic import BaseModel, ValidationError
 
 from ..utils.errors import ValueHttpError
 from ..utils.iteration import CachedIterable
-from .caching import ModelsCache
 
 E = TypeVar("E", bound=BaseModel)  # Export model
 I = TypeVar("I", bound=BaseModel)  # Import model
@@ -162,7 +161,7 @@ class ColumnGroup(Generic[I, E]):
         columns: "list[Column | ColumnGroup]",
         attr_name: str | None = None,  # must be set if this is part of another group
     ):
-        self.import_models_cache = ModelsCache(import_model)
+        self.import_model = import_model
         self.label = label
         self.columns = columns
         self.attr_name = attr_name
@@ -324,7 +323,7 @@ class ColumnGroup(Generic[I, E]):
                 model_kwargs[column_group.attr_name] = column_group.import_from_row(row)
 
             try:
-                return self.import_models_cache.get_or_create(**model_kwargs)
+                return self.import_model(**model_kwargs)
             except ValidationError as e:
                 raise RowValidationError(self, e)
 
