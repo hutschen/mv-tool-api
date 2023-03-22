@@ -50,7 +50,7 @@ def test_update_catalog(
 
 
 def test_delete_catalog(catalogs_view: CatalogsView, create_catalog: Catalog):
-    catalogs_view.delete_catalog(create_catalog.id)
+    catalogs_view.delete_catalog(create_catalog)
     with pytest.raises(HTTPException) as error_info:
         catalogs_view.get_catalog(create_catalog.id)
     assert error_info.value.status_code == 404

@@ -253,7 +253,7 @@ def measure_input(create_document, jira_issue_data):
 
 @pytest.fixture
 def catalogs_view(crud, jira):
-    return Mock(wraps=CatalogsView(crud, jira))
+    return Mock(wraps=CatalogsView(crud.session, jira))
 
 
 @pytest.fixture

@@ -18,14 +18,13 @@
 from typing import Any, Iterable, Iterator
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi_utils.cbv import cbv
 from pydantic import constr
-from sqlmodel import Column, func, or_, select
+from sqlmodel import Column, Session, func, or_, select
 from sqlmodel.sql.expression import Select
 
 from ..auth import get_jira
-from ..database import CRUDOperations
-from ..models import (
+from ..database import delete_from_db, get_session, read_from_db
+from ..models.catalogs import (
     Catalog,
     CatalogImport,
     CatalogInput,
@@ -45,17 +44,15 @@ from ..utils.pagination import Page, page_params
 router = APIRouter()
 
 
-@cbv(router)
 class CatalogsView:
     kwargs = dict(tags=["catalog"])
 
     def __init__(
         self,
-        crud: CRUDOperations[Catalog] = Depends(CRUDOperations),
+        session: Session = Depends(get_session),
         _=Depends(get_jira),  # get jira to enforce login
     ):
-        self._crud = crud
-        self._session = self._crud.session
+        self._session = session
 
     @staticmethod
     def _modify_catalogs_query(
@@ -134,9 +131,8 @@ class CatalogsView:
             self._session.flush()
         return catalog
 
-    @router.get("/catalogs/{catalog_id}", response_model=CatalogOutput, **kwargs)
     def get_catalog(self, catalog_id: int) -> Catalog:
-        return self._crud.read_from_db(Catalog, catalog_id)
+        return read_from_db(self._session, Catalog, catalog_id)
 
     def update_catalog(
         self,
@@ -151,9 +147,8 @@ class CatalogsView:
         if not skip_flush:
             self._session.flush()
 
-    @router.delete("/catalogs/{catalog_id}", status_code=204, **kwargs)
-    def delete_catalog(self, catalog_id: int) -> None:
-        return self._crud.delete_from_db(Catalog, catalog_id)
+    def delete_catalog(self, catalog: Catalog) -> None:
+        return delete_from_db(self._session, catalog)
 
     def bulk_create_update_catalogs(
         self,
@@ -337,6 +332,13 @@ def create_catalog(
     return catalogs_view.create_catalog(catalog)
 
 
+@router.get(
+    "/catalogs/{catalog_id}", response_model=CatalogOutput, **CatalogsView.kwargs
+)
+def get_catalog(catalog_id: int, catalogs_view: CatalogsView = Depends()) -> Catalog:
+    return catalogs_view.get_catalog(catalog_id)
+
+
 @router.put(
     "/catalogs/{catalog_id}", response_model=CatalogOutput, **CatalogsView.kwargs
 )
@@ -348,6 +350,15 @@ def update_catalog(
     catalog = catalogs_view.get_catalog(catalog_id)
     catalogs_view.update_catalog(catalog, catalog_input)
     return catalog
+
+
+@router.delete("/catalogs/{catalog_id}", status_code=204, **CatalogsView.kwargs)
+def delete_catalog(
+    catalog_id: int,
+    catalogs_view: CatalogsView = Depends(),
+) -> None:
+    catalog = catalogs_view.get_catalog(catalog_id)
+    catalogs_view.delete_catalog(catalog)
 
 
 @router.get(
