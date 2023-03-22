@@ -122,37 +122,6 @@ class CatalogsView:
         )
         return self._session.execute(query).scalar()
 
-    @router.get("/catalogs/{catalog_id}", response_model=CatalogOutput, **kwargs)
-    def get_catalog(self, catalog_id: int) -> Catalog:
-        return self._crud.read_from_db(Catalog, catalog_id)
-
-    @router.put("/catalogs/{catalog_id}", response_model=CatalogOutput, **kwargs)
-    def update_catalog(self, catalog_id: int, catalog_input: CatalogInput) -> Catalog:
-        # TODO: pass catalog directly instead of id
-        catalog = self._session.get(Catalog, catalog_id)
-        if not catalog:
-            cls_name = Catalog.__name__
-            raise NotFoundError(f"No {cls_name} with id={catalog_id}.")
-        for key, value in catalog_input.dict().items():
-            setattr(catalog, key, value)
-        self._session.flush()
-        return catalog
-
-    @router.delete("/catalogs/{catalog_id}", status_code=204, **kwargs)
-    def delete_catalog(self, catalog_id: int) -> None:
-        return self._crud.delete_from_db(Catalog, catalog_id)
-
-    def merge_catalog(
-        self,
-        catalog: Catalog,
-        update: CatalogImport | CatalogInput,
-        patch: bool = False,
-    ) -> None:
-        """Update a catalog with the values from a given update object."""
-        # TODO: use update_catalog instead of this method
-        for key, value in update.dict(exclude_unset=patch, exclude={"id"}).items():
-            setattr(catalog, key, value)
-
     def create_catalog(
         self, creation: CatalogImport | CatalogInput, skip_flush: bool = False
     ) -> Catalog:
@@ -164,6 +133,27 @@ class CatalogsView:
         if not skip_flush:
             self._session.flush()
         return catalog
+
+    @router.get("/catalogs/{catalog_id}", response_model=CatalogOutput, **kwargs)
+    def get_catalog(self, catalog_id: int) -> Catalog:
+        return self._crud.read_from_db(Catalog, catalog_id)
+
+    def update_catalog(
+        self,
+        catalog: Catalog,
+        update: CatalogImport | CatalogInput,
+        patch: bool = False,
+        skip_flush: bool = False,
+    ) -> None:
+        """Update a catalog with the values from a given update object."""
+        for key, value in update.dict(exclude_unset=patch, exclude={"id"}).items():
+            setattr(catalog, key, value)
+        if not skip_flush:
+            self._session.flush()
+
+    @router.delete("/catalogs/{catalog_id}", status_code=204, **kwargs)
+    def delete_catalog(self, catalog_id: int) -> None:
+        return self._crud.delete_from_db(Catalog, catalog_id)
 
     def bulk_create_update_catalogs(
         self,
@@ -206,7 +196,9 @@ class CatalogsView:
                 catalog = catalogs_to_update.get(catalog_import.id, None)
                 if catalog is None:
                     raise NotFoundError(f"No catalog with id={catalog_import.id}.")
-                self.merge_catalog(catalog, catalog_import, patch=patch)
+                self.update_catalog(
+                    catalog, catalog_import, patch=patch, skip_flush=True
+                )
                 yield catalog
 
         # Write changes to the database
@@ -343,6 +335,19 @@ def create_catalog(
     catalogs_view: CatalogsView = Depends(),
 ) -> Catalog:
     return catalogs_view.create_catalog(catalog)
+
+
+@router.put(
+    "/catalogs/{catalog_id}", response_model=CatalogOutput, **CatalogsView.kwargs
+)
+def update_catalog(
+    catalog_id: int,
+    catalog_input: CatalogInput,
+    catalogs_view: CatalogsView = Depends(),
+) -> Catalog:
+    catalog = catalogs_view.get_catalog(catalog_id)
+    catalogs_view.update_catalog(catalog, catalog_input)
+    return catalog
 
 
 @router.get(
