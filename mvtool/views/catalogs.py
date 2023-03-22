@@ -128,6 +128,7 @@ class CatalogsView:
 
     @router.put("/catalogs/{catalog_id}", response_model=CatalogOutput, **kwargs)
     def update_catalog(self, catalog_id: int, catalog_input: CatalogInput) -> Catalog:
+        # TODO: pass catalog directly instead of id
         catalog = self._session.get(Catalog, catalog_id)
         if not catalog:
             cls_name = Catalog.__name__
@@ -148,6 +149,7 @@ class CatalogsView:
         patch: bool = False,
     ) -> None:
         """Update a catalog with the values from a given update object."""
+        # TODO: use update_catalog instead of this method
         for key, value in update.dict(exclude_unset=patch, exclude={"id"}).items():
             setattr(catalog, key, value)
 
@@ -166,7 +168,7 @@ class CatalogsView:
     def bulk_create_update_catalogs(
         self,
         catalog_imports: Iterable[CatalogImport],
-        patch: bool,
+        patch: bool = False,
         skip_flush: bool = False,
     ) -> Iterator[Catalog]:
         """Create or update catalogs in bulk using the provided catalog imports.
@@ -210,6 +212,23 @@ class CatalogsView:
         # Write changes to the database
         if not skip_flush:
             self._session.flush()
+
+    def convert_catalog_imports(
+        self, catalog_imports: Iterable[CatalogImport], patch: bool = False
+    ) -> dict[str, Catalog]:
+        # Map catalog imports to their etags
+        catalogs_map = {c.etag: c for c in catalog_imports}
+
+        # Map created and updated catalogs to the etags of their imports
+        for etag, catalog in zip(
+            catalogs_map.keys(),
+            self.bulk_create_update_catalogs(
+                catalogs_map.values(), patch=patch, skip_flush=True
+            ),
+        ):
+            catalogs_map[etag] = catalog
+
+        return catalogs_map
 
 
 def get_catalog_filters(
