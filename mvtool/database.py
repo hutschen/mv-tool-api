@@ -122,3 +122,18 @@ class CRUDOperations(Generic[T]):
         item = self.read_from_db(sqlmodel, id)
         self.session.delete(item)
         self.session.flush()
+
+
+def read_from_db(session: Session, sqlmodel: Type[T], id: int) -> T:
+    item = session.get(sqlmodel, id)
+    if item:
+        return item
+    else:
+        item_name = sqlmodel.__name__
+        raise HTTPException(404, f"No {item_name} with id={id}.")
+
+
+def delete_from_db(session: Session, item: T, skip_flush: bool = False) -> None:
+    session.delete(item)
+    if not skip_flush:
+        session.flush()
