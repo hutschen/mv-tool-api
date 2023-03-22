@@ -273,7 +273,7 @@ def create_catalog_module(
     catalog_module_input: CatalogModuleInput,
 ):
     return catalog_modules_view.create_catalog_module(
-        create_catalog.id, catalog_module_input
+        create_catalog, catalog_module_input
     )
 
 

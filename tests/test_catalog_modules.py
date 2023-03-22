@@ -47,7 +47,7 @@ def test_create_catalog_module(
     catalog_module_input: CatalogModuleInput,
 ):
     catalog_module = catalog_modules_view.create_catalog_module(
-        create_catalog.id, catalog_module_input
+        create_catalog, catalog_module_input
     )
     assert isinstance(catalog_module, CatalogModule)
     assert catalog_module.title == catalog_module_input.title

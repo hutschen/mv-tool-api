@@ -15,30 +15,34 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any
+from typing import Any, Iterable, Iterator
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_utils.cbv import cbv
 from pydantic import constr
 from sqlmodel import Column, func, or_, select
 from sqlmodel.sql.expression import Select
 
-from ..utils.pagination import Page, page_params
+from mvtool.utils.iteration import CachedIterable
+
+from ..database import CRUDOperations
+from ..models.catalog_modules import (
+    CatalogModule,
+    CatalogModuleImport,
+    CatalogModuleInput,
+    CatalogModuleOutput,
+    CatalogModuleRepresentation,
+)
+from ..models.catalogs import Catalog
+from ..utils.errors import NotFoundError
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
     search_columns,
 )
+from ..utils.pagination import Page, page_params
 from .catalogs import CatalogsView
-from ..utils.errors import NotFoundError
-from ..models import (
-    Catalog,
-    CatalogModule,
-    CatalogModuleInput,
-    CatalogModuleOutput,
-    CatalogModuleRepresentation,
-)
-from ..database import CRUDOperations
 
 router = APIRouter()
 
@@ -123,18 +127,18 @@ class CatalogModulesView:
         )
         return self._session.execute(query).scalar()
 
-    @router.post(
-        "/catalogs/{catalog_id}/catalog-modules",
-        status_code=201,
-        response_model=CatalogModuleOutput,
-        **kwargs,
-    )
     def create_catalog_module(
-        self, catalog_id: int, catalog_module_input: CatalogModuleInput
+        self,
+        catalog: Catalog,
+        creation: CatalogModuleInput | CatalogModuleImport,
+        skip_flush: bool = False,
     ) -> CatalogModule:
-        catalog_module = CatalogModule.from_orm(catalog_module_input)
-        catalog_module.catalog = self._catalogs.get_catalog(catalog_id)
-        return self._crud.create_in_db(catalog_module)
+        catalog_module = CatalogModule(**creation.dict(exclude={"id", "catalog"}))
+        catalog_module.catalog = catalog
+        self._session.add(catalog_module)
+        if not skip_flush:
+            self._session.flush()
+        return catalog_module
 
     @router.get(
         "/catalog-modules/{catalog_module_id}",
@@ -277,6 +281,22 @@ def get_catalog_modules(
         return Page[CatalogModuleOutput](items=cmodules, total_count=cmodule_count)
     else:
         return cmodules
+
+
+@router.post(
+    "/catalogs/{catalog_id}/catalog-modules",
+    status_code=201,
+    response_model=CatalogModuleOutput,
+    **CatalogModulesView.kwargs,
+)
+def create_catalog_module(
+    catalog_id: int,
+    catalog_module_input: CatalogModuleInput,
+    catalogs_view: CatalogsView = Depends(),
+    catalog_modules_view: CatalogModulesView = Depends(),
+) -> CatalogModule:
+    catalog = catalogs_view.get_catalog(catalog_id)
+    return catalog_modules_view.create_catalog_module(catalog, catalog_module_input)
 
 
 @router.get(
