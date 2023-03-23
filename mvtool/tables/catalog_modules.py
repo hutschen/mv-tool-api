@@ -20,6 +20,8 @@ import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 
+from mvtool.views.catalogs import CatalogsView
+
 from ..models import CatalogModule, CatalogModuleOutput, CatalogModuleImport
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.catalog_modules import (
@@ -81,19 +83,27 @@ def download_catalog_modules_excel(
 
 
 @router.post(
-    "/excel/catalog_modules",
+    "/excel/catalogs/{catalog_id}/catalog-modules",
     status_code=201,
     response_model=list[CatalogModuleOutput],
     **CatalogModulesView.kwargs,
 )
 def upload_catalog_modules_excel(
+    catalog_id: int,
+    catalogs_view: CatalogsView = Depends(),
     catalog_modules_view: CatalogModulesView = Depends(),
     columns: ColumnGroup = Depends(get_catalog_module_columns),
     temp_file=Depends(copy_upload_to_temp_file),
+    skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
 ) -> list[CatalogModuleOutput]:
+    fallback_catalog = catalogs_view.get_catalog(catalog_id)
+
     df = pd.read_excel(temp_file, engine="openpyxl")
-    catalog_module_imports = columns.import_from_dataframe(df)
-    list(catalog_module_imports)
-    # TODO: validate catalog module imports and perform import
-    return []
+    catalog_module_imports = columns.import_from_dataframe(df, skip_nan=skip_blanks)
+    catalog_modules = list(
+        catalog_modules_view.bulk_create_update_catalog_modules(
+            fallback_catalog, catalog_module_imports, patch=True, skip_flush=dry_run
+        )
+    )
+    return [] if dry_run else catalog_modules
