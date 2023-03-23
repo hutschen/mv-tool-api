@@ -70,20 +70,11 @@ def test_update_catalog_module(
     catalog_module_input: CatalogModuleInput,
 ):
     catalog_module_input.title += "updated"
-    catalog_module = catalog_modules_view.update_catalog_module(
-        create_catalog_module.id, catalog_module_input
+    catalog_modules_view.update_catalog_module(
+        create_catalog_module, catalog_module_input
     )
-    assert isinstance(catalog_module, CatalogModule)
-    assert catalog_module.title == catalog_module_input.title
 
-
-def test_update_catalog_module_invalid_catalog_module_id(
-    catalog_modules_view: CatalogModulesView,
-    catalog_module_input: CatalogModuleInput,
-):
-    with pytest.raises(HTTPException) as error_info:
-        catalog_modules_view.update_catalog_module(1, catalog_module_input)
-    assert error_info.value.status_code == 404
+    assert create_catalog_module.title == catalog_module_input.title
 
 
 def test_delete_catalog_module(

@@ -148,22 +148,20 @@ class CatalogModulesView:
     def get_catalog_module(self, catalog_module_id: int) -> CatalogModule:
         return self._crud.read_from_db(CatalogModule, catalog_module_id)
 
-    @router.put(
-        "/catalog-modules/{catalog_module_id}",
-        response_model=CatalogModuleOutput,
-        **kwargs,
-    )
     def update_catalog_module(
-        self, catalog_module_id: int, catalog_module_input: CatalogModuleInput
-    ) -> CatalogModule:
-        catalog_module = self._session.get(CatalogModule, catalog_module_id)
-        if not catalog_module:
-            cls_name = CatalogModule.__name__
-            raise NotFoundError(f"No {cls_name} with id={catalog_module_id}.")
-        for key, value in catalog_module_input.dict().items():
+        self,
+        catalog_module: CatalogModule,
+        update: CatalogModuleInput | CatalogModuleImport,
+        patch: bool = False,
+        skip_flush: bool = False,
+    ) -> None:
+        for key, value in update.dict(
+            exclude_unset=patch, exclude={"id", "catalog"}
+        ).items():
             setattr(catalog_module, key, value)
-        self._session.flush()
-        return catalog_module
+
+        if not skip_flush:
+            self._session.flush()
 
     @router.delete("/catalog-modules/{catalog_module_id}", status_code=204, **kwargs)
     def delete_catalog_module(self, catalog_module_id: int) -> None:
@@ -297,6 +295,21 @@ def create_catalog_module(
 ) -> CatalogModule:
     catalog = catalogs_view.get_catalog(catalog_id)
     return catalog_modules_view.create_catalog_module(catalog, catalog_module_input)
+
+
+@router.put(
+    "/catalog-modules/{catalog_module_id}",
+    response_model=CatalogModuleOutput,
+    **CatalogModulesView.kwargs,
+)
+def update_catalog_module(
+    catalog_module_id: int,
+    catalog_module_input: CatalogModuleInput,
+    catalog_modules_view: CatalogModulesView = Depends(),
+) -> CatalogModule:
+    catalog_module = catalog_modules_view.get_catalog_module(catalog_module_id)
+    catalog_modules_view.update_catalog_module(catalog_module, catalog_module_input)
+    return catalog_module
 
 
 @router.get(
