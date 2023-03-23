@@ -22,6 +22,7 @@ from fastapi_utils.cbv import cbv
 from pydantic import constr
 from sqlmodel import Column, func, or_, select
 from sqlmodel.sql.expression import Select
+from mvtool.utils.etag_map import get_from_etag_map
 
 from mvtool.utils.iteration import CachedIterable
 
@@ -166,6 +167,56 @@ class CatalogModulesView:
     @router.delete("/catalog-modules/{catalog_module_id}", status_code=204, **kwargs)
     def delete_catalog_module(self, catalog_module_id: int) -> None:
         self._crud.delete_from_db(CatalogModule, catalog_module_id)
+
+    def bulk_create_update_catalog_modules(
+        self,
+        fallback_catalog: Catalog,
+        catalog_module_imports: Iterable[CatalogModuleImport],
+        patch: bool = False,
+        skip_flush: bool = False,
+    ) -> Iterator[CatalogModule]:
+        catalog_module_imports = CachedIterable(catalog_module_imports)
+
+        # Convert catalog imports to catalogs
+        catalogs_map = self._catalogs.convert_catalog_imports(
+            (c.catalog for c in catalog_module_imports if c.catalog is not None),
+            patch=patch,
+        )
+
+        # Get catalog modules to be updated from database
+        ids = [c.id for c in catalog_module_imports if c.id is not None]
+        catalog_modules_to_update = {
+            c.id: c
+            for c in (
+                self.list_catalog_modules([CatalogModule.id.in_(ids)]) if ids else []
+            )
+        }
+
+        # Create or update catalog modules
+        for catalog_module_import in catalog_module_imports:
+            catalog = get_from_etag_map(catalogs_map, catalog_module_import.catalog)
+
+            if catalog_module_import.id is None:
+                # Create new catalog module
+                yield self.create_catalog_module(
+                    catalog or fallback_catalog, catalog_module_import, skip_flush=True
+                )
+            else:
+                # Update existing catalog module
+                catalog_module = catalog_modules_to_update.get(catalog_module_import.id)
+                if catalog_module is None:
+                    raise NotFoundError(
+                        f"No catalog module with id={catalog_module_import.id}."
+                    )
+                self.update_catalog_module(
+                    catalog_module, catalog_module_import, patch=patch, skip_flush=True
+                )
+                if catalog:
+                    catalog_module.catalog = catalog
+                yield catalog_module
+
+        if not skip_flush:
+            self._session.flush()
 
 
 def get_catalog_module_filters(
