@@ -26,7 +26,7 @@ from mvtool.utils.etag_map import get_from_etag_map
 
 from mvtool.utils.iteration import CachedIterable
 
-from ..database import CRUDOperations
+from ..database import CRUDOperations, read_from_db
 from ..models.catalog_modules import (
     CatalogModule,
     CatalogModuleImport,
@@ -141,13 +141,8 @@ class CatalogModulesView:
             self._session.flush()
         return catalog_module
 
-    @router.get(
-        "/catalog-modules/{catalog_module_id}",
-        response_model=CatalogModuleOutput,
-        **kwargs,
-    )
     def get_catalog_module(self, catalog_module_id: int) -> CatalogModule:
-        return self._crud.read_from_db(CatalogModule, catalog_module_id)
+        return read_from_db(self._session, CatalogModule, catalog_module_id)
 
     def update_catalog_module(
         self,
@@ -346,6 +341,17 @@ def create_catalog_module(
 ) -> CatalogModule:
     catalog = catalogs_view.get_catalog(catalog_id)
     return catalog_modules_view.create_catalog_module(catalog, catalog_module_input)
+
+
+@router.get(
+    "/catalog-modules/{catalog_module_id}",
+    response_model=CatalogModuleOutput,
+    **CatalogModulesView.kwargs,
+)
+def get_catalog_module(
+    catalog_module_id: int, catalog_modules_view: CatalogModulesView = Depends()
+) -> CatalogModule:
+    return catalog_modules_view.get_catalog_module(catalog_module_id)
 
 
 @router.put(
