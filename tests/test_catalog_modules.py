@@ -16,14 +16,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from fastapi import HTTPException
 import pytest
-from mvtool.models import (
-    Catalog,
-    CatalogModule,
-    CatalogModuleInput,
-    CatalogModuleOutput,
-)
+from fastapi import HTTPException
+
+from mvtool.models import Catalog, CatalogModule, CatalogModuleInput
 from mvtool.views.catalog_modules import CatalogModulesView
 
 
@@ -81,7 +77,7 @@ def test_delete_catalog_module(
     catalog_modules_view: CatalogModulesView,
     create_catalog_module: CatalogModule,
 ):
-    catalog_modules_view.delete_catalog_module(create_catalog_module.id)
+    catalog_modules_view.delete_catalog_module(create_catalog_module)
     with pytest.raises(HTTPException) as error_info:
         catalog_modules_view.get_catalog_module(create_catalog_module.id)
     assert error_info.value.status_code == 404

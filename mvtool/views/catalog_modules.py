@@ -18,15 +18,12 @@
 from typing import Any, Iterable, Iterator
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi_utils.cbv import cbv
 from pydantic import constr
+from pytest import Session
 from sqlmodel import Column, func, or_, select
 from sqlmodel.sql.expression import Select
-from mvtool.utils.etag_map import get_from_etag_map
 
-from mvtool.utils.iteration import CachedIterable
-
-from ..database import CRUDOperations, read_from_db
+from ..database import delete_from_db, get_session, read_from_db
 from ..models.catalog_modules import (
     CatalogModule,
     CatalogModuleImport,
@@ -36,30 +33,30 @@ from ..models.catalog_modules import (
 )
 from ..models.catalogs import Catalog
 from ..utils.errors import NotFoundError
+from ..utils.etag_map import get_from_etag_map
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
     search_columns,
 )
+from ..utils.iteration import CachedIterable
 from ..utils.pagination import Page, page_params
 from .catalogs import CatalogsView
 
 router = APIRouter()
 
 
-@cbv(router)
 class CatalogModulesView:
     kwargs = dict(tags=["catalog-module"])
 
     def __init__(
         self,
         catalogs: CatalogsView = Depends(CatalogsView),
-        crud: CRUDOperations[CatalogModule] = Depends(CRUDOperations),
+        session: Session = Depends(get_session),
     ):
         self._catalogs = catalogs
-        self._crud = crud
-        self._session = self._crud.session
+        self._session = session
 
     @staticmethod
     def _modify_catalog_modules_query(
@@ -159,9 +156,8 @@ class CatalogModulesView:
         if not skip_flush:
             self._session.flush()
 
-    @router.delete("/catalog-modules/{catalog_module_id}", status_code=204, **kwargs)
-    def delete_catalog_module(self, catalog_module_id: int) -> None:
-        self._crud.delete_from_db(CatalogModule, catalog_module_id)
+    def delete_catalog_module(self, catalog_module: CatalogModule) -> None:
+        return delete_from_db(self._session, catalog_module)
 
     def bulk_create_update_catalog_modules(
         self,
@@ -367,6 +363,16 @@ def update_catalog_module(
     catalog_module = catalog_modules_view.get_catalog_module(catalog_module_id)
     catalog_modules_view.update_catalog_module(catalog_module, catalog_module_input)
     return catalog_module
+
+
+@router.delete(
+    "/catalog-modules/{catalog_module_id}", status_code=204, **CatalogModulesView.kwargs
+)
+def delete_catalog_module(
+    catalog_module_id: int, catalog_modules_view: CatalogModulesView = Depends()
+) -> None:
+    catalog_module = catalog_modules_view.get_catalog_module(catalog_module_id)
+    catalog_modules_view.delete_catalog_module(catalog_module)
 
 
 @router.get(

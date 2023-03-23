@@ -263,7 +263,7 @@ def create_catalog(catalogs_view: CatalogsView, catalog_input: CatalogInput):
 
 @pytest.fixture
 def catalog_modules_view(catalogs_view, crud):
-    return Mock(wraps=CatalogModulesView(catalogs_view, crud))
+    return Mock(wraps=CatalogModulesView(catalogs_view, crud.session))
 
 
 @pytest.fixture
