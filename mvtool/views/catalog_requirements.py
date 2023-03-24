@@ -16,14 +16,22 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi_utils.cbv import cbv
 from pydantic import constr
-from sqlmodel import Column, func, or_, select
+from sqlmodel import Column, Session, func, or_, select
 from sqlmodel.sql.expression import Select
 
-from mvtool.models.catalog_requirements import CatalogRequirementImport
-
+from ..database import delete_from_db, get_session, read_from_db
+from ..models.catalog_modules import CatalogModule
+from ..models.catalog_requirements import (
+    CatalogRequirement,
+    CatalogRequirementImport,
+    CatalogRequirementInput,
+    CatalogRequirementOutput,
+    CatalogRequirementRepresentation,
+)
+from ..models.catalogs import Catalog
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
@@ -31,33 +39,21 @@ from ..utils.filtering import (
     search_columns,
 )
 from ..utils.pagination import Page, page_params
-from ..utils.errors import NotFoundError
-from ..database import CRUDOperations, delete_from_db, read_from_db
-from ..models import (
-    Catalog,
-    CatalogModule,
-    CatalogRequirement,
-    CatalogRequirementInput,
-    CatalogRequirementOutput,
-    CatalogRequirementRepresentation,
-)
 from .catalog_modules import CatalogModulesView
 
 router = APIRouter()
 
 
-@cbv(router)
 class CatalogRequirementsView:
     kwargs = dict(tags=["catalog-requirement"])
 
     def __init__(
         self,
         catalog_modules: CatalogModulesView = Depends(CatalogModulesView),
-        crud: CRUDOperations[CatalogRequirement] = Depends(CRUDOperations),
+        session: Session = Depends(get_session),
     ):
         self._catalog_modules = catalog_modules
-        self._crud = crud
-        self._session = self._crud.session
+        self._session = session
 
     @staticmethod
     def _modify_catalog_requirements_query(

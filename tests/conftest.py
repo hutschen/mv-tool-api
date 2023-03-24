@@ -307,7 +307,7 @@ def create_requirement(
 
 @pytest.fixture
 def catalog_requirements_view(catalog_modules_view: CatalogModulesView, crud):
-    return Mock(wraps=CatalogRequirementsView(catalog_modules_view, crud))
+    return Mock(wraps=CatalogRequirementsView(catalog_modules_view, crud.session))
 
 
 @pytest.fixture
