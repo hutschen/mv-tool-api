@@ -147,8 +147,8 @@ class CatalogsView:
         if not skip_flush:
             self._session.flush()
 
-    def delete_catalog(self, catalog: Catalog) -> None:
-        return delete_from_db(self._session, catalog)
+    def delete_catalog(self, catalog: Catalog, skip_flush: bool = False) -> None:
+        return delete_from_db(self._session, catalog, skip_flush)
 
     def bulk_create_update_catalogs(
         self,

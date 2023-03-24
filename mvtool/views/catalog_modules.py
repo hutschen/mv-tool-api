@@ -156,8 +156,10 @@ class CatalogModulesView:
         if not skip_flush:
             self._session.flush()
 
-    def delete_catalog_module(self, catalog_module: CatalogModule) -> None:
-        return delete_from_db(self._session, catalog_module)
+    def delete_catalog_module(
+        self, catalog_module: CatalogModule, skip_flush: bool = False
+    ) -> None:
+        return delete_from_db(self._session, catalog_module, skip_flush)
 
     def bulk_create_update_catalog_modules(
         self,
