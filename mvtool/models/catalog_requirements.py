@@ -34,13 +34,8 @@ class CatalogRequirementInput(AbstractRequirementInput):
     gs_verantwortliche: str | None
 
 
-class CatalogRequirementImport(ETagMixin):
+class CatalogRequirementImport(ETagMixin, CatalogRequirementInput):
     id: int | None = None
-    reference: str | None
-    summary: str
-    description: str | None
-    gs_absicherung: constr(regex=r"^(B|S|H)$") | None
-    gs_verantwortliche: str | None
     catalog_module: "CatalogModuleImport | None" = None
 
 
