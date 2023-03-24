@@ -32,7 +32,7 @@ from ..utils.filtering import (
 )
 from ..utils.pagination import Page, page_params
 from ..utils.errors import NotFoundError
-from ..database import CRUDOperations
+from ..database import CRUDOperations, read_from_db
 from ..models import (
     Catalog,
     CatalogModule,
@@ -141,15 +141,10 @@ class CatalogRequirementsView:
             self._session.flush()
         return catalog_requirement
 
-    @router.get(
-        "/catalog-requirements/{catalog_requirement_id}",
-        response_model=CatalogRequirementOutput,
-        **kwargs,
-    )
     def get_catalog_requirement(
         self, catalog_requirement_id: int
     ) -> CatalogRequirement:
-        return self._crud.read_from_db(CatalogRequirement, catalog_requirement_id)
+        return read_from_db(self._session, CatalogRequirement, catalog_requirement_id)
 
     def check_catalog_requirement_id(
         self, catalog_requirement_id: int | None
@@ -333,6 +328,18 @@ def create_catalog_requirement(
     return catalog_requirements_view.create_catalog_requirement(
         catalog_module, catalog_requirement_input
     )
+
+
+@router.get(
+    "/catalog-requirements/{catalog_requirement_id}",
+    response_model=CatalogRequirementOutput,
+    **CatalogRequirementsView.kwargs,
+)
+def get_catalog_requirement(
+    catalog_requirement_id: int,
+    catalog_requirements_view: CatalogRequirementsView = Depends(),
+) -> CatalogRequirement:
+    return catalog_requirements_view.get_catalog_requirement(catalog_requirement_id)
 
 
 @router.put(
