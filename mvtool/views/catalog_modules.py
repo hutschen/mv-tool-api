@@ -211,6 +211,29 @@ class CatalogModulesView:
         if not skip_flush:
             self._session.flush()
 
+    def convert_catalog_module_imports(
+        self,
+        fallback_catalog: Catalog,
+        catalog_module_imports: Iterable[CatalogModuleImport],
+        patch: bool = False,
+    ) -> dict[int, CatalogModule]:
+        # Map catalog module imports to their etags
+        catalog_modules_map = {c.etag: c for c in catalog_module_imports}
+
+        # Map created and updated catalog modules to the etags of their imports
+        for etag, catalog_module in zip(
+            catalog_modules_map.keys(),
+            self.bulk_create_update_catalog_modules(
+                fallback_catalog,
+                catalog_modules_map.values(),
+                patch=patch,
+                skip_flush=True,
+            ),
+        ):
+            catalog_modules_map[etag] = catalog_module
+
+        return catalog_modules_map
+
 
 def get_catalog_module_filters(
     # filter by pattern
