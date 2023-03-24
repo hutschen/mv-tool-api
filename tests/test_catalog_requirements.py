@@ -99,6 +99,6 @@ def test_delete_catalog_requirement(
     catalog_requirements_view: CatalogRequirementsView,
     create_catalog_requirement: CatalogRequirement,
 ):
-    catalog_requirements_view.delete_catalog_requirement(create_catalog_requirement.id)
+    catalog_requirements_view.delete_catalog_requirement(create_catalog_requirement)
     with pytest.raises(HTTPException):
         catalog_requirements_view.get_catalog_requirement(create_catalog_requirement.id)

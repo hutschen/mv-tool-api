@@ -32,7 +32,7 @@ from ..utils.filtering import (
 )
 from ..utils.pagination import Page, page_params
 from ..utils.errors import NotFoundError
-from ..database import CRUDOperations, read_from_db
+from ..database import CRUDOperations, delete_from_db, read_from_db
 from ..models import (
     Catalog,
     CatalogModule,
@@ -167,13 +167,10 @@ class CatalogRequirementsView:
         if not skip_flush:
             self._session.flush()
 
-    @router.delete(
-        "/catalog-requirements/{catalog_requirement_id}",
-        status_code=204,
-        **kwargs,
-    )
-    def delete_catalog_requirement(self, catalog_requirement_id: int) -> None:
-        return self._crud.delete_from_db(CatalogRequirement, catalog_requirement_id)
+    def delete_catalog_requirement(
+        self, catalog_requirement: CatalogRequirement, skip_flush: bool = False
+    ) -> None:
+        return delete_from_db(self._session, catalog_requirement, skip_flush)
 
 
 def get_catalog_requirement_filters(
@@ -359,6 +356,21 @@ def update_catalog_requirement(
         catalog_requirement, catalog_requirement_input
     )
     return catalog_requirement
+
+
+@router.delete(
+    "/catalog-requirements/{catalog_requirement_id}",
+    status_code=204,
+    **CatalogRequirementsView.kwargs,
+)
+def delete_catalog_requirement(
+    catalog_requirement_id: int,
+    catalog_requirements_view: CatalogRequirementsView = Depends(),
+) -> None:
+    catalog_requirement = catalog_requirements_view.get_catalog_requirement(
+        catalog_requirement_id
+    )
+    catalog_requirements_view.delete_catalog_requirement(catalog_requirement)
 
 
 @router.get(
