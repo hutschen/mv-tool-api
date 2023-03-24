@@ -33,11 +33,8 @@ class CatalogModuleInput(SQLModel):
     description: str | None
 
 
-class CatalogModuleImport(ETagMixin):
+class CatalogModuleImport(ETagMixin, CatalogModuleInput):
     id: int | None = None
-    reference: str | None
-    title: str
-    description: str | None
     catalog: "CatalogImport | None" = None
 
 
