@@ -157,26 +157,20 @@ class CatalogRequirementsView:
         if catalog_requirement_id is not None:
             return self.get_catalog_requirement(catalog_requirement_id)
 
-    @router.put(
-        "/catalog-requirements/{catalog_requirement_id}",
-        response_model=CatalogRequirementOutput,
-        **kwargs,
-    )
     def update_catalog_requirement(
         self,
-        catalog_requirement_id: int,
-        catalog_requirement_input: CatalogRequirementInput,
-    ) -> CatalogRequirement:
-        catalog_requirement = self._session.get(
-            CatalogRequirement, catalog_requirement_id
-        )
-        if not catalog_requirement:
-            cls_name = CatalogRequirement.__name__
-            raise NotFoundError(f"No {cls_name} with id={catalog_requirement_id}.")
-        for key, value in catalog_requirement_input.dict().items():
+        catalog_requirement: CatalogRequirement,
+        update: CatalogRequirementInput | CatalogRequirementImport,
+        patch: bool = False,
+        skip_flush: bool = False,
+    ) -> None:
+        for key, value in update.dict(
+            exclude_unset=patch, exclude={"id", "catalog_module"}
+        ).items():
             setattr(catalog_requirement, key, value)
-        self._session.flush()
-        return catalog_requirement
+
+        if not skip_flush:
+            self._session.flush()
 
     @router.delete(
         "/catalog-requirements/{catalog_requirement_id}",
@@ -339,6 +333,25 @@ def create_catalog_requirement(
     return catalog_requirements_view.create_catalog_requirement(
         catalog_module, catalog_requirement_input
     )
+
+
+@router.put(
+    "/catalog-requirements/{catalog_requirement_id}",
+    response_model=CatalogRequirementOutput,
+    **CatalogRequirementsView.kwargs,
+)
+def update_catalog_requirement(
+    catalog_requirement_id: int,
+    catalog_requirement_input: CatalogRequirementInput,
+    catalog_requirements_view: CatalogRequirementsView = Depends(),
+) -> CatalogRequirement:
+    catalog_requirement = catalog_requirements_view.get_catalog_requirement(
+        catalog_requirement_id
+    )
+    catalog_requirements_view.update_catalog_requirement(
+        catalog_requirement, catalog_requirement_input
+    )
+    return catalog_requirement
 
 
 @router.get(
