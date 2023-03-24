@@ -22,6 +22,8 @@ from pydantic import constr
 from sqlmodel import Column, func, or_, select
 from sqlmodel.sql.expression import Select
 
+from mvtool.models.catalog_requirements import CatalogRequirementImport
+
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
@@ -124,20 +126,20 @@ class CatalogRequirementsView:
         )
         return self._session.execute(query).scalar()
 
-    @router.post(
-        "/catalog-modules/{catalog_module_id}/catalog-requirements",
-        response_model=CatalogRequirementOutput,
-        status_code=201,
-        **kwargs,
-    )
     def create_catalog_requirement(
-        self, catalog_module_id: int, catalog_requirement_input: CatalogRequirementInput
+        self,
+        catalog_module: CatalogModule,
+        creation: CatalogRequirementInput | CatalogRequirementImport,
+        skip_flush: bool = False,
     ) -> CatalogRequirement:
-        catalog_requirement = CatalogRequirement.from_orm(catalog_requirement_input)
-        catalog_requirement.catalog_module = self._catalog_modules.get_catalog_module(
-            catalog_module_id
+        catalog_requirement = CatalogRequirement(
+            **creation.dict(exclude={"id", "catalog_module"})
         )
-        return self._crud.create_in_db(catalog_requirement)
+        catalog_requirement.catalog_module = catalog_module
+        self._session.add(catalog_requirement)
+        if not skip_flush:
+            self._session.flush()
+        return catalog_requirement
 
     @router.get(
         "/catalog-requirements/{catalog_requirement_id}",
@@ -319,6 +321,24 @@ def get_catalog_requirements(
         )
     else:
         return crequirements
+
+
+@router.post(
+    "/catalog-modules/{catalog_module_id}/catalog-requirements",
+    response_model=CatalogRequirementOutput,
+    status_code=201,
+    **CatalogRequirementsView.kwargs,
+)
+def create_catalog_requirement(
+    catalog_module_id: int,
+    catalog_requirement_input: CatalogRequirementInput,
+    catalog_modules_view: CatalogModulesView = Depends(),
+    catalog_requirements_view: CatalogRequirementsView = Depends(),
+) -> CatalogRequirement:
+    catalog_module = catalog_modules_view.get_catalog_module(catalog_module_id)
+    return catalog_requirements_view.create_catalog_requirement(
+        catalog_module, catalog_requirement_input
+    )
 
 
 @router.get(

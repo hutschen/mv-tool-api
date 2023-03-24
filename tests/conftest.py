@@ -317,7 +317,7 @@ def create_catalog_requirement(
     catalog_requirement_input: CatalogRequirementInput,
 ):
     return catalog_requirements_view.create_catalog_requirement(
-        create_catalog_module.id, catalog_requirement_input
+        create_catalog_module, catalog_requirement_input
     )
 
 

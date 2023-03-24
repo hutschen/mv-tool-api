@@ -48,7 +48,7 @@ def test_create_catalog_requirement(
     catalog_requirement_input: CatalogRequirementInput,
 ):
     catalog_requirement = catalog_requirements_view.create_catalog_requirement(
-        create_catalog_module.id, catalog_requirement_input
+        create_catalog_module, catalog_requirement_input
     )
 
     assert isinstance(catalog_requirement, CatalogRequirement)
