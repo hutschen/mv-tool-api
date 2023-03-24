@@ -28,11 +28,8 @@ class CatalogInput(SQLModel):
     description: str | None
 
 
-class CatalogImport(ETagMixin):
+class CatalogImport(ETagMixin, CatalogInput):
     id: int | None = None
-    reference: str | None
-    title: str
-    description: str | None
 
 
 class Catalog(CatalogInput, CommonFieldsMixin, table=True):
