@@ -32,7 +32,7 @@ from ..utils.filtering import (
 )
 from ..utils.pagination import Page, page_params
 from ..utils.errors import NotFoundError
-from ..database import CRUDOperations
+from ..database import CRUDOperations, read_from_db
 from .jira_ import JiraProjectsView
 from ..models import ProjectInput, Project, ProjectOutput, ProjectRepresentation
 
@@ -113,19 +113,23 @@ class ProjectsView:
     def create_project(
         self, creation: ProjectInput | ProjectImport, skip_flush: bool = False
     ) -> Project:
-        project = Project(**creation.dict(exclude={"id"}))
+        project = Project(**creation.dict(exclude={"id", "jira_project"}))
+
+        try_to_get_jira_project = True
         if isinstance(creation, ProjectInput):
+            # check jira project id and cache load jira project
             self._jira_projects.check_jira_project_id(project.jira_project_id)
-            self._set_jira_project(project, try_to_get=False)
+            try_to_get_jira_project = False  # already loaded
 
         self._session.add(project)
         if not skip_flush:
             self._session.flush()
+
+        self._set_jira_project(project, try_to_get=try_to_get_jira_project)
         return project
 
-    @router.get("/projects/{project_id}", response_model=ProjectOutput, **kwargs)
     def get_project(self, project_id: int) -> Project:
-        project = self._crud.read_from_db(Project, project_id)
+        project = read_from_db(self._session, Project, project_id)
         self._set_jira_project(project)
         return project
 
@@ -267,6 +271,13 @@ def create_project(
     project: ProjectInput, projects_view: ProjectsView = Depends()
 ) -> Project:
     return projects_view.create_project(project)
+
+
+@router.get(
+    "/projects/{project_id}", response_model=ProjectOutput, **ProjectsView.kwargs
+)
+def get_project(project_id: int, projects_view: ProjectsView = Depends()) -> Project:
+    return projects_view.get_project(project_id)
 
 
 @router.get(
