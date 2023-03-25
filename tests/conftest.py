@@ -279,7 +279,7 @@ def create_catalog_module(
 
 @pytest.fixture
 def projects_view(jira_projects_view, crud):
-    return Mock(wraps=ProjectsView(jira_projects_view, crud))
+    return Mock(wraps=ProjectsView(jira_projects_view, crud.session))
 
 
 @pytest.fixture

@@ -16,14 +16,20 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi_utils.cbv import cbv
 from pydantic import constr
-from sqlmodel import Column, func, or_, select
+from sqlmodel import Column, Session, func, or_, select
 from sqlmodel.sql.expression import Select
 
-from mvtool.models.projects import ProjectImport
-
+from ..database import delete_from_db, get_session, read_from_db
+from ..models.projects import (
+    Project,
+    ProjectImport,
+    ProjectInput,
+    ProjectOutput,
+    ProjectRepresentation,
+)
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
@@ -31,26 +37,21 @@ from ..utils.filtering import (
     search_columns,
 )
 from ..utils.pagination import Page, page_params
-from ..utils.errors import NotFoundError
-from ..database import CRUDOperations, delete_from_db, read_from_db
 from .jira_ import JiraProjectsView
-from ..models import ProjectInput, Project, ProjectOutput, ProjectRepresentation
 
 router = APIRouter()
 
 
-@cbv(router)
 class ProjectsView:
     kwargs = dict(tags=["project"])
 
     def __init__(
         self,
         jira_projects: JiraProjectsView = Depends(JiraProjectsView),
-        crud: CRUDOperations[Project] = Depends(CRUDOperations),
+        session: Session = Depends(get_session),
     ):
         self._jira_projects = jira_projects
-        self._crud = crud
-        self._session = self._crud.session
+        self._session = session
 
     @staticmethod
     def _modify_projects_query(
