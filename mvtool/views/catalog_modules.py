@@ -204,7 +204,7 @@ class CatalogModulesView:
                 self.update_catalog_module(
                     catalog_module, catalog_module_import, patch=patch, skip_flush=True
                 )
-                if catalog:
+                if catalog is not None:
                     catalog_module.catalog = catalog
                 yield catalog_module
 
