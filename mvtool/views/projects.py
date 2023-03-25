@@ -32,7 +32,7 @@ from ..utils.filtering import (
 )
 from ..utils.pagination import Page, page_params
 from ..utils.errors import NotFoundError
-from ..database import CRUDOperations, read_from_db
+from ..database import CRUDOperations, delete_from_db, read_from_db
 from .jira_ import JiraProjectsView
 from ..models import ProjectInput, Project, ProjectOutput, ProjectRepresentation
 
@@ -158,9 +158,8 @@ class ProjectsView:
 
         self._set_jira_project(project, try_to_get=try_to_get_jira_project)
 
-    @router.delete("/projects/{project_id}", status_code=204, **kwargs)
-    def delete_project(self, project_id: int):
-        return self._crud.delete_from_db(Project, project_id)
+    def delete_project(self, project: Project, skip_flush: bool = False) -> None:
+        return delete_from_db(self._session, project, skip_flush)
 
     def _set_jira_project(self, project: Project, try_to_get: bool = True) -> None:
         project._get_jira_project = (
@@ -297,6 +296,12 @@ def update_project(
     project = projects_view.get_project(project_id)
     projects_view.update_project(project, project_input)
     return project
+
+
+@router.delete("/projects/{project_id}", status_code=204, **ProjectsView.kwargs)
+def delete_project(project_id: int, projects_view: ProjectsView = Depends()) -> None:
+    project = projects_view.get_project(project_id)
+    projects_view.delete_project(project)
 
 
 @router.get(

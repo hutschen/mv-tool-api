@@ -103,7 +103,7 @@ def test_update_project_with_invalid_jira_project_id(
 
 
 def test_delete_project(projects_view: ProjectsView, create_project: Project):
-    projects_view.delete_project(create_project.id)
+    projects_view.delete_project(create_project)
 
     with pytest.raises(HTTPException) as exception_info:
         projects_view.get_project(create_project.id)
