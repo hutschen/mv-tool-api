@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any
+from typing import Any, Iterable, Iterator
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import constr
@@ -32,12 +32,14 @@ from ..models.catalog_requirements import (
     CatalogRequirementRepresentation,
 )
 from ..models.catalogs import Catalog
+from ..utils.etag_map import get_from_etag_map
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
     search_columns,
 )
+from ..utils.iteration import CachedIterable
 from ..utils.pagination import Page, page_params
 from .catalog_modules import CatalogModulesView
 
@@ -159,6 +161,72 @@ class CatalogRequirementsView:
             exclude_unset=patch, exclude={"id", "catalog_module"}
         ).items():
             setattr(catalog_requirement, key, value)
+
+        if not skip_flush:
+            self._session.flush()
+
+    def bulk_create_update_catalog_requirements(
+        self,
+        fallback_catalog_module: CatalogModule,
+        catalog_requirement_imports: Iterable[CatalogRequirementImport],
+        patch: bool = False,
+        skip_flush: bool = False,
+    ) -> Iterator[CatalogRequirement]:
+        catalog_requirement_imports = CachedIterable(catalog_requirement_imports)
+
+        # Convert catalog module imports to catalog modules
+        catalog_modules_map = self._catalog_modules.convert_catalog_module_imports(
+            fallback_catalog_module.catalog,
+            (
+                c.catalog_module
+                for c in catalog_requirement_imports
+                if c.catalog_module is not None
+            ),
+            patch=patch,
+        )
+
+        # Get catalog requirements to be updated from database
+        ids = [c.id for c in catalog_requirement_imports if c.id is not None]
+        catalog_requirements_to_update = {
+            c.id: c
+            for c in (
+                self.list_catalog_requirements([CatalogRequirement.id.in_(ids)])
+                if ids
+                else []
+            )
+        }
+
+        # Create or update catalog requirements
+        for catalog_requirement_import in catalog_requirement_imports:
+            catalog_module = get_from_etag_map(
+                catalog_modules_map, catalog_requirement_import.catalog_module
+            )
+
+            if catalog_requirement_import.id is None:
+                # Create new catalog requirement
+                yield self.create_catalog_requirement(
+                    catalog_module or fallback_catalog_module,
+                    catalog_requirement_import,
+                    skip_flush=True,
+                )
+            else:
+                # Update existing catalog requirement
+                catalog_requirement = catalog_requirements_to_update.get(
+                    catalog_requirement_import.id
+                )
+                if catalog_requirement is None:
+                    raise ValueError(
+                        f"No catalog requirement with id={catalog_requirement_import.id}."
+                    )
+                self.update_catalog_requirement(
+                    catalog_requirement,
+                    catalog_requirement_import,
+                    patch,
+                    skip_flush=True,
+                )
+                if catalog_module is not None:
+                    catalog_requirement.catalog_module = catalog_module
+                yield catalog_requirement
 
         if not skip_flush:
             self._session.flush()
