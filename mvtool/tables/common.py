@@ -276,18 +276,20 @@ class ColumnGroup(Generic[I, E]):
         ordered_labels = [l for l in self.export_labels if l in df.columns.to_list()]
         return df[ordered_labels]
 
-    def import_from_row(self, row: Iterable[Cell]) -> I:
-        """Import data from a row of cells using the import columns of the column group and create an instance of the import model.
+    def import_from_row(self, row: Iterable[Cell]) -> I | None:
+        """Import data from a row of cells using the import columns of the column group
+        and create an instance of the import model.
 
         Args:
             row (Iterable[Cell]): An iterable of cells representing a row in a table.
 
         Returns:
-            I: An instance of the import model.
+            I | None: An instance of the import model or None if the row is empty.
 
         Raises:
             MissingColumnsError: If there are any missing required columns in the row.
-            RowValidationError: If there is a validation error while creating the import model instance.
+            RowValidationError: If there is a validation error while creating the import
+                model instance.
         """
         row = CachedIterable(row)  # make sure we can iterate multiple times
         columns: dict[str, Column] = {}  # associate cell labels and columns
@@ -345,4 +347,7 @@ class ColumnGroup(Generic[I, E]):
                 row = (Cell(l, v) for l, v in l_v if not pd.isna(v))
             else:
                 row = (Cell(l, (None if pd.isna(v) else v)) for l, v in l_v)
-            yield self.import_from_row(row)
+
+            model_instance = self.import_from_row(row)
+            if model_instance is not None:
+                yield model_instance
