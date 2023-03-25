@@ -26,7 +26,7 @@ class JiraUser(SQLModel):
     email_address: str
 
 
-class JiraProjectImport(ETagMixin):
+class JiraProjectImport(SQLModel):
     key: str
 
 
@@ -54,7 +54,7 @@ class JiraIssueInput(SQLModel):
     issuetype_id: str
 
 
-class JiraIssueImport(ETagMixin):
+class JiraIssueImport(SQLModel):
     key: str
 
 
