@@ -96,7 +96,7 @@ def upload_catalog_modules_excel(
     temp_file=Depends(copy_upload_to_temp_file),
     skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
-) -> list[CatalogModuleOutput]:
+) -> list[CatalogModule]:
     fallback_catalog = catalogs_view.get_catalog(catalog_id)
 
     df = pd.read_excel(temp_file, engine="openpyxl")
