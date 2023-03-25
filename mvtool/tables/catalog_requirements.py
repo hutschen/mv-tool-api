@@ -21,12 +21,13 @@ import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 
-from ..models import (
+from ..models.catalog_requirements import (
     CatalogRequirement,
     CatalogRequirementImport,
     CatalogRequirementOutput,
 )
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
+from ..views.catalog_modules import CatalogModulesView
 from ..views.catalog_requirements import (
     CatalogRequirementsView,
     get_catalog_requirement_filters,
@@ -61,7 +62,7 @@ router = APIRouter()
 
 
 router.get(
-    "/excel/catalog_requirements/column-names",
+    "/excel/catalog-requirements/column-names",
     summary="Get columns names for catalog requirements Excel export",
     response_model=list[str],
     **CatalogRequirementsView.kwargs
@@ -69,7 +70,7 @@ router.get(
 
 
 @router.get(
-    "/excel/catalog_requirements",
+    "/excel/catalog-requirements",
     response_class=FileResponse,
     **CatalogRequirementsView.kwargs
 )
@@ -91,18 +92,32 @@ def download_catalog_requirements_excel(
 
 
 @router.post(
-    "/excel/catalog_requirements",
+    "/excel/catalog-modules/{catalog_module_id}/catalog-requirements",
     status_code=201,
     response_model=list[CatalogRequirementOutput],
     **CatalogRequirementsView.kwargs
 )
 def upload_catalog_requirements_excel(
+    catalog_module_id: int,
+    catalog_modules_view: CatalogModulesView = Depends(),
     catalog_requirements_view: CatalogRequirementsView = Depends(),
     columns: ColumnGroup = Depends(get_catalog_requirement_columns),
     temp_file: NamedTemporaryFile = Depends(copy_upload_to_temp_file),
-    dry_run: bool = False,
-) -> list[CatalogRequirementOutput]:
+    skip_blanks: bool = False,  # skip blank cells
+    dry_run: bool = False,  # don't save to database
+) -> list[CatalogRequirement]:
+    fallback_catalog_module = catalog_modules_view.get_catalog_module(catalog_module_id)
+
     df = pd.read_excel(temp_file, engine="openpyxl")
-    catalog_requirement_imports = columns.import_from_dataframe(df)
-    list(catalog_requirement_imports)
-    return []
+    catalog_requirement_imports = columns.import_from_dataframe(
+        df, skip_nan=skip_blanks
+    )
+    catalog_requirements = list(
+        catalog_requirements_view.bulk_create_update_catalog_requirements(
+            fallback_catalog_module,
+            catalog_requirement_imports,
+            patch=True,
+            skip_flush=dry_run,
+        )
+    )
+    return [] if dry_run else catalog_requirements
