@@ -133,24 +133,30 @@ class ProjectsView:
         self._set_jira_project(project)
         return project
 
-    @router.put("/projects/{project_id}", response_model=ProjectOutput, **kwargs)
-    def update_project(self, project_id: int, project_input: ProjectInput) -> Project:
-        project = self._session.get(Project, project_id)
-        if not project:
-            cls_name = Project.__name__
-            raise NotFoundError(f"No {cls_name} with id={project_id}.")
+    def update_project(
+        self,
+        project: Project,
+        update: ProjectInput | ProjectImport,
+        patch: bool = False,
+        skip_flush: bool = False,
+    ) -> None:
+        try_to_get_jira_project = True
+        if isinstance(update, ProjectInput):
+            # check jira project id and cache load jira project
+            if update.jira_project_id != project.jira_project_id:
+                self._jira_projects.check_jira_project_id(update.jira_project_id)
+                try_to_get_jira_project = False  # already loaded
 
-        # check jira project id and cache loaded jira project
-        if project_input.jira_project_id != project.jira_project_id:
-            self._jira_projects.check_jira_project_id(project_input.jira_project_id)
-
-        # update project in database
-        for key, value in project_input.dict().items():
+        # update project
+        for key, value in update.dict(
+            exclude_unset=patch, exclude={"id", "jira_project"}
+        ).items():
             setattr(project, key, value)
-        self._session.flush()
 
-        self._set_jira_project(project)
-        return project
+        if not skip_flush:
+            self._session.flush()
+
+        self._set_jira_project(project, try_to_get=try_to_get_jira_project)
 
     @router.delete("/projects/{project_id}", status_code=204, **kwargs)
     def delete_project(self, project_id: int):
@@ -278,6 +284,19 @@ def create_project(
 )
 def get_project(project_id: int, projects_view: ProjectsView = Depends()) -> Project:
     return projects_view.get_project(project_id)
+
+
+@router.put(
+    "/projects/{project_id}", response_model=ProjectOutput, **ProjectsView.kwargs
+)
+def update_project(
+    project_id: int,
+    project_input: ProjectInput,
+    projects_view: ProjectsView = Depends(),
+) -> Project:
+    project = projects_view.get_project(project_id)
+    projects_view.update_project(project, project_input)
+    return project
 
 
 @router.get(
