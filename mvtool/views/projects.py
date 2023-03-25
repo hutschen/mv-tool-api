@@ -22,6 +22,8 @@ from pydantic import constr
 from sqlmodel import Column, func, or_, select
 from sqlmodel.sql.expression import Select
 
+from mvtool.models.projects import ProjectImport
+
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
@@ -108,11 +110,17 @@ class ProjectsView:
         )
         return self._session.execute(query).scalar()
 
-    @router.post("/projects", status_code=201, response_model=ProjectOutput, **kwargs)
-    def create_project(self, project_input: ProjectInput) -> Project:
-        self._jira_projects.check_jira_project_id(project_input.jira_project_id)
-        project = self._crud.create_in_db(Project.from_orm(project_input))
-        self._set_jira_project(project, try_to_get=False)
+    def create_project(
+        self, creation: ProjectInput | ProjectImport, skip_flush: bool = False
+    ) -> Project:
+        project = Project(**creation.dict(exclude={"id"}))
+        if isinstance(creation, ProjectInput):
+            self._jira_projects.check_jira_project_id(project.jira_project_id)
+            self._set_jira_project(project, try_to_get=False)
+
+        self._session.add(project)
+        if not skip_flush:
+            self._session.flush()
         return project
 
     @router.get("/projects/{project_id}", response_model=ProjectOutput, **kwargs)
@@ -250,6 +258,15 @@ def get_projects(
         return Page[ProjectOutput](items=projects, total_count=projects_count)
     else:
         return projects
+
+
+@router.post(
+    "/projects", status_code=201, response_model=ProjectOutput, **ProjectsView.kwargs
+)
+def create_project(
+    project: ProjectInput, projects_view: ProjectsView = Depends()
+) -> Project:
+    return projects_view.create_project(project)
 
 
 @router.get(
