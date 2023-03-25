@@ -27,16 +27,17 @@ from .measures import Measure
 from .requirements import Requirement
 
 
-class ProjectInput(SQLModel):
+class AbstractProjectInput(SQLModel):
     name: str
     description: str | None
+
+
+class ProjectInput(AbstractProjectInput):
     jira_project_id: str | None
 
 
-class ProjectImport(ETagMixin):
+class ProjectImport(ETagMixin, AbstractProjectInput):
     id: int | None = None
-    name: str
-    description: str | None
     jira_project: JiraProjectImport | None = None
 
 
