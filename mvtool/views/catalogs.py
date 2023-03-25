@@ -123,9 +123,7 @@ class CatalogsView:
         self, creation: CatalogImport | CatalogInput, skip_flush: bool = False
     ) -> Catalog:
         """Create a catalog from a given creation object."""
-        if isinstance(creation, CatalogImport):
-            creation.id = None
-        catalog = Catalog.from_orm(creation)
+        catalog = Catalog(**creation.dict(exclude={"id"}))
         self._session.add(catalog)
         if not skip_flush:
             self._session.flush()
