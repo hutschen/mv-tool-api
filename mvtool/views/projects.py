@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any
+from typing import Any, Iterable
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import constr
@@ -30,12 +30,15 @@ from ..models.projects import (
     ProjectOutput,
     ProjectRepresentation,
 )
+from ..utils.errors import NotFoundError
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
     search_columns,
 )
+from ..utils.iteration import CachedIterable
+from ..utils.models import field_is_set
 from ..utils.pagination import Page, page_params
 from .jira_ import JiraProjectsView
 
@@ -161,6 +164,53 @@ class ProjectsView:
 
     def delete_project(self, project: Project, skip_flush: bool = False) -> None:
         return delete_from_db(self._session, project, skip_flush)
+
+    def bulk_create_update_projects(
+        self,
+        project_imports: Iterable[ProjectImport],
+        patch: bool = False,
+        skip_flush: bool = False,
+    ):
+        project_imports = CachedIterable(project_imports)
+
+        # Get projects to be updated from the database
+        ids = [p.id for p in project_imports if p.id is not None]
+        projects_to_update = {
+            p.id: p for p in (self.list_projects([Project.id.in_(ids)]) if ids else [])
+        }
+
+        # Cache jira projects
+        jira_projects_map = {
+            jp.key: jp for jp in self._jira_projects.list_jira_projects()
+        }
+
+        # Create or update projects
+        for project_import in project_imports:
+            # Get jira project
+            jira_project = None
+            if project_import.jira_project is not None:
+                jira_project = jira_projects_map.get(project_import.jira_project.key)
+                if jira_project is None:
+                    raise NotFoundError(
+                        f"No Jira project with key={project_import.jira_project.key}."
+                    )
+
+            if project_import.id is None:
+                # Create project
+                project = self.create_project(project_import, skip_flush=True)
+            else:
+                # Update project
+                project = projects_to_update.get(project_import.id)
+                if project is None:
+                    raise NotFoundError(f"No project with id={project_import.id}.")
+                self.update_project(project, project_import, patch, skip_flush=True)
+
+            if field_is_set(project_import, "jira_project") or not patch:
+                project.jira_project_id = jira_project.id if jira_project else None
+            yield project
+
+        if not skip_flush:
+            self._session.flush()
 
     def _set_jira_project(self, project: Project, try_to_get: bool = True) -> None:
         project._get_jira_project = (
