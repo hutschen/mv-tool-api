@@ -17,6 +17,7 @@
 
 import pytest
 from fastapi import HTTPException
+
 from mvtool.models import (
     CatalogModule,
     CatalogRequirement,
@@ -25,7 +26,8 @@ from mvtool.models import (
     Requirement,
     RequirementInput,
 )
-from mvtool.views.requirements import ImportCatalogRequirementsView, RequirementsView
+from mvtool.views.catalog_requirements import CatalogRequirementsView
+from mvtool.views.requirements import RequirementsView
 
 
 def test_list_requirements(
@@ -154,15 +156,14 @@ def test_delete_requirement(
     excinfo.value.status_code == 404
 
 
-def test_import_requirements_from_catalog_modules(
-    import_catalog_requirements_view: ImportCatalogRequirementsView,
+def test_bulk_create_requirements_from_catalog_requirements(
+    requirements_view: RequirementsView,
     create_project: Project,
-    create_catalog_module: CatalogModule,
     create_catalog_requirement: CatalogRequirement,
 ):
     results = list(
-        import_catalog_requirements_view.import_requirements_from_catalog_modules(
-            create_project.id, [create_catalog_module.id]
+        requirements_view.bulk_create_requirements_from_catalog_requirements(
+            create_project, [create_catalog_requirement]
         )
     )
 
@@ -173,32 +174,6 @@ def test_import_requirements_from_catalog_modules(
     assert requirement.project.id == create_project.id
     assert requirement.project.jira_project.id == create_project.jira_project_id
     assert requirement.catalog_requirement.id == create_catalog_requirement.id
-    assert requirement.catalog_requirement.catalog_module.id == create_catalog_module.id
-
-
-def test_import_requirements_from_catalog_modules_with_invalid_project_id(
-    import_catalog_requirements_view: ImportCatalogRequirementsView,
-    create_catalog_module: CatalogModule,
-):
-    with pytest.raises(HTTPException) as excinfo:
-        list(
-            import_catalog_requirements_view.import_requirements_from_catalog_modules(
-                -1, [create_catalog_module.id]
-            )
-        )
-    excinfo.value.status_code == 404
-
-
-def test_import_requirements_from_catalog_modules_with_invalid_catalog_module_id(
-    import_catalog_requirements_view: ImportCatalogRequirementsView,
-    create_project: Project,
-):
-    results = list(
-        import_catalog_requirements_view.import_requirements_from_catalog_modules(
-            create_project.id, [-1]
-        )
-    )
-    assert len(results) == 0
 
 
 def test_requirement_completion_progress_incomplete(create_requirement: Requirement):

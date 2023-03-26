@@ -15,15 +15,14 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any, Callable
+from typing import Any, Callable, Iterable, Iterator
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi_utils.cbv import cbv
 from pydantic import constr
 from sqlmodel import Column, Session, func, or_, select
 from sqlmodel.sql.expression import Select
 
-from ..database import CRUDOperations, delete_from_db, get_session, read_from_db
+from ..database import delete_from_db, get_session, read_from_db
 from ..models.catalog_modules import CatalogModule
 from ..models.catalog_requirements import CatalogRequirement
 from ..models.catalogs import Catalog
@@ -199,54 +198,26 @@ class RequirementsView:
     ) -> None:
         return delete_from_db(self._session, requirement, skip_flush)
 
+    def bulk_create_requirements_from_catalog_requirements(
+        self,
+        project: Project,
+        catalog_requirements: Iterable[CatalogRequirement],
+        skip_flush: bool = False,
+    ) -> Iterator[Requirement]:
+        for catalog_requirement in catalog_requirements:
+            requirement = self.create_requirement(
+                project, RequirementInput.from_orm(catalog_requirement), skip_flush=True
+            )
+            requirement.catalog_requirement = catalog_requirement
+            yield requirement
+
+        if not skip_flush:
+            self._session.flush()
+
     def _set_jira_project(
         self, requirement: Requirement, try_to_get: bool = True
     ) -> None:
         self._projects._set_jira_project(requirement.project, try_to_get)
-
-
-@cbv(router)
-class ImportCatalogRequirementsView:
-    kwargs = RequirementsView.kwargs
-
-    def __init__(
-        self,
-        projects: ProjectsView = Depends(ProjectsView),
-        catalog_requirements: CatalogRequirementsView = Depends(
-            CatalogRequirementsView
-        ),
-        crud: CRUDOperations[Requirement] = Depends(CRUDOperations),
-    ):
-        self._projects = projects
-        self._catalog_requirements = catalog_requirements
-        self._crud = crud
-        self._session = self._crud.session
-
-    @router.post(
-        "/projects/{project_id}/requirements/import",
-        status_code=201,
-        response_model=list[RequirementOutput],
-        **kwargs,
-    )
-    def import_requirements_from_catalog_modules(
-        self, project_id: int, catalog_module_ids: list[int]
-    ) -> list[Requirement]:
-        project = self._projects.get_project(project_id)
-        created_requirements = []
-
-        for catalog_requirement in self._catalog_requirements.list_catalog_requirements(
-            [filter_by_values(CatalogRequirement.catalog_module_id, catalog_module_ids)]
-        ):
-            requirement = Requirement.from_orm(
-                RequirementInput.from_orm(catalog_requirement)
-            )
-            requirement.catalog_requirement = catalog_requirement
-            requirement.project = project
-            self._session.add(requirement)
-            created_requirements.append(requirement)
-
-        self._session.flush()
-        return created_requirements
 
 
 def get_requirement_filters(
@@ -472,6 +443,28 @@ def delete_requirement(
 ) -> None:
     requirement = requirements_view.get_requirement(requirement_id)
     requirements_view.delete_requirement(requirement)
+
+
+@router.post(
+    "/projects/{project_id}/requirements/import",
+    status_code=201,
+    response_model=list[RequirementOutput],
+    **RequirementsView.kwargs,
+)
+def import_requirements_from_catalog_modules(
+    project_id: int,
+    catalog_module_ids: list[int],
+    projects_view: ProjectsView = Depends(ProjectsView),
+    catalog_requirements_view: CatalogRequirementsView = Depends(),
+    requirements_view: RequirementsView = Depends(RequirementsView),
+) -> Iterator[Requirement]:
+    project = projects_view.get_project(project_id)
+    catalog_requirements = catalog_requirements_view.list_catalog_requirements(
+        [filter_by_values(CatalogRequirement.catalog_module_id, catalog_module_ids)]
+    )
+    return requirements_view.bulk_create_requirements_from_catalog_requirements(
+        project, catalog_requirements
+    )
 
 
 @router.get(
