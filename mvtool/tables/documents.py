@@ -20,6 +20,8 @@ import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 
+from mvtool.views.projects import ProjectsView
+
 from ..models import Document, DocumentImport, DocumentOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.documents import DocumentsView, get_document_filters, get_document_sort
@@ -78,19 +80,31 @@ def download_documents_excel(
 
 
 @router.post(
-    "/excel/documents",
+    "/excel/projects/{project_id}/documents",
     status_code=201,
     response_model=list[DocumentOutput],
     **DocumentsView.kwargs
 )
 def upload_documents_excel(
+    project_id: int,
+    projects_view: ProjectsView = Depends(),
     documents_view: DocumentsView = Depends(),
     columns: ColumnGroup = Depends(get_document_columns),
     temp_file=Depends(copy_upload_to_temp_file),
-    dry_run: bool = False,
+    skip_blanks: bool = False,  # skip blank cells
+    dry_run: bool = False,  # don't save to database
 ) -> list[Document]:
+    fallback_project = projects_view.get_project(project_id)
+
+    # Create data frame from uploaded file
     df = pd.read_excel(temp_file, engine="openpyxl")
-    document_imports = columns.import_from_dataframe(df)
-    list(document_imports)
-    # TODO: validate document imports and perform import
-    return []
+    df.drop_duplicates(keep="last", inplace=True)
+
+    # Import data frame into database
+    document_imports = columns.import_from_dataframe(df, skip_nan=skip_blanks)
+    documents = list(
+        documents_view.bulk_create_update_documents(
+            fallback_project, document_imports, patch=True, skip_flush=dry_run
+        )
+    )
+    return [] if dry_run else documents
