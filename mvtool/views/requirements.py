@@ -35,12 +35,17 @@ from ..models.requirements import (
     RequirementRepresentation,
 )
 from ..utils import combine_flags
+from ..utils.errors import NotFoundError
+from ..utils.etag_map import get_from_etag_map
+from ..utils.fallback import fallback
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
     search_columns,
 )
+from ..utils.iteration import CachedIterable
+from ..utils.models import field_is_set
 from ..utils.pagination import Page, page_params
 from .catalog_requirements import CatalogRequirementsView
 from .projects import ProjectsView
@@ -197,6 +202,76 @@ class RequirementsView:
         self, requirement: Requirement, skip_flush: bool = False
     ) -> None:
         return delete_from_db(self._session, requirement, skip_flush)
+
+    def bulk_create_update_requirements(
+        self,
+        requirement_imports: Iterable[RequirementImport],
+        fallback_project: Project | None = None,
+        fallback_catalog_module: CatalogModule | None = None,
+        patch: bool = False,
+        skip_flush: bool = False,
+    ) -> Iterator[Requirement]:
+        requirement_imports = CachedIterable(requirement_imports)
+
+        # Convert project imports to projects
+        projects_map = self._projects.convert_project_imports(
+            (r.project for r in requirement_imports if r.project is not None),
+            patch=patch,
+        )
+
+        # Convert catalog requirement imports to catalog requirements
+        catalog_requirements_map = (
+            self._catalog_requirements.convert_catalog_requirement_imports(
+                (
+                    r.catalog_requirement
+                    for r in requirement_imports
+                    if r.catalog_requirement is not None
+                ),
+                fallback_catalog_module,
+                patch=patch,
+            )
+        )
+
+        # Get requirements to be updated from database
+        ids = [r.id for r in requirement_imports if r.id is not None]
+        requirements_to_update = {
+            r.id: r
+            for r in (self.list_requirements([Requirement.id.in_(ids)]) if ids else [])
+        }
+
+        # Create or update requirements
+        for requirement_import in requirement_imports:
+            project = get_from_etag_map(projects_map, requirement_import.project)
+            catalog_requirement = get_from_etag_map(
+                catalog_requirements_map, requirement_import.catalog_requirement
+            )
+
+            if requirement_import.id is None:
+                # Create requirement
+                requirement = self.create_requirement(
+                    fallback(
+                        project, fallback_project, "No fallback project provided."
+                    ),
+                    requirement_import,
+                    skip_flush=True,
+                )
+            else:
+                # Update requirement
+                requirement = requirements_to_update.get(requirement_import.id)
+                if requirement is None:
+                    raise NotFoundError(
+                        f"No requirement with id={requirement_import.id}."
+                    )
+                self.update_requirement(
+                    requirement, requirement_import, patch=patch, skip_flush=True
+                )
+
+            if field_is_set(requirement_import, "catalog_requirement"):
+                requirement.catalog_requirement = catalog_requirement
+            yield requirement
+
+        if not skip_flush:
+            self._session.flush()
 
     def bulk_create_requirements_from_catalog_requirements(
         self,
