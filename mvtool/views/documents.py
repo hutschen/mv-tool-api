@@ -17,46 +17,43 @@
 
 
 from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from fastapi_utils.cbv import cbv
 from pydantic import constr
-from sqlmodel import Column, func, select, or_
+from sqlmodel import Column, Session, func, or_, select
 from sqlmodel.sql.expression import Select
 
-from ..utils.pagination import Page, page_params
+from ..database import delete_from_db, get_session, read_from_db
+from ..models.documents import (
+    Document,
+    DocumentImport,
+    DocumentInput,
+    DocumentOutput,
+    DocumentRepresentation,
+)
+from ..models.projects import Project
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
     search_columns,
 )
-from ..utils.errors import NotFoundError
-from ..database import CRUDOperations, delete_from_db, read_from_db
+from ..utils.pagination import Page, page_params
 from .projects import ProjectsView
-from ..models.projects import Project
-from ..models.documents import (
-    DocumentImport,
-    DocumentInput,
-    Document,
-    DocumentOutput,
-    DocumentRepresentation,
-)
 
 router = APIRouter()
 
 
-@cbv(router)
 class DocumentsView:
     kwargs = dict(tags=["document"])
 
     def __init__(
         self,
         projects: ProjectsView = Depends(ProjectsView),
-        crud: CRUDOperations[Document] = Depends(CRUDOperations),
+        session: Session = Depends(get_session),
     ):
         self._projects = projects
-        self._crud = crud
-        self._session = self._crud.session
+        self._session = session
 
     @staticmethod
     def _modify_documents_query(

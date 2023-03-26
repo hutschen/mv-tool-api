@@ -336,7 +336,7 @@ def import_catalog_requirements_view(
 
 @pytest.fixture
 def documents_view(projects_view, crud):
-    return Mock(wraps=DocumentsView(projects_view, crud))
+    return Mock(wraps=DocumentsView(projects_view, crud.session))
 
 
 @pytest.fixture
