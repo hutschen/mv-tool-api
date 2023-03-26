@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from typing import Any
+from typing import Any, Iterable, Iterator
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import constr
@@ -32,12 +32,14 @@ from ..models.documents import (
     DocumentRepresentation,
 )
 from ..models.projects import Project
+from ..utils.etag_map import get_from_etag_map
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
     search_columns,
 )
+from ..utils.iteration import CachedIterable
 from ..utils.pagination import Page, page_params
 from .projects import ProjectsView
 
@@ -174,6 +176,51 @@ class DocumentsView:
 
     def delete_document(self, document: Document, skip_flush: bool = False) -> None:
         return delete_from_db(self._session, document, skip_flush)
+
+    def bulk_create_update_documents(
+        self,
+        fallback_project: Project,
+        document_imports: Iterable[DocumentImport],
+        patch: bool = False,
+        skip_flush: bool = False,
+    ) -> Iterator[Document]:
+        document_imports = CachedIterable(document_imports)
+
+        # Convert document imports to documents
+        projects_map = self._projects.convert_project_imports(
+            (d.project for d in document_imports if d.project is not None), patch=patch
+        )
+
+        # Get documents to be updated from database
+        ids = [d.id for d in document_imports if d.id is not None]
+        documents_to_update = {
+            d.id: d
+            for d in (self.list_documents([Document.id.in_(ids)]) if ids else [])
+        }
+
+        # Create or update documents
+        for document_import in document_imports:
+            project = get_from_etag_map(projects_map, document_import.project)
+
+            if document_import.id is None:
+                # Create new document
+                yield self.create_document(
+                    project or fallback_project, document_import, skip_flush=True
+                )
+            else:
+                # Update existing document
+                document = documents_to_update.get(document_import.id)
+                if document is None:
+                    raise ValueError(f"No document with id={document_import.id}.")
+                self.update_document(
+                    document, document_import, patch=patch, skip_flush=True
+                )
+                if project is not None:
+                    document.project = project
+                yield document
+
+        if not skip_flush:
+            self._session.flush()
 
     def _set_jira_project(self, document: Document, try_to_get: bool = True) -> None:
         self._projects._set_jira_project(document.project, try_to_get)
