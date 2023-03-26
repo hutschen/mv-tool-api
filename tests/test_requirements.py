@@ -136,22 +136,12 @@ def test_update_requirement(
     create_requirement: Requirement,
     requirement_input: RequirementInput,
 ):
-    requirement = requirements_view.update_requirement(
-        create_requirement.id, requirement_input
-    )
+    orig_name = requirement_input.summary
+    requirement_input.summary += " (updated)"
+    requirements_view.update_requirement(create_requirement, requirement_input)
 
-    assert isinstance(requirement, Requirement)
-    assert requirement.id == create_requirement.id
-    assert requirement.summary == requirement_input.summary
-    assert requirement.project.id == create_requirement.project_id
-
-
-def test_update_requirement_with_invalid_id(
-    requirements_view: RequirementsView, requirement_input: RequirementInput
-):
-    with pytest.raises(HTTPException) as excinfo:
-        requirements_view.update_requirement(-1, requirement_input)
-    excinfo.value.status_code == 404
+    assert create_requirement.summary != orig_name
+    assert create_requirement.summary == requirement_input.summary
 
 
 def test_delete_requirement(

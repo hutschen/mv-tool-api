@@ -157,6 +157,7 @@ class RequirementsView:
         )
         requirement.project = project
 
+        # check catalog_requirement_id and set catalog_requirement
         if isinstance(creation, RequirementInput):
             requirement.catalog_requirement = (
                 self._catalog_requirements.check_catalog_requirement_id(
@@ -177,30 +178,28 @@ class RequirementsView:
         self._set_jira_project(requirement)
         return requirement
 
-    @router.put(
-        "/requirements/{requirement_id}", response_model=RequirementOutput, **kwargs
-    )
     def update_requirement(
-        self, requirement_id: int, requirement_input: RequirementInput
-    ) -> Requirement:
-        requirement = self._session.get(Requirement, requirement_id)
-        if not requirement:
-            cls_name = Requirement.__name__
-            raise NotFoundError(f"No {cls_name} with id={requirement_id}.")
-
-        for key, value in requirement_input.dict().items():
+        self,
+        requirement: Requirement,
+        update: RequirementInput | RequirementImport,
+        patch: bool = False,
+        skip_flush: bool = False,
+    ) -> None:
+        for key, value in update.dict(
+            exclude_unset=patch, exclude={"id", "project", "catalog_requirement"}
+        ).items():
             setattr(requirement, key, value)
 
         # check catalog_requirement_id and set catalog_requirement
-        requirement.catalog_requirement = (
-            self._catalog_requirements.check_catalog_requirement_id(
-                requirement_input.catalog_requirement_id
+        if isinstance(update, RequirementInput):
+            requirement.catalog_requirement = (
+                self._catalog_requirements.check_catalog_requirement_id(
+                    update.catalog_requirement_id
+                )
             )
-        )
 
-        self._session.flush()
-        self._set_jira_project(requirement)
-        return requirement
+        if not skip_flush:
+            self._session.flush()
 
     @router.delete("/requirements/{requirement_id}", status_code=204, **kwargs)
     def delete_requirement(self, requirement_id: int) -> None:
@@ -443,6 +442,21 @@ def create_requirement(
 ) -> RequirementOutput:
     project = projects_view.get_project(project_id)
     return requirements_view.create_requirement(project, requirement_input)
+
+
+@router.put(
+    "/requirements/{requirement_id}",
+    response_model=RequirementOutput,
+    **RequirementsView.kwargs,
+)
+def update_requirement(
+    requirement_id: int,
+    requirement_input: RequirementInput,
+    requirements_view: RequirementsView = Depends(RequirementsView),
+) -> RequirementOutput:
+    requirement = requirements_view.get_requirement(requirement_id)
+    requirements_view.update_requirement(requirement, requirement_input)
+    return requirement
 
 
 @router.get(
