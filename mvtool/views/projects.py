@@ -212,6 +212,23 @@ class ProjectsView:
         if not skip_flush:
             self._session.flush()
 
+    def convert_project_imports(
+        self, project_imports: Iterable[ProjectImport], patch: bool = False
+    ) -> dict[str, Project]:
+        # Map project imports to their etags
+        projects_map = {p.etag: p for p in project_imports}
+
+        # Map created and updated projects to the etags of their imports
+        for etag, project in zip(
+            projects_map.keys(),
+            self.bulk_create_update_projects(
+                projects_map.values(), patch=patch, skip_flush=True
+            ),
+        ):
+            projects_map[etag] = project
+
+        return projects_map
+
     def _set_jira_project(self, project: Project, try_to_get: bool = True) -> None:
         project._get_jira_project = (
             lambda jira_project_id: self._jira_projects.lookup_jira_project(
