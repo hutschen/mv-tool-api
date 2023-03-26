@@ -23,6 +23,8 @@ from pydantic import constr
 from sqlmodel import Column, func, or_, select
 from sqlmodel.sql.expression import Select
 
+from mvtool.models.requirements import RequirementImport
+
 from ..database import CRUDOperations
 from ..models import (
     Catalog,
@@ -144,23 +146,28 @@ class RequirementsView:
         )
         return self._session.execute(query).scalar()
 
-    @router.post(
-        "/projects/{project_id}/requirements",
-        status_code=201,
-        response_model=RequirementOutput,
-        **kwargs,
-    )
     def create_requirement(
-        self, project_id: int, requirement_input: RequirementInput
+        self,
+        project: Project,
+        creation: RequirementInput | RequirementImport,
+        skip_flush: bool = False,
     ) -> Requirement:
-        requirement = Requirement.from_orm(requirement_input)
-        requirement.project = self._projects.get_project(project_id)
-        requirement.catalog_requirement = (
-            self._catalog_requirements.check_catalog_requirement_id(
-                requirement_input.catalog_requirement_id
-            )
+        requirement = Requirement(
+            **creation.dict(exclude={"id", "project", "catalog_requirement"})
         )
-        return self._crud.create_in_db(requirement)
+        requirement.project = project
+
+        if isinstance(creation, RequirementInput):
+            requirement.catalog_requirement = (
+                self._catalog_requirements.check_catalog_requirement_id(
+                    creation.catalog_requirement_id
+                )
+            )
+
+        self._session.add(requirement)
+        if not skip_flush:
+            self._session.flush()
+        return requirement
 
     @router.get(
         "/requirements/{requirement_id}", response_model=RequirementOutput, **kwargs
@@ -420,6 +427,22 @@ def get_requirements(
         )
     else:
         return requirements
+
+
+@router.post(
+    "/projects/{project_id}/requirements",
+    status_code=201,
+    response_model=RequirementOutput,
+    **RequirementsView.kwargs,
+)
+def create_requirement(
+    project_id: int,
+    requirement_input: RequirementInput,
+    projects_view: ProjectsView = Depends(ProjectsView),
+    requirements_view: RequirementsView = Depends(RequirementsView),
+) -> RequirementOutput:
+    project = projects_view.get_project(project_id)
+    return requirements_view.create_requirement(project, requirement_input)
 
 
 @router.get(

@@ -302,7 +302,7 @@ def create_requirement(
     create_project: Project,
     requirement_input: RequirementInput,
 ):
-    return requirements_view.create_requirement(create_project.id, requirement_input)
+    return requirements_view.create_requirement(create_project, requirement_input)
 
 
 @pytest.fixture
