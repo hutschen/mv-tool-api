@@ -183,7 +183,7 @@ class DocumentsView:
     ) -> Iterator[Document]:
         document_imports = CachedIterable(document_imports)
 
-        # Convert document imports to documents
+        # Convert project imports to projects
         projects_map = self._projects.convert_project_imports(
             (d.project for d in document_imports if d.project is not None), patch=patch
         )
