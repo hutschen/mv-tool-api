@@ -44,15 +44,12 @@ class RequirementInput(AbstractRequirementInput, AbstractComplianceInput):
     milestone: str | None
 
 
-class RequirementImport(ETagMixin, AbstractComplianceInput):
+class RequirementImport(ETagMixin, AbstractRequirementInput, AbstractComplianceInput):
     id: int | None = None
-    reference: str | None
-    summary: str
-    description: str | None
     catalog_requirement: "CatalogRequirementImport | None"
+    project: "ProjectImport | None"
     target_object: str | None
     milestone: str | None
-    project: "ProjectImport | None"
 
 
 class Requirement(RequirementInput, CommonFieldsMixin, table=True):
