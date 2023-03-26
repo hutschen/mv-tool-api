@@ -162,7 +162,7 @@ class DocumentsView:
         update: DocumentInput | DocumentImport,
         patch: bool = False,
         skip_flush: bool = False,
-    ) -> Document:
+    ) -> None:
         for key, value in update.dict(
             exclude_unset=patch, exclude={"id", "project"}
         ).items():
@@ -170,9 +170,6 @@ class DocumentsView:
 
         if not skip_flush:
             self._session.flush()
-
-        self._set_jira_project(document)
-        return document
 
     def delete_document(self, document: Document, skip_flush: bool = False) -> None:
         return delete_from_db(self._session, document, skip_flush)
@@ -371,7 +368,8 @@ def update_document(
     documents_view: DocumentsView = Depends(),
 ) -> Document:
     document = documents_view.get_document(document_id)
-    return documents_view.update_document(document, document_input)
+    documents_view.update_document(document, document_input)
+    return document
 
 
 @router.delete(
