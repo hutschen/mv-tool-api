@@ -25,7 +25,7 @@ from sqlmodel.sql.expression import Select
 
 from mvtool.models.requirements import RequirementImport
 
-from ..database import CRUDOperations
+from ..database import CRUDOperations, read_from_db
 from ..models import (
     Catalog,
     CatalogModule,
@@ -170,11 +170,8 @@ class RequirementsView:
             self._session.flush()
         return requirement
 
-    @router.get(
-        "/requirements/{requirement_id}", response_model=RequirementOutput, **kwargs
-    )
     def get_requirement(self, requirement_id: int) -> Requirement:
-        requirement = self._crud.read_from_db(Requirement, requirement_id)
+        requirement = read_from_db(self._session, Requirement, requirement_id)
         self._set_jira_project(requirement)
         return requirement
 
@@ -442,6 +439,17 @@ def create_requirement(
 ) -> RequirementOutput:
     project = projects_view.get_project(project_id)
     return requirements_view.create_requirement(project, requirement_input)
+
+
+@router.get(
+    "/requirements/{requirement_id}",
+    response_model=RequirementOutput,
+    **RequirementsView.kwargs,
+)
+def get_requirement(
+    requirement_id: int, requirements_view: RequirementsView = Depends(RequirementsView)
+) -> Requirement:
+    return requirements_view.get_requirement(requirement_id)
 
 
 @router.put(
