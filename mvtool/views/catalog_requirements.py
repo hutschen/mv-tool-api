@@ -236,6 +236,25 @@ class CatalogRequirementsView:
     ) -> None:
         return delete_from_db(self._session, catalog_requirement, skip_flush)
 
+    def convert_catalog_requirement_imports(
+        self,
+        catalog_requirement_imports: Iterable[CatalogRequirementImport],
+        patch: bool = False,
+    ) -> dict[str, CatalogRequirement]:
+        # Map catalog requirement imports to their etags
+        catalog_requirements_map = {r.etag: r for r in catalog_requirement_imports}
+
+        # Map created and updated catalog requirements to the etags of their imports
+        for etag, catalog_requirement in zip(
+            catalog_requirements_map.keys(),
+            self.bulk_create_update_catalog_requirements(
+                catalog_requirements_map.values(), patch=patch, skip_flush=True
+            ),
+        ):
+            catalog_requirements_map[etag] = catalog_requirement
+
+        return catalog_requirements_map
+
 
 def get_catalog_requirement_filters(
     # filter by pattern
