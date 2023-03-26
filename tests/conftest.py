@@ -345,7 +345,7 @@ def create_document(
     create_project: Project,
     document_input: DocumentInput,
 ):
-    return documents_view.create_document(create_project.id, document_input)
+    return documents_view.create_document(create_project, document_input)
 
 
 @pytest.fixture

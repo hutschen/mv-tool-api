@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from typing import Any, Iterator
+from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi_utils.cbv import cbv
 from pydantic import constr
@@ -33,13 +33,13 @@ from ..utils.filtering import (
 from ..utils.errors import NotFoundError
 from ..database import CRUDOperations
 from .projects import ProjectsView
-from ..models import (
+from ..models.projects import Project
+from ..models.documents import (
+    DocumentImport,
     DocumentInput,
     Document,
     DocumentOutput,
     DocumentRepresentation,
-    JiraProject,
-    Project,
 )
 
 router = APIRouter()
@@ -133,18 +133,19 @@ class DocumentsView:
         )
         return self._session.execute(query).scalar()
 
-    @router.post(
-        "/projects/{project_id}/documents",
-        status_code=201,
-        response_model=DocumentOutput,
-        **kwargs,
-    )
     def create_document(
-        self, project_id: int, document_input: DocumentInput
+        self,
+        project: Project,
+        creation: DocumentInput | DocumentImport,
+        skip_flush: bool = False,
     ) -> Document:
-        document = Document.from_orm(document_input)
-        document.project = self._projects.get_project(project_id)
-        return self._crud.create_in_db(document)
+        document = Document(**creation.dict(exclude={"id", "project"}))
+        document.project = project
+
+        self._session.add(document)
+        if not skip_flush:
+            self._session.flush()
+        return document
 
     @router.get("/documents/{document_id}", response_model=DocumentOutput, **kwargs)
     def get_document(self, document_id: int) -> Document:
@@ -292,6 +293,22 @@ def get_documents(
         return Page[DocumentOutput](items=documents, total_count=documents_count)
     else:
         return documents
+
+
+@router.post(
+    "/projects/{project_id}/documents",
+    status_code=201,
+    response_model=DocumentOutput,
+    **DocumentsView.kwargs,
+)
+def create_document(
+    project_id: int,
+    document_input: DocumentInput,
+    projects_view: ProjectsView = Depends(),
+    documents_view: DocumentsView = Depends(),
+) -> Document:
+    project = projects_view.get_project(project_id)
+    return documents_view.create_document(project, document_input)
 
 
 @router.get(

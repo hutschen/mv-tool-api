@@ -39,20 +39,12 @@ def test_create_document(
     create_project: Project,
     document_input: DocumentInput,
 ):
-    document = documents_view.create_document(create_project.id, document_input)
+    document = documents_view.create_document(create_project, document_input)
 
     assert isinstance(document, Document)
     assert document.title == document_input.title
     assert document.project.id == create_project.id
     assert document.project.jira_project.id == create_project.jira_project_id
-
-
-def test_create_document_with_invalid_project_id(
-    documents_view: DocumentsView, document_input: DocumentInput
-):
-    with pytest.raises(HTTPException) as excinfo:
-        documents_view.create_document(-1, document_input)
-    assert excinfo.value.status_code == 404
 
 
 def test_get_document(documents_view: DocumentsView, create_document: Document):
