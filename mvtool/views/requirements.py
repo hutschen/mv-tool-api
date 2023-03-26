@@ -25,7 +25,7 @@ from sqlmodel.sql.expression import Select
 
 from mvtool.models.requirements import RequirementImport
 
-from ..database import CRUDOperations, read_from_db
+from ..database import CRUDOperations, delete_from_db, read_from_db
 from ..models import (
     Catalog,
     CatalogModule,
@@ -198,9 +198,10 @@ class RequirementsView:
         if not skip_flush:
             self._session.flush()
 
-    @router.delete("/requirements/{requirement_id}", status_code=204, **kwargs)
-    def delete_requirement(self, requirement_id: int) -> None:
-        return self._crud.delete_from_db(Requirement, requirement_id)
+    def delete_requirement(
+        self, requirement: Requirement, skip_flush: bool = False
+    ) -> None:
+        return delete_from_db(self._session, requirement, skip_flush)
 
     def _set_jira_project(
         self, requirement: Requirement, try_to_get: bool = True
@@ -465,6 +466,16 @@ def update_requirement(
     requirement = requirements_view.get_requirement(requirement_id)
     requirements_view.update_requirement(requirement, requirement_input)
     return requirement
+
+
+@router.delete(
+    "/requirements/{requirement_id}", status_code=204, **RequirementsView.kwargs
+)
+def delete_requirement(
+    requirement_id: int, requirements_view: RequirementsView = Depends(RequirementsView)
+) -> None:
+    requirement = requirements_view.get_requirement(requirement_id)
+    requirements_view.delete_requirement(requirement)
 
 
 @router.get(

@@ -147,10 +147,10 @@ def test_update_requirement(
 def test_delete_requirement(
     requirements_view: RequirementsView, create_requirement: Requirement
 ):
-    requirements_view.delete_requirement(create_requirement.id)
+    requirements_view.delete_requirement(create_requirement)
 
     with pytest.raises(HTTPException) as excinfo:
-        requirements_view.delete_requirement(create_requirement.id)
+        requirements_view.get_requirement(create_requirement.id)
     excinfo.value.status_code == 404
 
 
