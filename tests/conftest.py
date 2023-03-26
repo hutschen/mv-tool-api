@@ -293,7 +293,9 @@ def requirements_view(
     catalog_requirements_view: CatalogRequirementsView,
     crud,
 ):
-    return Mock(wraps=RequirementsView(projects_view, catalog_requirements_view, crud))
+    return Mock(
+        wraps=RequirementsView(projects_view, catalog_requirements_view, crud.session)
+    )
 
 
 @pytest.fixture

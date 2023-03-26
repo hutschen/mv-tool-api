@@ -20,24 +20,22 @@ from typing import Any, Callable
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_utils.cbv import cbv
 from pydantic import constr
-from sqlmodel import Column, func, or_, select
+from sqlmodel import Column, Session, func, or_, select
 from sqlmodel.sql.expression import Select
 
-from mvtool.models.requirements import RequirementImport
-
-from ..database import CRUDOperations, delete_from_db, read_from_db
-from ..models import (
-    Catalog,
-    CatalogModule,
-    CatalogRequirement,
-    Project,
+from ..database import CRUDOperations, delete_from_db, get_session, read_from_db
+from ..models.catalog_modules import CatalogModule
+from ..models.catalog_requirements import CatalogRequirement
+from ..models.catalogs import Catalog
+from ..models.projects import Project
+from ..models.requirements import (
     Requirement,
+    RequirementImport,
     RequirementInput,
     RequirementOutput,
     RequirementRepresentation,
 )
 from ..utils import combine_flags
-from ..utils.errors import NotFoundError
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
@@ -51,7 +49,6 @@ from .projects import ProjectsView
 router = APIRouter()
 
 
-@cbv(router)
 class RequirementsView:
     kwargs = dict(tags=["requirement"])
 
@@ -61,12 +58,11 @@ class RequirementsView:
         catalog_requirements: CatalogRequirementsView = Depends(
             CatalogRequirementsView
         ),
-        crud: CRUDOperations[Requirement] = Depends(CRUDOperations),
+        session: Session = Depends(get_session),
     ):
         self._projects = projects
         self._catalog_requirements = catalog_requirements
-        self._crud = crud
-        self._session = self._crud.session
+        self._session = session
 
     @staticmethod
     def _modify_requirements_query(
