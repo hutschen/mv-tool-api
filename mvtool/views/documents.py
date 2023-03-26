@@ -31,7 +31,7 @@ from ..utils.filtering import (
     search_columns,
 )
 from ..utils.errors import NotFoundError
-from ..database import CRUDOperations, read_from_db
+from ..database import CRUDOperations, delete_from_db, read_from_db
 from .projects import ProjectsView
 from ..models.projects import Project
 from ..models.documents import (
@@ -175,11 +175,8 @@ class DocumentsView:
         self._set_jira_project(document)
         return document
 
-    @router.delete(
-        "/documents/{document_id}", status_code=204, response_class=Response, **kwargs
-    )
-    def delete_document(self, document_id: int) -> None:
-        return self._crud.delete_from_db(Document, document_id)
+    def delete_document(self, document: Document, skip_flush: bool = False) -> None:
+        return delete_from_db(self._session, document, skip_flush)
 
     def _set_jira_project(self, document: Document, try_to_get: bool = True) -> None:
         self._projects._set_jira_project(document.project, try_to_get)
@@ -331,6 +328,19 @@ def update_document(
 ) -> Document:
     document = documents_view.get_document(document_id)
     return documents_view.update_document(document, document_input)
+
+
+@router.delete(
+    "/documents/{document_id}",
+    status_code=204,
+    response_class=Response,
+    **DocumentsView.kwargs,
+)
+def delete_document(
+    document_id: int, documents_view: DocumentsView = Depends()
+) -> None:
+    document = documents_view.get_document(document_id)
+    documents_view.delete_document(document)
 
 
 @router.get(

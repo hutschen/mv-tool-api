@@ -17,7 +17,7 @@
 
 from fastapi import HTTPException
 import pytest
-from mvtool.models import Document, DocumentInput, DocumentOutput, Project
+from mvtool.models import Document, DocumentInput, Project
 from mvtool.views.documents import DocumentsView
 
 
@@ -84,7 +84,7 @@ def test_update_document(
 
 
 def test_delete_document(documents_view: DocumentsView, create_document: Document):
-    documents_view.delete_document(create_document.id)
+    documents_view.delete_document(create_document)
     with pytest.raises(HTTPException) as excinfo:
         documents_view.get_document(create_document.id)
     assert excinfo.value.status_code == 404
