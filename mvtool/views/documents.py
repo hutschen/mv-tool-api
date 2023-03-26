@@ -157,18 +157,20 @@ class DocumentsView:
         if document_id is not None:
             return self.get_document(document_id)
 
-    @router.put("/documents/{document_id}", response_model=DocumentOutput, **kwargs)
     def update_document(
-        self, document_id: int, document_input: DocumentInput
+        self,
+        document: Document,
+        update: DocumentInput | DocumentImport,
+        patch: bool = False,
+        skip_flush: bool = False,
     ) -> Document:
-        document = self._session.get(Document, document_id)
-        if not document:
-            cls_name = Document.__name__
-            raise NotFoundError(f"No {cls_name} with id={document_id}.")
-
-        for key, value in document_input.dict().items():
+        for key, value in update.dict(
+            exclude_unset=patch, exclude={"id", "project"}
+        ).items():
             setattr(document, key, value)
-        self._session.flush()
+
+        if not skip_flush:
+            self._session.flush()
 
         self._set_jira_project(document)
         return document
@@ -317,6 +319,18 @@ def get_document(
     document_id: int, documents_view: DocumentsView = Depends()
 ) -> Document:
     return documents_view.get_document(document_id)
+
+
+@router.put(
+    "/documents/{document_id}", response_model=DocumentOutput, **DocumentsView.kwargs
+)
+def update_document(
+    document_id: int,
+    document_input: DocumentInput,
+    documents_view: DocumentsView = Depends(),
+) -> Document:
+    document = documents_view.get_document(document_id)
+    return documents_view.update_document(document, document_input)
 
 
 @router.get(
