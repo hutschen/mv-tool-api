@@ -31,7 +31,7 @@ from ..utils.filtering import (
     search_columns,
 )
 from ..utils.errors import NotFoundError
-from ..database import CRUDOperations
+from ..database import CRUDOperations, read_from_db
 from .projects import ProjectsView
 from ..models.projects import Project
 from ..models.documents import (
@@ -147,9 +147,8 @@ class DocumentsView:
             self._session.flush()
         return document
 
-    @router.get("/documents/{document_id}", response_model=DocumentOutput, **kwargs)
     def get_document(self, document_id: int) -> Document:
-        document = self._crud.read_from_db(Document, document_id)
+        document = read_from_db(self._session, Document, document_id)
         self._set_jira_project(document)
         return document
 
@@ -309,6 +308,15 @@ def create_document(
 ) -> Document:
     project = projects_view.get_project(project_id)
     return documents_view.create_document(project, document_input)
+
+
+@router.get(
+    "/documents/{document_id}", response_model=DocumentOutput, **DocumentsView.kwargs
+)
+def get_document(
+    document_id: int, documents_view: DocumentsView = Depends()
+) -> Document:
+    return documents_view.get_document(document_id)
 
 
 @router.get(
