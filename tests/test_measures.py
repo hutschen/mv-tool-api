@@ -225,7 +225,7 @@ def test_update_measure_with_invalid_document_id(
 
 
 def test_delete_measure(measures_view: MeasuresView, create_measure: Measure):
-    measures_view.delete_measure(create_measure.id)
+    measures_view.delete_measure(create_measure)
     with pytest.raises(HTTPException) as excinfo:
         measures_view.get_measure(create_measure.id)
     assert excinfo.value.status_code == 404

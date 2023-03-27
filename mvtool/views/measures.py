@@ -29,7 +29,7 @@ from mvtool.utils import combine_flags
 from mvtool.views.documents import DocumentsView
 from mvtool.views.jira_ import JiraIssuesView
 
-from ..database import CRUDOperations, read_from_db
+from ..database import CRUDOperations, delete_from_db, read_from_db
 from ..models import (
     Catalog,
     CatalogModule,
@@ -218,11 +218,8 @@ class MeasuresView:
 
         self._set_jira_issue(measure, try_to_get=try_to_get_jira_issue)
 
-    @router.delete(
-        "/measures/{measure_id}", status_code=204, response_class=Response, **kwargs
-    )
-    def delete_measure(self, measure_id: int) -> None:
-        return self._crud.delete_from_db(Measure, measure_id)
+    def delete_measure(self, measure: Measure, skip_flush: bool = False) -> None:
+        return delete_from_db(self._session, measure, skip_flush)
 
     @router.post(
         "/measures/{measure_id}/jira-issue",
@@ -508,6 +505,17 @@ def update_measure(
     measure = measures_view.get_measure(measure_id)
     measures_view.update_measure(measure, measure_input)
     return measure
+
+
+@router.delete(
+    "/measures/{measure_id}",
+    status_code=204,
+    response_class=Response,
+    **MeasuresView.kwargs,
+)
+def delete_measure(measure_id: int, measures_view: MeasuresView = Depends()):
+    measure = measures_view.get_measure(measure_id)
+    measures_view.delete_measure(measure)
 
 
 @router.get(
