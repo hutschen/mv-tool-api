@@ -504,7 +504,7 @@ def update_requirement(
     requirement_id: int,
     requirement_input: RequirementInput,
     requirements_view: RequirementsView = Depends(RequirementsView),
-) -> RequirementOutput:
+) -> Requirement:
     requirement = requirements_view.get_requirement(requirement_id)
     requirements_view.update_requirement(requirement, requirement_input)
     return requirement
