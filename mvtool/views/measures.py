@@ -17,26 +17,19 @@
 
 
 from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi_utils.cbv import cbv
 from pydantic import constr
-from sqlmodel import Column, func, select, or_
+from sqlmodel import Column, func, or_, select
 from sqlmodel.sql.expression import Select
+
 from mvtool.models.measures import MeasureImport
 from mvtool.utils import combine_flags
-
 from mvtool.views.documents import DocumentsView
 from mvtool.views.jira_ import JiraIssuesView
-from ..utils.pagination import Page, page_params
-from ..utils.filtering import (
-    filter_for_existence,
-    filter_by_pattern,
-    filter_by_values,
-    search_columns,
-)
-from ..database import CRUDOperations
-from .requirements import RequirementsView
-from ..utils.errors import ClientError, NotFoundError
+
+from ..database import CRUDOperations, read_from_db
 from ..models import (
     Catalog,
     CatalogModule,
@@ -44,12 +37,21 @@ from ..models import (
     Document,
     JiraIssue,
     JiraIssueInput,
-    MeasureInput,
     Measure,
+    MeasureInput,
     MeasureOutput,
     MeasureRepresentation,
     Requirement,
 )
+from ..utils.errors import ClientError, NotFoundError
+from ..utils.filtering import (
+    filter_by_pattern,
+    filter_by_values,
+    filter_for_existence,
+    search_columns,
+)
+from ..utils.pagination import Page, page_params
+from .requirements import RequirementsView
 
 router = APIRouter()
 
@@ -183,9 +185,8 @@ class MeasuresView:
         self._set_jira_issue(measure, try_to_get=try_to_get_jira_issue)
         return measure
 
-    @router.get("/measures/{measure_id}", response_model=MeasureOutput, **kwargs)
     def get_measure(self, measure_id: int) -> Measure:
-        measure = self._crud.read_from_db(Measure, measure_id)
+        measure = read_from_db(self._session, Measure, measure_id)
         self._set_jira_issue(measure)
         self._set_jira_project(measure)
         return measure
@@ -482,6 +483,13 @@ def create_measure(
 ) -> Measure:
     requirement = requirements_view.get_requirement(requirement_id)
     return measures_view.create_measure(requirement, measure_input)
+
+
+@router.get(
+    "/measures/{measure_id}", response_model=MeasureOutput, **MeasuresView.kwargs
+)
+def get_measure(measure_id: int, measures_view: MeasuresView = Depends()) -> Measure:
+    return measures_view.get_measure(measure_id)
 
 
 @router.get(
