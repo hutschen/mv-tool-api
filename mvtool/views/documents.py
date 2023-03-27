@@ -33,6 +33,7 @@ from ..models.documents import (
 )
 from ..models.projects import Project
 from ..utils.etag_map import get_from_etag_map
+from ..utils.fallback import fallback
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
@@ -176,8 +177,8 @@ class DocumentsView:
 
     def bulk_create_update_documents(
         self,
-        fallback_project: Project,
         document_imports: Iterable[DocumentImport],
+        fallback_project: Project | None = None,
         patch: bool = False,
         skip_flush: bool = False,
     ) -> Iterator[Document]:
@@ -202,7 +203,11 @@ class DocumentsView:
             if document_import.id is None:
                 # Create new document
                 yield self.create_document(
-                    project or fallback_project, document_import, skip_flush=True
+                    fallback(
+                        project, fallback_project, "No fallback project provided."
+                    ),
+                    document_import,
+                    skip_flush=True,
                 )
             else:
                 # Update existing document

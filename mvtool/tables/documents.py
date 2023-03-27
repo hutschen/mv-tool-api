@@ -20,11 +20,10 @@ import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 
-from mvtool.views.projects import ProjectsView
-
-from ..models import Document, DocumentImport, DocumentOutput
+from ..models.documents import Document, DocumentImport, DocumentOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.documents import DocumentsView, get_document_filters, get_document_sort
+from ..views.projects import ProjectsView
 from .common import Column, ColumnGroup
 from .handlers import get_export_labels_handler, hide_columns
 from .projects import get_project_columns
@@ -80,13 +79,13 @@ def download_documents_excel(
 
 
 @router.post(
-    "/excel/projects/{project_id}/documents",
+    "/excel/documents",
     status_code=201,
     response_model=list[DocumentOutput],
     **DocumentsView.kwargs
 )
 def upload_documents_excel(
-    project_id: int,
+    fallback_project_id: int | None = None,
     projects_view: ProjectsView = Depends(),
     documents_view: DocumentsView = Depends(),
     columns: ColumnGroup = Depends(get_document_columns),
@@ -94,7 +93,11 @@ def upload_documents_excel(
     skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
 ) -> list[Document]:
-    fallback_project = projects_view.get_project(project_id)
+    fallback_project = (
+        projects_view.get_project(fallback_project_id)
+        if fallback_project_id is not None
+        else None
+    )
 
     # Create data frame from uploaded file
     df = pd.read_excel(temp_file, engine="openpyxl")
@@ -104,7 +107,7 @@ def upload_documents_excel(
     document_imports = columns.import_from_dataframe(df, skip_nan=skip_blanks)
     documents = list(
         documents_view.bulk_create_update_documents(
-            fallback_project, document_imports, patch=True, skip_flush=dry_run
+            document_imports, fallback_project, patch=True, skip_flush=dry_run
         )
     )
     return [] if dry_run else documents
