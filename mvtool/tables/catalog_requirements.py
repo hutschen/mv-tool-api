@@ -92,13 +92,13 @@ def download_catalog_requirements_excel(
 
 
 @router.post(
-    "/excel/catalog-modules/{catalog_module_id}/catalog-requirements",
+    "/excel/catalog-requirements",
     status_code=201,
     response_model=list[CatalogRequirementOutput],
     **CatalogRequirementsView.kwargs
 )
 def upload_catalog_requirements_excel(
-    catalog_module_id: int,
+    fallback_catalog_module_id: int | None = None,
     catalog_modules_view: CatalogModulesView = Depends(),
     catalog_requirements_view: CatalogRequirementsView = Depends(),
     columns: ColumnGroup = Depends(get_catalog_requirement_columns),
@@ -106,7 +106,11 @@ def upload_catalog_requirements_excel(
     skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
 ) -> list[CatalogRequirement]:
-    fallback_catalog_module = catalog_modules_view.get_catalog_module(catalog_module_id)
+    fallback_catalog_module = (
+        catalog_modules_view.get_catalog_module(fallback_catalog_module_id)
+        if fallback_catalog_module_id is not None
+        else None
+    )
 
     df = pd.read_excel(temp_file, engine="openpyxl")
     catalog_requirement_imports = columns.import_from_dataframe(
@@ -114,8 +118,8 @@ def upload_catalog_requirements_excel(
     )
     catalog_requirements = list(
         catalog_requirements_view.bulk_create_update_catalog_requirements(
-            fallback_catalog_module,
             catalog_requirement_imports,
+            fallback_catalog_module,
             patch=True,
             skip_flush=dry_run,
         )

@@ -33,6 +33,7 @@ from ..models.catalog_requirements import (
 )
 from ..models.catalogs import Catalog
 from ..utils.etag_map import get_from_etag_map
+from ..utils.fallback import fallback
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
@@ -167,8 +168,8 @@ class CatalogRequirementsView:
 
     def bulk_create_update_catalog_requirements(
         self,
-        fallback_catalog_module: CatalogModule,
         catalog_requirement_imports: Iterable[CatalogRequirementImport],
+        fallback_catalog_module: CatalogModule | None = None,
         patch: bool = False,
         skip_flush: bool = False,
     ) -> Iterator[CatalogRequirement]:
@@ -176,12 +177,12 @@ class CatalogRequirementsView:
 
         # Convert catalog module imports to catalog modules
         catalog_modules_map = self._catalog_modules.convert_catalog_module_imports(
-            fallback_catalog_module.catalog,
             (
                 c.catalog_module
                 for c in catalog_requirement_imports
                 if c.catalog_module is not None
             ),
+            fallback_catalog_module.catalog if fallback_catalog_module else None,
             patch=patch,
         )
 
@@ -205,7 +206,11 @@ class CatalogRequirementsView:
             if catalog_requirement_import.id is None:
                 # Create new catalog requirement
                 yield self.create_catalog_requirement(
-                    catalog_module or fallback_catalog_module,
+                    fallback(
+                        catalog_module,
+                        fallback_catalog_module,
+                        "No fallback catalog module provided.",
+                    ),
                     catalog_requirement_import,
                     skip_flush=True,
                 )
@@ -239,6 +244,7 @@ class CatalogRequirementsView:
     def convert_catalog_requirement_imports(
         self,
         catalog_requirement_imports: Iterable[CatalogRequirementImport],
+        fallback_catalog_module: CatalogModule | None = None,
         patch: bool = False,
     ) -> dict[str, CatalogRequirement]:
         # Map catalog requirement imports to their etags
@@ -248,7 +254,10 @@ class CatalogRequirementsView:
         for etag, catalog_requirement in zip(
             catalog_requirements_map.keys(),
             self.bulk_create_update_catalog_requirements(
-                catalog_requirements_map.values(), patch=patch, skip_flush=True
+                catalog_requirements_map.values(),
+                fallback_catalog_module,
+                patch=patch,
+                skip_flush=True,
             ),
         ):
             catalog_requirements_map[etag] = catalog_requirement
