@@ -34,6 +34,7 @@ from ..models.catalog_modules import (
 from ..models.catalogs import Catalog
 from ..utils.errors import NotFoundError
 from ..utils.etag_map import get_from_etag_map
+from ..utils.fallback import fallback
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
@@ -163,8 +164,8 @@ class CatalogModulesView:
 
     def bulk_create_update_catalog_modules(
         self,
-        fallback_catalog: Catalog,
         catalog_module_imports: Iterable[CatalogModuleImport],
+        fallback_catalog: Catalog | None = None,
         patch: bool = False,
         skip_flush: bool = False,
     ) -> Iterator[CatalogModule]:
@@ -192,7 +193,11 @@ class CatalogModulesView:
             if catalog_module_import.id is None:
                 # Create new catalog module
                 yield self.create_catalog_module(
-                    catalog or fallback_catalog, catalog_module_import, skip_flush=True
+                    fallback(
+                        catalog, fallback_catalog, "No fallback catalog provided."
+                    ),
+                    catalog_module_import,
+                    skip_flush=True,
                 )
             else:
                 # Update existing catalog module
@@ -213,8 +218,8 @@ class CatalogModulesView:
 
     def convert_catalog_module_imports(
         self,
-        fallback_catalog: Catalog,
         catalog_module_imports: Iterable[CatalogModuleImport],
+        fallback_catalog: Catalog | None = None,
         patch: bool = False,
     ) -> dict[int, CatalogModule]:
         # Map catalog module imports to their etags
@@ -224,8 +229,8 @@ class CatalogModulesView:
         for etag, catalog_module in zip(
             catalog_modules_map.keys(),
             self.bulk_create_update_catalog_modules(
-                fallback_catalog,
                 catalog_modules_map.values(),
+                fallback_catalog,
                 patch=patch,
                 skip_flush=True,
             ),
