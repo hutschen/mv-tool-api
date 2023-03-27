@@ -22,14 +22,15 @@ import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 
-from mvtool.models.requirements import RequirementImport
-
 from ..models import Requirement, RequirementOutput
+from ..models.requirements import RequirementImport
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
+from ..views.catalog_modules import CatalogModulesView
 from ..views.catalog_requirements import (
     get_catalog_requirement_filters,
     get_catalog_requirement_sort,
 )
+from ..views.projects import ProjectsView
 from ..views.requirements import RequirementsView
 from .catalog_requirements import get_catalog_requirement_columns
 from .common import Column, ColumnGroup
@@ -99,13 +100,40 @@ def download_requirements_excel(
     **RequirementsView.kwargs,
 )
 def upload_requirements_excel(
+    fallback_project_id: int | None = None,
+    fallback_catalog_module_id: int | None = None,
+    project_view: ProjectsView = Depends(),
+    catalog_modules_view: CatalogModulesView = Depends(),
     requirements_view: RequirementsView = Depends(),
     columns: ColumnGroup = Depends(get_requirement_columns),
-    temp_file: NamedTemporaryFile = Depends(copy_upload_to_temp_file),
-    dry_run: bool = False,
-) -> list[RequirementOutput]:
+    temp_file=Depends(copy_upload_to_temp_file),
+    skip_blanks: bool = False,  # skip blank cells
+    dry_run: bool = False,  # don't save to database
+) -> list[Requirement]:
+    fallback_project = (
+        project_view.get_project(fallback_project_id)
+        if fallback_project_id is not None
+        else None
+    )
+    fallback_catalog_module = (
+        catalog_modules_view.get_catalog_module(fallback_catalog_module_id)
+        if fallback_catalog_module_id is not None
+        else None
+    )
+
+    # Create a data frame from the uploaded Excel file
     df = pd.read_excel(temp_file, engine="openpyxl")
-    requirement_imports = columns.import_from_dataframe(df)
-    list(requirement_imports)
-    # TODO: validate requirements imports and perform import
-    return []
+    df.drop_duplicates(keep="last", inplace=True)
+
+    # Import the data frame
+    requirement_imports = columns.import_from_dataframe(df, skip_nan=skip_blanks)
+    requirements = list(
+        requirements_view.bulk_create_update_requirements(
+            requirement_imports,
+            fallback_project,
+            fallback_catalog_module,
+            patch=True,
+            skip_flush=dry_run,
+        )
+    )
+    return [] if dry_run else requirements
