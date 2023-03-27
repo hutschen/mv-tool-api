@@ -191,27 +191,32 @@ class MeasuresView:
         self._set_jira_project(measure)
         return measure
 
-    @router.put("/measures/{measure_id}", response_model=MeasureOutput, **kwargs)
-    def update_measure(self, measure_id: int, measure_input: MeasureInput) -> Measure:
-        measure = self._session.get(Measure, measure_id)
-        if measure is None:
-            cls_name = Measure.__name__
-            raise NotFoundError(f"No {cls_name} with id={measure_id}.")
+    def update_measure(
+        self,
+        measure: Measure,
+        update: MeasureInput | MeasureImport,
+        patch: bool = False,
+        skip_flush: bool = False,
+    ) -> None:
+        # check ids of dependencies
+        try_to_get_jira_issue = True
+        if isinstance(update, MeasureInput):
+            measure.document = self._documents.check_document_id(update.document_id)
+            if update.jira_issue_id != measure.jira_issue_id:
+                self._jira_issues.check_jira_issue_id(update.jira_issue_id)
+                try_to_get_jira_issue = False
 
-        # check jira issue id and cache loaded jira issue
-        if measure_input.jira_issue_id != measure.jira_issue_id:
-            self._jira_issues.check_jira_issue_id(measure_input.jira_issue_id)
-
-        for key, value in measure_input.dict().items():
+        # update measure
+        for key, value in update.dict(
+            exclude_unset=patch, exclude={"id", "requirement", "jira_issue", "document"}
+        ).items():
             setattr(measure, key, value)
 
-        # check document id and set loaded document
-        measure.document = self._documents.check_document_id(measure_input.document_id)
+        # flush changes
+        if not skip_flush:
+            self._session.flush()
 
-        self._session.flush()
-        self._set_jira_issue(measure)
-        self._set_jira_project(measure)
-        return measure
+        self._set_jira_issue(measure, try_to_get=try_to_get_jira_issue)
 
     @router.delete(
         "/measures/{measure_id}", status_code=204, response_class=Response, **kwargs
@@ -490,6 +495,19 @@ def create_measure(
 )
 def get_measure(measure_id: int, measures_view: MeasuresView = Depends()) -> Measure:
     return measures_view.get_measure(measure_id)
+
+
+@router.put(
+    "/measures/{measure_id}", response_model=MeasureOutput, **MeasuresView.kwargs
+)
+def update_measure(
+    measure_id: int,
+    measure_input: MeasureInput,
+    measures_view: MeasuresView = Depends(),
+):
+    measure = measures_view.get_measure(measure_id)
+    measures_view.update_measure(measure, measure_input)
+    return measure
 
 
 @router.get(
