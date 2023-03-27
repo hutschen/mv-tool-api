@@ -22,6 +22,7 @@ from fastapi_utils.cbv import cbv
 from pydantic import constr
 from sqlmodel import Column, func, select, or_
 from sqlmodel.sql.expression import Select
+from mvtool.models.measures import MeasureImport
 from mvtool.utils import combine_flags
 
 from mvtool.views.documents import DocumentsView
@@ -157,31 +158,30 @@ class MeasuresView:
         )
         return self._session.execute(query).scalar()
 
-    @router.post(
-        "/requirements/{requirement_id}/measures",
-        status_code=201,
-        response_model=MeasureOutput,
-        **kwargs,
-    )
     def create_measure(
-        self, requirement_id: int, measure_input: MeasureInput
+        self,
+        requirement: Requirement,
+        creation: MeasureInput | MeasureImport,
+        skip_flush: bool = False,
     ) -> Measure:
+        measure = Measure(
+            **creation.dict(exclude={"id", "requirement", "jira_issue", "document"})
+        )
+        measure.requirement = requirement
 
         # check ids of dependencies
-        requirement = self._requirements.get_requirement(requirement_id)
-        document = self._documents.check_document_id(measure_input.document_id)
-        self._jira_issues.check_jira_issue_id(measure_input.jira_issue_id)
+        try_to_get_jira_issue = True
+        if isinstance(creation, MeasureInput):
+            measure.document = self._documents.check_document_id(creation.document_id)
+            self._jira_issues.check_jira_issue_id(creation.jira_issue_id)
+            try_to_get_jira_issue = False
 
-        # create measure
-        measure = Measure.from_orm(measure_input)
-        measure.requirement = requirement
-        measure.document = document
+        self._session.add(measure)
+        if not skip_flush:
+            self._session.flush()
 
-        # set jira lookup functions
-        self._set_jira_issue(measure, try_to_get=False)
-        self._set_jira_project(measure)
-
-        return self._crud.create_in_db(measure)
+        self._set_jira_issue(measure, try_to_get=try_to_get_jira_issue)
+        return measure
 
     @router.get("/measures/{measure_id}", response_model=MeasureOutput, **kwargs)
     def get_measure(self, measure_id: int) -> Measure:
@@ -466,6 +466,22 @@ def get_measures(
         return Page[MeasureOutput](items=measures, total_count=measures_count)
     else:
         return measures
+
+
+@router.post(
+    "/requirements/{requirement_id}/measures",
+    status_code=201,
+    response_model=MeasureOutput,
+    **MeasuresView.kwargs,
+)
+def create_measure(
+    requirement_id: int,
+    measure_input: MeasureInput,
+    requirements_view: RequirementsView = Depends(),
+    measures_view: MeasuresView = Depends(),
+) -> Measure:
+    requirement = requirements_view.get_requirement(requirement_id)
+    return measures_view.create_measure(requirement, measure_input)
 
 
 @router.get(

@@ -350,7 +350,7 @@ def create_measure(
     create_requirement: Requirement,
     measure_input: MeasureInput,
 ):
-    return measures_view.create_measure(create_requirement.id, measure_input)
+    return measures_view.create_measure(create_requirement, measure_input)
 
 
 @pytest.fixture

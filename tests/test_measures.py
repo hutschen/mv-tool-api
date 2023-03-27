@@ -105,7 +105,7 @@ def test_create_measure(
     create_document: Document,
     measure_input: MeasureInput,
 ):
-    measure = measures_view.create_measure(create_requirement.id, measure_input)
+    measure = measures_view.create_measure(create_requirement, measure_input)
 
     assert isinstance(measure, Measure)
     assert measure.requirement.id == create_requirement.id
@@ -120,7 +120,7 @@ def test_create_measure_without_jira_issue(
     measure_input: MeasureInput,
 ):
     measure_input.jira_issue_id = None
-    measure = measures_view.create_measure(create_requirement.id, measure_input)
+    measure = measures_view.create_measure(create_requirement, measure_input)
 
     assert isinstance(measure, Measure)
     assert measure.requirement.id == create_requirement.id
@@ -133,19 +133,11 @@ def test_create_measure_without_document_id(
     measure_input: MeasureInput,
 ):
     measure_input.document_id = None
-    measure = measures_view.create_measure(create_requirement.id, measure_input)
+    measure = measures_view.create_measure(create_requirement, measure_input)
 
     assert isinstance(measure, Measure)
     assert measure.requirement.id == create_requirement.id
     assert measure.document is None
-
-
-def test_create_measure_with_invalid_requirement_id(
-    measures_view: MeasuresView, measure_input: MeasureInput
-):
-    with pytest.raises(HTTPException) as excinfo:
-        measures_view.create_measure(-1, measure_input)
-    assert excinfo.value.status_code == 404
 
 
 def test_create_measure_with_invalid_jira_issue_id(
@@ -155,7 +147,7 @@ def test_create_measure_with_invalid_jira_issue_id(
 ):
     measure_input.jira_issue_id = "invalid"
     with pytest.raises(JIRAError) as excinfo:
-        measures_view.create_measure(create_requirement.id, measure_input)
+        measures_view.create_measure(create_requirement, measure_input)
     assert excinfo.value.status_code == 404
 
 
@@ -166,7 +158,7 @@ def test_create_measure_with_invalid_document_id(
 ):
     measure_input.document_id = -1
     with pytest.raises(HTTPException) as excinfo:
-        measures_view.create_measure(create_requirement.id, measure_input)
+        measures_view.create_measure(create_requirement, measure_input)
     assert excinfo.value.status_code == 404
 
 
