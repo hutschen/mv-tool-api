@@ -66,9 +66,15 @@ def dispose_engine():
 
 
 def get_session():
-    with Session(__State.engine) as session:
+    session = Session(__State.engine)
+    try:
         yield session
         session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
 
 
 def create_all():
