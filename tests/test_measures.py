@@ -27,7 +27,8 @@ from mvtool.models import (
     Project,
     Requirement,
 )
-from mvtool.views.measures import MeasuresView
+from mvtool.views.jira_ import JiraIssuesView, JiraProjectsView
+from mvtool.views.measures import MeasuresView, create_and_link_jira_issue_to_measure
 
 
 def test_list_measure(
@@ -233,35 +234,39 @@ def test_delete_measure(measures_view: MeasuresView, create_measure: Measure):
 
 def test_create_and_link_jira_issue(
     measures_view: MeasuresView,
+    jira_issues_view: JiraIssuesView,
+    jira_projects_view: JiraProjectsView,
     create_measure: Measure,
     jira_issue_input: JiraIssueInput,
 ):
     create_measure.jira_issue_id = None
-    jira_issue = measures_view.create_and_link_jira_issue(
-        create_measure.id, jira_issue_input
+    jira_issue = create_and_link_jira_issue_to_measure(
+        create_measure.id,
+        jira_issue_input,
+        measures_view,
+        jira_issues_view,
+        jira_projects_view,
     )
     assert create_measure.jira_issue_id == jira_issue.id
 
 
-def test_create_and_link_jira_issue_jira_issue_already_set(
-    measures_view: MeasuresView,
-    create_measure: Measure,
-    jira_issue_input: JiraIssueInput,
-):
-    with pytest.raises(HTTPException) as excinfo:
-        measures_view.create_and_link_jira_issue(create_measure.id, jira_issue_input)
-    assert excinfo.value.status_code == 400
-
-
 def test_create_and_link_jira_issue_jira_project_not_set(
     measures_view: MeasuresView,
+    jira_issues_view: JiraIssuesView,
+    jira_projects_view: JiraProjectsView,
     create_measure: Measure,
     jira_issue_input: JiraIssueInput,
 ):
     create_measure.requirement.project.jira_project_id = None
 
     with pytest.raises(HTTPException) as excinfo:
-        measures_view.create_and_link_jira_issue(create_measure.id, jira_issue_input)
+        create_and_link_jira_issue_to_measure(
+            create_measure.id,
+            jira_issue_input,
+            measures_view,
+            jira_issues_view,
+            jira_projects_view,
+        )
     assert excinfo.value.status_code == 400
 
 

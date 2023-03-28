@@ -24,26 +24,22 @@ from pydantic import constr
 from sqlmodel import Column, func, or_, select
 from sqlmodel.sql.expression import Select
 
-from mvtool.models.measures import MeasureImport
-from mvtool.utils import combine_flags
-from mvtool.views.documents import DocumentsView
-from mvtool.views.jira_ import JiraIssuesView
-
 from ..database import CRUDOperations, delete_from_db, read_from_db
-from ..models import (
-    Catalog,
-    CatalogModule,
-    CatalogRequirement,
-    Document,
-    JiraIssue,
-    JiraIssueInput,
+from ..models.catalog_modules import CatalogModule
+from ..models.catalog_requirements import CatalogRequirement
+from ..models.catalogs import Catalog
+from ..models.documents import Document
+from ..models.jira_ import JiraIssue, JiraIssueInput
+from ..models.measures import (
     Measure,
+    MeasureImport,
     MeasureInput,
     MeasureOutput,
     MeasureRepresentation,
-    Requirement,
 )
-from ..utils.errors import ClientError, NotFoundError
+from ..models.requirements import Requirement
+from ..utils import combine_flags
+from ..utils.errors import ValueHttpError
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
@@ -51,6 +47,8 @@ from ..utils.filtering import (
     search_columns,
 )
 from ..utils.pagination import Page, page_params
+from ..views.documents import DocumentsView
+from ..views.jira_ import JiraIssuesView, JiraProjectsView
 from .requirements import RequirementsView
 
 router = APIRouter()
@@ -220,39 +218,6 @@ class MeasuresView:
 
     def delete_measure(self, measure: Measure, skip_flush: bool = False) -> None:
         return delete_from_db(self._session, measure, skip_flush)
-
-    @router.post(
-        "/measures/{measure_id}/jira-issue",
-        status_code=201,
-        response_model=JiraIssue,
-        **JiraIssuesView.kwargs,
-    )
-    def create_and_link_jira_issue(
-        self, measure_id: int, jira_issue_input: JiraIssueInput
-    ) -> JiraIssue:
-        measure = self.get_measure(measure_id)
-
-        # check if a jira issue is already linked
-        if measure.jira_issue_id is not None:
-            detail = "Measure %d is already linked to Jira issue %s" % (
-                measure_id,
-                measure.jira_issue_id,
-            )
-            raise ClientError(detail)
-
-        # check if a Jira project is assigned to corresponding project
-        project = measure.requirement.project
-        if project.jira_project_id is None:
-            detail = f"No Jira project is assigned to project {project.id}"
-            raise ClientError(detail)
-
-        # create and link Jira issue
-        jira_issue = self._jira_issues.create_jira_issue(
-            project.jira_project_id, jira_issue_input
-        )
-        measure.jira_issue_id = jira_issue.id
-        self._crud.update_in_db(measure_id, measure)
-        return jira_issue
 
     def _set_jira_project(self, measure: Measure, try_to_get: bool = True) -> None:
         self._requirements._set_jira_project(measure.requirement, try_to_get)
@@ -604,3 +569,35 @@ def get_measure_references(
         return Page[str](items=references, total_count=references_count)
     else:
         return references
+
+
+@router.post(
+    "/measures/{measure_id}/jira-issue",
+    status_code=201,
+    response_model=JiraIssue,
+    **JiraIssuesView.kwargs,
+)
+def create_and_link_jira_issue_to_measure(
+    measure_id: int,
+    jira_issue_input: JiraIssueInput,
+    measures_view: MeasuresView = Depends(),
+    jira_issues_view: JiraIssuesView = Depends(),
+    jira_projects_view: JiraProjectsView = Depends(),
+) -> JiraIssue:
+    measure = measures_view.get_measure(measure_id)
+
+    # check if a Jira project is assigned to corresponding project
+    project = measure.requirement.project
+    if project.jira_project_id is None:
+        raise ValueHttpError(f"No Jira project is assigned to project {project.id}")
+
+    # load jira project to check if user has permission to create Jira issues
+    jira_projects_view.check_jira_project_id(project.jira_project_id)
+
+    # create and link Jira issue
+    jira_issue = jira_issues_view.create_jira_issue(
+        project.jira_project_id, jira_issue_input
+    )
+    measure.jira_issue_id = jira_issue.id
+    measures_view._session.flush()
+    return jira_issue
