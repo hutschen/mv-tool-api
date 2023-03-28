@@ -19,12 +19,11 @@
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from fastapi_utils.cbv import cbv
 from pydantic import constr
-from sqlmodel import Column, func, or_, select
+from sqlmodel import Column, Session, func, or_, select
 from sqlmodel.sql.expression import Select
 
-from ..database import CRUDOperations, delete_from_db, read_from_db
+from ..database import delete_from_db, get_session, read_from_db
 from ..models.catalog_modules import CatalogModule
 from ..models.catalog_requirements import CatalogRequirement
 from ..models.catalogs import Catalog
@@ -54,7 +53,6 @@ from .requirements import RequirementsView
 router = APIRouter()
 
 
-@cbv(router)
 class MeasuresView:
     kwargs = dict(tags=["measure"])
 
@@ -63,13 +61,12 @@ class MeasuresView:
         jira_issues: JiraIssuesView = Depends(JiraIssuesView),
         requirements: RequirementsView = Depends(RequirementsView),
         documents: DocumentsView = Depends(DocumentsView),
-        crud: CRUDOperations[Measure] = Depends(CRUDOperations),
+        session: Session = Depends(get_session),
     ):
         self._jira_issues = jira_issues
         self._requirements = requirements
         self._documents = documents
-        self._crud = crud
-        self._session = self._crud.session
+        self.session = session
 
     @staticmethod
     def _modify_measures_query(
@@ -115,7 +112,7 @@ class MeasuresView:
         )
 
         # execute measures query
-        measures = self._session.exec(query).all()
+        measures = self.session.exec(query).all()
 
         # set jira project and issue on measures
         if query_jira:
@@ -134,7 +131,7 @@ class MeasuresView:
         query = self._modify_measures_query(
             select([func.count()]).select_from(Measure), where_clauses
         )
-        return self._session.execute(query).scalar()
+        return self.session.execute(query).scalar()
 
     def list_measure_values(
         self,
@@ -149,14 +146,14 @@ class MeasuresView:
             offset=offset,
             limit=limit,
         )
-        return self._session.exec(query).all()
+        return self.session.exec(query).all()
 
     def count_measure_values(self, column: Column, where_clauses: Any = None) -> int:
         query = self._modify_measures_query(
             select([func.count(func.distinct(column))]).select_from(Measure),
             [filter_for_existence(column), *where_clauses],
         )
-        return self._session.execute(query).scalar()
+        return self.session.execute(query).scalar()
 
     def create_measure(
         self,
@@ -176,15 +173,15 @@ class MeasuresView:
             self._jira_issues.check_jira_issue_id(creation.jira_issue_id)
             try_to_get_jira_issue = False
 
-        self._session.add(measure)
+        self.session.add(measure)
         if not skip_flush:
-            self._session.flush()
+            self.session.flush()
 
         self._set_jira_issue(measure, try_to_get=try_to_get_jira_issue)
         return measure
 
     def get_measure(self, measure_id: int) -> Measure:
-        measure = read_from_db(self._session, Measure, measure_id)
+        measure = read_from_db(self.session, Measure, measure_id)
         self._set_jira_issue(measure)
         self._set_jira_project(measure)
         return measure
@@ -212,12 +209,12 @@ class MeasuresView:
 
         # flush changes
         if not skip_flush:
-            self._session.flush()
+            self.session.flush()
 
         self._set_jira_issue(measure, try_to_get=try_to_get_jira_issue)
 
     def delete_measure(self, measure: Measure, skip_flush: bool = False) -> None:
-        return delete_from_db(self._session, measure, skip_flush)
+        return delete_from_db(self.session, measure, skip_flush)
 
     def _set_jira_project(self, measure: Measure, try_to_get: bool = True) -> None:
         self._requirements._set_jira_project(measure.requirement, try_to_get)
@@ -599,5 +596,5 @@ def create_and_link_jira_issue_to_measure(
         project.jira_project_id, jira_issue_input
     )
     measure.jira_issue_id = jira_issue.id
-    measures_view._session.flush()
+    measures_view.session.flush()
     return jira_issue

@@ -340,7 +340,9 @@ def create_document(
 @pytest.fixture
 def measures_view(jira_issues_view, requirements_view, documents_view, crud):
     return Mock(
-        wraps=MeasuresView(jira_issues_view, requirements_view, documents_view, crud)
+        wraps=MeasuresView(
+            jira_issues_view, requirements_view, documents_view, crud.session
+        )
     )
 
 
