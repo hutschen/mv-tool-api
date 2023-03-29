@@ -224,6 +224,29 @@ class DocumentsView:
         if not skip_flush:
             self._session.flush()
 
+    def convert_document_imports(
+        self,
+        document_imports: Iterable[DocumentImport],
+        fallback_project: Project | None = None,
+        patch: bool = False,
+    ) -> dict[str, Document]:
+        # Map document imports to their etags
+        documents_map = {d.etag: d for d in document_imports}
+
+        # Map created and updated documents to the etag of their imports
+        for etag, document in zip(
+            documents_map.keys(),
+            self.bulk_create_update_documents(
+                documents_map.values(),
+                fallback_project,
+                patch=patch,
+                skip_flush=True,
+            ),
+        ):
+            documents_map[etag] = document
+
+        return documents_map
+
     def _set_jira_project(self, document: Document, try_to_get: bool = True) -> None:
         self._projects._set_jira_project(document.project, try_to_get)
 
