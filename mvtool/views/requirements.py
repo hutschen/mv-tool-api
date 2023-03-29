@@ -273,6 +273,31 @@ class RequirementsView:
         if not skip_flush:
             self._session.flush()
 
+    def convert_requirement_imports(
+        self,
+        requirement_imports: Iterable[RequirementImport],
+        fallback_project: Project | None = None,
+        fallback_catalog_module: CatalogModule | None = None,
+        patch: bool = False,
+    ) -> dict[str, Requirement]:
+        # Map requirement imports to their etags
+        requirements_map = {r.etag: r for r in requirement_imports}
+
+        # Map created and updates requirements to the etag of their imports
+        for etag, requirement in zip(
+            requirements_map.keys(),
+            self.bulk_create_update_requirements(
+                requirements_map.values(),
+                fallback_project,
+                fallback_catalog_module,
+                patch=patch,
+                skip_flush=True,
+            ),
+        ):
+            requirements_map[etag] = requirement
+
+        return requirements_map
+
     def bulk_create_requirements_from_catalog_requirements(
         self,
         project: Project,
