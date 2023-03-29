@@ -242,9 +242,6 @@ class RequirementsView:
         # Create or update requirements
         for requirement_import in requirement_imports:
             project = get_from_etag_map(projects_map, requirement_import.project)
-            catalog_requirement = get_from_etag_map(
-                catalog_requirements_map, requirement_import.catalog_requirement
-            )
 
             if requirement_import.id is None:
                 # Create requirement
@@ -266,8 +263,12 @@ class RequirementsView:
                     requirement, requirement_import, patch=patch, skip_flush=True
                 )
 
-            if field_is_set(requirement_import, "catalog_requirement"):
-                requirement.catalog_requirement = catalog_requirement
+            # Set catalog requirement
+            if field_is_set(requirement_import, "catalog_requirement") or not patch:
+                requirement.catalog_requirement = get_from_etag_map(
+                    catalog_requirements_map, requirement_import.catalog_requirement
+                )
+
             yield requirement
 
         if not skip_flush:
