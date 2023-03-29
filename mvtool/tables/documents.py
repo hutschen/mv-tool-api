@@ -19,7 +19,9 @@
 import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
+from sqlmodel import Session
 
+from ..database import get_session
 from ..models.documents import Document, DocumentImport, DocumentOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.documents import DocumentsView, get_document_filters, get_document_sort
@@ -92,6 +94,7 @@ def upload_documents_excel(
     temp_file=Depends(copy_upload_to_temp_file),
     skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
+    session: Session = Depends(get_session),
 ) -> list[Document]:
     fallback_project = (
         projects_view.get_project(fallback_project_id)
@@ -110,4 +113,9 @@ def upload_documents_excel(
             document_imports, fallback_project, patch=True, skip_flush=dry_run
         )
     )
-    return [] if dry_run else documents
+
+    # Rollback if dry run
+    if dry_run:
+        session.rollback()
+        return []
+    return documents

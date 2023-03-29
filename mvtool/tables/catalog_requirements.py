@@ -20,7 +20,9 @@ from tempfile import NamedTemporaryFile
 import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
+from sqlmodel import Session
 
+from ..database import get_session
 from ..models.catalog_requirements import (
     CatalogRequirement,
     CatalogRequirementImport,
@@ -105,6 +107,7 @@ def upload_catalog_requirements_excel(
     temp_file: NamedTemporaryFile = Depends(copy_upload_to_temp_file),
     skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
+    session: Session = Depends(get_session),
 ) -> list[CatalogRequirement]:
     fallback_catalog_module = (
         catalog_modules_view.get_catalog_module(fallback_catalog_module_id)
@@ -112,7 +115,11 @@ def upload_catalog_requirements_excel(
         else None
     )
 
+    # Create data frame from uploaded file
     df = pd.read_excel(temp_file, engine="openpyxl")
+    df.drop_duplicates(keep="last", inplace=True)
+
+    # Import data frame into database
     catalog_requirement_imports = columns.import_from_dataframe(
         df, skip_nan=skip_blanks
     )
@@ -124,4 +131,9 @@ def upload_catalog_requirements_excel(
             skip_flush=dry_run,
         )
     )
-    return [] if dry_run else catalog_requirements
+
+    # Rollback if dry run
+    if dry_run:
+        session.rollback()
+        return []
+    return catalog_requirements

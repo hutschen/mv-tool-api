@@ -15,11 +15,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Iterable, Iterator
 import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
+from sqlmodel import Session
 
+from ..database import get_session
 from ..models import Catalog, CatalogImport, CatalogOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.catalogs import CatalogsView, get_catalog_filters, get_catalog_sort
@@ -78,6 +79,7 @@ def upload_catalogs_excel(
     temp_file=Depends(copy_upload_to_temp_file),
     skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
+    session: Session = Depends(get_session),
 ) -> list[Catalog]:
     # Create data frame from uploaded file
     df = pd.read_excel(temp_file, engine="openpyxl")
@@ -90,4 +92,9 @@ def upload_catalogs_excel(
             catalog_imports, patch=True, skip_flush=dry_run
         )
     )
-    return [] if dry_run else catalogs
+
+    # Rollback if dry run
+    if dry_run:
+        session.rollback()
+        return []
+    return catalogs
