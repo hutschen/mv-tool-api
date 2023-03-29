@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from typing import Any
+from typing import Any, Iterable, Iterator
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import constr
@@ -36,15 +36,20 @@ from ..models.measures import (
     MeasureOutput,
     MeasureRepresentation,
 )
+from ..models.projects import Project
 from ..models.requirements import Requirement
 from ..utils import combine_flags
-from ..utils.errors import ValueHttpError
+from ..utils.errors import NotFoundError, ValueHttpError
+from ..utils.etag_map import get_from_etag_map
+from ..utils.fallback import fallback
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
     search_columns,
 )
+from ..utils.iteration import CachedIterable
+from ..utils.models import field_is_set
 from ..utils.pagination import Page, page_params
 from ..views.documents import DocumentsView
 from ..views.jira_ import JiraIssuesView, JiraProjectsView
@@ -215,6 +220,96 @@ class MeasuresView:
 
     def delete_measure(self, measure: Measure, skip_flush: bool = False) -> None:
         return delete_from_db(self.session, measure, skip_flush)
+
+    def bulk_create_update_measures(
+        self,
+        measure_imports: Iterable[MeasureImport],
+        fallback_requirement: Requirement | None = None,
+        fallback_project: Project | None = None,
+        fallback_catalog_module: CatalogModule | None = None,
+        patch: bool = False,
+        skip_flush: bool = False,
+    ) -> Iterator[Measure]:
+        measure_imports = CachedIterable(measure_imports)
+
+        # Convert requirement imports to requirements
+        requirements_map = self._requirements.convert_requirement_imports(
+            (m.requirement for m in measure_imports if m.requirement is not None),
+            fallback_project,
+            fallback_catalog_module,
+            patch=patch,
+        )
+
+        # Convert document imports to documents
+        documents_map = self._documents.convert_document_imports(
+            (m.document for m in measure_imports if m.document is not None),
+            fallback_project,
+            patch=patch,
+        )
+
+        # Cache jira issues
+        jira_issues_map = {
+            ji.key: ji
+            for ji in self._jira_issues.get_jira_issues(
+                {m.jira_issue.key for m in measure_imports if m.jira_issue is not None}
+            )
+        }
+
+        # Get measures to be updated from the database
+        ids = {m.id for m in measure_imports if m.id is not None}
+        measures_to_update = {
+            m.id: m for m in (self.list_measures([Measure.id.in_(ids)]) if ids else [])
+        }
+
+        # Create or update measures
+        for measure_import in measure_imports:
+            requirement = get_from_etag_map(
+                requirements_map, measure_import.requirement
+            )
+
+            if measure_import.id is None:
+                # Create measure
+                measure = self.create_measure(
+                    fallback(
+                        requirement,
+                        fallback_requirement,
+                        "No fallback requirement provided.",
+                    ),
+                    skip_flush=True,
+                )
+            else:
+                # Update measure
+                measure = measures_to_update.get(measure_import.id)
+                if measure is None:
+                    raise NotFoundError(f"No measure with id={measure_import.id}.")
+                self.update_measure(
+                    measure,
+                    measure_import,
+                    patch=patch,
+                    skip_flush=True,
+                )
+
+            # Set document
+            if field_is_set(measure_import, "document") or not patch:
+                measure.document = get_from_etag_map(
+                    documents_map, measure_import.document
+                )
+
+            # Set jira issue
+            if field_is_set(measure_import, "jira_issue") or not patch:
+                jira_issue = None
+                if measure_import.jira_issue is not None:
+                    jira_issue = jira_issues_map.get(measure_import.jira_issue.key)
+                    if jira_issue is None:
+                        raise NotFoundError(
+                            f"No Jira issue with key={measure_import.jira_issue.key}."
+                        )
+                measure.jira_issue_id = jira_issue.id if jira_issue else None
+
+            yield measure
+
+        if not skip_flush:
+            self.session.flush()
 
     def _set_jira_project(self, measure: Measure, try_to_get: bool = True) -> None:
         self._requirements._set_jira_project(measure.requirement, try_to_get)
