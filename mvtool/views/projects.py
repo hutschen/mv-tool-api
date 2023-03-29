@@ -186,15 +186,6 @@ class ProjectsView:
 
         # Create or update projects
         for project_import in project_imports:
-            # Get jira project
-            jira_project = None
-            if project_import.jira_project is not None:
-                jira_project = jira_projects_map.get(project_import.jira_project.key)
-                if jira_project is None:
-                    raise NotFoundError(
-                        f"No Jira project with key={project_import.jira_project.key}."
-                    )
-
             if project_import.id is None:
                 # Create project
                 project = self.create_project(project_import, skip_flush=True)
@@ -205,8 +196,19 @@ class ProjectsView:
                     raise NotFoundError(f"No project with id={project_import.id}.")
                 self.update_project(project, project_import, patch, skip_flush=True)
 
+            # Set jira project
             if field_is_set(project_import, "jira_project") or not patch:
+                jira_project = None
+                if project_import.jira_project is not None:
+                    jira_project = jira_projects_map.get(
+                        project_import.jira_project.key
+                    )
+                    if jira_project is None:
+                        raise NotFoundError(
+                            f"No Jira project with key={project_import.jira_project.key}."
+                        )
                 project.jira_project_id = jira_project.id if jira_project else None
+
             yield project
 
         if not skip_flush:
