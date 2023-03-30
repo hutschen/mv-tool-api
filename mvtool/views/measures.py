@@ -277,6 +277,7 @@ class MeasuresView:
                         fallback_requirement,
                         "No fallback requirement provided.",
                     ),
+                    measure_import,
                     skip_flush=True,
                 )
             else:
