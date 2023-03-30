@@ -225,12 +225,14 @@ class MeasuresView:
         self,
         measure_imports: Iterable[MeasureImport],
         fallback_requirement: Requirement | None = None,
-        fallback_project: Project | None = None,
         fallback_catalog_module: CatalogModule | None = None,
         patch: bool = False,
         skip_flush: bool = False,
     ) -> Iterator[Measure]:
         measure_imports = CachedIterable(measure_imports)
+        fallback_project = (
+            fallback_requirement.project if fallback_requirement else None
+        )
 
         # Convert requirement imports to requirements
         requirements_map = self._requirements.convert_requirement_imports(

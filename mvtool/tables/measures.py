@@ -99,11 +99,9 @@ def download_measures_excel(
 )
 def upload_measures_excel(
     fallback_requirement_id: int | None = None,
-    fallback_project_id: int | None = None,
     fallback_catalog_module_id: int | None = None,
     measures_view: MeasuresView = Depends(),
     requirements_view: RequirementsView = Depends(),
-    projects_view: ProjectsView = Depends(),
     catalog_modules_view: CatalogModulesView = Depends(),
     columns: ColumnGroup = Depends(get_measure_columns),
     temp_file=Depends(copy_upload_to_temp_file),
@@ -114,11 +112,6 @@ def upload_measures_excel(
     fallback_requirement = (
         requirements_view.get_requirement(fallback_requirement_id)
         if fallback_requirement_id is not None
-        else None
-    )
-    fallback_project = (
-        projects_view.get_project(fallback_project_id)
-        if fallback_project_id is not None
         else None
     )
     fallback_catalog_module = (
@@ -137,7 +130,6 @@ def upload_measures_excel(
         measures_view.bulk_create_update_measures(
             measure_imports,
             fallback_requirement,
-            fallback_project,
             fallback_catalog_module,
             patch=True,
             skip_flush=dry_run,
