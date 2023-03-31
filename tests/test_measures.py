@@ -27,7 +27,8 @@ from mvtool.models import (
     Project,
     Requirement,
 )
-from mvtool.views.measures import MeasuresView
+from mvtool.views.jira_ import JiraIssuesView, JiraProjectsView
+from mvtool.views.measures import MeasuresView, create_and_link_jira_issue_to_measure
 
 
 def test_list_measure(
@@ -105,7 +106,7 @@ def test_create_measure(
     create_document: Document,
     measure_input: MeasureInput,
 ):
-    measure = measures_view.create_measure(create_requirement.id, measure_input)
+    measure = measures_view.create_measure(create_requirement, measure_input)
 
     assert isinstance(measure, Measure)
     assert measure.requirement.id == create_requirement.id
@@ -120,7 +121,7 @@ def test_create_measure_without_jira_issue(
     measure_input: MeasureInput,
 ):
     measure_input.jira_issue_id = None
-    measure = measures_view.create_measure(create_requirement.id, measure_input)
+    measure = measures_view.create_measure(create_requirement, measure_input)
 
     assert isinstance(measure, Measure)
     assert measure.requirement.id == create_requirement.id
@@ -133,19 +134,11 @@ def test_create_measure_without_document_id(
     measure_input: MeasureInput,
 ):
     measure_input.document_id = None
-    measure = measures_view.create_measure(create_requirement.id, measure_input)
+    measure = measures_view.create_measure(create_requirement, measure_input)
 
     assert isinstance(measure, Measure)
     assert measure.requirement.id == create_requirement.id
     assert measure.document is None
-
-
-def test_create_measure_with_invalid_requirement_id(
-    measures_view: MeasuresView, measure_input: MeasureInput
-):
-    with pytest.raises(HTTPException) as excinfo:
-        measures_view.create_measure(-1, measure_input)
-    assert excinfo.value.status_code == 404
 
 
 def test_create_measure_with_invalid_jira_issue_id(
@@ -155,7 +148,7 @@ def test_create_measure_with_invalid_jira_issue_id(
 ):
     measure_input.jira_issue_id = "invalid"
     with pytest.raises(JIRAError) as excinfo:
-        measures_view.create_measure(create_requirement.id, measure_input)
+        measures_view.create_measure(create_requirement, measure_input)
     assert excinfo.value.status_code == 404
 
 
@@ -166,7 +159,7 @@ def test_create_measure_with_invalid_document_id(
 ):
     measure_input.document_id = -1
     with pytest.raises(HTTPException) as excinfo:
-        measures_view.create_measure(create_requirement.id, measure_input)
+        measures_view.create_measure(create_requirement, measure_input)
     assert excinfo.value.status_code == 404
 
 
@@ -195,23 +188,23 @@ def test_get_measure_invalid_id(measures_view: MeasuresView):
 
 def test_update_measure(
     measures_view: MeasuresView,
-    create_project: Project,
-    create_requirement: Requirement,
-    create_document: Document,
     create_measure: Measure,
     measure_input: MeasureInput,
 ):
     orig_summary = create_measure.summary
-    measure_input.summary = orig_summary + " (updated)"
-    measure = measures_view.update_measure(create_measure.id, measure_input)
+    orig_requirement_id = create_measure.requirement_id
+    orig_document_id = create_measure.document_id
+    orig_jira_issue_id = create_measure.jira_issue_id
+    orig_jira_project_id = create_measure.requirement.project.jira_project_id
 
-    assert isinstance(measure, Measure)
-    assert measure.id == create_measure.id
-    assert measure.summary != orig_summary
-    assert measure.requirement.id == create_requirement.id
-    assert measure.document.id == create_document.id
-    assert measure.jira_issue.id == measure_input.jira_issue_id
-    assert measure.requirement.project.jira_project.id == create_project.jira_project_id
+    measure_input.summary = orig_summary + " (updated)"
+    measures_view.update_measure(create_measure, measure_input)
+
+    assert create_measure.summary != orig_summary
+    assert create_measure.requirement.id == orig_requirement_id
+    assert create_measure.document.id == orig_document_id
+    assert create_measure.jira_issue.id == orig_jira_issue_id
+    assert create_measure.requirement.project.jira_project.id == orig_jira_project_id
 
 
 def test_update_measure_with_invalid_jira_issue_id(
@@ -219,7 +212,7 @@ def test_update_measure_with_invalid_jira_issue_id(
 ):
     measure_input.jira_issue_id = "invalid"
     with pytest.raises(JIRAError) as excinfo:
-        measures_view.update_measure(create_measure.id, measure_input)
+        measures_view.update_measure(create_measure, measure_input)
     assert excinfo.value.status_code == 404
 
 
@@ -232,16 +225,8 @@ def test_update_measure_with_invalid_document_id(
     assert excinfo.value.status_code == 404
 
 
-def test_update_measure_with_invalid_id(
-    measures_view: MeasuresView, measure_input: MeasureInput
-):
-    with pytest.raises(HTTPException) as excinfo:
-        measures_view.update_measure(-1, measure_input)
-    assert excinfo.value.status_code == 404
-
-
 def test_delete_measure(measures_view: MeasuresView, create_measure: Measure):
-    measures_view.delete_measure(create_measure.id)
+    measures_view.delete_measure(create_measure)
     with pytest.raises(HTTPException) as excinfo:
         measures_view.get_measure(create_measure.id)
     assert excinfo.value.status_code == 404
@@ -249,35 +234,39 @@ def test_delete_measure(measures_view: MeasuresView, create_measure: Measure):
 
 def test_create_and_link_jira_issue(
     measures_view: MeasuresView,
+    jira_issues_view: JiraIssuesView,
+    jira_projects_view: JiraProjectsView,
     create_measure: Measure,
     jira_issue_input: JiraIssueInput,
 ):
     create_measure.jira_issue_id = None
-    jira_issue = measures_view.create_and_link_jira_issue(
-        create_measure.id, jira_issue_input
+    jira_issue = create_and_link_jira_issue_to_measure(
+        create_measure.id,
+        jira_issue_input,
+        measures_view,
+        jira_issues_view,
+        jira_projects_view,
     )
     assert create_measure.jira_issue_id == jira_issue.id
 
 
-def test_create_and_link_jira_issue_jira_issue_already_set(
-    measures_view: MeasuresView,
-    create_measure: Measure,
-    jira_issue_input: JiraIssueInput,
-):
-    with pytest.raises(HTTPException) as excinfo:
-        measures_view.create_and_link_jira_issue(create_measure.id, jira_issue_input)
-    assert excinfo.value.status_code == 400
-
-
 def test_create_and_link_jira_issue_jira_project_not_set(
     measures_view: MeasuresView,
+    jira_issues_view: JiraIssuesView,
+    jira_projects_view: JiraProjectsView,
     create_measure: Measure,
     jira_issue_input: JiraIssueInput,
 ):
     create_measure.requirement.project.jira_project_id = None
 
     with pytest.raises(HTTPException) as excinfo:
-        measures_view.create_and_link_jira_issue(create_measure.id, jira_issue_input)
+        create_and_link_jira_issue_to_measure(
+            create_measure.id,
+            jira_issue_input,
+            measures_view,
+            jira_issues_view,
+            jira_projects_view,
+        )
     assert excinfo.value.status_code == 400
 
 
@@ -288,13 +277,14 @@ def test_link_jira_issue(
     jira_issue: JiraIssue,
 ):
     measure_input.jira_issue_id = None
+    create_measure.jira_issue_id = None
+
     measure_input_update = MeasureInput.from_orm(
         measure_input, update=dict(jira_issue_id=jira_issue.id)
     )
-    measure_output = measures_view.update_measure(
-        create_measure.id, measure_input_update
-    )
-    assert measure_output.jira_issue_id == jira_issue.id
+
+    measures_view.update_measure(create_measure, measure_input_update)
+    assert create_measure.jira_issue_id == jira_issue.id
 
 
 def test_unlink_jira_issue(
@@ -303,8 +293,8 @@ def test_unlink_jira_issue(
     measure_input: MeasureInput,
 ):
     measure_input.jira_issue_id = None
-    measure = measures_view.update_measure(create_measure.id, measure_input)
-    assert measure.jira_issue_id is None
+    measures_view.update_measure(create_measure, measure_input)
+    assert create_measure.jira_issue_id is None
 
 
 def test_measure_jira_issue_without_getter():

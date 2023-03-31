@@ -15,40 +15,46 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any
+from typing import Any, Iterable
+
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi_utils.cbv import cbv
 from pydantic import constr
-from sqlmodel import Column, func, or_, select
+from sqlmodel import Column, Session, func, or_, select
 from sqlmodel.sql.expression import Select
 
+from ..database import delete_from_db, get_session, read_from_db
+from ..models.projects import (
+    Project,
+    ProjectImport,
+    ProjectInput,
+    ProjectOutput,
+    ProjectRepresentation,
+)
+from ..utils.errors import NotFoundError
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
     search_columns,
 )
+from ..utils.iteration import CachedIterable
+from ..utils.models import field_is_set
 from ..utils.pagination import Page, page_params
-from ..utils.errors import NotFoundError
-from ..database import CRUDOperations
 from .jira_ import JiraProjectsView
-from ..models import ProjectInput, Project, ProjectOutput, ProjectRepresentation
 
 router = APIRouter()
 
 
-@cbv(router)
 class ProjectsView:
     kwargs = dict(tags=["project"])
 
     def __init__(
         self,
         jira_projects: JiraProjectsView = Depends(JiraProjectsView),
-        crud: CRUDOperations[Project] = Depends(CRUDOperations),
+        session: Session = Depends(get_session),
     ):
         self._jira_projects = jira_projects
-        self._crud = crud
-        self._session = self._crud.session
+        self._session = session
 
     @staticmethod
     def _modify_projects_query(
@@ -108,41 +114,122 @@ class ProjectsView:
         )
         return self._session.execute(query).scalar()
 
-    @router.post("/projects", status_code=201, response_model=ProjectOutput, **kwargs)
-    def create_project(self, project_input: ProjectInput) -> Project:
-        self._jira_projects.check_jira_project_id(project_input.jira_project_id)
-        project = self._crud.create_in_db(Project.from_orm(project_input))
-        self._set_jira_project(project, try_to_get=False)
+    def create_project(
+        self, creation: ProjectInput | ProjectImport, skip_flush: bool = False
+    ) -> Project:
+        project = Project(**creation.dict(exclude={"id", "jira_project"}))
+
+        try_to_get_jira_project = True
+        if isinstance(creation, ProjectInput):
+            # check jira project id and cache load jira project
+            self._jira_projects.check_jira_project_id(project.jira_project_id)
+            try_to_get_jira_project = False  # already loaded
+
+        self._session.add(project)
+        if not skip_flush:
+            self._session.flush()
+
+        self._set_jira_project(project, try_to_get=try_to_get_jira_project)
         return project
 
-    @router.get("/projects/{project_id}", response_model=ProjectOutput, **kwargs)
     def get_project(self, project_id: int) -> Project:
-        project = self._crud.read_from_db(Project, project_id)
+        project = read_from_db(self._session, Project, project_id)
         self._set_jira_project(project)
         return project
 
-    @router.put("/projects/{project_id}", response_model=ProjectOutput, **kwargs)
-    def update_project(self, project_id: int, project_input: ProjectInput) -> Project:
-        project = self._session.get(Project, project_id)
-        if not project:
-            cls_name = Project.__name__
-            raise NotFoundError(f"No {cls_name} with id={project_id}.")
+    def update_project(
+        self,
+        project: Project,
+        update: ProjectInput | ProjectImport,
+        patch: bool = False,
+        skip_flush: bool = False,
+    ) -> None:
+        try_to_get_jira_project = True
+        if isinstance(update, ProjectInput):
+            # check jira project id and cache load jira project
+            if update.jira_project_id != project.jira_project_id:
+                self._jira_projects.check_jira_project_id(update.jira_project_id)
+                try_to_get_jira_project = False  # already loaded
 
-        # check jira project id and cache loaded jira project
-        if project_input.jira_project_id != project.jira_project_id:
-            self._jira_projects.check_jira_project_id(project_input.jira_project_id)
-
-        # update project in database
-        for key, value in project_input.dict().items():
+        # update project
+        for key, value in update.dict(
+            exclude_unset=patch, exclude={"id", "jira_project"}
+        ).items():
             setattr(project, key, value)
-        self._session.flush()
 
-        self._set_jira_project(project)
-        return project
+        if not skip_flush:
+            self._session.flush()
 
-    @router.delete("/projects/{project_id}", status_code=204, **kwargs)
-    def delete_project(self, project_id: int):
-        return self._crud.delete_from_db(Project, project_id)
+        self._set_jira_project(project, try_to_get=try_to_get_jira_project)
+
+    def delete_project(self, project: Project, skip_flush: bool = False) -> None:
+        return delete_from_db(self._session, project, skip_flush)
+
+    def bulk_create_update_projects(
+        self,
+        project_imports: Iterable[ProjectImport],
+        patch: bool = False,
+        skip_flush: bool = False,
+    ):
+        project_imports = CachedIterable(project_imports)
+
+        # Get projects to be updated from the database
+        ids = [p.id for p in project_imports if p.id is not None]
+        projects_to_update = {
+            p.id: p for p in (self.list_projects([Project.id.in_(ids)]) if ids else [])
+        }
+
+        # Cache jira projects
+        jira_projects_map = {
+            jp.key: jp for jp in self._jira_projects.list_jira_projects()
+        }
+
+        # Create or update projects
+        for project_import in project_imports:
+            if project_import.id is None:
+                # Create project
+                project = self.create_project(project_import, skip_flush=True)
+            else:
+                # Update project
+                project = projects_to_update.get(project_import.id)
+                if project is None:
+                    raise NotFoundError(f"No project with id={project_import.id}.")
+                self.update_project(project, project_import, patch, skip_flush=True)
+
+            # Set jira project
+            if field_is_set(project_import, "jira_project") or not patch:
+                jira_project = None
+                if project_import.jira_project is not None:
+                    jira_project = jira_projects_map.get(
+                        project_import.jira_project.key
+                    )
+                    if jira_project is None:
+                        raise NotFoundError(
+                            f"No Jira project with key={project_import.jira_project.key}."
+                        )
+                project.jira_project_id = jira_project.id if jira_project else None
+
+            yield project
+
+        if not skip_flush:
+            self._session.flush()
+
+    def convert_project_imports(
+        self, project_imports: Iterable[ProjectImport], patch: bool = False
+    ) -> dict[str, Project]:
+        # Map project imports to their etags
+        projects_map = {p.etag: p for p in project_imports}
+
+        # Map created and updated projects to the etags of their imports
+        for etag, project in zip(
+            projects_map.keys(),
+            self.bulk_create_update_projects(
+                projects_map.values(), patch=patch, skip_flush=True
+            ),
+        ):
+            projects_map[etag] = project
+
+        return projects_map
 
     def _set_jira_project(self, project: Project, try_to_get: bool = True) -> None:
         project._get_jira_project = (
@@ -250,6 +337,41 @@ def get_projects(
         return Page[ProjectOutput](items=projects, total_count=projects_count)
     else:
         return projects
+
+
+@router.post(
+    "/projects", status_code=201, response_model=ProjectOutput, **ProjectsView.kwargs
+)
+def create_project(
+    project: ProjectInput, projects_view: ProjectsView = Depends()
+) -> Project:
+    return projects_view.create_project(project)
+
+
+@router.get(
+    "/projects/{project_id}", response_model=ProjectOutput, **ProjectsView.kwargs
+)
+def get_project(project_id: int, projects_view: ProjectsView = Depends()) -> Project:
+    return projects_view.get_project(project_id)
+
+
+@router.put(
+    "/projects/{project_id}", response_model=ProjectOutput, **ProjectsView.kwargs
+)
+def update_project(
+    project_id: int,
+    project_input: ProjectInput,
+    projects_view: ProjectsView = Depends(),
+) -> Project:
+    project = projects_view.get_project(project_id)
+    projects_view.update_project(project, project_input)
+    return project
+
+
+@router.delete("/projects/{project_id}", status_code=204, **ProjectsView.kwargs)
+def delete_project(project_id: int, projects_view: ProjectsView = Depends()) -> None:
+    project = projects_view.get_project(project_id)
+    projects_view.delete_project(project)
 
 
 @router.get(

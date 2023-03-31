@@ -17,7 +17,9 @@
 import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
+from sqlmodel import Session
 
+from ..database import get_session
 from ..models import Project, ProjectImport, ProjectOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.projects import ProjectsView, get_project_filters, get_project_sort
@@ -89,10 +91,24 @@ def upload_projects_excel(
     projects_view: ProjectsView = Depends(),
     columns: ColumnGroup = Depends(get_project_columns),
     temp_file=Depends(copy_upload_to_temp_file),
+    skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
+    session: Session = Depends(get_session),
 ) -> list[Project]:
+    # Create a data frame from the uploaded Excel file
     df = pd.read_excel(temp_file, engine="openpyxl")
-    project_imports = columns.import_from_dataframe(df)
-    list(project_imports)
-    # TODO: validate project imports and perform import
-    return []
+    df.drop_duplicates(keep="last", inplace=True)
+
+    # Import the data frame
+    project_imports = columns.import_from_dataframe(df, skip_nan=skip_blanks)
+    projects = list(
+        projects_view.bulk_create_update_projects(
+            project_imports, patch=True, skip_flush=dry_run
+        )
+    )
+
+    # Rollback if dry run
+    if dry_run:
+        session.rollback()
+        return []
+    return projects

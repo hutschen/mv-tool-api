@@ -48,7 +48,7 @@ def test_create_catalog_requirement(
     catalog_requirement_input: CatalogRequirementInput,
 ):
     catalog_requirement = catalog_requirements_view.create_catalog_requirement(
-        create_catalog_module.id, catalog_requirement_input
+        create_catalog_module, catalog_requirement_input
     )
 
     assert isinstance(catalog_requirement, CatalogRequirement)
@@ -79,38 +79,26 @@ def test_get_catalog_requirement_with_invalid_catalog_requirement_id(
 
 def test_update_catalog_requirement(
     catalog_requirements_view: CatalogRequirementsView,
-    create_catalog_module: CatalogModule,
     create_catalog_requirement: CatalogRequirement,
     catalog_requirement_input: CatalogRequirementInput,
 ):
     orig_summary = catalog_requirement_input.summary
     catalog_requirement_input.summary += " updated"
 
-    catalog_requirement = catalog_requirements_view.update_catalog_requirement(
-        create_catalog_requirement.id, catalog_requirement_input
+    catalog_requirements_view.update_catalog_requirement(
+        create_catalog_requirement, catalog_requirement_input
     )
 
-    assert isinstance(catalog_requirement, CatalogRequirement)
-    assert catalog_requirement.id == create_catalog_requirement.id
-    assert catalog_requirement.summary != orig_summary
-    assert catalog_requirement.summary == catalog_requirement_input.summary
-    assert catalog_requirement.catalog_module.id == create_catalog_module.id
+    assert isinstance(create_catalog_requirement, CatalogRequirement)
 
-
-def test_update_catalog_requirement_with_invalid_catalog_requirement_id(
-    catalog_requirements_view: CatalogRequirementsView,
-    catalog_requirement_input: CatalogRequirementInput,
-):
-    with pytest.raises(HTTPException):
-        catalog_requirements_view.update_catalog_requirement(
-            -1, catalog_requirement_input
-        )
+    assert create_catalog_requirement.summary != orig_summary
+    assert create_catalog_requirement.summary == catalog_requirement_input.summary
 
 
 def test_delete_catalog_requirement(
     catalog_requirements_view: CatalogRequirementsView,
     create_catalog_requirement: CatalogRequirement,
 ):
-    catalog_requirements_view.delete_catalog_requirement(create_catalog_requirement.id)
+    catalog_requirements_view.delete_catalog_requirement(create_catalog_requirement)
     with pytest.raises(HTTPException):
         catalog_requirements_view.get_catalog_requirement(create_catalog_requirement.id)

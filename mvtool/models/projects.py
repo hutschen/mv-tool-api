@@ -20,23 +20,24 @@ from typing import Callable
 from pydantic import PrivateAttr, confloat
 from sqlmodel import Relationship, Session, SQLModel, func, or_, select
 
-from .common import CommonFieldsMixin
+from .common import CommonFieldsMixin, ETagMixin
 from .documents import Document
 from .jira_ import JiraProject, JiraProjectImport
 from .measures import Measure
 from .requirements import Requirement
 
 
-class ProjectInput(SQLModel):
+class AbstractProjectInput(SQLModel):
     name: str
     description: str | None
+
+
+class ProjectInput(AbstractProjectInput):
     jira_project_id: str | None
 
 
-class ProjectImport(SQLModel):
+class ProjectImport(ETagMixin, AbstractProjectInput):
     id: int | None = None
-    name: str
-    description: str | None
     jira_project: JiraProjectImport | None = None
 
 

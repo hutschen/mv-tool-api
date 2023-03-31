@@ -16,8 +16,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from datetime import datetime
+from hashlib import md5
+from typing import Any
 
-from pydantic import constr, validator
+from pydantic import BaseModel, constr, validator
 from sqlmodel import Field, SQLModel
 
 
@@ -28,6 +30,16 @@ class CommonFieldsMixin(SQLModel):
         default_factory=datetime.utcnow,
         sa_column_kwargs=dict(onupdate=datetime.utcnow),
     )
+
+
+class ETagMixin(BaseModel):
+    @property
+    def etag(self) -> str:
+        model_json = self.json(sort_keys=True, ensure_ascii=False).encode("utf-8")
+        return md5(model_json).hexdigest()
+
+    def __eq__(self, other: Any):
+        return isinstance(other, self.__class__) and self.etag == other.etag
 
 
 class AbstractComplianceInput(SQLModel):

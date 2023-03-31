@@ -16,14 +16,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from fastapi import HTTPException
 import pytest
-from mvtool.models import (
-    Catalog,
-    CatalogModule,
-    CatalogModuleInput,
-    CatalogModuleOutput,
-)
+from fastapi import HTTPException
+
+from mvtool.models import Catalog, CatalogModule, CatalogModuleInput
 from mvtool.views.catalog_modules import CatalogModulesView
 
 
@@ -47,7 +43,7 @@ def test_create_catalog_module(
     catalog_module_input: CatalogModuleInput,
 ):
     catalog_module = catalog_modules_view.create_catalog_module(
-        create_catalog.id, catalog_module_input
+        create_catalog, catalog_module_input
     )
     assert isinstance(catalog_module, CatalogModule)
     assert catalog_module.title == catalog_module_input.title
@@ -70,27 +66,18 @@ def test_update_catalog_module(
     catalog_module_input: CatalogModuleInput,
 ):
     catalog_module_input.title += "updated"
-    catalog_module = catalog_modules_view.update_catalog_module(
-        create_catalog_module.id, catalog_module_input
+    catalog_modules_view.update_catalog_module(
+        create_catalog_module, catalog_module_input
     )
-    assert isinstance(catalog_module, CatalogModule)
-    assert catalog_module.title == catalog_module_input.title
 
-
-def test_update_catalog_module_invalid_catalog_module_id(
-    catalog_modules_view: CatalogModulesView,
-    catalog_module_input: CatalogModuleInput,
-):
-    with pytest.raises(HTTPException) as error_info:
-        catalog_modules_view.update_catalog_module(1, catalog_module_input)
-    assert error_info.value.status_code == 404
+    assert create_catalog_module.title == catalog_module_input.title
 
 
 def test_delete_catalog_module(
     catalog_modules_view: CatalogModulesView,
     create_catalog_module: CatalogModule,
 ):
-    catalog_modules_view.delete_catalog_module(create_catalog_module.id)
+    catalog_modules_view.delete_catalog_module(create_catalog_module)
     with pytest.raises(HTTPException) as error_info:
         catalog_modules_view.get_catalog_module(create_catalog_module.id)
     assert error_info.value.status_code == 404

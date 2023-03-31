@@ -16,47 +16,47 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from typing import Any, Iterator
+from typing import Any, Iterable, Iterator
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from fastapi_utils.cbv import cbv
 from pydantic import constr
-from sqlmodel import Column, func, select, or_
+from sqlmodel import Column, Session, func, or_, select
 from sqlmodel.sql.expression import Select
 
-from ..utils.pagination import Page, page_params
+from ..database import delete_from_db, get_session, read_from_db
+from ..models.documents import (
+    Document,
+    DocumentImport,
+    DocumentInput,
+    DocumentOutput,
+    DocumentRepresentation,
+)
+from ..models.projects import Project
+from ..utils.etag_map import get_from_etag_map
+from ..utils.fallback import fallback
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
     search_columns,
 )
-from ..utils.errors import NotFoundError
-from ..database import CRUDOperations
+from ..utils.iteration import CachedIterable
+from ..utils.pagination import Page, page_params
 from .projects import ProjectsView
-from ..models import (
-    DocumentInput,
-    Document,
-    DocumentOutput,
-    DocumentRepresentation,
-    JiraProject,
-    Project,
-)
 
 router = APIRouter()
 
 
-@cbv(router)
 class DocumentsView:
     kwargs = dict(tags=["document"])
 
     def __init__(
         self,
         projects: ProjectsView = Depends(ProjectsView),
-        crud: CRUDOperations[Document] = Depends(CRUDOperations),
+        session: Session = Depends(get_session),
     ):
         self._projects = projects
-        self._crud = crud
-        self._session = self._crud.session
+        self._session = session
 
     @staticmethod
     def _modify_documents_query(
@@ -133,22 +133,22 @@ class DocumentsView:
         )
         return self._session.execute(query).scalar()
 
-    @router.post(
-        "/projects/{project_id}/documents",
-        status_code=201,
-        response_model=DocumentOutput,
-        **kwargs,
-    )
     def create_document(
-        self, project_id: int, document_input: DocumentInput
+        self,
+        project: Project,
+        creation: DocumentInput | DocumentImport,
+        skip_flush: bool = False,
     ) -> Document:
-        document = Document.from_orm(document_input)
-        document.project = self._projects.get_project(project_id)
-        return self._crud.create_in_db(document)
+        document = Document(**creation.dict(exclude={"id", "project"}))
+        document.project = project
 
-    @router.get("/documents/{document_id}", response_model=DocumentOutput, **kwargs)
+        self._session.add(document)
+        if not skip_flush:
+            self._session.flush()
+        return document
+
     def get_document(self, document_id: int) -> Document:
-        document = self._crud.read_from_db(Document, document_id)
+        document = read_from_db(self._session, Document, document_id)
         self._set_jira_project(document)
         return document
 
@@ -157,27 +157,95 @@ class DocumentsView:
         if document_id is not None:
             return self.get_document(document_id)
 
-    @router.put("/documents/{document_id}", response_model=DocumentOutput, **kwargs)
     def update_document(
-        self, document_id: int, document_input: DocumentInput
-    ) -> Document:
-        document = self._session.get(Document, document_id)
-        if not document:
-            cls_name = Document.__name__
-            raise NotFoundError(f"No {cls_name} with id={document_id}.")
-
-        for key, value in document_input.dict().items():
+        self,
+        document: Document,
+        update: DocumentInput | DocumentImport,
+        patch: bool = False,
+        skip_flush: bool = False,
+    ) -> None:
+        for key, value in update.dict(
+            exclude_unset=patch, exclude={"id", "project"}
+        ).items():
             setattr(document, key, value)
-        self._session.flush()
 
-        self._set_jira_project(document)
-        return document
+        if not skip_flush:
+            self._session.flush()
 
-    @router.delete(
-        "/documents/{document_id}", status_code=204, response_class=Response, **kwargs
-    )
-    def delete_document(self, document_id: int) -> None:
-        return self._crud.delete_from_db(Document, document_id)
+    def delete_document(self, document: Document, skip_flush: bool = False) -> None:
+        return delete_from_db(self._session, document, skip_flush)
+
+    def bulk_create_update_documents(
+        self,
+        document_imports: Iterable[DocumentImport],
+        fallback_project: Project | None = None,
+        patch: bool = False,
+        skip_flush: bool = False,
+    ) -> Iterator[Document]:
+        document_imports = CachedIterable(document_imports)
+
+        # Convert project imports to projects
+        projects_map = self._projects.convert_project_imports(
+            (d.project for d in document_imports if d.project is not None), patch=patch
+        )
+
+        # Get documents to be updated from database
+        ids = [d.id for d in document_imports if d.id is not None]
+        documents_to_update = {
+            d.id: d
+            for d in (self.list_documents([Document.id.in_(ids)]) if ids else [])
+        }
+
+        # Create or update documents
+        for document_import in document_imports:
+            project = get_from_etag_map(projects_map, document_import.project)
+
+            if document_import.id is None:
+                # Create new document
+                yield self.create_document(
+                    fallback(
+                        project, fallback_project, "No fallback project provided."
+                    ),
+                    document_import,
+                    skip_flush=True,
+                )
+            else:
+                # Update existing document
+                document = documents_to_update.get(document_import.id)
+                if document is None:
+                    raise ValueError(f"No document with id={document_import.id}.")
+                self.update_document(
+                    document, document_import, patch=patch, skip_flush=True
+                )
+                if project is not None:
+                    document.project = project
+                yield document
+
+        if not skip_flush:
+            self._session.flush()
+
+    def convert_document_imports(
+        self,
+        document_imports: Iterable[DocumentImport],
+        fallback_project: Project | None = None,
+        patch: bool = False,
+    ) -> dict[str, Document]:
+        # Map document imports to their etags
+        documents_map = {d.etag: d for d in document_imports}
+
+        # Map created and updated documents to the etag of their imports
+        for etag, document in zip(
+            documents_map.keys(),
+            self.bulk_create_update_documents(
+                documents_map.values(),
+                fallback_project,
+                patch=patch,
+                skip_flush=True,
+            ),
+        ):
+            documents_map[etag] = document
+
+        return documents_map
 
     def _set_jira_project(self, document: Document, try_to_get: bool = True) -> None:
         self._projects._set_jira_project(document.project, try_to_get)
@@ -292,6 +360,57 @@ def get_documents(
         return Page[DocumentOutput](items=documents, total_count=documents_count)
     else:
         return documents
+
+
+@router.post(
+    "/projects/{project_id}/documents",
+    status_code=201,
+    response_model=DocumentOutput,
+    **DocumentsView.kwargs,
+)
+def create_document(
+    project_id: int,
+    document_input: DocumentInput,
+    projects_view: ProjectsView = Depends(),
+    documents_view: DocumentsView = Depends(),
+) -> Document:
+    project = projects_view.get_project(project_id)
+    return documents_view.create_document(project, document_input)
+
+
+@router.get(
+    "/documents/{document_id}", response_model=DocumentOutput, **DocumentsView.kwargs
+)
+def get_document(
+    document_id: int, documents_view: DocumentsView = Depends()
+) -> Document:
+    return documents_view.get_document(document_id)
+
+
+@router.put(
+    "/documents/{document_id}", response_model=DocumentOutput, **DocumentsView.kwargs
+)
+def update_document(
+    document_id: int,
+    document_input: DocumentInput,
+    documents_view: DocumentsView = Depends(),
+) -> Document:
+    document = documents_view.get_document(document_id)
+    documents_view.update_document(document, document_input)
+    return document
+
+
+@router.delete(
+    "/documents/{document_id}",
+    status_code=204,
+    response_class=Response,
+    **DocumentsView.kwargs,
+)
+def delete_document(
+    document_id: int, documents_view: DocumentsView = Depends()
+) -> None:
+    document = documents_view.get_document(document_id)
+    documents_view.delete_document(document)
 
 
 @router.get(

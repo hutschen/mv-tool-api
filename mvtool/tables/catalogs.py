@@ -18,7 +18,9 @@
 import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
+from sqlmodel import Session
 
+from ..database import get_session
 from ..models import Catalog, CatalogImport, CatalogOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..views.catalogs import CatalogsView, get_catalog_filters, get_catalog_sort
@@ -75,10 +77,24 @@ def upload_catalogs_excel(
     catalogs_view: CatalogsView = Depends(),
     columns: ColumnGroup = Depends(get_catalog_columns),
     temp_file=Depends(copy_upload_to_temp_file),
+    skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
+    session: Session = Depends(get_session),
 ) -> list[Catalog]:
+    # Create data frame from uploaded file
     df = pd.read_excel(temp_file, engine="openpyxl")
-    catalog_imports = columns.import_from_dataframe(df)
-    list(catalog_imports)
-    # TODO: validate catalog imports and perform import
-    return []
+    df.drop_duplicates(keep="last", inplace=True)
+
+    # Import data frame into database
+    catalog_imports = columns.import_from_dataframe(df, skip_nan=skip_blanks)
+    catalogs = list(
+        catalogs_view.bulk_create_update_catalogs(
+            catalog_imports, patch=True, skip_flush=dry_run
+        )
+    )
+
+    # Rollback if dry run
+    if dry_run:
+        session.rollback()
+        return []
+    return catalogs

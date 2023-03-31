@@ -15,47 +15,48 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any
+from typing import Any, Iterable, Iterator
+
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi_utils.cbv import cbv
 from pydantic import constr
-from sqlmodel import Column, func, or_, select
+from sqlmodel import Column, Session, func, or_, select
 from sqlmodel.sql.expression import Select
 
+from ..database import delete_from_db, get_session, read_from_db
+from ..models.catalog_modules import CatalogModule
+from ..models.catalog_requirements import (
+    CatalogRequirement,
+    CatalogRequirementImport,
+    CatalogRequirementInput,
+    CatalogRequirementOutput,
+    CatalogRequirementRepresentation,
+)
+from ..models.catalogs import Catalog
+from ..utils.etag_map import get_from_etag_map
+from ..utils.fallback import fallback
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
     search_columns,
 )
+from ..utils.iteration import CachedIterable
 from ..utils.pagination import Page, page_params
-from ..utils.errors import NotFoundError
-from ..database import CRUDOperations
-from ..models import (
-    Catalog,
-    CatalogModule,
-    CatalogRequirement,
-    CatalogRequirementInput,
-    CatalogRequirementOutput,
-    CatalogRequirementRepresentation,
-)
 from .catalog_modules import CatalogModulesView
 
 router = APIRouter()
 
 
-@cbv(router)
 class CatalogRequirementsView:
     kwargs = dict(tags=["catalog-requirement"])
 
     def __init__(
         self,
         catalog_modules: CatalogModulesView = Depends(CatalogModulesView),
-        crud: CRUDOperations[CatalogRequirement] = Depends(CRUDOperations),
+        session: Session = Depends(get_session),
     ):
         self._catalog_modules = catalog_modules
-        self._crud = crud
-        self._session = self._crud.session
+        self._session = session
 
     @staticmethod
     def _modify_catalog_requirements_query(
@@ -124,30 +125,25 @@ class CatalogRequirementsView:
         )
         return self._session.execute(query).scalar()
 
-    @router.post(
-        "/catalog-modules/{catalog_module_id}/catalog-requirements",
-        response_model=CatalogRequirementOutput,
-        status_code=201,
-        **kwargs,
-    )
     def create_catalog_requirement(
-        self, catalog_module_id: int, catalog_requirement_input: CatalogRequirementInput
+        self,
+        catalog_module: CatalogModule,
+        creation: CatalogRequirementInput | CatalogRequirementImport,
+        skip_flush: bool = False,
     ) -> CatalogRequirement:
-        catalog_requirement = CatalogRequirement.from_orm(catalog_requirement_input)
-        catalog_requirement.catalog_module = self._catalog_modules.get_catalog_module(
-            catalog_module_id
+        catalog_requirement = CatalogRequirement(
+            **creation.dict(exclude={"id", "catalog_module"})
         )
-        return self._crud.create_in_db(catalog_requirement)
+        catalog_requirement.catalog_module = catalog_module
+        self._session.add(catalog_requirement)
+        if not skip_flush:
+            self._session.flush()
+        return catalog_requirement
 
-    @router.get(
-        "/catalog-requirements/{catalog_requirement_id}",
-        response_model=CatalogRequirementOutput,
-        **kwargs,
-    )
     def get_catalog_requirement(
         self, catalog_requirement_id: int
     ) -> CatalogRequirement:
-        return self._crud.read_from_db(CatalogRequirement, catalog_requirement_id)
+        return read_from_db(self._session, CatalogRequirement, catalog_requirement_id)
 
     def check_catalog_requirement_id(
         self, catalog_requirement_id: int | None
@@ -155,34 +151,118 @@ class CatalogRequirementsView:
         if catalog_requirement_id is not None:
             return self.get_catalog_requirement(catalog_requirement_id)
 
-    @router.put(
-        "/catalog-requirements/{catalog_requirement_id}",
-        response_model=CatalogRequirementOutput,
-        **kwargs,
-    )
     def update_catalog_requirement(
         self,
-        catalog_requirement_id: int,
-        catalog_requirement_input: CatalogRequirementInput,
-    ) -> CatalogRequirement:
-        catalog_requirement = self._session.get(
-            CatalogRequirement, catalog_requirement_id
-        )
-        if not catalog_requirement:
-            cls_name = CatalogRequirement.__name__
-            raise NotFoundError(f"No {cls_name} with id={catalog_requirement_id}.")
-        for key, value in catalog_requirement_input.dict().items():
+        catalog_requirement: CatalogRequirement,
+        update: CatalogRequirementInput | CatalogRequirementImport,
+        patch: bool = False,
+        skip_flush: bool = False,
+    ) -> None:
+        for key, value in update.dict(
+            exclude_unset=patch, exclude={"id", "catalog_module"}
+        ).items():
             setattr(catalog_requirement, key, value)
-        self._session.flush()
-        return catalog_requirement
 
-    @router.delete(
-        "/catalog-requirements/{catalog_requirement_id}",
-        status_code=204,
-        **kwargs,
-    )
-    def delete_catalog_requirement(self, catalog_requirement_id: int) -> None:
-        return self._crud.delete_from_db(CatalogRequirement, catalog_requirement_id)
+        if not skip_flush:
+            self._session.flush()
+
+    def bulk_create_update_catalog_requirements(
+        self,
+        catalog_requirement_imports: Iterable[CatalogRequirementImport],
+        fallback_catalog_module: CatalogModule | None = None,
+        patch: bool = False,
+        skip_flush: bool = False,
+    ) -> Iterator[CatalogRequirement]:
+        catalog_requirement_imports = CachedIterable(catalog_requirement_imports)
+
+        # Convert catalog module imports to catalog modules
+        catalog_modules_map = self._catalog_modules.convert_catalog_module_imports(
+            (
+                c.catalog_module
+                for c in catalog_requirement_imports
+                if c.catalog_module is not None
+            ),
+            fallback_catalog_module.catalog if fallback_catalog_module else None,
+            patch=patch,
+        )
+
+        # Get catalog requirements to be updated from database
+        ids = [c.id for c in catalog_requirement_imports if c.id is not None]
+        catalog_requirements_to_update = {
+            c.id: c
+            for c in (
+                self.list_catalog_requirements([CatalogRequirement.id.in_(ids)])
+                if ids
+                else []
+            )
+        }
+
+        # Create or update catalog requirements
+        for catalog_requirement_import in catalog_requirement_imports:
+            catalog_module = get_from_etag_map(
+                catalog_modules_map, catalog_requirement_import.catalog_module
+            )
+
+            if catalog_requirement_import.id is None:
+                # Create new catalog requirement
+                yield self.create_catalog_requirement(
+                    fallback(
+                        catalog_module,
+                        fallback_catalog_module,
+                        "No fallback catalog module provided.",
+                    ),
+                    catalog_requirement_import,
+                    skip_flush=True,
+                )
+            else:
+                # Update existing catalog requirement
+                catalog_requirement = catalog_requirements_to_update.get(
+                    catalog_requirement_import.id
+                )
+                if catalog_requirement is None:
+                    raise ValueError(
+                        f"No catalog requirement with id={catalog_requirement_import.id}."
+                    )
+                self.update_catalog_requirement(
+                    catalog_requirement,
+                    catalog_requirement_import,
+                    patch,
+                    skip_flush=True,
+                )
+                if catalog_module is not None:
+                    catalog_requirement.catalog_module = catalog_module
+                yield catalog_requirement
+
+        if not skip_flush:
+            self._session.flush()
+
+    def delete_catalog_requirement(
+        self, catalog_requirement: CatalogRequirement, skip_flush: bool = False
+    ) -> None:
+        return delete_from_db(self._session, catalog_requirement, skip_flush)
+
+    def convert_catalog_requirement_imports(
+        self,
+        catalog_requirement_imports: Iterable[CatalogRequirementImport],
+        fallback_catalog_module: CatalogModule | None = None,
+        patch: bool = False,
+    ) -> dict[str, CatalogRequirement]:
+        # Map catalog requirement imports to their etags
+        catalog_requirements_map = {r.etag: r for r in catalog_requirement_imports}
+
+        # Map created and updated catalog requirements to the etags of their imports
+        for etag, catalog_requirement in zip(
+            catalog_requirements_map.keys(),
+            self.bulk_create_update_catalog_requirements(
+                catalog_requirements_map.values(),
+                fallback_catalog_module,
+                patch=patch,
+                skip_flush=True,
+            ),
+        ):
+            catalog_requirements_map[etag] = catalog_requirement
+
+        return catalog_requirements_map
 
 
 def get_catalog_requirement_filters(
@@ -319,6 +399,70 @@ def get_catalog_requirements(
         )
     else:
         return crequirements
+
+
+@router.post(
+    "/catalog-modules/{catalog_module_id}/catalog-requirements",
+    response_model=CatalogRequirementOutput,
+    status_code=201,
+    **CatalogRequirementsView.kwargs,
+)
+def create_catalog_requirement(
+    catalog_module_id: int,
+    catalog_requirement_input: CatalogRequirementInput,
+    catalog_modules_view: CatalogModulesView = Depends(),
+    catalog_requirements_view: CatalogRequirementsView = Depends(),
+) -> CatalogRequirement:
+    catalog_module = catalog_modules_view.get_catalog_module(catalog_module_id)
+    return catalog_requirements_view.create_catalog_requirement(
+        catalog_module, catalog_requirement_input
+    )
+
+
+@router.get(
+    "/catalog-requirements/{catalog_requirement_id}",
+    response_model=CatalogRequirementOutput,
+    **CatalogRequirementsView.kwargs,
+)
+def get_catalog_requirement(
+    catalog_requirement_id: int,
+    catalog_requirements_view: CatalogRequirementsView = Depends(),
+) -> CatalogRequirement:
+    return catalog_requirements_view.get_catalog_requirement(catalog_requirement_id)
+
+
+@router.put(
+    "/catalog-requirements/{catalog_requirement_id}",
+    response_model=CatalogRequirementOutput,
+    **CatalogRequirementsView.kwargs,
+)
+def update_catalog_requirement(
+    catalog_requirement_id: int,
+    catalog_requirement_input: CatalogRequirementInput,
+    catalog_requirements_view: CatalogRequirementsView = Depends(),
+) -> CatalogRequirement:
+    catalog_requirement = catalog_requirements_view.get_catalog_requirement(
+        catalog_requirement_id
+    )
+    catalog_requirements_view.update_catalog_requirement(
+        catalog_requirement, catalog_requirement_input
+    )
+    return catalog_requirement
+
+
+@router.delete(
+    "/catalog-requirements/{catalog_requirement_id}",
+    status_code=204,
+    **CatalogRequirementsView.kwargs,
+)
+def delete_catalog_requirement(
+    catalog_requirement_id: int,
+    catalog_requirements_view: CatalogRequirementsView = Depends(),
+) -> None:
+    catalog_requirement = catalog_requirements_view.get_catalog_requirement(
+        catalog_requirement_id
+    )
+    catalog_requirements_view.delete_catalog_requirement(catalog_requirement)
 
 
 @router.get(

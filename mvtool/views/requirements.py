@@ -15,33 +15,37 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any, Callable
+from typing import Any, Callable, Iterable, Iterator
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi_utils.cbv import cbv
 from pydantic import constr
-from sqlmodel import Column, func, or_, select
+from sqlmodel import Column, Session, func, or_, select
 from sqlmodel.sql.expression import Select
 
-from ..database import CRUDOperations
-from ..models import (
-    Catalog,
-    CatalogModule,
-    CatalogRequirement,
-    Project,
+from ..database import delete_from_db, get_session, read_from_db
+from ..models.catalog_modules import CatalogModule
+from ..models.catalog_requirements import CatalogRequirement
+from ..models.catalogs import Catalog
+from ..models.projects import Project
+from ..models.requirements import (
     Requirement,
+    RequirementImport,
     RequirementInput,
     RequirementOutput,
     RequirementRepresentation,
 )
 from ..utils import combine_flags
 from ..utils.errors import NotFoundError
+from ..utils.etag_map import get_from_etag_map
+from ..utils.fallback import fallback
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
     search_columns,
 )
+from ..utils.iteration import CachedIterable
+from ..utils.models import field_is_set
 from ..utils.pagination import Page, page_params
 from .catalog_requirements import CatalogRequirementsView
 from .projects import ProjectsView
@@ -49,7 +53,6 @@ from .projects import ProjectsView
 router = APIRouter()
 
 
-@cbv(router)
 class RequirementsView:
     kwargs = dict(tags=["requirement"])
 
@@ -59,12 +62,11 @@ class RequirementsView:
         catalog_requirements: CatalogRequirementsView = Depends(
             CatalogRequirementsView
         ),
-        crud: CRUDOperations[Requirement] = Depends(CRUDOperations),
+        session: Session = Depends(get_session),
     ):
         self._projects = projects
         self._catalog_requirements = catalog_requirements
-        self._crud = crud
-        self._session = self._crud.session
+        self._session = session
 
     @staticmethod
     def _modify_requirements_query(
@@ -144,109 +146,179 @@ class RequirementsView:
         )
         return self._session.execute(query).scalar()
 
-    @router.post(
-        "/projects/{project_id}/requirements",
-        status_code=201,
-        response_model=RequirementOutput,
-        **kwargs,
-    )
     def create_requirement(
-        self, project_id: int, requirement_input: RequirementInput
+        self,
+        project: Project,
+        creation: RequirementInput | RequirementImport,
+        skip_flush: bool = False,
     ) -> Requirement:
-        requirement = Requirement.from_orm(requirement_input)
-        requirement.project = self._projects.get_project(project_id)
-        requirement.catalog_requirement = (
-            self._catalog_requirements.check_catalog_requirement_id(
-                requirement_input.catalog_requirement_id
-            )
+        requirement = Requirement(
+            **creation.dict(exclude={"id", "project", "catalog_requirement"})
         )
-        return self._crud.create_in_db(requirement)
+        requirement.project = project
 
-    @router.get(
-        "/requirements/{requirement_id}", response_model=RequirementOutput, **kwargs
-    )
+        # check catalog_requirement_id and set catalog_requirement
+        if isinstance(creation, RequirementInput):
+            requirement.catalog_requirement = (
+                self._catalog_requirements.check_catalog_requirement_id(
+                    creation.catalog_requirement_id
+                )
+            )
+
+        self._session.add(requirement)
+        if not skip_flush:
+            self._session.flush()
+        return requirement
+
     def get_requirement(self, requirement_id: int) -> Requirement:
-        requirement = self._crud.read_from_db(Requirement, requirement_id)
+        requirement = read_from_db(self._session, Requirement, requirement_id)
         self._set_jira_project(requirement)
         return requirement
 
-    @router.put(
-        "/requirements/{requirement_id}", response_model=RequirementOutput, **kwargs
-    )
     def update_requirement(
-        self, requirement_id: int, requirement_input: RequirementInput
-    ) -> Requirement:
-        requirement = self._session.get(Requirement, requirement_id)
-        if not requirement:
-            cls_name = Requirement.__name__
-            raise NotFoundError(f"No {cls_name} with id={requirement_id}.")
-
-        for key, value in requirement_input.dict().items():
+        self,
+        requirement: Requirement,
+        update: RequirementInput | RequirementImport,
+        patch: bool = False,
+        skip_flush: bool = False,
+    ) -> None:
+        for key, value in update.dict(
+            exclude_unset=patch, exclude={"id", "project", "catalog_requirement"}
+        ).items():
             setattr(requirement, key, value)
 
         # check catalog_requirement_id and set catalog_requirement
-        requirement.catalog_requirement = (
-            self._catalog_requirements.check_catalog_requirement_id(
-                requirement_input.catalog_requirement_id
+        if isinstance(update, RequirementInput):
+            requirement.catalog_requirement = (
+                self._catalog_requirements.check_catalog_requirement_id(
+                    update.catalog_requirement_id
+                )
+            )
+
+        if not skip_flush:
+            self._session.flush()
+
+    def delete_requirement(
+        self, requirement: Requirement, skip_flush: bool = False
+    ) -> None:
+        return delete_from_db(self._session, requirement, skip_flush)
+
+    def bulk_create_update_requirements(
+        self,
+        requirement_imports: Iterable[RequirementImport],
+        fallback_project: Project | None = None,
+        fallback_catalog_module: CatalogModule | None = None,
+        patch: bool = False,
+        skip_flush: bool = False,
+    ) -> Iterator[Requirement]:
+        requirement_imports = CachedIterable(requirement_imports)
+
+        # Convert project imports to projects
+        projects_map = self._projects.convert_project_imports(
+            (r.project for r in requirement_imports if r.project is not None),
+            patch=patch,
+        )
+
+        # Convert catalog requirement imports to catalog requirements
+        catalog_requirements_map = (
+            self._catalog_requirements.convert_catalog_requirement_imports(
+                (
+                    r.catalog_requirement
+                    for r in requirement_imports
+                    if r.catalog_requirement is not None
+                ),
+                fallback_catalog_module,
+                patch=patch,
             )
         )
 
-        self._session.flush()
-        self._set_jira_project(requirement)
-        return requirement
+        # Get requirements to be updated from database
+        ids = [r.id for r in requirement_imports if r.id is not None]
+        requirements_to_update = {
+            r.id: r
+            for r in (self.list_requirements([Requirement.id.in_(ids)]) if ids else [])
+        }
 
-    @router.delete("/requirements/{requirement_id}", status_code=204, **kwargs)
-    def delete_requirement(self, requirement_id: int) -> None:
-        return self._crud.delete_from_db(Requirement, requirement_id)
+        # Create or update requirements
+        for requirement_import in requirement_imports:
+            project = get_from_etag_map(projects_map, requirement_import.project)
+
+            if requirement_import.id is None:
+                # Create requirement
+                requirement = self.create_requirement(
+                    fallback(
+                        project, fallback_project, "No fallback project provided."
+                    ),
+                    requirement_import,
+                    skip_flush=True,
+                )
+            else:
+                # Update requirement
+                requirement = requirements_to_update.get(requirement_import.id)
+                if requirement is None:
+                    raise NotFoundError(
+                        f"No requirement with id={requirement_import.id}."
+                    )
+                self.update_requirement(
+                    requirement, requirement_import, patch=patch, skip_flush=True
+                )
+
+            # Set catalog requirement
+            if field_is_set(requirement_import, "catalog_requirement") or not patch:
+                requirement.catalog_requirement = get_from_etag_map(
+                    catalog_requirements_map, requirement_import.catalog_requirement
+                )
+
+            yield requirement
+
+        if not skip_flush:
+            self._session.flush()
+
+    def convert_requirement_imports(
+        self,
+        requirement_imports: Iterable[RequirementImport],
+        fallback_project: Project | None = None,
+        fallback_catalog_module: CatalogModule | None = None,
+        patch: bool = False,
+    ) -> dict[str, Requirement]:
+        # Map requirement imports to their etags
+        requirements_map = {r.etag: r for r in requirement_imports}
+
+        # Map created and updates requirements to the etag of their imports
+        for etag, requirement in zip(
+            requirements_map.keys(),
+            self.bulk_create_update_requirements(
+                requirements_map.values(),
+                fallback_project,
+                fallback_catalog_module,
+                patch=patch,
+                skip_flush=True,
+            ),
+        ):
+            requirements_map[etag] = requirement
+
+        return requirements_map
+
+    def bulk_create_requirements_from_catalog_requirements(
+        self,
+        project: Project,
+        catalog_requirements: Iterable[CatalogRequirement],
+        skip_flush: bool = False,
+    ) -> Iterator[Requirement]:
+        for catalog_requirement in catalog_requirements:
+            requirement = self.create_requirement(
+                project, RequirementInput.from_orm(catalog_requirement), skip_flush=True
+            )
+            requirement.catalog_requirement = catalog_requirement
+            yield requirement
+
+        if not skip_flush:
+            self._session.flush()
 
     def _set_jira_project(
         self, requirement: Requirement, try_to_get: bool = True
     ) -> None:
         self._projects._set_jira_project(requirement.project, try_to_get)
-
-
-@cbv(router)
-class ImportCatalogRequirementsView:
-    kwargs = RequirementsView.kwargs
-
-    def __init__(
-        self,
-        projects: ProjectsView = Depends(ProjectsView),
-        catalog_requirements: CatalogRequirementsView = Depends(
-            CatalogRequirementsView
-        ),
-        crud: CRUDOperations[Requirement] = Depends(CRUDOperations),
-    ):
-        self._projects = projects
-        self._catalog_requirements = catalog_requirements
-        self._crud = crud
-        self._session = self._crud.session
-
-    @router.post(
-        "/projects/{project_id}/requirements/import",
-        status_code=201,
-        response_model=list[RequirementOutput],
-        **kwargs,
-    )
-    def import_requirements_from_catalog_modules(
-        self, project_id: int, catalog_module_ids: list[int]
-    ) -> list[Requirement]:
-        project = self._projects.get_project(project_id)
-        created_requirements = []
-
-        for catalog_requirement in self._catalog_requirements.list_catalog_requirements(
-            [filter_by_values(CatalogRequirement.catalog_module_id, catalog_module_ids)]
-        ):
-            requirement = Requirement.from_orm(
-                RequirementInput.from_orm(catalog_requirement)
-            )
-            requirement.catalog_requirement = catalog_requirement
-            requirement.project = project
-            self._session.add(requirement)
-            created_requirements.append(requirement)
-
-        self._session.flush()
-        return created_requirements
 
 
 def get_requirement_filters(
@@ -420,6 +492,80 @@ def get_requirements(
         )
     else:
         return requirements
+
+
+@router.post(
+    "/projects/{project_id}/requirements",
+    status_code=201,
+    response_model=RequirementOutput,
+    **RequirementsView.kwargs,
+)
+def create_requirement(
+    project_id: int,
+    requirement_input: RequirementInput,
+    projects_view: ProjectsView = Depends(ProjectsView),
+    requirements_view: RequirementsView = Depends(RequirementsView),
+) -> RequirementOutput:
+    project = projects_view.get_project(project_id)
+    return requirements_view.create_requirement(project, requirement_input)
+
+
+@router.get(
+    "/requirements/{requirement_id}",
+    response_model=RequirementOutput,
+    **RequirementsView.kwargs,
+)
+def get_requirement(
+    requirement_id: int, requirements_view: RequirementsView = Depends(RequirementsView)
+) -> Requirement:
+    return requirements_view.get_requirement(requirement_id)
+
+
+@router.put(
+    "/requirements/{requirement_id}",
+    response_model=RequirementOutput,
+    **RequirementsView.kwargs,
+)
+def update_requirement(
+    requirement_id: int,
+    requirement_input: RequirementInput,
+    requirements_view: RequirementsView = Depends(RequirementsView),
+) -> Requirement:
+    requirement = requirements_view.get_requirement(requirement_id)
+    requirements_view.update_requirement(requirement, requirement_input)
+    return requirement
+
+
+@router.delete(
+    "/requirements/{requirement_id}", status_code=204, **RequirementsView.kwargs
+)
+def delete_requirement(
+    requirement_id: int, requirements_view: RequirementsView = Depends(RequirementsView)
+) -> None:
+    requirement = requirements_view.get_requirement(requirement_id)
+    requirements_view.delete_requirement(requirement)
+
+
+@router.post(
+    "/projects/{project_id}/requirements/import",
+    status_code=201,
+    response_model=list[RequirementOutput],
+    **RequirementsView.kwargs,
+)
+def import_requirements_from_catalog_modules(
+    project_id: int,
+    catalog_module_ids: list[int],
+    projects_view: ProjectsView = Depends(ProjectsView),
+    catalog_requirements_view: CatalogRequirementsView = Depends(),
+    requirements_view: RequirementsView = Depends(RequirementsView),
+) -> Iterator[Requirement]:
+    project = projects_view.get_project(project_id)
+    catalog_requirements = catalog_requirements_view.list_catalog_requirements(
+        [filter_by_values(CatalogRequirement.catalog_module_id, catalog_module_ids)]
+    )
+    return requirements_view.bulk_create_requirements_from_catalog_requirements(
+        project, catalog_requirements
+    )
 
 
 @router.get(

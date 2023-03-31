@@ -17,6 +17,7 @@
 
 import pytest
 from fastapi import HTTPException
+
 from mvtool.models import (
     CatalogModule,
     CatalogRequirement,
@@ -25,7 +26,8 @@ from mvtool.models import (
     Requirement,
     RequirementInput,
 )
-from mvtool.views.requirements import ImportCatalogRequirementsView, RequirementsView
+from mvtool.views.catalog_requirements import CatalogRequirementsView
+from mvtool.views.requirements import RequirementsView
 
 
 def test_list_requirements(
@@ -75,21 +77,13 @@ def test_create_requirement(
     requirement_input: RequirementInput,
 ):
     requirement = requirements_view.create_requirement(
-        create_project.id, requirement_input
+        create_project, requirement_input
     )
 
     assert isinstance(requirement, Requirement)
     assert requirement.summary == requirement_input.summary
     assert requirement.project.id == create_project.id
     assert requirement.project.jira_project.id == create_project.jira_project_id
-
-
-def test_create_requirement_with_invalid_project_id(
-    requirements_view: RequirementsView, requirement_input: RequirementInput
-):
-    with pytest.raises(HTTPException) as excinfo:
-        requirements_view.create_requirement(-1, requirement_input)
-    excinfo.value.status_code == 404
 
 
 def test_create_requirement_without_catalog_requirement_id(
@@ -99,7 +93,7 @@ def test_create_requirement_without_catalog_requirement_id(
 ):
     requirement_input.catalog_requirement_id = None
     requirement = requirements_view.create_requirement(
-        create_project.id, requirement_input
+        create_project, requirement_input
     )
 
     assert isinstance(requirement, Requirement)
@@ -116,7 +110,7 @@ def test_create_requirement_with_invalid_catalog_requirement_id(
 ):
     requirement_input.catalog_requirement_id = -1
     with pytest.raises(HTTPException) as excinfo:
-        requirements_view.create_requirement(create_project.id, requirement_input)
+        requirements_view.create_requirement(create_project, requirement_input)
     excinfo.value.status_code == 404
 
 
@@ -144,43 +138,32 @@ def test_update_requirement(
     create_requirement: Requirement,
     requirement_input: RequirementInput,
 ):
-    requirement = requirements_view.update_requirement(
-        create_requirement.id, requirement_input
-    )
+    orig_name = requirement_input.summary
+    requirement_input.summary += " (updated)"
+    requirements_view.update_requirement(create_requirement, requirement_input)
 
-    assert isinstance(requirement, Requirement)
-    assert requirement.id == create_requirement.id
-    assert requirement.summary == requirement_input.summary
-    assert requirement.project.id == create_requirement.project_id
-
-
-def test_update_requirement_with_invalid_id(
-    requirements_view: RequirementsView, requirement_input: RequirementInput
-):
-    with pytest.raises(HTTPException) as excinfo:
-        requirements_view.update_requirement(-1, requirement_input)
-    excinfo.value.status_code == 404
+    assert create_requirement.summary != orig_name
+    assert create_requirement.summary == requirement_input.summary
 
 
 def test_delete_requirement(
     requirements_view: RequirementsView, create_requirement: Requirement
 ):
-    requirements_view.delete_requirement(create_requirement.id)
+    requirements_view.delete_requirement(create_requirement)
 
     with pytest.raises(HTTPException) as excinfo:
-        requirements_view.delete_requirement(create_requirement.id)
+        requirements_view.get_requirement(create_requirement.id)
     excinfo.value.status_code == 404
 
 
-def test_import_requirements_from_catalog_modules(
-    import_catalog_requirements_view: ImportCatalogRequirementsView,
+def test_bulk_create_requirements_from_catalog_requirements(
+    requirements_view: RequirementsView,
     create_project: Project,
-    create_catalog_module: CatalogModule,
     create_catalog_requirement: CatalogRequirement,
 ):
     results = list(
-        import_catalog_requirements_view.import_requirements_from_catalog_modules(
-            create_project.id, [create_catalog_module.id]
+        requirements_view.bulk_create_requirements_from_catalog_requirements(
+            create_project, [create_catalog_requirement]
         )
     )
 
@@ -191,32 +174,6 @@ def test_import_requirements_from_catalog_modules(
     assert requirement.project.id == create_project.id
     assert requirement.project.jira_project.id == create_project.jira_project_id
     assert requirement.catalog_requirement.id == create_catalog_requirement.id
-    assert requirement.catalog_requirement.catalog_module.id == create_catalog_module.id
-
-
-def test_import_requirements_from_catalog_modules_with_invalid_project_id(
-    import_catalog_requirements_view: ImportCatalogRequirementsView,
-    create_catalog_module: CatalogModule,
-):
-    with pytest.raises(HTTPException) as excinfo:
-        list(
-            import_catalog_requirements_view.import_requirements_from_catalog_modules(
-                -1, [create_catalog_module.id]
-            )
-        )
-    excinfo.value.status_code == 404
-
-
-def test_import_requirements_from_catalog_modules_with_invalid_catalog_module_id(
-    import_catalog_requirements_view: ImportCatalogRequirementsView,
-    create_project: Project,
-):
-    results = list(
-        import_catalog_requirements_view.import_requirements_from_catalog_modules(
-            create_project.id, [-1]
-        )
-    )
-    assert len(results) == 0
 
 
 def test_requirement_completion_progress_incomplete(create_requirement: Requirement):

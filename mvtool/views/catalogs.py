@@ -15,39 +15,44 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any
+from typing import Any, Iterable, Iterator
+
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi_utils.cbv import cbv
 from pydantic import constr
-from sqlmodel import Column, func, or_, select
+from sqlmodel import Column, Session, func, or_, select
 from sqlmodel.sql.expression import Select
 
-from ..utils.pagination import Page, page_params
+from ..auth import get_jira
+from ..database import delete_from_db, get_session, read_from_db
+from ..models.catalogs import (
+    Catalog,
+    CatalogImport,
+    CatalogInput,
+    CatalogOutput,
+    CatalogRepresentation,
+)
+from ..utils.errors import NotFoundError
 from ..utils.filtering import (
     filter_by_pattern,
     filter_by_values,
     filter_for_existence,
     search_columns,
 )
-from ..utils.errors import NotFoundError
-from ..auth import get_jira
-from ..models import Catalog, CatalogInput, CatalogOutput, CatalogRepresentation
-from ..database import CRUDOperations
+from ..utils.iteration import CachedIterable
+from ..utils.pagination import Page, page_params
 
 router = APIRouter()
 
 
-@cbv(router)
 class CatalogsView:
     kwargs = dict(tags=["catalog"])
 
     def __init__(
         self,
-        crud: CRUDOperations[Catalog] = Depends(CRUDOperations),
+        session: Session = Depends(get_session),
         _=Depends(get_jira),  # get jira to enforce login
     ):
-        self._crud = crud
-        self._session = self._crud.session
+        self._session = session
 
     @staticmethod
     def _modify_catalogs_query(
@@ -114,29 +119,101 @@ class CatalogsView:
         )
         return self._session.execute(query).scalar()
 
-    @router.post("/catalogs", status_code=201, response_model=CatalogOutput, **kwargs)
-    def create_catalog(self, catalog_input: CatalogInput) -> Catalog:
-        catalog = Catalog.from_orm(catalog_input)
-        return self._crud.create_in_db(catalog)
-
-    @router.get("/catalogs/{catalog_id}", response_model=CatalogOutput, **kwargs)
-    def get_catalog(self, catalog_id: int) -> Catalog:
-        return self._crud.read_from_db(Catalog, catalog_id)
-
-    @router.put("/catalogs/{catalog_id}", response_model=CatalogOutput, **kwargs)
-    def update_catalog(self, catalog_id: int, catalog_input: CatalogInput) -> Catalog:
-        catalog = self._session.get(Catalog, catalog_id)
-        if not catalog:
-            cls_name = Catalog.__name__
-            raise NotFoundError(f"No {cls_name} with id={catalog_id}.")
-        for key, value in catalog_input.dict().items():
-            setattr(catalog, key, value)
-        self._session.flush()
+    def create_catalog(
+        self, creation: CatalogImport | CatalogInput, skip_flush: bool = False
+    ) -> Catalog:
+        """Create a catalog from a given creation object."""
+        catalog = Catalog(**creation.dict(exclude={"id"}))
+        self._session.add(catalog)
+        if not skip_flush:
+            self._session.flush()
         return catalog
 
-    @router.delete("/catalogs/{catalog_id}", status_code=204, **kwargs)
-    def delete_catalog(self, catalog_id: int) -> None:
-        return self._crud.delete_from_db(Catalog, catalog_id)
+    def get_catalog(self, catalog_id: int) -> Catalog:
+        return read_from_db(self._session, Catalog, catalog_id)
+
+    def update_catalog(
+        self,
+        catalog: Catalog,
+        update: CatalogImport | CatalogInput,
+        patch: bool = False,
+        skip_flush: bool = False,
+    ) -> None:
+        """Update a catalog with the values from a given update object."""
+        for key, value in update.dict(exclude_unset=patch, exclude={"id"}).items():
+            setattr(catalog, key, value)
+        if not skip_flush:
+            self._session.flush()
+
+    def delete_catalog(self, catalog: Catalog, skip_flush: bool = False) -> None:
+        return delete_from_db(self._session, catalog, skip_flush)
+
+    def bulk_create_update_catalogs(
+        self,
+        catalog_imports: Iterable[CatalogImport],
+        patch: bool = False,
+        skip_flush: bool = False,
+    ) -> Iterator[Catalog]:
+        """Create or update catalogs in bulk using the provided catalog imports.
+
+        Args:
+            catalog_imports (Iterable[CatalogImport]): An iterable of catalog imports
+                containing the data for creating or updating catalogs.
+            patch (bool): If True, only the fields that are set in the catalog import
+                are updated. If False, all fields are updated.
+            skip_flush (bool, optional): If True, the changes are not written to the
+                database, and an empty list is returned. Defaults to False.
+
+        Returns:
+            Iterator[Catalog]: An iterator over the catalogs that were created or
+                updated.
+
+        Raises:
+            NotFoundError: If a catalog to be updated is not found in the database.
+        """
+        catalog_imports = CachedIterable(catalog_imports)
+
+        # Get catalogs to be updated from the database
+        ids = [c.id for c in catalog_imports if c.id is not None]
+        catalogs_to_update = {
+            c.id: c for c in (self.list_catalogs([Catalog.id.in_(ids)]) if ids else [])
+        }
+
+        # Update catalogs
+        for catalog_import in catalog_imports:
+            if catalog_import.id is None:
+                # Create new catalog
+                yield self.create_catalog(catalog_import, skip_flush=True)
+            else:
+                # Update existing catalog
+                catalog = catalogs_to_update.get(catalog_import.id, None)
+                if catalog is None:
+                    raise NotFoundError(f"No catalog with id={catalog_import.id}.")
+                self.update_catalog(
+                    catalog, catalog_import, patch=patch, skip_flush=True
+                )
+                yield catalog
+
+        # Write changes to the database
+        if not skip_flush:
+            self._session.flush()
+
+    def convert_catalog_imports(
+        self, catalog_imports: Iterable[CatalogImport], patch: bool = False
+    ) -> dict[str, Catalog]:
+        # Map catalog imports to their etags
+        catalogs_map = {c.etag: c for c in catalog_imports}
+
+        # Map created and updated catalogs to the etags of their imports
+        for etag, catalog in zip(
+            catalogs_map.keys(),
+            self.bulk_create_update_catalogs(
+                catalogs_map.values(), patch=patch, skip_flush=True
+            ),
+        ):
+            catalogs_map[etag] = catalog
+
+        return catalogs_map
 
 
 def get_catalog_filters(
@@ -241,6 +318,45 @@ def get_catalogs(
         return Page[CatalogOutput](items=catalogs, total_count=catalogs_count)
     else:
         return catalogs
+
+
+@router.post(
+    "/catalogs", status_code=201, response_model=CatalogOutput, **CatalogsView.kwargs
+)
+def create_catalog(
+    catalog: CatalogInput,
+    catalogs_view: CatalogsView = Depends(),
+) -> Catalog:
+    return catalogs_view.create_catalog(catalog)
+
+
+@router.get(
+    "/catalogs/{catalog_id}", response_model=CatalogOutput, **CatalogsView.kwargs
+)
+def get_catalog(catalog_id: int, catalogs_view: CatalogsView = Depends()) -> Catalog:
+    return catalogs_view.get_catalog(catalog_id)
+
+
+@router.put(
+    "/catalogs/{catalog_id}", response_model=CatalogOutput, **CatalogsView.kwargs
+)
+def update_catalog(
+    catalog_id: int,
+    catalog_input: CatalogInput,
+    catalogs_view: CatalogsView = Depends(),
+) -> Catalog:
+    catalog = catalogs_view.get_catalog(catalog_id)
+    catalogs_view.update_catalog(catalog, catalog_input)
+    return catalog
+
+
+@router.delete("/catalogs/{catalog_id}", status_code=204, **CatalogsView.kwargs)
+def delete_catalog(
+    catalog_id: int,
+    catalogs_view: CatalogsView = Depends(),
+) -> None:
+    catalog = catalogs_view.get_catalog(catalog_id)
+    catalogs_view.delete_catalog(catalog)
 
 
 @router.get(

@@ -86,13 +86,11 @@ def test_update_project(
     orig_name = project_input.name
     project_input.name += " (updated)"
 
-    project = projects_view.update_project(create_project.id, project_input)
+    projects_view.update_project(create_project, project_input)
 
-    assert isinstance(project, Project)
-    assert project.id == create_project.id
-    assert project.name != orig_name
-    assert project.name == project_input.name
-    assert project.jira_project.id == project_input.jira_project_id
+    assert create_project.name != orig_name
+    assert create_project.name == project_input.name
+    assert create_project.jira_project.id == project_input.jira_project_id
 
 
 def test_update_project_with_invalid_jira_project_id(
@@ -100,20 +98,12 @@ def test_update_project_with_invalid_jira_project_id(
 ):
     project_input.jira_project_id = "invalid"
     with pytest.raises(JIRAError) as exception_info:
-        projects_view.update_project(create_project.id, project_input)
-        assert exception_info.value.status_code == 404
-
-
-def test_update_project_using_an_invalid_id(
-    projects_view: ProjectsView, project_input: ProjectInput
-):
-    with pytest.raises(HTTPException) as exception_info:
-        projects_view.update_project("invalid", project_input)
+        projects_view.update_project(create_project, project_input)
         assert exception_info.value.status_code == 404
 
 
 def test_delete_project(projects_view: ProjectsView, create_project: Project):
-    projects_view.delete_project(create_project.id)
+    projects_view.delete_project(create_project)
 
     with pytest.raises(HTTPException) as exception_info:
         projects_view.get_project(create_project.id)

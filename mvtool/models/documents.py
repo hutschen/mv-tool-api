@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING
 
 from sqlmodel import Field, Relationship, SQLModel
 
-from .common import CommonFieldsMixin
+from .common import CommonFieldsMixin, ETagMixin
 from .measures import Measure
 
 if TYPE_CHECKING:
@@ -33,7 +33,7 @@ class DocumentInput(SQLModel):
     description: str | None
 
 
-class DocumentImport(DocumentInput):
+class DocumentImport(ETagMixin, DocumentInput):
     id: int | None = None
     project: "ProjectImport | None"
 

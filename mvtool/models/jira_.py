@@ -18,6 +18,8 @@
 
 from sqlmodel import SQLModel
 
+from mvtool.models.common import ETagMixin
+
 
 class JiraUser(SQLModel):
     display_name: str

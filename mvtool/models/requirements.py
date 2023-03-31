@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING
 from pydantic import confloat
 from sqlmodel import Field, Relationship, Session, SQLModel, func, or_, select
 
-from .common import AbstractComplianceInput, CommonFieldsMixin
+from .common import AbstractComplianceInput, CommonFieldsMixin, ETagMixin
 from .measures import Measure
 
 if TYPE_CHECKING:
@@ -44,15 +44,12 @@ class RequirementInput(AbstractRequirementInput, AbstractComplianceInput):
     milestone: str | None
 
 
-class RequirementImport(AbstractComplianceInput):
+class RequirementImport(ETagMixin, AbstractRequirementInput, AbstractComplianceInput):
     id: int | None = None
-    reference: str | None
-    summary: str
-    description: str | None
     catalog_requirement: "CatalogRequirementImport | None"
+    project: "ProjectImport | None"
     target_object: str | None
     milestone: str | None
-    project: "ProjectImport | None"
 
 
 class Requirement(RequirementInput, CommonFieldsMixin, table=True):

@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 from pydantic import constr
 from sqlmodel import Field, Relationship, SQLModel
 
-from .common import CommonFieldsMixin
+from .common import CommonFieldsMixin, ETagMixin
 from .requirements import AbstractRequirementInput, Requirement
 
 if TYPE_CHECKING:
@@ -34,13 +34,8 @@ class CatalogRequirementInput(AbstractRequirementInput):
     gs_verantwortliche: str | None
 
 
-class CatalogRequirementImport(SQLModel):
+class CatalogRequirementImport(ETagMixin, CatalogRequirementInput):
     id: int | None = None
-    reference: str | None
-    summary: str
-    description: str | None
-    gs_absicherung: constr(regex=r"^(B|S|H)$") | None
-    gs_verantwortliche: str | None
     catalog_module: "CatalogModuleImport | None" = None
 
 

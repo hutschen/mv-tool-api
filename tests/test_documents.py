@@ -17,7 +17,7 @@
 
 from fastapi import HTTPException
 import pytest
-from mvtool.models import Document, DocumentInput, DocumentOutput, Project
+from mvtool.models import Document, DocumentInput, Project
 from mvtool.views.documents import DocumentsView
 
 
@@ -39,20 +39,12 @@ def test_create_document(
     create_project: Project,
     document_input: DocumentInput,
 ):
-    document = documents_view.create_document(create_project.id, document_input)
+    document = documents_view.create_document(create_project, document_input)
 
     assert isinstance(document, Document)
     assert document.title == document_input.title
     assert document.project.id == create_project.id
     assert document.project.jira_project.id == create_project.jira_project_id
-
-
-def test_create_document_with_invalid_project_id(
-    documents_view: DocumentsView, document_input: DocumentInput
-):
-    with pytest.raises(HTTPException) as excinfo:
-        documents_view.create_document(-1, document_input)
-    assert excinfo.value.status_code == 404
 
 
 def test_get_document(documents_view: DocumentsView, create_document: Document):
@@ -72,31 +64,27 @@ def test_get_document_with_invalid_id(documents_view: DocumentsView):
 
 def test_update_document(
     documents_view: DocumentsView,
-    create_project: Project,
     create_document: Document,
     document_input: DocumentInput,
 ):
     orig_title = create_document.title
+    orig_jira_project_id = create_document.project.jira_project.id
+    orig_jira_project = create_document.project.jira_project
+
     document_input.title = create_document.title + " (updated)"
-    document = documents_view.update_document(create_document.id, document_input)
+    documents_view.update_document(create_document, document_input)
 
-    assert isinstance(document, Document)
-    assert document.title != orig_title
-    assert document.title == document_input.title
-    assert document.project.id == create_document.project_id
-    assert document.project.jira_project.id == create_project.jira_project_id
+    # check if title has been updated
+    assert create_document.title != orig_title
+    assert create_document.title == document_input.title
 
-
-def test_update_document_with_invalid_id(
-    documents_view: DocumentsView, document_input: DocumentInput
-):
-    with pytest.raises(HTTPException) as excinfo:
-        documents_view.update_document(-1, document_input)
-    assert excinfo.value.status_code == 404
+    # check if jira_project is still the same
+    assert create_document.project.jira_project.id == orig_jira_project_id
+    assert create_document.project.jira_project is orig_jira_project
 
 
 def test_delete_document(documents_view: DocumentsView, create_document: Document):
-    documents_view.delete_document(create_document.id)
+    documents_view.delete_document(create_document)
     with pytest.raises(HTTPException) as excinfo:
         documents_view.get_document(create_document.id)
     assert excinfo.value.status_code == 404

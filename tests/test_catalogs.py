@@ -45,21 +45,12 @@ def test_update_catalog(
     catalogs_view: CatalogsView, create_catalog: Catalog, catalog_input: CatalogInput
 ):
     catalog_input.title += "updated"
-    catalog = catalogs_view.update_catalog(create_catalog.id, catalog_input)
-    assert isinstance(catalog, Catalog)
-    assert catalog.title == catalog_input.title
-
-
-def test_update_catalog_output_invalid_catalog_id(
-    catalogs_view: CatalogsView, catalog_input: CatalogInput
-):
-    with pytest.raises(HTTPException) as error_info:
-        catalogs_view.update_catalog(1, catalog_input)
-    assert error_info.value.status_code == 404
+    catalogs_view.update_catalog(create_catalog, catalog_input)
+    assert create_catalog.title == catalog_input.title
 
 
 def test_delete_catalog(catalogs_view: CatalogsView, create_catalog: Catalog):
-    catalogs_view.delete_catalog(create_catalog.id)
+    catalogs_view.delete_catalog(create_catalog)
     with pytest.raises(HTTPException) as error_info:
         catalogs_view.get_catalog(create_catalog.id)
     assert error_info.value.status_code == 404
