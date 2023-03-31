@@ -26,7 +26,6 @@ from .views import (
     requirements,
     measures,
     documents,
-    excel,
     gs,
     catalogs,
     catalog_modules,
@@ -48,7 +47,6 @@ app.include_router(catalog_modules.router, prefix="/api")
 app.include_router(catalog_requirements.router, prefix="/api")
 app.include_router(projects.router, prefix="/api")
 app.include_router(tables.router, prefix="/api")
-# app.include_router(excel.router, prefix="/api")
 app.include_router(requirements.router, prefix="/api")
 app.include_router(measures.router, prefix="/api")
 app.include_router(documents.router, prefix="/api")
