@@ -29,7 +29,7 @@ from ..models.catalog_requirements import (
     CatalogRequirementOutput,
 )
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
-from ..handlers.catalog_modules import CatalogModulesView
+from ..handlers.catalog_modules import CatalogModules
 from ..handlers.catalog_requirements import (
     CatalogRequirementsView,
     get_catalog_requirement_filters,
@@ -95,7 +95,7 @@ def download_catalog_requirements_excel(
 )
 def upload_catalog_requirements_excel(
     fallback_catalog_module_id: int | None = None,
-    catalog_modules_view: CatalogModulesView = Depends(),
+    catalog_modules_view: CatalogModules = Depends(),
     catalog_requirements_view: CatalogRequirementsView = Depends(),
     columns: ColumnGroup = Depends(get_catalog_requirement_columns),
     temp_file: NamedTemporaryFile = Depends(copy_upload_to_temp_file),

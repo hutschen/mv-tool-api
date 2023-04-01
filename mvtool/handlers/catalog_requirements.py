@@ -37,7 +37,7 @@ from ..utils.filtering import (
     search_columns,
 )
 from ..utils.pagination import Page, page_params
-from .catalog_modules import CatalogModulesView
+from .catalog_modules import CatalogModules
 
 
 def get_catalog_requirement_filters(
@@ -186,7 +186,7 @@ def get_catalog_requirements(
 def create_catalog_requirement(
     catalog_module_id: int,
     catalog_requirement_input: CatalogRequirementInput,
-    catalog_modules_view: CatalogModulesView = Depends(),
+    catalog_modules_view: CatalogModules = Depends(),
     catalog_requirements_view: CatalogRequirementsView = Depends(),
 ) -> CatalogRequirement:
     catalog_module = catalog_modules_view.get_catalog_module(catalog_module_id)

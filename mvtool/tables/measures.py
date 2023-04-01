@@ -24,7 +24,7 @@ from sqlmodel import Session
 from ..database import get_session
 from ..models import Measure, MeasureImport, MeasureOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
-from ..handlers.catalog_modules import CatalogModulesView
+from ..handlers.catalog_modules import CatalogModules
 from ..handlers.documents import get_document_filters, get_document_sort
 from ..handlers.measures import MeasuresView
 from ..handlers.projects import ProjectsView
@@ -97,7 +97,7 @@ def upload_measures_excel(
     fallback_catalog_module_id: int | None = None,
     measures_view: MeasuresView = Depends(),
     requirements_view: RequirementsView = Depends(),
-    catalog_modules_view: CatalogModulesView = Depends(),
+    catalog_modules_view: CatalogModules = Depends(),
     columns: ColumnGroup = Depends(get_measure_columns),
     temp_file=Depends(copy_upload_to_temp_file),
     skip_blanks: bool = False,  # skip blank cells

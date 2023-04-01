@@ -20,11 +20,11 @@ import pytest
 from fastapi import HTTPException
 
 from mvtool.models import Catalog, CatalogModule, CatalogModuleInput
-from mvtool.handlers.catalog_modules import CatalogModulesView
+from mvtool.handlers.catalog_modules import CatalogModules
 
 
 def test_list_catalog_module(
-    catalog_modules_view: CatalogModulesView,
+    catalog_modules_view: CatalogModules,
     create_catalog: Catalog,
     create_catalog_module: CatalogModule,
 ):
@@ -38,7 +38,7 @@ def test_list_catalog_module(
 
 
 def test_create_catalog_module(
-    catalog_modules_view: CatalogModulesView,
+    catalog_modules_view: CatalogModules,
     create_catalog: Catalog,
     catalog_module_input: CatalogModuleInput,
 ):
@@ -51,7 +51,7 @@ def test_create_catalog_module(
 
 
 def test_get_catalog_module(
-    catalog_modules_view: CatalogModulesView, create_catalog_module: CatalogModule
+    catalog_modules_view: CatalogModules, create_catalog_module: CatalogModule
 ):
     catalog_module_output = catalog_modules_view.get_catalog_module(
         create_catalog_module.id
@@ -61,7 +61,7 @@ def test_get_catalog_module(
 
 
 def test_update_catalog_module(
-    catalog_modules_view: CatalogModulesView,
+    catalog_modules_view: CatalogModules,
     create_catalog_module: CatalogModule,
     catalog_module_input: CatalogModuleInput,
 ):
@@ -74,7 +74,7 @@ def test_update_catalog_module(
 
 
 def test_delete_catalog_module(
-    catalog_modules_view: CatalogModulesView,
+    catalog_modules_view: CatalogModules,
     create_catalog_module: CatalogModule,
 ):
     catalog_modules_view.delete_catalog_module(create_catalog_module)

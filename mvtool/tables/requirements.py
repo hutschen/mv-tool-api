@@ -27,7 +27,7 @@ from ..database import get_session
 from ..models import Requirement, RequirementOutput
 from ..models.requirements import RequirementImport
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
-from ..handlers.catalog_modules import CatalogModulesView
+from ..handlers.catalog_modules import CatalogModules
 from ..handlers.catalog_requirements import (
     get_catalog_requirement_filters,
     get_catalog_requirement_sort,
@@ -97,7 +97,7 @@ def upload_requirements_excel(
     fallback_project_id: int | None = None,
     fallback_catalog_module_id: int | None = None,
     project_view: ProjectsView = Depends(),
-    catalog_modules_view: CatalogModulesView = Depends(),
+    catalog_modules_view: CatalogModules = Depends(),
     requirements_view: RequirementsView = Depends(),
     columns: ColumnGroup = Depends(get_requirement_columns),
     temp_file=Depends(copy_upload_to_temp_file),

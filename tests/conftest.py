@@ -40,7 +40,7 @@ from mvtool.models import (
     RequirementInput,
 )
 from mvtool.utils.temp_file import get_temp_file
-from mvtool.handlers.catalog_modules import CatalogModulesView
+from mvtool.handlers.catalog_modules import CatalogModules
 from mvtool.handlers.catalog_requirements import CatalogRequirementsView
 from mvtool.handlers.catalogs import Catalogs
 from mvtool.handlers.documents import DocumentsView
@@ -263,12 +263,12 @@ def create_catalog(catalogs_view: Catalogs, catalog_input: CatalogInput):
 
 @pytest.fixture
 def catalog_modules_view(catalogs_view, crud):
-    return Mock(wraps=CatalogModulesView(catalogs_view, crud.session))
+    return Mock(wraps=CatalogModules(catalogs_view, crud.session))
 
 
 @pytest.fixture
 def create_catalog_module(
-    catalog_modules_view: CatalogModulesView,
+    catalog_modules_view: CatalogModules,
     create_catalog: Catalog,
     catalog_module_input: CatalogModuleInput,
 ):
@@ -308,7 +308,7 @@ def create_requirement(
 
 
 @pytest.fixture
-def catalog_requirements_view(catalog_modules_view: CatalogModulesView, crud):
+def catalog_requirements_view(catalog_modules_view: CatalogModules, crud):
     return Mock(wraps=CatalogRequirementsView(catalog_modules_view, crud.session))
 
 

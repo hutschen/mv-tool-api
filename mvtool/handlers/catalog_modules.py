@@ -23,7 +23,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
 from pydantic import constr
 from sqlmodel import Column, Session, or_
 
-from ..data.catalog_modules import CatalogModulesView
+from ..data.catalog_modules import CatalogModules
 from ..database import get_session
 from ..gs_parser import GSBausteinParser
 from ..models.catalog_modules import (
@@ -148,7 +148,7 @@ def get_catalog_modules(
     where_clauses=Depends(get_catalog_module_filters),
     order_by_clauses=Depends(get_catalog_module_sort),
     page_params=Depends(page_params),
-    catalog_modules_view: CatalogModulesView = Depends(),
+    catalog_modules_view: CatalogModules = Depends(),
 ):
     cmodules = catalog_modules_view.list_catalog_modules(
         where_clauses, order_by_clauses, **page_params
@@ -169,7 +169,7 @@ def create_catalog_module(
     catalog_id: int,
     catalog_module_input: CatalogModuleInput,
     catalogs_view: Catalogs = Depends(),
-    catalog_modules_view: CatalogModulesView = Depends(),
+    catalog_modules_view: CatalogModules = Depends(),
 ) -> CatalogModule:
     catalog = catalogs_view.get_catalog(catalog_id)
     return catalog_modules_view.create_catalog_module(catalog, catalog_module_input)
@@ -177,7 +177,7 @@ def create_catalog_module(
 
 @router.get("/catalog-modules/{catalog_module_id}", response_model=CatalogModuleOutput)
 def get_catalog_module(
-    catalog_module_id: int, catalog_modules_view: CatalogModulesView = Depends()
+    catalog_module_id: int, catalog_modules_view: CatalogModules = Depends()
 ) -> CatalogModule:
     return catalog_modules_view.get_catalog_module(catalog_module_id)
 
@@ -186,7 +186,7 @@ def get_catalog_module(
 def update_catalog_module(
     catalog_module_id: int,
     catalog_module_input: CatalogModuleInput,
-    catalog_modules_view: CatalogModulesView = Depends(),
+    catalog_modules_view: CatalogModules = Depends(),
 ) -> CatalogModule:
     catalog_module = catalog_modules_view.get_catalog_module(catalog_module_id)
     catalog_modules_view.update_catalog_module(catalog_module, catalog_module_input)
@@ -195,7 +195,7 @@ def update_catalog_module(
 
 @router.delete("/catalog-modules/{catalog_module_id}", status_code=204)
 def delete_catalog_module(
-    catalog_module_id: int, catalog_modules_view: CatalogModulesView = Depends()
+    catalog_module_id: int, catalog_modules_view: CatalogModules = Depends()
 ) -> None:
     catalog_module = catalog_modules_view.get_catalog_module(catalog_module_id)
     catalog_modules_view.delete_catalog_module(catalog_module)
@@ -211,7 +211,7 @@ def get_catalog_module_representation(
     local_search: str | None = None,
     order_by_clauses=Depends(get_catalog_module_sort),
     page_params=Depends(page_params),
-    catalog_modules_view: CatalogModulesView = Depends(),
+    catalog_modules_view: CatalogModules = Depends(),
 ):
     if local_search:
         where_clauses.append(
@@ -236,7 +236,7 @@ def get_catalog_module_representation(
 )
 def get_catalog_module_field_names(
     where_clauses=Depends(get_catalog_module_filters),
-    catalog_modules_view: CatalogModulesView = Depends(),
+    catalog_modules_view: CatalogModules = Depends(),
 ) -> set[str]:
     field_names = {"id", "title", "catalog"}
     for field, names in [
@@ -258,7 +258,7 @@ def get_catalog_module_references(
     where_clauses=Depends(get_catalog_module_filters),
     local_search: str | None = None,
     page_params=Depends(page_params),
-    catalog_modules_view: CatalogModulesView = Depends(),
+    catalog_modules_view: CatalogModules = Depends(),
 ):
     if local_search:
         where_clauses.append(search_columns(local_search, CatalogModule.reference))

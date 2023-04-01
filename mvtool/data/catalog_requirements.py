@@ -33,13 +33,13 @@ from ..utils.etag_map import get_from_etag_map
 from ..utils.fallback import fallback
 from ..utils.filtering import filter_for_existence
 from ..utils.iteration import CachedIterable
-from .catalog_modules import CatalogModulesView
+from .catalog_modules import CatalogModules
 
 
 class CatalogRequirementsView:
     def __init__(
         self,
-        catalog_modules: CatalogModulesView = Depends(CatalogModulesView),
+        catalog_modules: CatalogModules = Depends(CatalogModules),
         session: Session = Depends(get_session),
     ):
         self._catalog_modules = catalog_modules
