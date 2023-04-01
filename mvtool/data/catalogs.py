@@ -30,8 +30,6 @@ from ..utils.iteration import CachedIterable
 
 
 class CatalogsView:
-    kwargs = dict(tags=["catalog"])
-
     def __init__(
         self,
         session: Session = Depends(get_session),

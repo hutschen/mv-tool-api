@@ -36,8 +36,6 @@ from ..utils.filtering import (
 )
 from ..utils.pagination import Page, page_params
 
-router = APIRouter()
-
 
 def get_catalog_filters(
     # filter by pattern
@@ -122,11 +120,10 @@ def get_catalog_sort(
         return [column.desc() for column in columns]
 
 
-@router.get(
-    "/catalogs",
-    response_model=Page[CatalogOutput] | list[CatalogOutput],
-    **CatalogsView.kwargs,
-)
+router = APIRouter(tags=["catalog"])
+
+
+@router.get("/catalogs", response_model=Page[CatalogOutput] | list[CatalogOutput])
 def get_catalogs(
     where_clauses=Depends(get_catalog_filters),
     order_by_clauses=Depends(get_catalog_sort),
@@ -143,9 +140,7 @@ def get_catalogs(
         return catalogs
 
 
-@router.post(
-    "/catalogs", status_code=201, response_model=CatalogOutput, **CatalogsView.kwargs
-)
+@router.post("/catalogs", status_code=201, response_model=CatalogOutput)
 def create_catalog(
     catalog: CatalogInput,
     catalogs_view: CatalogsView = Depends(),
@@ -153,16 +148,12 @@ def create_catalog(
     return catalogs_view.create_catalog(catalog)
 
 
-@router.get(
-    "/catalogs/{catalog_id}", response_model=CatalogOutput, **CatalogsView.kwargs
-)
+@router.get("/catalogs/{catalog_id}", response_model=CatalogOutput)
 def get_catalog(catalog_id: int, catalogs_view: CatalogsView = Depends()) -> Catalog:
     return catalogs_view.get_catalog(catalog_id)
 
 
-@router.put(
-    "/catalogs/{catalog_id}", response_model=CatalogOutput, **CatalogsView.kwargs
-)
+@router.put("/catalogs/{catalog_id}", response_model=CatalogOutput)
 def update_catalog(
     catalog_id: int,
     catalog_input: CatalogInput,
@@ -173,7 +164,7 @@ def update_catalog(
     return catalog
 
 
-@router.delete("/catalogs/{catalog_id}", status_code=204, **CatalogsView.kwargs)
+@router.delete("/catalogs/{catalog_id}", status_code=204)
 def delete_catalog(
     catalog_id: int,
     catalogs_view: CatalogsView = Depends(),
@@ -185,7 +176,6 @@ def delete_catalog(
 @router.get(
     "/catalog/representations",
     response_model=Page[CatalogRepresentation] | list[CatalogRepresentation],
-    **CatalogsView.kwargs,
 )
 def get_catalog_representations(
     where_clauses=Depends(get_catalog_filters),
@@ -209,11 +199,7 @@ def get_catalog_representations(
         return catalogs
 
 
-@router.get(
-    "/catalog/field-names",
-    response_model=list[str],
-    **CatalogsView.kwargs,
-)
+@router.get("/catalog/field-names", response_model=list[str])
 def get_catalog_field_names(
     where_clauses=Depends(get_catalog_filters),
     catalogs_view: CatalogsView = Depends(),
@@ -230,11 +216,7 @@ def get_catalog_field_names(
     return field_names
 
 
-@router.get(
-    "/catalog/references",
-    response_model=Page[str] | list[str],
-    **CatalogsView.kwargs,
-)
+@router.get("/catalog/references", response_model=Page[str] | list[str])
 def get_catalog_references(
     where_clauses: list[Any] = Depends(get_catalog_filters),
     local_search: str | None = None,

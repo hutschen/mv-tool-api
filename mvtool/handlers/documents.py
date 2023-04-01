@@ -39,8 +39,6 @@ from ..utils.filtering import (
 from ..utils.pagination import Page, page_params
 from .projects import ProjectsView
 
-router = APIRouter()
-
 
 def get_document_filters(
     # filter by pattern
@@ -132,11 +130,10 @@ def get_document_sort(
         return [column.desc() for column in columns]
 
 
-@router.get(
-    "/documents",
-    response_model=Page[DocumentOutput] | list[DocumentOutput],
-    **DocumentsView.kwargs,
-)
+router = APIRouter(tags=["document"])
+
+
+@router.get("/documents", response_model=Page[DocumentOutput] | list[DocumentOutput])
 def get_documents(
     where_clauses=Depends(get_document_filters),
     order_by_clauses=Depends(get_document_sort),
@@ -154,10 +151,7 @@ def get_documents(
 
 
 @router.post(
-    "/projects/{project_id}/documents",
-    status_code=201,
-    response_model=DocumentOutput,
-    **DocumentsView.kwargs,
+    "/projects/{project_id}/documents", status_code=201, response_model=DocumentOutput
 )
 def create_document(
     project_id: int,
@@ -169,18 +163,14 @@ def create_document(
     return documents_view.create_document(project, document_input)
 
 
-@router.get(
-    "/documents/{document_id}", response_model=DocumentOutput, **DocumentsView.kwargs
-)
+@router.get("/documents/{document_id}", response_model=DocumentOutput)
 def get_document(
     document_id: int, documents_view: DocumentsView = Depends()
 ) -> Document:
     return documents_view.get_document(document_id)
 
 
-@router.put(
-    "/documents/{document_id}", response_model=DocumentOutput, **DocumentsView.kwargs
-)
+@router.put("/documents/{document_id}", response_model=DocumentOutput)
 def update_document(
     document_id: int,
     document_input: DocumentInput,
@@ -191,12 +181,7 @@ def update_document(
     return document
 
 
-@router.delete(
-    "/documents/{document_id}",
-    status_code=204,
-    response_class=Response,
-    **DocumentsView.kwargs,
-)
+@router.delete("/documents/{document_id}", status_code=204, response_class=Response)
 def delete_document(
     document_id: int, documents_view: DocumentsView = Depends()
 ) -> None:
@@ -207,7 +192,6 @@ def delete_document(
 @router.get(
     "/document/representations",
     response_model=Page[DocumentRepresentation] | list[DocumentRepresentation],
-    **DocumentsView.kwargs,
 )
 def get_document_representations(
     where_clauses: list[Any] = Depends(get_document_filters),
@@ -233,11 +217,7 @@ def get_document_representations(
         return documents
 
 
-@router.get(
-    "/document/field-names",
-    response_model=list[str],
-    **DocumentsView.kwargs,
-)
+@router.get("/document/field-names", response_model=list[str])
 def get_document_field_names(
     where_clauses=Depends(get_document_filters),
     document_view: DocumentsView = Depends(),
@@ -254,11 +234,7 @@ def get_document_field_names(
     return field_names
 
 
-@router.get(
-    "/document/references",
-    response_model=Page[str] | list[str],
-    **DocumentsView.kwargs,
-)
+@router.get("/document/references", response_model=Page[str] | list[str])
 def get_document_references(
     where_clauses: list[Any] = Depends(get_document_filters),
     local_search: str | None = None,

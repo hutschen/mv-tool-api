@@ -53,18 +53,17 @@ def get_document_columns(
     return document_only_columns
 
 
-router = APIRouter()
+router = APIRouter(tags=["document"])
 
 
 router.get(
     "/excel/documents/column-names",
     summary="Get column names for documents Excel export",
     response_model=list[str],
-    **DocumentsView.kwargs
 )(get_export_labels_handler(get_document_columns))
 
 
-@router.get("/excel/documents", response_class=FileResponse, **DocumentsView.kwargs)
+@router.get("/excel/documents", response_class=FileResponse)
 def download_documents_excel(
     documents_view: DocumentsView = Depends(),
     where_clauses=Depends(get_document_filters),
@@ -80,12 +79,7 @@ def download_documents_excel(
     return FileResponse(temp_file.name, filename=filename)
 
 
-@router.post(
-    "/excel/documents",
-    status_code=201,
-    response_model=list[DocumentOutput],
-    **DocumentsView.kwargs
-)
+@router.post("/excel/documents", status_code=201, response_model=list[DocumentOutput])
 def upload_documents_excel(
     fallback_project_id: int | None = None,
     projects_view: ProjectsView = Depends(),

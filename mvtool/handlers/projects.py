@@ -36,8 +36,6 @@ from ..utils.filtering import (
 )
 from ..utils.pagination import Page, page_params
 
-router = APIRouter()
-
 
 def get_project_filters(
     # filter by pattern
@@ -118,11 +116,10 @@ def get_project_sort(
         return [column.desc() for column in columns]
 
 
-@router.get(
-    "/projects",
-    response_model=Page[ProjectOutput] | list[ProjectOutput],
-    **ProjectsView.kwargs,
-)
+router = APIRouter(tags=["project"])
+
+
+@router.get("/projects", response_model=Page[ProjectOutput] | list[ProjectOutput])
 def get_projects(
     where_clauses=Depends(get_project_filters),
     order_by_clauses=Depends(get_project_sort),
@@ -139,25 +136,19 @@ def get_projects(
         return projects
 
 
-@router.post(
-    "/projects", status_code=201, response_model=ProjectOutput, **ProjectsView.kwargs
-)
+@router.post("/projects", status_code=201, response_model=ProjectOutput)
 def create_project(
     project: ProjectInput, projects_view: ProjectsView = Depends()
 ) -> Project:
     return projects_view.create_project(project)
 
 
-@router.get(
-    "/projects/{project_id}", response_model=ProjectOutput, **ProjectsView.kwargs
-)
+@router.get("/projects/{project_id}", response_model=ProjectOutput)
 def get_project(project_id: int, projects_view: ProjectsView = Depends()) -> Project:
     return projects_view.get_project(project_id)
 
 
-@router.put(
-    "/projects/{project_id}", response_model=ProjectOutput, **ProjectsView.kwargs
-)
+@router.put("/projects/{project_id}", response_model=ProjectOutput)
 def update_project(
     project_id: int,
     project_input: ProjectInput,
@@ -168,7 +159,7 @@ def update_project(
     return project
 
 
-@router.delete("/projects/{project_id}", status_code=204, **ProjectsView.kwargs)
+@router.delete("/projects/{project_id}", status_code=204)
 def delete_project(project_id: int, projects_view: ProjectsView = Depends()) -> None:
     project = projects_view.get_project(project_id)
     projects_view.delete_project(project)
@@ -177,7 +168,6 @@ def delete_project(project_id: int, projects_view: ProjectsView = Depends()) -> 
 @router.get(
     "/project/representations",
     response_model=Page[ProjectRepresentation] | list[ProjectRepresentation],
-    **ProjectsView.kwargs,
 )
 def get_project_representations(
     where_clauses: list[Any] = Depends(get_project_filters),
@@ -199,11 +189,7 @@ def get_project_representations(
         return projects
 
 
-@router.get(
-    "/project/field-names",
-    response_model=list[str],
-    **ProjectsView.kwargs,
-)
+@router.get("/project/field-names", response_model=list[str])
 def get_project_field_names(
     where_clauses=Depends(get_project_filters),
     projects_view: ProjectsView = Depends(),

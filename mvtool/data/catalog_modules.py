@@ -38,8 +38,6 @@ from .catalogs import CatalogsView
 
 
 class CatalogModulesView:
-    kwargs = dict(tags=["catalog-module"])
-
     def __init__(
         self,
         catalogs: CatalogsView = Depends(CatalogsView),

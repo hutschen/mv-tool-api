@@ -30,8 +30,6 @@ from .jira_ import JiraProjectsView
 
 
 class ProjectsView:
-    kwargs = dict(tags=["project"])
-
     def __init__(
         self,
         jira_projects: JiraProjectsView = Depends(JiraProjectsView),

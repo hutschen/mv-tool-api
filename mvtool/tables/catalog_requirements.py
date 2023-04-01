@@ -67,15 +67,10 @@ router.get(
     "/excel/catalog-requirements/column-names",
     summary="Get columns names for catalog requirements Excel export",
     response_model=list[str],
-    **CatalogRequirementsView.kwargs
 )(get_export_labels_handler(get_catalog_requirement_columns))
 
 
-@router.get(
-    "/excel/catalog-requirements",
-    response_class=FileResponse,
-    **CatalogRequirementsView.kwargs
-)
+@router.get("/excel/catalog-requirements", response_class=FileResponse)
 def download_catalog_requirements_excel(
     catalog_requirements_view: CatalogRequirementsView = Depends(),
     where_clauses=Depends(get_catalog_requirement_filters),
@@ -97,7 +92,6 @@ def download_catalog_requirements_excel(
     "/excel/catalog-requirements",
     status_code=201,
     response_model=list[CatalogRequirementOutput],
-    **CatalogRequirementsView.kwargs
 )
 def upload_catalog_requirements_excel(
     fallback_catalog_module_id: int | None = None,

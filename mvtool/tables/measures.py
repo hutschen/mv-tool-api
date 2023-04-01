@@ -65,17 +65,17 @@ def get_measure_columns(
     )
 
 
-router = APIRouter()
+router = APIRouter(tags=["measure"])
+
 
 router.get(
     "/excel/measures/column-names",
     summary="Get column names for measures Excel export",
     response_model=list[str],
-    **MeasuresView.kwargs,
 )(get_export_labels_handler(get_measure_columns))
 
 
-@router.get("/excel/measures", response_class=FileResponse, **MeasuresView.kwargs)
+@router.get("/excel/measures", response_class=FileResponse)
 def download_measures_excel(
     measures_view: MeasuresView = Depends(),
     where_clauses=Depends(get_document_filters),
@@ -91,12 +91,7 @@ def download_measures_excel(
     return FileResponse(temp_file.name, filename=filename)
 
 
-@router.post(
-    "/excel/measures",
-    status_code=201,
-    response_model=list[MeasureOutput],
-    **MeasuresView.kwargs,
-)
+@router.post("/excel/measures", status_code=201, response_model=list[MeasureOutput])
 def upload_measures_excel(
     fallback_requirement_id: int | None = None,
     fallback_catalog_module_id: int | None = None,

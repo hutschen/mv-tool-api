@@ -44,8 +44,6 @@ from ..utils.pagination import Page, page_params
 from ..utils.temp_file import get_temp_file
 from .catalogs import CatalogsView
 
-router = APIRouter()
-
 
 def get_catalog_module_filters(
     # filter by pattern
@@ -139,10 +137,12 @@ def get_catalog_module_sort(
         return [column.desc() for column in columns]
 
 
+router = APIRouter(tags=["catalog-module"])
+
+
 @router.get(
     "/catalog-modules",
     response_model=Page[CatalogModuleOutput] | list[CatalogModuleOutput],
-    **CatalogModulesView.kwargs,
 )
 def get_catalog_modules(
     where_clauses=Depends(get_catalog_module_filters),
@@ -164,7 +164,6 @@ def get_catalog_modules(
     "/catalogs/{catalog_id}/catalog-modules",
     status_code=201,
     response_model=CatalogModuleOutput,
-    **CatalogModulesView.kwargs,
 )
 def create_catalog_module(
     catalog_id: int,
@@ -176,22 +175,14 @@ def create_catalog_module(
     return catalog_modules_view.create_catalog_module(catalog, catalog_module_input)
 
 
-@router.get(
-    "/catalog-modules/{catalog_module_id}",
-    response_model=CatalogModuleOutput,
-    **CatalogModulesView.kwargs,
-)
+@router.get("/catalog-modules/{catalog_module_id}", response_model=CatalogModuleOutput)
 def get_catalog_module(
     catalog_module_id: int, catalog_modules_view: CatalogModulesView = Depends()
 ) -> CatalogModule:
     return catalog_modules_view.get_catalog_module(catalog_module_id)
 
 
-@router.put(
-    "/catalog-modules/{catalog_module_id}",
-    response_model=CatalogModuleOutput,
-    **CatalogModulesView.kwargs,
-)
+@router.put("/catalog-modules/{catalog_module_id}", response_model=CatalogModuleOutput)
 def update_catalog_module(
     catalog_module_id: int,
     catalog_module_input: CatalogModuleInput,
@@ -202,9 +193,7 @@ def update_catalog_module(
     return catalog_module
 
 
-@router.delete(
-    "/catalog-modules/{catalog_module_id}", status_code=204, **CatalogModulesView.kwargs
-)
+@router.delete("/catalog-modules/{catalog_module_id}", status_code=204)
 def delete_catalog_module(
     catalog_module_id: int, catalog_modules_view: CatalogModulesView = Depends()
 ) -> None:
@@ -216,7 +205,6 @@ def delete_catalog_module(
     "/catalog-module/representations",
     response_model=Page[CatalogModuleRepresentation]
     | list[CatalogModuleRepresentation],
-    **CatalogModulesView.kwargs,
 )
 def get_catalog_module_representation(
     where_clauses: list[Any] = Depends(get_catalog_module_filters),
@@ -245,7 +233,6 @@ def get_catalog_module_representation(
 @router.get(
     "/catalog-module/field-names",
     response_model=list[str],
-    **CatalogModulesView.kwargs,
 )
 def get_catalog_module_field_names(
     where_clauses=Depends(get_catalog_module_filters),
@@ -266,7 +253,6 @@ def get_catalog_module_field_names(
 @router.get(
     "/catalog-module/references",
     response_model=Page[str] | list[str],
-    **CatalogModulesView.kwargs,
 )
 def get_catalog_module_references(
     where_clauses=Depends(get_catalog_module_filters),
@@ -293,7 +279,6 @@ def get_catalog_module_references(
     "/catalogs/{catalog_id}/catalog-modules/gs-baustein",
     status_code=201,
     response_model=CatalogModule,
-    **CatalogModulesView.kwargs,
 )
 def upload_gs_baustein(
     catalog_id: int,

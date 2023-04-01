@@ -55,17 +55,16 @@ def get_project_columns(
     )
 
 
-router = APIRouter()
+router = APIRouter(tags=["project"])
 
 router.get(
     "/excel/projects/column-names",
     summary="Get column names for projects Excel export",
     response_model=list[str],
-    **ProjectsView.kwargs
 )(get_export_labels_handler(get_project_columns))
 
 
-@router.get("/excel/projects", response_class=FileResponse, **ProjectsView.kwargs)
+@router.get("/excel/projects", response_class=FileResponse)
 def download_projects_excel(
     projects_view: ProjectsView = Depends(),
     where_clauses=Depends(get_project_filters),
@@ -81,12 +80,7 @@ def download_projects_excel(
     return FileResponse(temp_file.name, filename=filename)
 
 
-@router.post(
-    "/excel/projects",
-    status_code=201,
-    response_model=list[ProjectOutput],
-    **ProjectsView.kwargs
-)
+@router.post("/excel/projects", status_code=201, response_model=list[ProjectOutput])
 def upload_projects_excel(
     projects_view: ProjectsView = Depends(),
     columns: ColumnGroup = Depends(get_project_columns),

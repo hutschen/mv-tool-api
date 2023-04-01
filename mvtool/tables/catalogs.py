@@ -41,17 +41,16 @@ def get_catalog_columns() -> ColumnGroup[CatalogImport, Catalog]:
     )
 
 
-router = APIRouter()
+router = APIRouter(tags=["catalog"])
 
 router.get(
     "/excel/catalogs/column-names",
     summary="Get column names for catalogs Excel export",
     response_model=list[str],
-    **CatalogsView.kwargs
 )(get_export_labels_handler(get_catalog_columns))
 
 
-@router.get("/excel/catalogs", response_class=FileResponse, **CatalogsView.kwargs)
+@router.get("/excel/catalogs", response_class=FileResponse)
 def download_catalogs_excel(
     catalogs_view: CatalogsView = Depends(),
     where_clauses=Depends(get_catalog_filters),
@@ -67,12 +66,7 @@ def download_catalogs_excel(
     return FileResponse(temp_file.name, filename=filename)
 
 
-@router.post(
-    "/excel/catalogs",
-    status_code=201,
-    response_model=list[CatalogOutput],
-    **CatalogsView.kwargs
-)
+@router.post("/excel/catalogs", status_code=201, response_model=list[CatalogOutput])
 def upload_catalogs_excel(
     catalogs_view: CatalogsView = Depends(),
     columns: ColumnGroup = Depends(get_catalog_columns),

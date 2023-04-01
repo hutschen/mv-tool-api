@@ -53,19 +53,16 @@ def get_catalog_module_columns(
     )
 
 
-router = APIRouter()
+router = APIRouter(tags=["catalog-module"])
 
 router.get(
     "/excel/catalog_modules/column-names",
     summary="Get column names for catalog module Excel export",
     response_model=list[str],
-    **CatalogModulesView.kwargs,
 )(get_export_labels_handler(get_catalog_module_columns))
 
 
-@router.get(
-    "/excel/catalog_modules", response_class=FileResponse, **CatalogModulesView.kwargs
-)
+@router.get("/excel/catalog_modules", response_class=FileResponse)
 def download_catalog_modules_excel(
     catalog_modules_view: CatalogModulesView = Depends(),
     where_clauses=Depends(get_catalog_module_filters),
@@ -84,10 +81,7 @@ def download_catalog_modules_excel(
 
 
 @router.post(
-    "/excel/catalog-modules",
-    status_code=201,
-    response_model=list[CatalogModuleOutput],
-    **CatalogModulesView.kwargs,
+    "/excel/catalog-modules", status_code=201, response_model=list[CatalogModuleOutput]
 )
 def upload_catalog_modules_excel(
     fallback_catalog_id: int | None = None,

@@ -19,7 +19,7 @@
 from typing import Iterator
 from jira import JIRA, Issue, Project, JIRAError
 from pydantic import conint
-from fastapi import Depends, APIRouter
+from fastapi import Depends
 
 from ..auth import get_jira
 from ..models import (
@@ -42,8 +42,6 @@ class JiraBaseView:
 
 
 class JiraUserView(JiraBaseView):
-    kwargs = dict(tags=["jira-user"])
-
     def get_jira_user(self):
         myself_data = self.jira.myself()
         return JiraUser(
@@ -53,8 +51,6 @@ class JiraUserView(JiraBaseView):
 
 
 class JiraProjectsView(JiraBaseView):
-    kwargs = dict(tags=["jira-project"])
-
     def __init__(self, jira: JIRA = Depends(get_jira)):
         super().__init__(jira)
         self._jira_projects_cache = {}
@@ -115,16 +111,12 @@ class JiraProjectsView(JiraBaseView):
 
 
 class JiraIssueTypesView(JiraBaseView):
-    kwargs = dict(tags=["jira-issue-type"])
-
     def list_jira_issue_types(self, jira_project_id: str):
         for issue_type_data in self.jira.project(jira_project_id).issueTypes:
             yield JiraIssueType.from_orm(issue_type_data)
 
 
 class JiraIssuesView(JiraBaseView):
-    kwargs = dict(tags=["jira-issues"])
-
     def __init__(self, jira: JIRA = Depends(get_jira)):
         super().__init__(jira)
         self._jira_issues_cache = {}

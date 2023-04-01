@@ -38,8 +38,6 @@ from .projects import ProjectsView
 
 
 class RequirementsView:
-    kwargs = dict(tags=["requirement"])
-
     def __init__(
         self,
         projects: ProjectsView = Depends(ProjectsView),

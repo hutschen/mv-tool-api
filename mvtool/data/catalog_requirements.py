@@ -37,8 +37,6 @@ from .catalog_modules import CatalogModulesView
 
 
 class CatalogRequirementsView:
-    kwargs = dict(tags=["catalog-requirement"])
-
     def __init__(
         self,
         catalog_modules: CatalogModulesView = Depends(CatalogModulesView),

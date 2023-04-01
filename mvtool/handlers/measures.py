@@ -47,8 +47,6 @@ from ..utils.pagination import Page, page_params
 from ..handlers.jira_ import JiraIssuesView, JiraProjectsView
 from .requirements import RequirementsView
 
-router = APIRouter()
-
 
 def get_measure_filters(
     # filter by pattern
@@ -233,11 +231,10 @@ def get_measure_sort(
         return [column.desc() for column in columns]
 
 
-@router.get(
-    "/measures",
-    response_model=Page[MeasureOutput] | list[MeasureOutput],
-    **MeasuresView.kwargs,
-)
+router = APIRouter(tags=["measure"])
+
+
+@router.get("/measures", response_model=Page[MeasureOutput] | list[MeasureOutput])
 def get_measures(
     where_clauses=Depends(get_measure_filters),
     order_by_clauses=Depends(get_measure_sort),
@@ -258,7 +255,6 @@ def get_measures(
     "/requirements/{requirement_id}/measures",
     status_code=201,
     response_model=MeasureOutput,
-    **MeasuresView.kwargs,
 )
 def create_measure(
     requirement_id: int,
@@ -270,16 +266,12 @@ def create_measure(
     return measures_view.create_measure(requirement, measure_input)
 
 
-@router.get(
-    "/measures/{measure_id}", response_model=MeasureOutput, **MeasuresView.kwargs
-)
+@router.get("/measures/{measure_id}", response_model=MeasureOutput)
 def get_measure(measure_id: int, measures_view: MeasuresView = Depends()) -> Measure:
     return measures_view.get_measure(measure_id)
 
 
-@router.put(
-    "/measures/{measure_id}", response_model=MeasureOutput, **MeasuresView.kwargs
-)
+@router.put("/measures/{measure_id}", response_model=MeasureOutput)
 def update_measure(
     measure_id: int,
     measure_input: MeasureInput,
@@ -290,12 +282,7 @@ def update_measure(
     return measure
 
 
-@router.delete(
-    "/measures/{measure_id}",
-    status_code=204,
-    response_class=Response,
-    **MeasuresView.kwargs,
-)
+@router.delete("/measures/{measure_id}", status_code=204, response_class=Response)
 def delete_measure(measure_id: int, measures_view: MeasuresView = Depends()):
     measure = measures_view.get_measure(measure_id)
     measures_view.delete_measure(measure)
@@ -304,7 +291,6 @@ def delete_measure(measure_id: int, measures_view: MeasuresView = Depends()):
 @router.get(
     "/measure/representations",
     response_model=Page[MeasureRepresentation] | list[MeasureRepresentation],
-    **MeasuresView.kwargs,
 )
 def get_measure_representations(
     where_clauses: list[Any] = Depends(get_measure_filters),
@@ -328,11 +314,7 @@ def get_measure_representations(
         return measures
 
 
-@router.get(
-    "/measure/field-names",
-    response_model=list[str],
-    **MeasuresView.kwargs,
-)
+@router.get("/measure/field-names", response_model=list[str])
 def get_measure_field_names(
     where_clauses=Depends(get_measure_filters),
     measures_view: MeasuresView = Depends(),
@@ -363,11 +345,7 @@ def get_measure_field_names(
     return field_names
 
 
-@router.get(
-    "/measure/references",
-    response_model=Page[str] | list[str],
-    **MeasuresView.kwargs,
-)
+@router.get("/measure/references", response_model=Page[str] | list[str])
 def get_measure_references(
     where_clauses=Depends(get_measure_filters),
     local_search: str | None = None,
@@ -393,7 +371,7 @@ def get_measure_references(
     "/measures/{measure_id}/jira-issue",
     status_code=201,
     response_model=JiraIssue,
-    **JiraIssuesView.kwargs,
+    tags=["jira-issue"],
 )
 def create_and_link_jira_issue_to_measure(
     measure_id: int,

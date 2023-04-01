@@ -41,8 +41,6 @@ from .requirements import RequirementsView
 
 
 class MeasuresView:
-    kwargs = dict(tags=["measure"])
-
     def __init__(
         self,
         jira_issues: JiraIssuesView = Depends(JiraIssuesView),

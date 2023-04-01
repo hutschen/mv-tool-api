@@ -43,8 +43,6 @@ from ..utils.pagination import Page, page_params
 from .catalog_requirements import CatalogRequirementsView
 from .projects import ProjectsView
 
-router = APIRouter()
-
 
 def get_requirement_filters(
     # filter by pattern
@@ -196,10 +194,11 @@ def get_requirement_sort(
         return [column.desc() for column in columns]
 
 
+router = APIRouter(tags=["requirement"])
+
+
 @router.get(
-    "/requirements",
-    response_model=Page[RequirementOutput] | list[RequirementOutput],
-    **RequirementsView.kwargs,
+    "/requirements", response_model=Page[RequirementOutput] | list[RequirementOutput]
 )
 def get_requirements(
     where_clauses=Depends(get_requirement_filters),
@@ -223,7 +222,6 @@ def get_requirements(
     "/projects/{project_id}/requirements",
     status_code=201,
     response_model=RequirementOutput,
-    **RequirementsView.kwargs,
 )
 def create_requirement(
     project_id: int,
@@ -235,22 +233,14 @@ def create_requirement(
     return requirements_view.create_requirement(project, requirement_input)
 
 
-@router.get(
-    "/requirements/{requirement_id}",
-    response_model=RequirementOutput,
-    **RequirementsView.kwargs,
-)
+@router.get("/requirements/{requirement_id}", response_model=RequirementOutput)
 def get_requirement(
     requirement_id: int, requirements_view: RequirementsView = Depends(RequirementsView)
 ) -> Requirement:
     return requirements_view.get_requirement(requirement_id)
 
 
-@router.put(
-    "/requirements/{requirement_id}",
-    response_model=RequirementOutput,
-    **RequirementsView.kwargs,
-)
+@router.put("/requirements/{requirement_id}", response_model=RequirementOutput)
 def update_requirement(
     requirement_id: int,
     requirement_input: RequirementInput,
@@ -261,9 +251,7 @@ def update_requirement(
     return requirement
 
 
-@router.delete(
-    "/requirements/{requirement_id}", status_code=204, **RequirementsView.kwargs
-)
+@router.delete("/requirements/{requirement_id}", status_code=204)
 def delete_requirement(
     requirement_id: int, requirements_view: RequirementsView = Depends(RequirementsView)
 ) -> None:
@@ -275,7 +263,6 @@ def delete_requirement(
     "/projects/{project_id}/requirements/import",
     status_code=201,
     response_model=list[RequirementOutput],
-    **RequirementsView.kwargs,
 )
 def import_requirements_from_catalog_modules(
     project_id: int,
@@ -296,7 +283,6 @@ def import_requirements_from_catalog_modules(
 @router.get(
     "/requirement/representations",
     response_model=Page[RequirementRepresentation] | list[RequirementRepresentation],
-    **RequirementsView.kwargs,
 )
 def get_requirement_representations(
     where_clauses: list[Any] = Depends(get_requirement_filters),
@@ -322,11 +308,7 @@ def get_requirement_representations(
         return requirements
 
 
-@router.get(
-    "/requirement/field-names",
-    response_model=list[str],
-    **RequirementsView.kwargs,
-)
+@router.get("/requirement/field-names", response_model=list[str])
 def get_requirement_field_names(
     where_clauses=Depends(get_requirement_filters),
     requirements_view: RequirementsView = Depends(RequirementsView),
@@ -379,7 +361,6 @@ router.get(
     "/requirement/references",
     summary="Get requirement references",
     response_model=Page[str] | list[str],
-    **RequirementsView.kwargs,
 )(_create_requirement_field_values_handler(Requirement.reference))
 
 router.get(

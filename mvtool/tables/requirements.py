@@ -65,21 +65,16 @@ def get_requirement_columns(
     )
 
 
-router = APIRouter()
+router = APIRouter(tags=["requirement"])
 
 router.get(
     "/excel/requirements/column-names",
     summary="Get column names for requirements Excel export",
     response_model=list[str],
-    **RequirementsView.kwargs,
 )(get_export_labels_handler(get_requirement_columns))
 
 
-@router.get(
-    "/excel/requirements",
-    response_class=FileResponse,
-    **RequirementsView.kwargs,
-)
+@router.get("/excel/requirements", response_class=FileResponse)
 def download_requirements_excel(
     requirements_view: RequirementsView = Depends(),
     where_clauses=Depends(get_catalog_requirement_filters),
@@ -96,10 +91,7 @@ def download_requirements_excel(
 
 
 @router.post(
-    "/excel/requirements",
-    status_code=201,
-    response_model=list[RequirementOutput],
-    **RequirementsView.kwargs,
+    "/excel/requirements", status_code=201, response_model=list[RequirementOutput]
 )
 def upload_requirements_excel(
     fallback_project_id: int | None = None,

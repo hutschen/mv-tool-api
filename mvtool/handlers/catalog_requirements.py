@@ -39,8 +39,6 @@ from ..utils.filtering import (
 from ..utils.pagination import Page, page_params
 from .catalog_modules import CatalogModulesView
 
-router = APIRouter()
-
 
 def get_catalog_requirement_filters(
     # filter by pattern
@@ -153,10 +151,12 @@ def get_catalog_requirement_sort(
         return [column.desc() for column in columns]
 
 
+router = APIRouter(tags=["catalog-requirement"])
+
+
 @router.get(
     "/catalog-requirements",
     response_model=Page[CatalogRequirementOutput] | list[CatalogRequirementOutput],
-    **CatalogRequirementsView.kwargs,
 )
 def get_catalog_requirements(
     where_clauses=Depends(get_catalog_requirement_filters),
@@ -182,7 +182,6 @@ def get_catalog_requirements(
     "/catalog-modules/{catalog_module_id}/catalog-requirements",
     response_model=CatalogRequirementOutput,
     status_code=201,
-    **CatalogRequirementsView.kwargs,
 )
 def create_catalog_requirement(
     catalog_module_id: int,
@@ -199,7 +198,6 @@ def create_catalog_requirement(
 @router.get(
     "/catalog-requirements/{catalog_requirement_id}",
     response_model=CatalogRequirementOutput,
-    **CatalogRequirementsView.kwargs,
 )
 def get_catalog_requirement(
     catalog_requirement_id: int,
@@ -211,7 +209,6 @@ def get_catalog_requirement(
 @router.put(
     "/catalog-requirements/{catalog_requirement_id}",
     response_model=CatalogRequirementOutput,
-    **CatalogRequirementsView.kwargs,
 )
 def update_catalog_requirement(
     catalog_requirement_id: int,
@@ -227,11 +224,7 @@ def update_catalog_requirement(
     return catalog_requirement
 
 
-@router.delete(
-    "/catalog-requirements/{catalog_requirement_id}",
-    status_code=204,
-    **CatalogRequirementsView.kwargs,
-)
+@router.delete("/catalog-requirements/{catalog_requirement_id}", status_code=204)
 def delete_catalog_requirement(
     catalog_requirement_id: int,
     catalog_requirements_view: CatalogRequirementsView = Depends(),
@@ -246,7 +239,6 @@ def delete_catalog_requirement(
     "/catalog-requirement/representations",
     response_model=Page[CatalogRequirementRepresentation]
     | list[CatalogRequirementRepresentation],
-    **CatalogRequirementsView.kwargs,
 )
 def get_catalog_requirement_representations(
     where_clauses: list[Any] = Depends(get_catalog_requirement_filters),
@@ -276,11 +268,7 @@ def get_catalog_requirement_representations(
         return crequirements
 
 
-@router.get(
-    "/catalog-requirement/field-names",
-    response_model=list[str],
-    **CatalogRequirementsView.kwargs,
-)
+@router.get("/catalog-requirement/field-names", response_model=list[str])
 def get_catalog_requirement_field_names(
     where_clauses=Depends(get_catalog_requirement_filters),
     catalog_requirements_view: CatalogRequirementsView = Depends(),
@@ -299,11 +287,7 @@ def get_catalog_requirement_field_names(
     return field_names
 
 
-@router.get(
-    "/catalog-requirement/references",
-    response_model=Page[str] | list[str],
-    **CatalogRequirementsView.kwargs,
-)
+@router.get("/catalog-requirement/references", response_model=Page[str] | list[str])
 def get_catalog_requirement_references(
     where_clauses: list[Any] = Depends(get_catalog_requirement_filters),
     local_search: str | None = None,

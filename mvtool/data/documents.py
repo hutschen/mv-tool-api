@@ -33,8 +33,6 @@ from .projects import ProjectsView
 
 
 class DocumentsView:
-    kwargs = dict(tags=["document"])
-
     def __init__(
         self,
         projects: ProjectsView = Depends(ProjectsView),
