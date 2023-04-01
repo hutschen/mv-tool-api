@@ -8,7 +8,6 @@ fastapi = {extras = ["all"], version = "*"}
 pydantic = "*"
 jira = "*"
 pyyaml = "*"
-fastapi-utils = "*"
 sqlalchemy = "*"
 sqlmodel = "*"
 cachetools = "*"
