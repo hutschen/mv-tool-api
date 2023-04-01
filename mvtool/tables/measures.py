@@ -24,11 +24,11 @@ from sqlmodel import Session
 from ..database import get_session
 from ..models import Measure, MeasureImport, MeasureOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
-from ..views.catalog_modules import CatalogModulesView
-from ..views.documents import get_document_filters, get_document_sort
-from ..views.measures import MeasuresView
-from ..views.projects import ProjectsView
-from ..views.requirements import RequirementsView
+from ..handlers.catalog_modules import CatalogModulesView
+from ..handlers.documents import get_document_filters, get_document_sort
+from ..handlers.measures import MeasuresView
+from ..handlers.projects import ProjectsView
+from ..handlers.requirements import RequirementsView
 from .common import Column, ColumnGroup
 from .documents import get_document_only_columns
 from .handlers import get_export_labels_handler, hide_columns

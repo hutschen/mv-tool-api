@@ -44,7 +44,7 @@ from ..utils.filtering import (
     search_columns,
 )
 from ..utils.pagination import Page, page_params
-from ..views.jira_ import JiraIssuesView, JiraProjectsView
+from ..handlers.jira_ import JiraIssuesView, JiraProjectsView
 from .requirements import RequirementsView
 
 router = APIRouter()

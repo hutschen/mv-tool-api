@@ -26,8 +26,8 @@ from mvtool.database import CRUDOperations
 from mvtool.gs_parser import GSBausteinParser
 from mvtool.models import Catalog, CatalogModule
 from mvtool.utils import errors
-from mvtool.views.catalog_modules import upload_gs_baustein
-from mvtool.views.catalogs import CatalogsView
+from mvtool.handlers.catalog_modules import upload_gs_baustein
+from mvtool.handlers.catalogs import CatalogsView
 
 
 def get_gs_baustein_filenames():

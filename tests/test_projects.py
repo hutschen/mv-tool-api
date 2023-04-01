@@ -19,7 +19,7 @@ import pytest
 from fastapi import HTTPException
 from jira import JIRAError
 from mvtool.models import Project, ProjectInput, Requirement, Measure
-from mvtool.views.projects import ProjectsView
+from mvtool.handlers.projects import ProjectsView
 
 
 def test_list_project(projects_view: ProjectsView, create_project: Project):

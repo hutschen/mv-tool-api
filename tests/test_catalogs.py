@@ -18,7 +18,7 @@
 import pytest
 from fastapi import HTTPException
 from mvtool.models import Catalog, CatalogInput
-from mvtool.views.catalogs import CatalogsView
+from mvtool.handlers.catalogs import CatalogsView
 
 
 def test_list_catalog_outputs(catalogs_view: CatalogsView, create_catalog: Catalog):

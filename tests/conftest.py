@@ -40,14 +40,14 @@ from mvtool.models import (
     RequirementInput,
 )
 from mvtool.utils.temp_file import get_temp_file
-from mvtool.views.catalog_modules import CatalogModulesView
-from mvtool.views.catalog_requirements import CatalogRequirementsView
-from mvtool.views.catalogs import CatalogsView
-from mvtool.views.documents import DocumentsView
-from mvtool.views.jira_ import JiraIssuesView, JiraProjectsView
-from mvtool.views.measures import MeasuresView
-from mvtool.views.projects import ProjectsView
-from mvtool.views.requirements import RequirementsView
+from mvtool.handlers.catalog_modules import CatalogModulesView
+from mvtool.handlers.catalog_requirements import CatalogRequirementsView
+from mvtool.handlers.catalogs import CatalogsView
+from mvtool.handlers.documents import DocumentsView
+from mvtool.handlers.jira_ import JiraIssuesView, JiraProjectsView
+from mvtool.handlers.measures import MeasuresView
+from mvtool.handlers.projects import ProjectsView
+from mvtool.handlers.requirements import RequirementsView
 
 
 @pytest.fixture

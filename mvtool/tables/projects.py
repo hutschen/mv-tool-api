@@ -22,7 +22,7 @@ from sqlmodel import Session
 from ..database import get_session
 from ..models import Project, ProjectImport, ProjectOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
-from ..views.projects import ProjectsView, get_project_filters, get_project_sort
+from ..handlers.projects import ProjectsView, get_project_filters, get_project_sort
 from .common import Column, ColumnGroup
 from .handlers import get_export_labels_handler, hide_columns
 from .jira_ import get_jira_project_columns

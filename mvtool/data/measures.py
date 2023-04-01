@@ -35,8 +35,8 @@ from ..utils.fallback import fallback
 from ..utils.filtering import filter_for_existence
 from ..utils.iteration import CachedIterable
 from ..utils.models import field_is_set
-from ..views.documents import DocumentsView
-from ..views.jira_ import JiraIssuesView
+from ..handlers.documents import DocumentsView
+from ..handlers.jira_ import JiraIssuesView
 from .requirements import RequirementsView
 
 

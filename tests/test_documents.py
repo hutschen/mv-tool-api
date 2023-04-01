@@ -18,7 +18,7 @@
 from fastapi import HTTPException
 import pytest
 from mvtool.models import Document, DocumentInput, Project
-from mvtool.views.documents import DocumentsView
+from mvtool.handlers.documents import DocumentsView
 
 
 def test_list_document(

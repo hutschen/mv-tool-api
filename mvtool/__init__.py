@@ -20,7 +20,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import auth, database, migration, tables
-from .views import (
+from .handlers import (
     jira_,
     projects,
     requirements,

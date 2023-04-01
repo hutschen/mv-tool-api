@@ -29,8 +29,8 @@ from ..models.catalog_requirements import (
     CatalogRequirementOutput,
 )
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
-from ..views.catalog_modules import CatalogModulesView
-from ..views.catalog_requirements import (
+from ..handlers.catalog_modules import CatalogModulesView
+from ..handlers.catalog_requirements import (
     CatalogRequirementsView,
     get_catalog_requirement_filters,
     get_catalog_requirement_sort,

@@ -27,8 +27,8 @@ from mvtool.models import (
     Project,
     Requirement,
 )
-from mvtool.views.jira_ import JiraIssuesView, JiraProjectsView
-from mvtool.views.measures import MeasuresView, create_and_link_jira_issue_to_measure
+from mvtool.handlers.jira_ import JiraIssuesView, JiraProjectsView
+from mvtool.handlers.measures import MeasuresView, create_and_link_jira_issue_to_measure
 
 
 def test_list_measure(

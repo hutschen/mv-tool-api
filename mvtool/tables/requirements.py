@@ -27,13 +27,13 @@ from ..database import get_session
 from ..models import Requirement, RequirementOutput
 from ..models.requirements import RequirementImport
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
-from ..views.catalog_modules import CatalogModulesView
-from ..views.catalog_requirements import (
+from ..handlers.catalog_modules import CatalogModulesView
+from ..handlers.catalog_requirements import (
     get_catalog_requirement_filters,
     get_catalog_requirement_sort,
 )
-from ..views.projects import ProjectsView
-from ..views.requirements import RequirementsView
+from ..handlers.projects import ProjectsView
+from ..handlers.requirements import RequirementsView
 from .catalog_requirements import get_catalog_requirement_columns
 from .common import Column, ColumnGroup
 from .handlers import get_export_labels_handler, hide_columns

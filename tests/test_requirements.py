@@ -26,8 +26,8 @@ from mvtool.models import (
     Requirement,
     RequirementInput,
 )
-from mvtool.views.catalog_requirements import CatalogRequirementsView
-from mvtool.views.requirements import RequirementsView
+from mvtool.handlers.catalog_requirements import CatalogRequirementsView
+from mvtool.handlers.requirements import RequirementsView
 
 
 def test_list_requirements(

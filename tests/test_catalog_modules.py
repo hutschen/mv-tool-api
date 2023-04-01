@@ -20,7 +20,7 @@ import pytest
 from fastapi import HTTPException
 
 from mvtool.models import Catalog, CatalogModule, CatalogModuleInput
-from mvtool.views.catalog_modules import CatalogModulesView
+from mvtool.handlers.catalog_modules import CatalogModulesView
 
 
 def test_list_catalog_module(
