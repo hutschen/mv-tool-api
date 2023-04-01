@@ -20,27 +20,9 @@ from unittest.mock import Mock
 import pytest
 from sqlmodel import Session, desc, or_, select
 
-from mvtool import database
 from mvtool.data.catalogs import Catalogs
 from mvtool.models.catalogs import Catalog, CatalogImport, CatalogInput
 from mvtool.utils.errors import NotFoundError
-
-
-@pytest.fixture
-def session(config) -> Session:
-    database.setup_engine(config.database)
-    database.create_all()
-
-    for session in database.get_session():
-        yield session
-
-    database.drop_all()
-    database.dispose_engine()
-
-
-@pytest.fixture
-def catalogs(session: Session):
-    return Catalogs(session, None)
 
 
 def test_modify_catalogs_query_single_where_clause(
