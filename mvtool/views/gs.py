@@ -19,14 +19,13 @@ import shutil
 import re
 import docx
 from tempfile import NamedTemporaryFile
-from fastapi_utils.cbv import cbv
 from fastapi import APIRouter, Depends, UploadFile
+from sqlmodel import Session
 
 from .catalogs import CatalogsView
-from .catalog_modules import CatalogModulesView
 from ..utils.temp_file import get_temp_file
 from ..models import CatalogModule, CatalogRequirement
-from ..database import CRUDOperations
+from ..database import get_session
 from ..utils import errors
 
 
@@ -191,34 +190,28 @@ class GSBausteinParser:
 router = APIRouter()
 
 
-@cbv(router)
-class ImportGSBausteinView:
-    kwargs = CatalogModulesView.kwargs
+@router.post(
+    "/catalogs/{catalog_id}/catalog-modules/gs-baustein",
+    status_code=201,
+    response_model=CatalogModule,
+)
+def upload_gs_baustein(
+    catalog_id: int,
+    upload_file: UploadFile,
+    temp_file: NamedTemporaryFile = Depends(get_temp_file(".docx")),
+    catalogs: CatalogsView = Depends(),
+    session: Session = Depends(get_session),
+) -> CatalogModule:
+    catalog = catalogs.get_catalog(catalog_id)
+    shutil.copyfileobj(upload_file.file, temp_file.file)
 
-    def __init__(
-        self,
-        catalogs: CatalogsView = Depends(CatalogsView),
-        crud: CRUDOperations[CatalogModule] = Depends(CRUDOperations),
-    ):
-        self._catalogs = catalogs
-        self._crud = crud
+    # Parse GS Baustein and save it and its requirements in the database
+    catalog_module = GSBausteinParser.parse(temp_file.name)
+    if catalog_module is None:
+        raise errors.ValueHttpError("Could not parse GS Baustein")
 
-    @router.post(
-        "/catalogs/{catalog_id}/catalog-modules/gs-baustein",
-        status_code=201,
-        response_model=CatalogModule,
-        **kwargs,
-    )
-    def upload_gs_baustein(
-        self,
-        catalog_id: int,
-        upload_file: UploadFile,
-        temp_file: NamedTemporaryFile = Depends(get_temp_file(".docx")),
-    ) -> CatalogModule:
-        catalog = self._catalogs.get_catalog(catalog_id)
-        shutil.copyfileobj(upload_file.file, temp_file.file)
-
-        # Parse GS Baustein and save it and its requirements in the database
-        catalog_module = GSBausteinParser.parse(temp_file.name)
-        catalog_module.catalog = catalog
-        return self._crud.create_in_db(catalog_module)
+    # Assign catalog and save catalog module to database
+    catalog_module.catalog = catalog
+    session.add(catalog_module)
+    session.flush()
+    return catalog_module

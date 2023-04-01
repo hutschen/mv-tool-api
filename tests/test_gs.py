@@ -22,7 +22,7 @@ from unittest.mock import Mock
 import pytest
 from mvtool.database import CRUDOperations
 from mvtool.views.catalogs import CatalogsView
-from mvtool.views.gs import GSBausteinParser, ImportGSBausteinView
+from mvtool.views.gs import GSBausteinParser, upload_gs_baustein
 from mvtool.models import Catalog, CatalogModule
 from mvtool.utils import errors
 
@@ -67,11 +67,12 @@ def test_upload_gs_baustein(
     upload_file = Mock()
     upload_file.file = io.FileIO("tests/data/gs_bausteine/_valid.docx", "r")
 
-    sut = ImportGSBausteinView(catalogs_view, crud)
-    result = sut.upload_gs_baustein(
-        create_catalog.id,
-        upload_file,
-        word_temp_file,
+    result = upload_gs_baustein(
+        catalog_id=create_catalog.id,
+        upload_file=upload_file,
+        temp_file=word_temp_file,
+        catalogs=catalogs_view,
+        session=crud.session,
     )
 
     assert isinstance(result, CatalogModule)
