@@ -42,7 +42,7 @@ from mvtool.models import (
 from mvtool.utils.temp_file import get_temp_file
 from mvtool.handlers.catalog_modules import CatalogModulesView
 from mvtool.handlers.catalog_requirements import CatalogRequirementsView
-from mvtool.handlers.catalogs import CatalogsView
+from mvtool.handlers.catalogs import Catalogs
 from mvtool.handlers.documents import DocumentsView
 from mvtool.handlers.jira_ import JiraIssuesView, JiraProjectsView
 from mvtool.handlers.measures import MeasuresView
@@ -253,11 +253,11 @@ def measure_input(create_document, jira_issue_data):
 
 @pytest.fixture
 def catalogs_view(crud, jira):
-    return Mock(wraps=CatalogsView(crud.session, jira))
+    return Mock(wraps=Catalogs(crud.session, jira))
 
 
 @pytest.fixture
-def create_catalog(catalogs_view: CatalogsView, catalog_input: CatalogInput):
+def create_catalog(catalogs_view: Catalogs, catalog_input: CatalogInput):
     return catalogs_view.create_catalog(catalog_input)
 
 

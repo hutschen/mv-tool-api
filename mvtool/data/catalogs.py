@@ -29,7 +29,7 @@ from ..utils.filtering import filter_for_existence
 from ..utils.iteration import CachedIterable
 
 
-class CatalogsView:
+class Catalogs:
     def __init__(
         self,
         session: Session = Depends(get_session),

@@ -42,7 +42,7 @@ from ..utils.filtering import (
 )
 from ..utils.pagination import Page, page_params
 from ..utils.temp_file import get_temp_file
-from .catalogs import CatalogsView
+from .catalogs import Catalogs
 
 
 def get_catalog_module_filters(
@@ -168,7 +168,7 @@ def get_catalog_modules(
 def create_catalog_module(
     catalog_id: int,
     catalog_module_input: CatalogModuleInput,
-    catalogs_view: CatalogsView = Depends(),
+    catalogs_view: Catalogs = Depends(),
     catalog_modules_view: CatalogModulesView = Depends(),
 ) -> CatalogModule:
     catalog = catalogs_view.get_catalog(catalog_id)
@@ -284,7 +284,7 @@ def upload_gs_baustein(
     catalog_id: int,
     upload_file: UploadFile,
     temp_file: NamedTemporaryFile = Depends(get_temp_file(".docx")),
-    catalogs: CatalogsView = Depends(),
+    catalogs: Catalogs = Depends(),
     session: Session = Depends(get_session),
 ) -> CatalogModule:
     catalog = catalogs.get_catalog(catalog_id)

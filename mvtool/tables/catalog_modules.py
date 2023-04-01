@@ -29,7 +29,7 @@ from ..handlers.catalog_modules import (
     get_catalog_module_filters,
     get_catalog_module_sort,
 )
-from ..handlers.catalogs import CatalogsView
+from ..handlers.catalogs import Catalogs
 from .catalogs import get_catalog_columns
 from .common import Column, ColumnGroup
 from .handlers import get_export_labels_handler, hide_columns
@@ -85,7 +85,7 @@ def download_catalog_modules_excel(
 )
 def upload_catalog_modules_excel(
     fallback_catalog_id: int | None = None,
-    catalogs_view: CatalogsView = Depends(),
+    catalogs_view: Catalogs = Depends(),
     catalog_modules_view: CatalogModulesView = Depends(),
     columns: ColumnGroup = Depends(get_catalog_module_columns),
     temp_file=Depends(copy_upload_to_temp_file),

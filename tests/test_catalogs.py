@@ -18,10 +18,10 @@
 import pytest
 from fastapi import HTTPException
 from mvtool.models import Catalog, CatalogInput
-from mvtool.handlers.catalogs import CatalogsView
+from mvtool.handlers.catalogs import Catalogs
 
 
-def test_list_catalog_outputs(catalogs_view: CatalogsView, create_catalog: Catalog):
+def test_list_catalog_outputs(catalogs_view: Catalogs, create_catalog: Catalog):
     results = list(catalogs_view.list_catalogs())
     assert len(results) == 1
     catalog_output = results[0]
@@ -29,27 +29,27 @@ def test_list_catalog_outputs(catalogs_view: CatalogsView, create_catalog: Catal
     assert catalog_output.id == create_catalog.id
 
 
-def test_create_catalog(catalogs_view: CatalogsView, catalog_input: CatalogInput):
+def test_create_catalog(catalogs_view: Catalogs, catalog_input: CatalogInput):
     catalog = catalogs_view.create_catalog(catalog_input)
     assert isinstance(catalog, Catalog)
     assert catalog.title == catalog_input.title
 
 
-def test_get_catalog(catalogs_view: CatalogsView, create_catalog: Catalog):
+def test_get_catalog(catalogs_view: Catalogs, create_catalog: Catalog):
     catalog = catalogs_view.get_catalog(create_catalog.id)
     assert isinstance(catalog, Catalog)
     assert catalog.id == create_catalog.id
 
 
 def test_update_catalog(
-    catalogs_view: CatalogsView, create_catalog: Catalog, catalog_input: CatalogInput
+    catalogs_view: Catalogs, create_catalog: Catalog, catalog_input: CatalogInput
 ):
     catalog_input.title += "updated"
     catalogs_view.update_catalog(create_catalog, catalog_input)
     assert create_catalog.title == catalog_input.title
 
 
-def test_delete_catalog(catalogs_view: CatalogsView, create_catalog: Catalog):
+def test_delete_catalog(catalogs_view: Catalogs, create_catalog: Catalog):
     catalogs_view.delete_catalog(create_catalog)
     with pytest.raises(HTTPException) as error_info:
         catalogs_view.get_catalog(create_catalog.id)

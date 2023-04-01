@@ -21,7 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import constr
 from sqlmodel import Column, or_
 
-from ..data.catalogs import CatalogsView
+from ..data.catalogs import Catalogs
 from ..models.catalogs import (
     Catalog,
     CatalogInput,
@@ -128,7 +128,7 @@ def get_catalogs(
     where_clauses=Depends(get_catalog_filters),
     order_by_clauses=Depends(get_catalog_sort),
     page_params=Depends(page_params),
-    catalogs_view: CatalogsView = Depends(),
+    catalogs_view: Catalogs = Depends(),
 ):
     catalogs = catalogs_view.list_catalogs(
         where_clauses, order_by_clauses, **page_params
@@ -143,13 +143,13 @@ def get_catalogs(
 @router.post("/catalogs", status_code=201, response_model=CatalogOutput)
 def create_catalog(
     catalog: CatalogInput,
-    catalogs_view: CatalogsView = Depends(),
+    catalogs_view: Catalogs = Depends(),
 ) -> Catalog:
     return catalogs_view.create_catalog(catalog)
 
 
 @router.get("/catalogs/{catalog_id}", response_model=CatalogOutput)
-def get_catalog(catalog_id: int, catalogs_view: CatalogsView = Depends()) -> Catalog:
+def get_catalog(catalog_id: int, catalogs_view: Catalogs = Depends()) -> Catalog:
     return catalogs_view.get_catalog(catalog_id)
 
 
@@ -157,7 +157,7 @@ def get_catalog(catalog_id: int, catalogs_view: CatalogsView = Depends()) -> Cat
 def update_catalog(
     catalog_id: int,
     catalog_input: CatalogInput,
-    catalogs_view: CatalogsView = Depends(),
+    catalogs_view: Catalogs = Depends(),
 ) -> Catalog:
     catalog = catalogs_view.get_catalog(catalog_id)
     catalogs_view.update_catalog(catalog, catalog_input)
@@ -167,7 +167,7 @@ def update_catalog(
 @router.delete("/catalogs/{catalog_id}", status_code=204)
 def delete_catalog(
     catalog_id: int,
-    catalogs_view: CatalogsView = Depends(),
+    catalogs_view: Catalogs = Depends(),
 ) -> None:
     catalog = catalogs_view.get_catalog(catalog_id)
     catalogs_view.delete_catalog(catalog)
@@ -182,7 +182,7 @@ def get_catalog_representations(
     local_search: str | None = None,
     order_by_clauses=Depends(get_catalog_sort),
     page_params=Depends(page_params),
-    catalogs_view: CatalogsView = Depends(),
+    catalogs_view: Catalogs = Depends(),
 ):
     if local_search:
         where_clauses.append(
@@ -202,7 +202,7 @@ def get_catalog_representations(
 @router.get("/catalog/field-names", response_model=list[str])
 def get_catalog_field_names(
     where_clauses=Depends(get_catalog_filters),
-    catalogs_view: CatalogsView = Depends(),
+    catalogs_view: Catalogs = Depends(),
 ) -> set[str]:
     field_names = {"id", "title"}
     for field, names in [
@@ -221,7 +221,7 @@ def get_catalog_references(
     where_clauses: list[Any] = Depends(get_catalog_filters),
     local_search: str | None = None,
     page_params=Depends(page_params),
-    catalogs_view: CatalogsView = Depends(),
+    catalogs_view: Catalogs = Depends(),
 ):
     if local_search:
         where_clauses.append(search_columns(local_search, Catalog.reference))

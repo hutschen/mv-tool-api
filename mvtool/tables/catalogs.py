@@ -23,7 +23,7 @@ from sqlmodel import Session
 from ..database import get_session
 from ..models import Catalog, CatalogImport, CatalogOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
-from ..handlers.catalogs import CatalogsView, get_catalog_filters, get_catalog_sort
+from ..handlers.catalogs import Catalogs, get_catalog_filters, get_catalog_sort
 from .common import Column, ColumnGroup
 from .handlers import get_export_labels_handler, hide_columns
 
@@ -52,7 +52,7 @@ router.get(
 
 @router.get("/excel/catalogs", response_class=FileResponse)
 def download_catalogs_excel(
-    catalogs_view: CatalogsView = Depends(),
+    catalogs_view: Catalogs = Depends(),
     where_clauses=Depends(get_catalog_filters),
     sort_clauses=Depends(get_catalog_sort),
     columns: ColumnGroup = Depends(hide_columns(get_catalog_columns)),
@@ -68,7 +68,7 @@ def download_catalogs_excel(
 
 @router.post("/excel/catalogs", status_code=201, response_model=list[CatalogOutput])
 def upload_catalogs_excel(
-    catalogs_view: CatalogsView = Depends(),
+    catalogs_view: Catalogs = Depends(),
     columns: ColumnGroup = Depends(get_catalog_columns),
     temp_file=Depends(copy_upload_to_temp_file),
     skip_blanks: bool = False,  # skip blank cells
