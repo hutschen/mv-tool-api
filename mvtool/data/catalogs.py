@@ -87,7 +87,7 @@ class Catalogs:
     ) -> list[Any]:
         query = self._modify_catalogs_query(
             select([func.distinct(column)]).select_from(Catalog),
-            [filter_for_existence(column), *where_clauses],
+            [filter_for_existence(column), *(where_clauses or [])],
             offset=offset,
             limit=limit,
         )
@@ -98,7 +98,7 @@ class Catalogs:
     ) -> int:
         query = self._modify_catalogs_query(
             select([func.count(func.distinct(column))]).select_from(Catalog),
-            [filter_for_existence(column), *where_clauses],
+            [filter_for_existence(column), *(where_clauses or [])],
         )
         return self._session.execute(query).scalar()
 

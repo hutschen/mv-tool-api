@@ -16,10 +16,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from typing import Type, TypeVar, Generic
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from sqlmodel import create_engine, Session, SQLModel, select
 from sqlmodel.sql.expression import Select, SelectOfScalar
 from sqlmodel.pool import StaticPool
+
+from .utils.errors import NotFoundError
 from .config import DatabaseConfig
 
 # workaround for https://github.com/tiangolo/sqlmodel/issues/189
@@ -114,7 +116,7 @@ class CRUDOperations(Generic[T]):
             return item
         else:
             item_name = sqlmodel.__name__
-            raise HTTPException(404, f"No {item_name} with id={id}.")
+            raise NotFoundError(f"No {item_name} with id={id}.")
 
     def update_in_db(self, id: int, item_update: T) -> T:
         sqlmodel = item_update.__class__
@@ -136,7 +138,7 @@ def read_from_db(session: Session, sqlmodel: Type[T], id: int) -> T:
         return item
     else:
         item_name = sqlmodel.__name__
-        raise HTTPException(404, f"No {item_name} with id={id}.")
+        raise NotFoundError(f"No {item_name} with id={id}.")
 
 
 def delete_from_db(session: Session, item: T, skip_flush: bool = False) -> None:
