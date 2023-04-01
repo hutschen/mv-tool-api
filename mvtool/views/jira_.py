@@ -20,7 +20,6 @@ from typing import Iterator
 from jira import JIRA, Issue, Project, JIRAError
 from pydantic import conint
 from fastapi import Depends, APIRouter, Response
-from fastapi_utils.cbv import cbv
 
 from ..auth import get_jira
 from ..models import (
@@ -44,11 +43,9 @@ class JiraBaseView:
         return f"{self.jira.server_url}/browse/{item_key}"
 
 
-@cbv(router)
 class JiraUserView(JiraBaseView):
     kwargs = dict(tags=["jira-user"])
 
-    @router.get("/jira-user", response_model=JiraUser, **kwargs)
     def get_jira_user(self):
         myself_data = self.jira.myself()
         return JiraUser(
@@ -57,7 +54,6 @@ class JiraUserView(JiraBaseView):
         )
 
 
-@cbv(router)
 class JiraProjectsView(JiraBaseView):
     kwargs = dict(tags=["jira-project"])
 
@@ -90,16 +86,12 @@ class JiraProjectsView(JiraBaseView):
             url=self._get_jira_item_url(jira_project_data.key),
         )
 
-    @router.get("/jira-projects", response_model=list[JiraProject], **kwargs)
     def list_jira_projects(self) -> Iterator[JiraProject]:
         for jira_project_data in self.jira.projects():
             jira_project = self._convert_to_jira_project(jira_project_data)
             self._cache_jira_project(jira_project)
             yield jira_project
 
-    @router.get(
-        "/jira-projects/{jira_project_id}", response_model=JiraProject, **kwargs
-    )
     def get_jira_project(self, jira_project_id: str) -> JiraProject:
         jira_project = self._convert_to_jira_project(self.jira.project(jira_project_id))
         self._cache_jira_project(jira_project)
@@ -124,21 +116,14 @@ class JiraProjectsView(JiraBaseView):
                     raise error
 
 
-@cbv(router)
 class JiraIssueTypesView(JiraBaseView):
     kwargs = dict(tags=["jira-issue-type"])
 
-    @router.get(
-        "/jira-projects/{jira_project_id}/jira-issuetypes",
-        response_model=list[JiraIssueType],
-        **kwargs,
-    )
     def list_jira_issue_types(self, jira_project_id: str):
         for issue_type_data in self.jira.project(jira_project_id).issueTypes:
             yield JiraIssueType.from_orm(issue_type_data)
 
 
-@cbv(router)
 class JiraIssuesView(JiraBaseView):
     kwargs = dict(tags=["jira-issues"])
 
@@ -186,11 +171,6 @@ class JiraIssuesView(JiraBaseView):
             url=self._get_jira_item_url(jira_issue_data.key),
         )
 
-    @router.get(
-        "/jira-projects/{jira_project_id}/jira-issues",
-        response_model=list[JiraIssue],
-        **kwargs,
-    )
     def list_jira_issues(
         self,
         jira_project_id: str,
@@ -207,12 +187,6 @@ class JiraIssuesView(JiraBaseView):
             self._cache_jira_issue(jira_issue)
             yield jira_issue
 
-    @router.post(
-        "/jira-projects/{jira_project_id}/jira-issues",
-        status_code=201,
-        response_model=JiraIssue,
-        **kwargs,
-    )
     def create_jira_issue(
         self, jira_project_id: str, jira_issue_input: JiraIssueInput
     ) -> JiraIssue:
@@ -228,13 +202,11 @@ class JiraIssuesView(JiraBaseView):
         self._cache_jira_issue(jira_issue)
         return jira_issue
 
-    @router.get("/jira-issues/{jira_issue_id}", response_model=JiraIssue, **kwargs)
     def get_jira_issue(self, jira_issue_id: str):
         jira_issue = self._convert_to_jira_issue(self.jira.issue(jira_issue_id))
         self._cache_jira_issue(jira_issue)
         return jira_issue
 
-    @router.put("/jira-issues/{jira_issue_id}", response_model=JiraIssue, **kwargs)
     def update_jira_issue(self, jira_issue_id: str, jira_issue_input: JiraIssueInput):
         jira_issue_data = self.jira.issue(jira_issue_id)
         jira_issue_data.update(
@@ -246,12 +218,6 @@ class JiraIssuesView(JiraBaseView):
         self._cache_jira_issue(jira_issue)
         return jira_issue
 
-    @router.delete(
-        "/jira-issues/{jira_issue_id}",
-        status_code=204,
-        response_class=Response,
-        **kwargs,
-    )
     def delete_jira_issue(self, jira_issue_id: str):
         jira_issue_data = self.jira.issue(jira_issue_id)
         jira_issue_data.delete()
@@ -293,3 +259,95 @@ class JiraIssuesView(JiraBaseView):
             except JIRAError as error:
                 if error.status_code != 404:
                     raise error
+
+
+@router.get("/jira-user", response_model=JiraUser, **JiraUserView.kwargs)
+def get_jira_user(jira_user_view: JiraUserView = Depends()):
+    return jira_user_view.get_jira_user()
+
+
+@router.get(
+    "/jira-projects", response_model=list[JiraProject], **JiraProjectsView.kwargs
+)
+def get_jira_projects(jira_projects_view: JiraProjectsView = Depends()):
+    return jira_projects_view.list_jira_projects()
+
+
+@router.get(
+    "/jira-projects/{jira_project_id}",
+    response_model=JiraProject,
+    **JiraProjectsView.kwargs,
+)
+def get_jira_project(
+    jira_project_id: str, jira_projects_view: JiraProjectsView = Depends()
+):
+    return jira_projects_view.get_jira_project(jira_project_id)
+
+
+@router.get(
+    "/jira-projects/{jira_project_id}/jira-issuetypes",
+    response_model=list[JiraIssueType],
+    **JiraIssueTypesView.kwargs,
+)
+def get_jira_issue_types(
+    jira_project_id: str, jira_issue_types_view: JiraIssueTypesView = Depends()
+):
+    return jira_issue_types_view.list_jira_issue_types(jira_project_id)
+
+
+@router.get(
+    "/jira-projects/{jira_project_id}/jira-issues",
+    response_model=list[JiraIssue],
+    **JiraIssuesView.kwargs,
+)
+def get_jira_issues(
+    jira_project_id: str,
+    offset: conint(ge=0) = 0,
+    limit: conint(ge=0) | None = None,
+    jira_issues_view: JiraIssuesView = Depends(),
+) -> Iterator[JiraIssue]:
+    return jira_issues_view.list_jira_issues(jira_project_id, offset, limit)
+
+
+@router.post(
+    "/jira-projects/{jira_project_id}/jira-issues",
+    status_code=201,
+    response_model=JiraIssue,
+    **JiraIssuesView.kwargs,
+)
+def create_jira_issue(
+    jira_project_id: str,
+    jira_issue_input: JiraIssueInput,
+    jira_issues_view: JiraIssuesView = Depends(),
+) -> JiraIssue:
+    return jira_issues_view.create_jira_issue(jira_project_id, jira_issue_input)
+
+
+@router.get(
+    "/jira-issues/{jira_issue_id}", response_model=JiraIssue, **JiraIssuesView.kwargs
+)
+def get_jira_issue(
+    jira_issue_id: str, jira_issues_view: JiraIssuesView = Depends()
+) -> JiraIssue:
+    return jira_issues_view.get_jira_issue(jira_issue_id)
+
+
+@router.put(
+    "/jira-issues/{jira_issue_id}", response_model=JiraIssue, **JiraIssuesView.kwargs
+)
+def update_jira_issue(
+    jira_issue_id: str,
+    jira_issue_input: JiraIssueInput,
+    jira_issues_view: JiraIssuesView = Depends(),
+) -> JiraIssue:
+    return jira_issues_view.update_jira_issue(jira_issue_id, jira_issue_input)
+
+
+@router.delete(
+    "/jira-issues/{jira_issue_id}",
+    status_code=204,
+    response_class=Response,
+    **JiraIssuesView.kwargs,
+)
+def delete_jira_issue(jira_issue_id: str, jira_issues_view: JiraIssuesView = Depends()):
+    jira_issues_view.delete_jira_issue(jira_issue_id)
