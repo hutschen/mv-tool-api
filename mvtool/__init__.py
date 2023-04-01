@@ -26,7 +26,6 @@ from .views import (
     requirements,
     measures,
     documents,
-    gs,
     catalogs,
     catalog_modules,
     catalog_requirements,
@@ -50,7 +49,6 @@ app.include_router(tables.router, prefix="/api")
 app.include_router(requirements.router, prefix="/api")
 app.include_router(measures.router, prefix="/api")
 app.include_router(documents.router, prefix="/api")
-app.include_router(gs.router, prefix="/api")
 app.mount("/", AngularFiles(directory="htdocs", html=True))
 app.add_middleware(
     CORSMiddleware,

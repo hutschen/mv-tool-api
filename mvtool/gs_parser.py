@@ -1,6 +1,6 @@
 # coding: utf-8
 #
-# Copyright (C) 2022 Helmar Hutschenreuter
+# Copyright (C) 2023 Helmar Hutschenreuter
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -15,18 +15,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import shutil
 import re
 import docx
-from tempfile import NamedTemporaryFile
-from fastapi import APIRouter, Depends, UploadFile
-from sqlmodel import Session
 
-from .catalogs import CatalogsView
-from ..utils.temp_file import get_temp_file
-from ..models import CatalogModule, CatalogRequirement
-from ..database import get_session
-from ..utils import errors
+from .models import CatalogModule, CatalogRequirement
+from .utils.errors import ValueHttpError
 
 
 class ParagraphsWrapper:
@@ -73,7 +66,7 @@ class GSBausteinParser:
         try:
             word_document = docx.Document(filename)
         except docx.opc.exceptions.PackageNotFoundError:
-            raise errors.ValueHttpError("Word file seems to be corrupted")
+            raise ValueHttpError("Word file seems to be corrupted")
         paragraphs = ParagraphsWrapper(word_document.paragraphs)
         catalog_module = cls._parse_baustein(paragraphs)
         return catalog_module
@@ -111,9 +104,7 @@ class GSBausteinParser:
                     gs_verantwortliche=match.group(6),
                 )
             else:
-                raise errors.ValueHttpError(
-                    f"Could not parse requirement title: {text}"
-                )
+                raise ValueHttpError(f"Could not parse requirement title: {text}")
 
     @classmethod
     def _parse_requirements(cls, paragraphs):
@@ -165,7 +156,7 @@ class GSBausteinParser:
                 if match:
                     return CatalogModule(reference=match.group(1), title=match.group(3))
                 else:
-                    raise errors.ValueHttpError(
+                    raise ValueHttpError(
                         f"Could not parse GS baustein title: {paragraphs.current.text}"
                     )
 
@@ -185,33 +176,3 @@ class GSBausteinParser:
             paragraphs
         )
         return catalog_module
-
-
-router = APIRouter()
-
-
-@router.post(
-    "/catalogs/{catalog_id}/catalog-modules/gs-baustein",
-    status_code=201,
-    response_model=CatalogModule,
-)
-def upload_gs_baustein(
-    catalog_id: int,
-    upload_file: UploadFile,
-    temp_file: NamedTemporaryFile = Depends(get_temp_file(".docx")),
-    catalogs: CatalogsView = Depends(),
-    session: Session = Depends(get_session),
-) -> CatalogModule:
-    catalog = catalogs.get_catalog(catalog_id)
-    shutil.copyfileobj(upload_file.file, temp_file.file)
-
-    # Parse GS Baustein and save it and its requirements in the database
-    catalog_module = GSBausteinParser.parse(temp_file.name)
-    if catalog_module is None:
-        raise errors.ValueHttpError("Could not parse GS Baustein")
-
-    # Assign catalog and save catalog module to database
-    catalog_module.catalog = catalog
-    session.add(catalog_module)
-    session.flush()
-    return catalog_module

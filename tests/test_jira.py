@@ -23,7 +23,7 @@ from mvtool.models import (
     JiraProject,
     JiraUser,
 )
-from mvtool.views.jira_ import (
+from mvtool.data.jira_ import (
     JiraBaseView,
     JiraIssueTypesView,
     JiraIssuesView,
