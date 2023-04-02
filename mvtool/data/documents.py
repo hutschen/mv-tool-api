@@ -29,13 +29,13 @@ from ..utils.etag_map import get_from_etag_map
 from ..utils.fallback import fallback
 from ..utils.filtering import filter_for_existence
 from ..utils.iteration import CachedIterable
-from .projects import ProjectsView
+from .projects import Projects
 
 
 class DocumentsView:
     def __init__(
         self,
-        projects: ProjectsView = Depends(ProjectsView),
+        projects: Projects = Depends(Projects),
         session: Session = Depends(get_session),
     ):
         self._projects = projects

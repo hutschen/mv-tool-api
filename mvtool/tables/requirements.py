@@ -32,7 +32,7 @@ from ..handlers.catalog_requirements import (
     get_catalog_requirement_filters,
     get_catalog_requirement_sort,
 )
-from ..handlers.projects import ProjectsView
+from ..handlers.projects import Projects
 from ..handlers.requirements import RequirementsView
 from .catalog_requirements import get_catalog_requirement_columns
 from .common import Column, ColumnGroup
@@ -96,7 +96,7 @@ def download_requirements_excel(
 def upload_requirements_excel(
     fallback_project_id: int | None = None,
     fallback_catalog_module_id: int | None = None,
-    project_view: ProjectsView = Depends(),
+    project_view: Projects = Depends(),
     catalog_modules_view: CatalogModules = Depends(),
     requirements_view: RequirementsView = Depends(),
     columns: ColumnGroup = Depends(get_requirement_columns),

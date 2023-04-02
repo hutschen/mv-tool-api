@@ -27,7 +27,7 @@ from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..handlers.catalog_modules import CatalogModules
 from ..handlers.documents import get_document_filters, get_document_sort
 from ..handlers.measures import MeasuresView
-from ..handlers.projects import ProjectsView
+from ..handlers.projects import Projects
 from ..handlers.requirements import RequirementsView
 from .common import Column, ColumnGroup
 from .documents import get_document_only_columns

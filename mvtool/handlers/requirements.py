@@ -41,7 +41,7 @@ from ..utils.filtering import (
 )
 from ..utils.pagination import Page, page_params
 from .catalog_requirements import CatalogRequirements
-from .projects import ProjectsView
+from .projects import Projects
 
 
 def get_requirement_filters(
@@ -226,7 +226,7 @@ def get_requirements(
 def create_requirement(
     project_id: int,
     requirement_input: RequirementInput,
-    projects_view: ProjectsView = Depends(ProjectsView),
+    projects_view: Projects = Depends(Projects),
     requirements_view: RequirementsView = Depends(RequirementsView),
 ) -> RequirementOutput:
     project = projects_view.get_project(project_id)
@@ -267,7 +267,7 @@ def delete_requirement(
 def import_requirements_from_catalog_modules(
     project_id: int,
     catalog_module_ids: list[int],
-    projects_view: ProjectsView = Depends(ProjectsView),
+    projects_view: Projects = Depends(Projects),
     catalog_requirements_view: CatalogRequirements = Depends(),
     requirements_view: RequirementsView = Depends(RequirementsView),
 ) -> Iterator[Requirement]:

@@ -29,7 +29,7 @@ from ..utils.models import field_is_set
 from .jira_ import JiraProjectsView
 
 
-class ProjectsView:
+class Projects:
     def __init__(
         self,
         jira_projects: JiraProjectsView = Depends(JiraProjectsView),

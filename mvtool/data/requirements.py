@@ -34,13 +34,13 @@ from ..utils.filtering import filter_for_existence
 from ..utils.iteration import CachedIterable
 from ..utils.models import field_is_set
 from .catalog_requirements import CatalogRequirements
-from .projects import ProjectsView
+from .projects import Projects
 
 
 class RequirementsView:
     def __init__(
         self,
-        projects: ProjectsView = Depends(ProjectsView),
+        projects: Projects = Depends(Projects),
         catalog_requirements: CatalogRequirements = Depends(CatalogRequirements),
         session: Session = Depends(get_session),
     ):

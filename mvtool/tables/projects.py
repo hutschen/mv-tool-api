@@ -22,7 +22,7 @@ from sqlmodel import Session
 from ..database import get_session
 from ..models import Project, ProjectImport, ProjectOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
-from ..handlers.projects import ProjectsView, get_project_filters, get_project_sort
+from ..handlers.projects import Projects, get_project_filters, get_project_sort
 from .common import Column, ColumnGroup
 from .handlers import get_export_labels_handler, hide_columns
 from .jira_ import get_jira_project_columns
@@ -66,7 +66,7 @@ router.get(
 
 @router.get("/excel/projects", response_class=FileResponse)
 def download_projects_excel(
-    projects_view: ProjectsView = Depends(),
+    projects_view: Projects = Depends(),
     where_clauses=Depends(get_project_filters),
     sort_clauses=Depends(get_project_sort),
     columns: ColumnGroup = Depends(hide_columns(get_project_columns)),
@@ -82,7 +82,7 @@ def download_projects_excel(
 
 @router.post("/excel/projects", status_code=201, response_model=list[ProjectOutput])
 def upload_projects_excel(
-    projects_view: ProjectsView = Depends(),
+    projects_view: Projects = Depends(),
     columns: ColumnGroup = Depends(get_project_columns),
     temp_file=Depends(copy_upload_to_temp_file),
     skip_blanks: bool = False,  # skip blank cells

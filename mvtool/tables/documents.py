@@ -25,7 +25,7 @@ from ..database import get_session
 from ..models.documents import Document, DocumentImport, DocumentOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..handlers.documents import DocumentsView, get_document_filters, get_document_sort
-from ..handlers.projects import ProjectsView
+from ..handlers.projects import Projects
 from .common import Column, ColumnGroup
 from .handlers import get_export_labels_handler, hide_columns
 from .projects import get_project_columns
@@ -82,7 +82,7 @@ def download_documents_excel(
 @router.post("/excel/documents", status_code=201, response_model=list[DocumentOutput])
 def upload_documents_excel(
     fallback_project_id: int | None = None,
-    projects_view: ProjectsView = Depends(),
+    projects_view: Projects = Depends(),
     documents_view: DocumentsView = Depends(),
     columns: ColumnGroup = Depends(get_document_columns),
     temp_file=Depends(copy_upload_to_temp_file),

@@ -19,10 +19,10 @@ import pytest
 from fastapi import HTTPException
 from jira import JIRAError
 from mvtool.models import Project, ProjectInput, Requirement, Measure
-from mvtool.handlers.projects import ProjectsView
+from mvtool.handlers.projects import Projects
 
 
-def test_list_project(projects_view: ProjectsView, create_project: Project):
+def test_list_project(projects_view: Projects, create_project: Project):
     results = list(projects_view.list_projects())
 
     assert len(results) == 1
@@ -33,7 +33,7 @@ def test_list_project(projects_view: ProjectsView, create_project: Project):
 
 
 def test_create_project_with_jira_project_id(
-    projects_view: ProjectsView, project_input: ProjectInput
+    projects_view: Projects, project_input: ProjectInput
 ):
     assert project_input.jira_project_id is not None
     project = projects_view.create_project(project_input)
@@ -44,7 +44,7 @@ def test_create_project_with_jira_project_id(
 
 
 def test_create_project_without_jira_project_id(
-    projects_view: ProjectsView, project_input: ProjectInput
+    projects_view: Projects, project_input: ProjectInput
 ):
     project_input.jira_project_id = None
     project = projects_view.create_project(project_input)
@@ -55,7 +55,7 @@ def test_create_project_without_jira_project_id(
 
 
 def test_create_project_with_invalid_jira_project_id(
-    projects_view: ProjectsView, project_input: ProjectInput
+    projects_view: Projects, project_input: ProjectInput
 ):
     project_input.jira_project_id = "invalid"
     with pytest.raises(JIRAError) as exception_info:
@@ -63,7 +63,7 @@ def test_create_project_with_invalid_jira_project_id(
         assert exception_info.value.status_code == 404
 
 
-def test_get_project(projects_view: ProjectsView, create_project: Project):
+def test_get_project(projects_view: Projects, create_project: Project):
     assert create_project.jira_project_id is not None
     project = projects_view.get_project(create_project.id)
 
@@ -73,14 +73,14 @@ def test_get_project(projects_view: ProjectsView, create_project: Project):
     assert project.jira_project.id == create_project.jira_project_id
 
 
-def test_get_project_using_an_invalid_id(projects_view: ProjectsView):
+def test_get_project_using_an_invalid_id(projects_view: Projects):
     with pytest.raises(HTTPException) as exception_info:
         projects_view.get_project("invalid")
         assert exception_info.value.status_code == 404
 
 
 def test_update_project(
-    projects_view: ProjectsView, create_project: Project, project_input: ProjectInput
+    projects_view: Projects, create_project: Project, project_input: ProjectInput
 ):
     assert create_project.jira_project_id is not None
     orig_name = project_input.name
@@ -94,7 +94,7 @@ def test_update_project(
 
 
 def test_update_project_with_invalid_jira_project_id(
-    projects_view: ProjectsView, create_project: Project, project_input: ProjectInput
+    projects_view: Projects, create_project: Project, project_input: ProjectInput
 ):
     project_input.jira_project_id = "invalid"
     with pytest.raises(JIRAError) as exception_info:
@@ -102,7 +102,7 @@ def test_update_project_with_invalid_jira_project_id(
         assert exception_info.value.status_code == 404
 
 
-def test_delete_project(projects_view: ProjectsView, create_project: Project):
+def test_delete_project(projects_view: Projects, create_project: Project):
     projects_view.delete_project(create_project)
 
     with pytest.raises(HTTPException) as exception_info:

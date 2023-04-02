@@ -37,7 +37,7 @@ from ..utils.filtering import (
     search_columns,
 )
 from ..utils.pagination import Page, page_params
-from .projects import ProjectsView
+from .projects import Projects
 
 
 def get_document_filters(
@@ -156,7 +156,7 @@ def get_documents(
 def create_document(
     project_id: int,
     document_input: DocumentInput,
-    projects_view: ProjectsView = Depends(),
+    projects_view: Projects = Depends(),
     documents_view: DocumentsView = Depends(),
 ) -> Document:
     project = projects_view.get_project(project_id)
