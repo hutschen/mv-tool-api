@@ -98,7 +98,7 @@ class CatalogModules:
     ) -> list[Any]:
         query = self._modify_catalog_modules_query(
             select([func.distinct(column)]).select_from(CatalogModule),
-            [filter_for_existence(column), *where_clauses],
+            [filter_for_existence(column), *(where_clauses or [])],
             offset=offset,
             limit=limit,
         )
@@ -109,7 +109,7 @@ class CatalogModules:
     ) -> int:
         query = self._modify_catalog_modules_query(
             select([func.count(func.distinct(column))]).select_from(CatalogModule),
-            [filter_for_existence(column), *where_clauses],
+            [filter_for_existence(column), *(where_clauses or [])],
         )
         return self._session.execute(query).scalar()
 
