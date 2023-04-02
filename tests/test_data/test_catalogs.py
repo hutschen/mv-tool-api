@@ -163,7 +163,7 @@ def test_create_catalog_from_catalog_input(catalogs: Catalogs):
     assert catalog.title == catalog_input.title
 
 
-def test_create_catalog_from_catalog_import(session: Session, catalogs: Catalogs):
+def test_create_catalog_from_catalog_import(catalogs: Catalogs):
     # Test creating a catalog with CatalogImport
     catalog_import = CatalogImport(id=-1, reference="banana", title="banana_title")
     catalog = catalogs.create_catalog(catalog_import)
@@ -225,12 +225,15 @@ def test_update_catalog_from_catalog_import(catalogs: Catalogs):
     catalog = catalogs.create_catalog(catalog_input)
 
     # Test updating the catalog with CatalogImport
-    new_catalog_import = CatalogImport(reference="new", title="new_title")
+    new_catalog_import = CatalogImport(id=-1, reference="new", title="new_title")
     catalogs.update_catalog(catalog, new_catalog_import)
 
     # Check if the catalog is updated with the correct data
     assert catalog.reference == new_catalog_import.reference
     assert catalog.title == new_catalog_import.title
+
+    # Check if ignored fields are not changed
+    assert catalog.id != new_catalog_import.id
 
 
 def test_update_catalog_skip_flush(catalogs: Catalogs):
