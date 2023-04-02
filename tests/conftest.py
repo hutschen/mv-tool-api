@@ -41,7 +41,7 @@ from mvtool.models import (
 )
 from mvtool.utils.temp_file import get_temp_file
 from mvtool.handlers.catalog_modules import CatalogModules
-from mvtool.handlers.catalog_requirements import CatalogRequirementsView
+from mvtool.handlers.catalog_requirements import CatalogRequirements
 from mvtool.handlers.catalogs import Catalogs
 from mvtool.handlers.documents import DocumentsView
 from mvtool.handlers.jira_ import JiraIssuesView, JiraProjectsView
@@ -290,7 +290,7 @@ def create_project(projects_view: ProjectsView, project_input: ProjectInput):
 @pytest.fixture
 def requirements_view(
     projects_view: ProjectsView,
-    catalog_requirements_view: CatalogRequirementsView,
+    catalog_requirements_view: CatalogRequirements,
     crud,
 ):
     return Mock(
@@ -309,12 +309,12 @@ def create_requirement(
 
 @pytest.fixture
 def catalog_requirements_view(catalog_modules_view: CatalogModules, crud):
-    return Mock(wraps=CatalogRequirementsView(catalog_modules_view, crud.session))
+    return Mock(wraps=CatalogRequirements(catalog_modules_view, crud.session))
 
 
 @pytest.fixture
 def create_catalog_requirement(
-    catalog_requirements_view: CatalogRequirementsView,
+    catalog_requirements_view: CatalogRequirements,
     create_catalog_module: CatalogModule,
     catalog_requirement_input: CatalogRequirementInput,
 ):

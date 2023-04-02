@@ -40,7 +40,7 @@ from ..utils.filtering import (
     search_columns,
 )
 from ..utils.pagination import Page, page_params
-from .catalog_requirements import CatalogRequirementsView
+from .catalog_requirements import CatalogRequirements
 from .projects import ProjectsView
 
 
@@ -268,7 +268,7 @@ def import_requirements_from_catalog_modules(
     project_id: int,
     catalog_module_ids: list[int],
     projects_view: ProjectsView = Depends(ProjectsView),
-    catalog_requirements_view: CatalogRequirementsView = Depends(),
+    catalog_requirements_view: CatalogRequirements = Depends(),
     requirements_view: RequirementsView = Depends(RequirementsView),
 ) -> Iterator[Requirement]:
     project = projects_view.get_project(project_id)

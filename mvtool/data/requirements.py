@@ -33,7 +33,7 @@ from ..utils.fallback import fallback
 from ..utils.filtering import filter_for_existence
 from ..utils.iteration import CachedIterable
 from ..utils.models import field_is_set
-from .catalog_requirements import CatalogRequirementsView
+from .catalog_requirements import CatalogRequirements
 from .projects import ProjectsView
 
 
@@ -41,9 +41,7 @@ class RequirementsView:
     def __init__(
         self,
         projects: ProjectsView = Depends(ProjectsView),
-        catalog_requirements: CatalogRequirementsView = Depends(
-            CatalogRequirementsView
-        ),
+        catalog_requirements: CatalogRequirements = Depends(CatalogRequirements),
         session: Session = Depends(get_session),
     ):
         self._projects = projects

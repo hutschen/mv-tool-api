@@ -31,7 +31,7 @@ from ..models.catalog_requirements import (
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..handlers.catalog_modules import CatalogModules
 from ..handlers.catalog_requirements import (
-    CatalogRequirementsView,
+    CatalogRequirements,
     get_catalog_requirement_filters,
     get_catalog_requirement_sort,
 )
@@ -72,7 +72,7 @@ router.get(
 
 @router.get("/excel/catalog-requirements", response_class=FileResponse)
 def download_catalog_requirements_excel(
-    catalog_requirements_view: CatalogRequirementsView = Depends(),
+    catalog_requirements_view: CatalogRequirements = Depends(),
     where_clauses=Depends(get_catalog_requirement_filters),
     sort_clauses=Depends(get_catalog_requirement_sort),
     columns: ColumnGroup = Depends(hide_columns(get_catalog_requirement_columns)),
@@ -96,7 +96,7 @@ def download_catalog_requirements_excel(
 def upload_catalog_requirements_excel(
     fallback_catalog_module_id: int | None = None,
     catalog_modules_view: CatalogModules = Depends(),
-    catalog_requirements_view: CatalogRequirementsView = Depends(),
+    catalog_requirements_view: CatalogRequirements = Depends(),
     columns: ColumnGroup = Depends(get_catalog_requirement_columns),
     temp_file: NamedTemporaryFile = Depends(copy_upload_to_temp_file),
     skip_blanks: bool = False,  # skip blank cells

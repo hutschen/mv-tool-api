@@ -18,11 +18,11 @@
 from fastapi import HTTPException
 import pytest
 from mvtool.models import CatalogModule, CatalogRequirement, CatalogRequirementInput
-from mvtool.handlers.catalog_requirements import CatalogRequirementsView
+from mvtool.handlers.catalog_requirements import CatalogRequirements
 
 
 def test_list_catalog_requirements(
-    catalog_requirements_view: CatalogRequirementsView,
+    catalog_requirements_view: CatalogRequirements,
     create_catalog_requirement: CatalogRequirement,
 ):
     results = catalog_requirements_view.list_catalog_requirements()
@@ -34,7 +34,7 @@ def test_list_catalog_requirements(
 
 
 def test_list_catalog_requirements_with_invalid_catalog_module_id(
-    catalog_requirements_view: CatalogRequirementsView,
+    catalog_requirements_view: CatalogRequirements,
 ):
     results = catalog_requirements_view.list_catalog_requirements(
         [CatalogRequirement.id == -1]
@@ -43,7 +43,7 @@ def test_list_catalog_requirements_with_invalid_catalog_module_id(
 
 
 def test_create_catalog_requirement(
-    catalog_requirements_view: CatalogRequirementsView,
+    catalog_requirements_view: CatalogRequirements,
     create_catalog_module: CatalogModule,
     catalog_requirement_input: CatalogRequirementInput,
 ):
@@ -57,7 +57,7 @@ def test_create_catalog_requirement(
 
 
 def test_get_catalog_requirement(
-    catalog_requirements_view: CatalogRequirementsView,
+    catalog_requirements_view: CatalogRequirements,
     create_catalog_module: CatalogModule,
     create_catalog_requirement: CatalogRequirement,
 ):
@@ -71,14 +71,14 @@ def test_get_catalog_requirement(
 
 
 def test_get_catalog_requirement_with_invalid_catalog_requirement_id(
-    catalog_requirements_view: CatalogRequirementsView,
+    catalog_requirements_view: CatalogRequirements,
 ):
     with pytest.raises(HTTPException):
         catalog_requirements_view.get_catalog_requirement(-1)
 
 
 def test_update_catalog_requirement(
-    catalog_requirements_view: CatalogRequirementsView,
+    catalog_requirements_view: CatalogRequirements,
     create_catalog_requirement: CatalogRequirement,
     catalog_requirement_input: CatalogRequirementInput,
 ):
@@ -96,7 +96,7 @@ def test_update_catalog_requirement(
 
 
 def test_delete_catalog_requirement(
-    catalog_requirements_view: CatalogRequirementsView,
+    catalog_requirements_view: CatalogRequirements,
     create_catalog_requirement: CatalogRequirement,
 ):
     catalog_requirements_view.delete_catalog_requirement(create_catalog_requirement)

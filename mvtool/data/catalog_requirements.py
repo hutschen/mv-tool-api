@@ -36,7 +36,7 @@ from ..utils.iteration import CachedIterable
 from .catalog_modules import CatalogModules
 
 
-class CatalogRequirementsView:
+class CatalogRequirements:
     def __init__(
         self,
         catalog_modules: CatalogModules = Depends(CatalogModules),
