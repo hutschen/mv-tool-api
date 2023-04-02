@@ -18,11 +18,20 @@
 
 from unittest.mock import Mock
 
+import jira
 import pytest
 from jira import JIRAError
 
 from mvtool import database
 from mvtool.config import Config, DatabaseConfig, JiraConfig
+from mvtool.handlers.catalog_modules import CatalogModules
+from mvtool.handlers.catalog_requirements import CatalogRequirements
+from mvtool.handlers.catalogs import Catalogs
+from mvtool.handlers.documents import DocumentsView
+from mvtool.handlers.jira_ import JiraIssues, JiraProjects
+from mvtool.handlers.measures import MeasuresView
+from mvtool.handlers.projects import Projects
+from mvtool.handlers.requirements import RequirementsView
 from mvtool.models import (
     Catalog,
     CatalogInput,
@@ -39,15 +48,8 @@ from mvtool.models import (
     Requirement,
     RequirementInput,
 )
+from mvtool.models.jira_ import JiraProject
 from mvtool.utils.temp_file import get_temp_file
-from mvtool.handlers.catalog_modules import CatalogModules
-from mvtool.handlers.catalog_requirements import CatalogRequirements
-from mvtool.handlers.catalogs import Catalogs
-from mvtool.handlers.documents import DocumentsView
-from mvtool.handlers.jira_ import JiraIssues, JiraProjects
-from mvtool.handlers.measures import MeasuresView
-from mvtool.handlers.projects import Projects
-from mvtool.handlers.requirements import RequirementsView
 
 
 @pytest.fixture
@@ -133,6 +135,17 @@ def jira_issue_status(jira_issue_data):
         name=jira_issue_data.fields.status.name,
         color_name=jira_issue_data.fields.status.statusCategory.colorName,
         completed=False,
+    )
+
+
+@pytest.fixture
+def jira_project(jira_project_data: jira.Project):
+    """Mocks JIRA project."""
+    return JiraProject(
+        id=jira_project_data.id,
+        name=jira_project_data.name,
+        key=jira_project_data.key,
+        url=f"http://jira-server-url/browse/{jira_project_data.key}",
     )
 
 
