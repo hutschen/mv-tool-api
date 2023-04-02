@@ -19,7 +19,9 @@ import pytest
 from sqlmodel import Session
 
 from mvtool import database
+from mvtool.data.catalog_modules import CatalogModules
 from mvtool.data.catalogs import Catalogs
+from mvtool.models.catalogs import CatalogInput
 
 
 @pytest.fixture
@@ -37,3 +39,14 @@ def session(config) -> Session:
 @pytest.fixture
 def catalogs(session: Session):
     return Catalogs(session, None)
+
+
+@pytest.fixture
+def catalog_modules(session: Session, catalogs: Catalogs):
+    return CatalogModules(catalogs, session)
+
+
+@pytest.fixture
+def catalog(catalogs: Catalogs):
+    catalog_input = CatalogInput(reference="ref", title="title")
+    return catalogs.create_catalog(catalog_input)
