@@ -20,7 +20,9 @@ from sqlmodel import Session
 
 from mvtool import database
 from mvtool.data.catalog_modules import CatalogModules
+from mvtool.data.catalog_requirements import CatalogRequirements
 from mvtool.data.catalogs import Catalogs
+from mvtool.models.catalog_modules import CatalogModuleInput
 from mvtool.models.catalogs import CatalogInput
 
 
@@ -47,6 +49,17 @@ def catalog_modules(session: Session, catalogs: Catalogs):
 
 
 @pytest.fixture
+def catalog_requirements(session: Session, catalog_modules: CatalogModules):
+    return CatalogRequirements(catalog_modules, session)
+
+
+@pytest.fixture
 def catalog(catalogs: Catalogs):
     catalog_input = CatalogInput(reference="ref", title="title")
     return catalogs.create_catalog(catalog_input)
+
+
+@pytest.fixture
+def catalog_module(catalog_modules: CatalogModules, catalog):
+    catalog_module_input = CatalogModuleInput(reference="ref", title="title")
+    return catalog_modules.create_catalog_module(catalog, catalog_module_input)
