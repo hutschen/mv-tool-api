@@ -36,14 +36,14 @@ from ..utils.filtering import filter_for_existence
 from ..utils.iteration import CachedIterable
 from ..utils.models import field_is_set
 from ..handlers.documents import DocumentsView
-from ..handlers.jira_ import JiraIssuesView
+from ..handlers.jira_ import JiraIssues
 from .requirements import RequirementsView
 
 
 class MeasuresView:
     def __init__(
         self,
-        jira_issues: JiraIssuesView = Depends(JiraIssuesView),
+        jira_issues: JiraIssues = Depends(JiraIssues),
         requirements: RequirementsView = Depends(RequirementsView),
         documents: DocumentsView = Depends(DocumentsView),
         session: Session = Depends(get_session),

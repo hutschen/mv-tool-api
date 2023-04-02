@@ -32,7 +32,7 @@ from ..models import (
 )
 
 
-class JiraBaseView:
+class JiraBase:
     def __init__(self, jira: JIRA = Depends(get_jira)):
         self.jira = jira
 
@@ -41,7 +41,7 @@ class JiraBaseView:
         return f"{self.jira.server_url}/browse/{item_key}"
 
 
-class JiraUserView(JiraBaseView):
+class JiraUsers(JiraBase):
     def get_jira_user(self):
         myself_data = self.jira.myself()
         return JiraUser(
@@ -50,7 +50,7 @@ class JiraUserView(JiraBaseView):
         )
 
 
-class JiraProjectsView(JiraBaseView):
+class JiraProjects(JiraBase):
     def __init__(self, jira: JIRA = Depends(get_jira)):
         super().__init__(jira)
         self._jira_projects_cache = {}
@@ -110,13 +110,13 @@ class JiraProjectsView(JiraBaseView):
                     raise error
 
 
-class JiraIssueTypesView(JiraBaseView):
+class JiraIssueTypes(JiraBase):
     def list_jira_issue_types(self, jira_project_id: str):
         for issue_type_data in self.jira.project(jira_project_id).issueTypes:
             yield JiraIssueType.from_orm(issue_type_data)
 
 
-class JiraIssuesView(JiraBaseView):
+class JiraIssues(JiraBase):
     def __init__(self, jira: JIRA = Depends(get_jira)):
         super().__init__(jira)
         self._jira_issues_cache = {}

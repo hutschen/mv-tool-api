@@ -44,7 +44,7 @@ from mvtool.handlers.catalog_modules import CatalogModules
 from mvtool.handlers.catalog_requirements import CatalogRequirements
 from mvtool.handlers.catalogs import Catalogs
 from mvtool.handlers.documents import DocumentsView
-from mvtool.handlers.jira_ import JiraIssuesView, JiraProjectsView
+from mvtool.handlers.jira_ import JiraIssues, JiraProjects
 from mvtool.handlers.measures import MeasuresView
 from mvtool.handlers.projects import Projects
 from mvtool.handlers.requirements import RequirementsView
@@ -190,12 +190,12 @@ def jira(config, jira_user_data, jira_project_data, jira_issue_data):
 
 @pytest.fixture
 def jira_projects_view(jira):
-    return Mock(wraps=JiraProjectsView(jira))
+    return Mock(wraps=JiraProjects(jira))
 
 
 @pytest.fixture
 def jira_issues_view(jira):
-    return Mock(wraps=JiraIssuesView(jira))
+    return Mock(wraps=JiraIssues(jira))
 
 
 @pytest.fixture

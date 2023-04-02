@@ -44,7 +44,7 @@ from ..utils.filtering import (
     search_columns,
 )
 from ..utils.pagination import Page, page_params
-from ..handlers.jira_ import JiraIssuesView, JiraProjectsView
+from ..handlers.jira_ import JiraIssues, JiraProjects
 from .requirements import RequirementsView
 
 
@@ -377,8 +377,8 @@ def create_and_link_jira_issue_to_measure(
     measure_id: int,
     jira_issue_input: JiraIssueInput,
     measures_view: MeasuresView = Depends(),
-    jira_issues_view: JiraIssuesView = Depends(),
-    jira_projects_view: JiraProjectsView = Depends(),
+    jira_issues_view: JiraIssues = Depends(),
+    jira_projects_view: JiraProjects = Depends(),
 ) -> JiraIssue:
     measure = measures_view.get_measure(measure_id)
 

@@ -27,7 +27,7 @@ from mvtool.models import (
     Project,
     Requirement,
 )
-from mvtool.handlers.jira_ import JiraIssuesView, JiraProjectsView
+from mvtool.handlers.jira_ import JiraIssues, JiraProjects
 from mvtool.handlers.measures import MeasuresView, create_and_link_jira_issue_to_measure
 
 
@@ -234,8 +234,8 @@ def test_delete_measure(measures_view: MeasuresView, create_measure: Measure):
 
 def test_create_and_link_jira_issue(
     measures_view: MeasuresView,
-    jira_issues_view: JiraIssuesView,
-    jira_projects_view: JiraProjectsView,
+    jira_issues_view: JiraIssues,
+    jira_projects_view: JiraProjects,
     create_measure: Measure,
     jira_issue_input: JiraIssueInput,
 ):
@@ -252,8 +252,8 @@ def test_create_and_link_jira_issue(
 
 def test_create_and_link_jira_issue_jira_project_not_set(
     measures_view: MeasuresView,
-    jira_issues_view: JiraIssuesView,
-    jira_projects_view: JiraProjectsView,
+    jira_issues_view: JiraIssues,
+    jira_projects_view: JiraProjects,
     create_measure: Measure,
     jira_issue_input: JiraIssueInput,
 ):
