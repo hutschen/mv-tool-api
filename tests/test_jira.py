@@ -121,6 +121,11 @@ def test_try_to_get_jira_project_succeeds(jira, jira_project_data):
     assert result.id == jira_project_data.id
 
 
+def test_try_to_get_jira_project_gets_none(jira):
+    result = JiraProjects(jira).try_to_get_jira_project(None)
+    assert result is None
+
+
 def test_list_jira_issue_types(jira, jira_project_data, jira_issue_type_data):
     jira.project.return_value = jira_project_data
     results = list(JiraIssueTypes(jira).list_jira_issue_types(jira_project_data.id))
@@ -248,6 +253,11 @@ def test_try_to_get_jira_issue_succeeds(jira, jira_issue_data):
     assert result.id == jira_issue_data.id
     assert isinstance(result, JiraIssue)
     jira.issue.assert_called_once_with(jira_issue_data.id)
+
+
+def test_try_to_get_jira_issue_gets_none(jira):
+    result = JiraIssues(jira).try_to_get_jira_issue(None)
+    assert result is None
 
 
 def test_update_jira_issue(jira, jira_issue_data, jira_issue_input):

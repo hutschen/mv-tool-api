@@ -69,9 +69,8 @@ def jira_issue_type_data():
     """Mocks response data from JIRA API for issue type."""
 
     class JiraIssueTypeMock:
-        def __init__(self):
-            self.id = "1"
-            self.name = "name"
+        id = "1"
+        name = "name"
 
     return JiraIssueTypeMock()
 
@@ -81,11 +80,10 @@ def jira_project_data(jira_issue_type_data):
     """Mocks response data from JIRA API for project."""
 
     class JiraProjectMock:
-        def __init__(self):
-            self.id = "1"
-            self.name = "name"
-            self.key = "key"
-            self.issueTypes = [jira_issue_type_data]
+        id = "1"
+        name = "name"
+        key = "key"
+        issueTypes = [jira_issue_type_data]
 
     return JiraProjectMock()
 
@@ -173,10 +171,10 @@ def jira(config, jira_user_data, jira_project_data, jira_issue_data):
             else:
                 raise JIRAError("Project not found", 404)
 
-        def search_issues(*args, **kwargs):
+        def search_issues(*args, **_):
             return [jira_issue_data]
 
-        def create_issue(*args, **kwargs):
+        def create_issue(*args, **_):
             return jira_issue_data
 
         def issue(self, id):
