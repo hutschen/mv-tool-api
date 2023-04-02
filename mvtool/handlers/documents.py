@@ -22,7 +22,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import constr
 from sqlmodel import Column, or_
 
-from ..data.documents import DocumentsView
+from ..data.documents import Documents
 from ..models.documents import (
     Document,
     DocumentInput,
@@ -138,7 +138,7 @@ def get_documents(
     where_clauses=Depends(get_document_filters),
     order_by_clauses=Depends(get_document_sort),
     page_params=Depends(page_params),
-    documents_view: DocumentsView = Depends(),
+    documents_view: Documents = Depends(),
 ):
     documents = documents_view.list_documents(
         where_clauses, order_by_clauses, **page_params
@@ -157,16 +157,14 @@ def create_document(
     project_id: int,
     document_input: DocumentInput,
     projects_view: Projects = Depends(),
-    documents_view: DocumentsView = Depends(),
+    documents_view: Documents = Depends(),
 ) -> Document:
     project = projects_view.get_project(project_id)
     return documents_view.create_document(project, document_input)
 
 
 @router.get("/documents/{document_id}", response_model=DocumentOutput)
-def get_document(
-    document_id: int, documents_view: DocumentsView = Depends()
-) -> Document:
+def get_document(document_id: int, documents_view: Documents = Depends()) -> Document:
     return documents_view.get_document(document_id)
 
 
@@ -174,7 +172,7 @@ def get_document(
 def update_document(
     document_id: int,
     document_input: DocumentInput,
-    documents_view: DocumentsView = Depends(),
+    documents_view: Documents = Depends(),
 ) -> Document:
     document = documents_view.get_document(document_id)
     documents_view.update_document(document, document_input)
@@ -182,9 +180,7 @@ def update_document(
 
 
 @router.delete("/documents/{document_id}", status_code=204, response_class=Response)
-def delete_document(
-    document_id: int, documents_view: DocumentsView = Depends()
-) -> None:
+def delete_document(document_id: int, documents_view: Documents = Depends()) -> None:
     document = documents_view.get_document(document_id)
     documents_view.delete_document(document)
 
@@ -198,7 +194,7 @@ def get_document_representations(
     local_search: str | None = None,
     order_by_clauses=Depends(get_document_sort),
     page_params=Depends(page_params),
-    documents_view: DocumentsView = Depends(),
+    documents_view: Documents = Depends(),
 ):
     if local_search:
         where_clauses.append(
@@ -220,7 +216,7 @@ def get_document_representations(
 @router.get("/document/field-names", response_model=list[str])
 def get_document_field_names(
     where_clauses=Depends(get_document_filters),
-    document_view: DocumentsView = Depends(),
+    document_view: Documents = Depends(),
 ) -> set[str]:
     field_names = {"id", "title", "project"}
     for field, names in [
@@ -239,7 +235,7 @@ def get_document_references(
     where_clauses: list[Any] = Depends(get_document_filters),
     local_search: str | None = None,
     page_params=Depends(page_params),
-    document_view: DocumentsView = Depends(),
+    document_view: Documents = Depends(),
 ):
     if local_search:
         where_clauses.append(search_columns(local_search, Document.reference))

@@ -27,7 +27,7 @@ from mvtool.config import Config, DatabaseConfig, JiraConfig
 from mvtool.handlers.catalog_modules import CatalogModules
 from mvtool.handlers.catalog_requirements import CatalogRequirements
 from mvtool.handlers.catalogs import Catalogs
-from mvtool.handlers.documents import DocumentsView
+from mvtool.handlers.documents import Documents
 from mvtool.handlers.jira_ import JiraIssues, JiraProjects
 from mvtool.handlers.measures import MeasuresView
 from mvtool.handlers.projects import Projects
@@ -336,12 +336,12 @@ def create_catalog_requirement(
 
 @pytest.fixture
 def documents_view(projects_view, crud):
-    return Mock(wraps=DocumentsView(projects_view, crud.session))
+    return Mock(wraps=Documents(projects_view, crud.session))
 
 
 @pytest.fixture
 def create_document(
-    documents_view: DocumentsView,
+    documents_view: Documents,
     create_project: Project,
     document_input: DocumentInput,
 ):

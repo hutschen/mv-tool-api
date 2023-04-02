@@ -32,7 +32,7 @@ from ..utils.iteration import CachedIterable
 from .projects import Projects
 
 
-class DocumentsView:
+class Documents:
     def __init__(
         self,
         projects: Projects = Depends(Projects),

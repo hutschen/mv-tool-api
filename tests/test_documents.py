@@ -18,11 +18,11 @@
 from fastapi import HTTPException
 import pytest
 from mvtool.models import Document, DocumentInput, Project
-from mvtool.handlers.documents import DocumentsView
+from mvtool.handlers.documents import Documents
 
 
 def test_list_document(
-    documents_view: DocumentsView, create_project: Project, create_document: Document
+    documents_view: Documents, create_project: Project, create_document: Document
 ):
     results = list(documents_view.list_documents())
 
@@ -35,7 +35,7 @@ def test_list_document(
 
 
 def test_create_document(
-    documents_view: DocumentsView,
+    documents_view: Documents,
     create_project: Project,
     document_input: DocumentInput,
 ):
@@ -47,7 +47,7 @@ def test_create_document(
     assert document.project.jira_project.id == create_project.jira_project_id
 
 
-def test_get_document(documents_view: DocumentsView, create_document: Document):
+def test_get_document(documents_view: Documents, create_document: Document):
     document = documents_view.get_document(create_document.id)
 
     assert isinstance(document, Document)
@@ -56,14 +56,14 @@ def test_get_document(documents_view: DocumentsView, create_document: Document):
     assert document.project.jira_project.id == create_document.project.jira_project_id
 
 
-def test_get_document_with_invalid_id(documents_view: DocumentsView):
+def test_get_document_with_invalid_id(documents_view: Documents):
     with pytest.raises(HTTPException) as excinfo:
         documents_view.get_document(-1)
     assert excinfo.value.status_code == 404
 
 
 def test_update_document(
-    documents_view: DocumentsView,
+    documents_view: Documents,
     create_document: Document,
     document_input: DocumentInput,
 ):
@@ -83,7 +83,7 @@ def test_update_document(
     assert create_document.project.jira_project is orig_jira_project
 
 
-def test_delete_document(documents_view: DocumentsView, create_document: Document):
+def test_delete_document(documents_view: Documents, create_document: Document):
     documents_view.delete_document(create_document)
     with pytest.raises(HTTPException) as excinfo:
         documents_view.get_document(create_document.id)
