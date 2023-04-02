@@ -187,12 +187,12 @@ def jira(config, jira_user_data, jira_project_data, jira_issue_data):
 
 
 @pytest.fixture
-def jira_projects_view(jira):
+def jira_projects(jira):
     return Mock(wraps=JiraProjects(jira))
 
 
 @pytest.fixture
-def jira_issues_view(jira):
+def jira_issues(jira):
     return Mock(wraps=JiraIssues(jira))
 
 
@@ -276,8 +276,8 @@ def create_catalog_module(
 
 
 @pytest.fixture
-def projects_view(jira_projects_view, crud):
-    return Mock(wraps=Projects(jira_projects_view, crud.session))
+def projects_view(jira_projects, crud):
+    return Mock(wraps=Projects(jira_projects, crud.session))
 
 
 @pytest.fixture
@@ -336,11 +336,9 @@ def create_document(
 
 
 @pytest.fixture
-def measures_view(jira_issues_view, requirements_view, documents_view, crud):
+def measures_view(jira_issues, requirements_view, documents_view, crud):
     return Mock(
-        wraps=MeasuresView(
-            jira_issues_view, requirements_view, documents_view, crud.session
-        )
+        wraps=MeasuresView(jira_issues, requirements_view, documents_view, crud.session)
     )
 
 

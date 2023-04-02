@@ -234,8 +234,8 @@ def test_delete_measure(measures_view: MeasuresView, create_measure: Measure):
 
 def test_create_and_link_jira_issue(
     measures_view: MeasuresView,
-    jira_issues_view: JiraIssues,
-    jira_projects_view: JiraProjects,
+    jira_issues: JiraIssues,
+    jira_projects: JiraProjects,
     create_measure: Measure,
     jira_issue_input: JiraIssueInput,
 ):
@@ -244,16 +244,16 @@ def test_create_and_link_jira_issue(
         create_measure.id,
         jira_issue_input,
         measures_view,
-        jira_issues_view,
-        jira_projects_view,
+        jira_issues,
+        jira_projects,
     )
     assert create_measure.jira_issue_id == jira_issue.id
 
 
 def test_create_and_link_jira_issue_jira_project_not_set(
     measures_view: MeasuresView,
-    jira_issues_view: JiraIssues,
-    jira_projects_view: JiraProjects,
+    jira_issues: JiraIssues,
+    jira_projects: JiraProjects,
     create_measure: Measure,
     jira_issue_input: JiraIssueInput,
 ):
@@ -264,8 +264,8 @@ def test_create_and_link_jira_issue_jira_project_not_set(
             create_measure.id,
             jira_issue_input,
             measures_view,
-            jira_issues_view,
-            jira_projects_view,
+            jira_issues,
+            jira_projects,
         )
     assert excinfo.value.status_code == 400
 

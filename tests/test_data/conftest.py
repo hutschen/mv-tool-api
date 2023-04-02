@@ -22,6 +22,7 @@ from mvtool import database
 from mvtool.data.catalog_modules import CatalogModules
 from mvtool.data.catalog_requirements import CatalogRequirements
 from mvtool.data.catalogs import Catalogs
+from mvtool.data.projects import Projects
 from mvtool.models.catalog_modules import CatalogModuleInput
 from mvtool.models.catalogs import CatalogInput
 
@@ -51,6 +52,11 @@ def catalog_modules(session: Session, catalogs: Catalogs):
 @pytest.fixture
 def catalog_requirements(session: Session, catalog_modules: CatalogModules):
     return CatalogRequirements(catalog_modules, session)
+
+
+@pytest.fixture
+def projects(session: Session, jira_projects):
+    return Projects(jira_projects, session)
 
 
 @pytest.fixture
