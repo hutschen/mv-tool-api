@@ -46,7 +46,7 @@ def test_modify_catalog_modules_query_where_clause(
     query = catalog_modules._modify_catalog_modules_query(
         select(CatalogModule), where_clauses
     )
-    results = session.exec(query).all()
+    results: list[CatalogModule] = session.exec(query).all()
     assert len(results) == 1
     assert results[0].reference == "banana"
 

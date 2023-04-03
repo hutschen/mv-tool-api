@@ -97,7 +97,7 @@ def test_check_jira_project_id_succeeds(jira, jira_project_data):
     jira.project.assert_called_once_with(jira_project_data.id)
 
 
-def test_check_jira_project_id_gets_none(jira):
+def test_check_jira_project_id_none(jira):
     JiraProjects(jira).check_jira_project_id(None)
     jira.project.assert_not_called()
 
