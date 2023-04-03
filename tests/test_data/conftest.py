@@ -22,9 +22,13 @@ from mvtool import database
 from mvtool.data.catalog_modules import CatalogModules
 from mvtool.data.catalog_requirements import CatalogRequirements
 from mvtool.data.catalogs import Catalogs
+from mvtool.data.documents import Documents
+from mvtool.data.jira_ import JiraProjects
 from mvtool.data.projects import Projects
 from mvtool.models.catalog_modules import CatalogModuleInput
 from mvtool.models.catalogs import CatalogInput
+from mvtool.models.jira_ import JiraProject
+from mvtool.models.projects import ProjectInput
 
 
 @pytest.fixture
@@ -55,8 +59,13 @@ def catalog_requirements(session: Session, catalog_modules: CatalogModules):
 
 
 @pytest.fixture
-def projects(session: Session, jira_projects):
+def projects(session: Session, jira_projects: JiraProjects):
     return Projects(jira_projects, session)
+
+
+@pytest.fixture
+def documents(session: Session, projects: Projects):
+    return Documents(projects, session)
 
 
 @pytest.fixture
@@ -69,3 +78,9 @@ def catalog(catalogs: Catalogs):
 def catalog_module(catalog_modules: CatalogModules, catalog):
     catalog_module_input = CatalogModuleInput(reference="ref", title="title")
     return catalog_modules.create_catalog_module(catalog, catalog_module_input)
+
+
+@pytest.fixture
+def project(projects: Projects, jira_project: JiraProject):
+    project_input = ProjectInput(name="name", jira_project_id=jira_project.id)
+    return projects.create_project(project_input)
