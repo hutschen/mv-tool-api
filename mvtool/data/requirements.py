@@ -111,7 +111,7 @@ class Requirements:
     ) -> list[Any]:
         query = self._modify_requirements_query(
             select([func.distinct(column)]).select_from(Requirement),
-            [filter_for_existence(column), *where_clauses],
+            [filter_for_existence(column), *(where_clauses or [])],
             offset=offset,
             limit=limit,
         )
@@ -122,7 +122,7 @@ class Requirements:
     ) -> int:
         query = self._modify_requirements_query(
             select([func.count(func.distinct(column))]).select_from(Requirement),
-            [filter_for_existence(column), *where_clauses],
+            [filter_for_existence(column), *(where_clauses or [])],
         )
         return self._session.execute(query).scalar()
 
