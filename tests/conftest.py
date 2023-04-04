@@ -31,7 +31,7 @@ from mvtool.handlers.documents import Documents
 from mvtool.handlers.jira_ import JiraIssues, JiraProjects
 from mvtool.handlers.measures import MeasuresView
 from mvtool.handlers.projects import Projects
-from mvtool.handlers.requirements import RequirementsView
+from mvtool.handlers.requirements import Requirements
 from mvtool.models import (
     Catalog,
     CatalogInput,
@@ -305,13 +305,13 @@ def requirements_view(
     crud,
 ):
     return Mock(
-        wraps=RequirementsView(projects_view, catalog_requirements_view, crud.session)
+        wraps=Requirements(projects_view, catalog_requirements_view, crud.session)
     )
 
 
 @pytest.fixture
 def create_requirement(
-    requirements_view: RequirementsView,
+    requirements_view: Requirements,
     create_project: Project,
     requirement_input: RequirementInput,
 ):

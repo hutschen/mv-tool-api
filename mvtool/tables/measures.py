@@ -28,7 +28,7 @@ from ..handlers.catalog_modules import CatalogModules
 from ..handlers.documents import get_document_filters, get_document_sort
 from ..handlers.measures import MeasuresView
 from ..handlers.projects import Projects
-from ..handlers.requirements import RequirementsView
+from ..handlers.requirements import Requirements
 from .common import Column, ColumnGroup
 from .documents import get_document_only_columns
 from .handlers import get_export_labels_handler, hide_columns
@@ -96,7 +96,7 @@ def upload_measures_excel(
     fallback_requirement_id: int | None = None,
     fallback_catalog_module_id: int | None = None,
     measures_view: MeasuresView = Depends(),
-    requirements_view: RequirementsView = Depends(),
+    requirements_view: Requirements = Depends(),
     catalog_modules_view: CatalogModules = Depends(),
     columns: ColumnGroup = Depends(get_measure_columns),
     temp_file=Depends(copy_upload_to_temp_file),

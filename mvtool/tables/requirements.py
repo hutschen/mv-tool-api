@@ -33,7 +33,7 @@ from ..handlers.catalog_requirements import (
     get_catalog_requirement_sort,
 )
 from ..handlers.projects import Projects
-from ..handlers.requirements import RequirementsView
+from ..handlers.requirements import Requirements
 from .catalog_requirements import get_catalog_requirement_columns
 from .common import Column, ColumnGroup
 from .handlers import get_export_labels_handler, hide_columns
@@ -76,7 +76,7 @@ router.get(
 
 @router.get("/excel/requirements", response_class=FileResponse)
 def download_requirements_excel(
-    requirements_view: RequirementsView = Depends(),
+    requirements_view: Requirements = Depends(),
     where_clauses=Depends(get_catalog_requirement_filters),
     sort_clauses=Depends(get_catalog_requirement_sort),
     columns: ColumnGroup = Depends(hide_columns(get_requirement_columns)),
@@ -98,7 +98,7 @@ def upload_requirements_excel(
     fallback_catalog_module_id: int | None = None,
     project_view: Projects = Depends(),
     catalog_modules_view: CatalogModules = Depends(),
-    requirements_view: RequirementsView = Depends(),
+    requirements_view: Requirements = Depends(),
     columns: ColumnGroup = Depends(get_requirement_columns),
     temp_file=Depends(copy_upload_to_temp_file),
     skip_blanks: bool = False,  # skip blank cells

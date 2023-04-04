@@ -37,7 +37,7 @@ from .catalog_requirements import CatalogRequirements
 from .projects import Projects
 
 
-class RequirementsView:
+class Requirements:
     def __init__(
         self,
         projects: Projects = Depends(Projects),

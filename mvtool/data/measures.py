@@ -37,14 +37,14 @@ from ..utils.iteration import CachedIterable
 from ..utils.models import field_is_set
 from ..handlers.documents import Documents
 from ..handlers.jira_ import JiraIssues
-from .requirements import RequirementsView
+from .requirements import Requirements
 
 
 class MeasuresView:
     def __init__(
         self,
         jira_issues: JiraIssues = Depends(JiraIssues),
-        requirements: RequirementsView = Depends(RequirementsView),
+        requirements: Requirements = Depends(Requirements),
         documents: Documents = Depends(Documents),
         session: Session = Depends(get_session),
     ):

@@ -27,11 +27,11 @@ from mvtool.models import (
     RequirementInput,
 )
 from mvtool.handlers.catalog_requirements import CatalogRequirements
-from mvtool.handlers.requirements import RequirementsView
+from mvtool.handlers.requirements import Requirements
 
 
 def test_list_requirements(
-    requirements_view: RequirementsView,
+    requirements_view: Requirements,
     create_project: Project,
     create_requirement: Requirement,
 ):
@@ -48,14 +48,14 @@ def test_list_requirements(
 
 
 def test_list_requirements_with_invalid_project_id(
-    requirements_view: RequirementsView,
+    requirements_view: Requirements,
 ):
     results = requirements_view.list_requirements(Requirement.project_id == -1)
     assert len(results) == 0
 
 
 def test_list_requirements_without_jira_project(
-    requirements_view: RequirementsView,
+    requirements_view: Requirements,
     create_project: Project,
     create_requirement: Requirement,
 ):
@@ -72,7 +72,7 @@ def test_list_requirements_without_jira_project(
 
 
 def test_create_requirement(
-    requirements_view: RequirementsView,
+    requirements_view: Requirements,
     create_project: Project,
     requirement_input: RequirementInput,
 ):
@@ -87,7 +87,7 @@ def test_create_requirement(
 
 
 def test_create_requirement_without_catalog_requirement_id(
-    requirements_view: RequirementsView,
+    requirements_view: Requirements,
     create_project: Project,
     requirement_input: RequirementInput,
 ):
@@ -104,7 +104,7 @@ def test_create_requirement_without_catalog_requirement_id(
 
 
 def test_create_requirement_with_invalid_catalog_requirement_id(
-    requirements_view: RequirementsView,
+    requirements_view: Requirements,
     create_project: Project,
     requirement_input: RequirementInput,
 ):
@@ -115,7 +115,7 @@ def test_create_requirement_with_invalid_catalog_requirement_id(
 
 
 def test_get_requirement(
-    requirements_view: RequirementsView,
+    requirements_view: Requirements,
     create_project: Project,
     create_requirement: Requirement,
 ):
@@ -127,14 +127,14 @@ def test_get_requirement(
     assert requirement.project.jira_project.id == create_project.jira_project_id
 
 
-def test_get_requirement_with_invalid_id(requirements_view: RequirementsView):
+def test_get_requirement_with_invalid_id(requirements_view: Requirements):
     with pytest.raises(HTTPException) as excinfo:
         requirements_view.get_requirement(-1)
     excinfo.value.status_code == 404
 
 
 def test_update_requirement(
-    requirements_view: RequirementsView,
+    requirements_view: Requirements,
     create_requirement: Requirement,
     requirement_input: RequirementInput,
 ):
@@ -147,7 +147,7 @@ def test_update_requirement(
 
 
 def test_delete_requirement(
-    requirements_view: RequirementsView, create_requirement: Requirement
+    requirements_view: Requirements, create_requirement: Requirement
 ):
     requirements_view.delete_requirement(create_requirement)
 
@@ -157,7 +157,7 @@ def test_delete_requirement(
 
 
 def test_bulk_create_requirements_from_catalog_requirements(
-    requirements_view: RequirementsView,
+    requirements_view: Requirements,
     create_project: Project,
     create_catalog_requirement: CatalogRequirement,
 ):

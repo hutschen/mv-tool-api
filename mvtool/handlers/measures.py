@@ -45,7 +45,7 @@ from ..utils.filtering import (
 )
 from ..utils.pagination import Page, page_params
 from ..handlers.jira_ import JiraIssues, JiraProjects
-from .requirements import RequirementsView
+from .requirements import Requirements
 
 
 def get_measure_filters(
@@ -259,7 +259,7 @@ def get_measures(
 def create_measure(
     requirement_id: int,
     measure_input: MeasureInput,
-    requirements_view: RequirementsView = Depends(),
+    requirements_view: Requirements = Depends(),
     measures_view: MeasuresView = Depends(),
 ) -> Measure:
     requirement = requirements_view.get_requirement(requirement_id)
