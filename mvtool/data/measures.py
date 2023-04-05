@@ -40,7 +40,7 @@ from ..handlers.jira_ import JiraIssues
 from .requirements import Requirements
 
 
-class MeasuresView:
+class Measures:
     def __init__(
         self,
         jira_issues: JiraIssues = Depends(JiraIssues),

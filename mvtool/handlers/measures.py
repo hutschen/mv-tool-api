@@ -22,7 +22,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import constr
 from sqlmodel import Column, or_
 
-from ..data.measures import MeasuresView
+from ..data.measures import Measures
 from ..models.catalog_modules import CatalogModule
 from ..models.catalog_requirements import CatalogRequirement
 from ..models.catalogs import Catalog
@@ -239,7 +239,7 @@ def get_measures(
     where_clauses=Depends(get_measure_filters),
     order_by_clauses=Depends(get_measure_sort),
     page_params=Depends(page_params),
-    measures_view: MeasuresView = Depends(),
+    measures_view: Measures = Depends(),
 ):
     measures = measures_view.list_measures(
         where_clauses, order_by_clauses, **page_params
@@ -260,14 +260,14 @@ def create_measure(
     requirement_id: int,
     measure_input: MeasureInput,
     requirements_view: Requirements = Depends(),
-    measures_view: MeasuresView = Depends(),
+    measures_view: Measures = Depends(),
 ) -> Measure:
     requirement = requirements_view.get_requirement(requirement_id)
     return measures_view.create_measure(requirement, measure_input)
 
 
 @router.get("/measures/{measure_id}", response_model=MeasureOutput)
-def get_measure(measure_id: int, measures_view: MeasuresView = Depends()) -> Measure:
+def get_measure(measure_id: int, measures_view: Measures = Depends()) -> Measure:
     return measures_view.get_measure(measure_id)
 
 
@@ -275,7 +275,7 @@ def get_measure(measure_id: int, measures_view: MeasuresView = Depends()) -> Mea
 def update_measure(
     measure_id: int,
     measure_input: MeasureInput,
-    measures_view: MeasuresView = Depends(),
+    measures_view: Measures = Depends(),
 ):
     measure = measures_view.get_measure(measure_id)
     measures_view.update_measure(measure, measure_input)
@@ -283,7 +283,7 @@ def update_measure(
 
 
 @router.delete("/measures/{measure_id}", status_code=204, response_class=Response)
-def delete_measure(measure_id: int, measures_view: MeasuresView = Depends()):
+def delete_measure(measure_id: int, measures_view: Measures = Depends()):
     measure = measures_view.get_measure(measure_id)
     measures_view.delete_measure(measure)
 
@@ -297,7 +297,7 @@ def get_measure_representations(
     local_search: str | None = None,
     order_by_clauses=Depends(get_measure_sort),
     page_params=Depends(page_params),
-    measures_view: MeasuresView = Depends(),
+    measures_view: Measures = Depends(),
 ):
     if local_search:
         where_clauses.append(
@@ -317,7 +317,7 @@ def get_measure_representations(
 @router.get("/measure/field-names", response_model=list[str])
 def get_measure_field_names(
     where_clauses=Depends(get_measure_filters),
-    measures_view: MeasuresView = Depends(),
+    measures_view: Measures = Depends(),
 ) -> set[str]:
     field_names = {"project", "requirement", "id", "summary", "completion_status"}
     for field, names in [
@@ -350,7 +350,7 @@ def get_measure_references(
     where_clauses=Depends(get_measure_filters),
     local_search: str | None = None,
     page_params=Depends(page_params),
-    measures_view: MeasuresView = Depends(),
+    measures_view: Measures = Depends(),
 ):
     if local_search:
         where_clauses.append(search_columns(local_search, Measure.reference))
@@ -376,7 +376,7 @@ def get_measure_references(
 def create_and_link_jira_issue_to_measure(
     measure_id: int,
     jira_issue_input: JiraIssueInput,
-    measures_view: MeasuresView = Depends(),
+    measures_view: Measures = Depends(),
     jira_issues_view: JiraIssues = Depends(),
     jira_projects_view: JiraProjects = Depends(),
 ) -> JiraIssue:
