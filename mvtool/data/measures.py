@@ -121,22 +121,24 @@ class Measures:
     def list_measure_values(
         self,
         column: Column,
-        where_clauses: Any = None,
+        where_clauses: list[Any] | None = None,
         offset: int | None = None,
         limit: int | None = None,
     ) -> list[Any]:
         query = self._modify_measures_query(
             select([func.distinct(column)]).select_from(Measure),
-            [filter_for_existence(column), *where_clauses],
+            [filter_for_existence(column), *(where_clauses or [])],
             offset=offset,
             limit=limit,
         )
         return self.session.exec(query).all()
 
-    def count_measure_values(self, column: Column, where_clauses: Any = None) -> int:
+    def count_measure_values(
+        self, column: Column, where_clauses: list[Any] | None = None
+    ) -> int:
         query = self._modify_measures_query(
             select([func.count(func.distinct(column))]).select_from(Measure),
-            [filter_for_existence(column), *where_clauses],
+            [filter_for_existence(column), *(where_clauses or [])],
         )
         return self.session.execute(query).scalar()
 
