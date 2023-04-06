@@ -34,13 +34,13 @@ from ..utils.etag_map import get_from_etag_map
 from ..utils.fallback import fallback
 from ..utils.filtering import filter_for_existence
 from ..utils.iteration import CachedIterable
-from .catalogs import CatalogsView
+from .catalogs import Catalogs
 
 
-class CatalogModulesView:
+class CatalogModules:
     def __init__(
         self,
-        catalogs: CatalogsView = Depends(CatalogsView),
+        catalogs: Catalogs = Depends(Catalogs),
         session: Session = Depends(get_session),
     ):
         self._catalogs = catalogs
@@ -98,7 +98,7 @@ class CatalogModulesView:
     ) -> list[Any]:
         query = self._modify_catalog_modules_query(
             select([func.distinct(column)]).select_from(CatalogModule),
-            [filter_for_existence(column), *where_clauses],
+            [filter_for_existence(column), *(where_clauses or [])],
             offset=offset,
             limit=limit,
         )
@@ -109,7 +109,7 @@ class CatalogModulesView:
     ) -> int:
         query = self._modify_catalog_modules_query(
             select([func.count(func.distinct(column))]).select_from(CatalogModule),
-            [filter_for_existence(column), *where_clauses],
+            [filter_for_existence(column), *(where_clauses or [])],
         )
         return self._session.execute(query).scalar()
 

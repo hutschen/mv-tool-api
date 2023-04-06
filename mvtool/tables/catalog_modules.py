@@ -25,11 +25,11 @@ from ..database import get_session
 from ..models import CatalogModule, CatalogModuleImport, CatalogModuleOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..handlers.catalog_modules import (
-    CatalogModulesView,
+    CatalogModules,
     get_catalog_module_filters,
     get_catalog_module_sort,
 )
-from ..handlers.catalogs import CatalogsView
+from ..handlers.catalogs import Catalogs
 from .catalogs import get_catalog_columns
 from .common import Column, ColumnGroup
 from .handlers import get_export_labels_handler, hide_columns
@@ -64,7 +64,7 @@ router.get(
 
 @router.get("/excel/catalog_modules", response_class=FileResponse)
 def download_catalog_modules_excel(
-    catalog_modules_view: CatalogModulesView = Depends(),
+    catalog_modules_view: CatalogModules = Depends(),
     where_clauses=Depends(get_catalog_module_filters),
     sort_clauses=Depends(get_catalog_module_sort),
     columns: ColumnGroup = Depends(hide_columns(get_catalog_module_columns)),
@@ -85,8 +85,8 @@ def download_catalog_modules_excel(
 )
 def upload_catalog_modules_excel(
     fallback_catalog_id: int | None = None,
-    catalogs_view: CatalogsView = Depends(),
-    catalog_modules_view: CatalogModulesView = Depends(),
+    catalogs_view: Catalogs = Depends(),
+    catalog_modules_view: CatalogModules = Depends(),
     columns: ColumnGroup = Depends(get_catalog_module_columns),
     temp_file=Depends(copy_upload_to_temp_file),
     skip_blanks: bool = False,  # skip blank cells

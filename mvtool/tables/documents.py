@@ -24,8 +24,8 @@ from sqlmodel import Session
 from ..database import get_session
 from ..models.documents import Document, DocumentImport, DocumentOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
-from ..handlers.documents import DocumentsView, get_document_filters, get_document_sort
-from ..handlers.projects import ProjectsView
+from ..handlers.documents import Documents, get_document_filters, get_document_sort
+from ..handlers.projects import Projects
 from .common import Column, ColumnGroup
 from .handlers import get_export_labels_handler, hide_columns
 from .projects import get_project_columns
@@ -65,7 +65,7 @@ router.get(
 
 @router.get("/excel/documents", response_class=FileResponse)
 def download_documents_excel(
-    documents_view: DocumentsView = Depends(),
+    documents_view: Documents = Depends(),
     where_clauses=Depends(get_document_filters),
     sort_clauses=Depends(get_document_sort),
     columns: ColumnGroup = Depends(hide_columns(get_document_columns)),
@@ -82,8 +82,8 @@ def download_documents_excel(
 @router.post("/excel/documents", status_code=201, response_model=list[DocumentOutput])
 def upload_documents_excel(
     fallback_project_id: int | None = None,
-    projects_view: ProjectsView = Depends(),
-    documents_view: DocumentsView = Depends(),
+    projects_view: Projects = Depends(),
+    documents_view: Documents = Depends(),
     columns: ColumnGroup = Depends(get_document_columns),
     temp_file=Depends(copy_upload_to_temp_file),
     skip_blanks: bool = False,  # skip blank cells

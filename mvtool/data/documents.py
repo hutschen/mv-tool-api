@@ -25,17 +25,18 @@ from sqlmodel.sql.expression import Select
 from ..database import delete_from_db, get_session, read_from_db
 from ..models.documents import Document, DocumentImport, DocumentInput
 from ..models.projects import Project
+from ..utils.errors import NotFoundError
 from ..utils.etag_map import get_from_etag_map
 from ..utils.fallback import fallback
 from ..utils.filtering import filter_for_existence
 from ..utils.iteration import CachedIterable
-from .projects import ProjectsView
+from .projects import Projects
 
 
-class DocumentsView:
+class Documents:
     def __init__(
         self,
-        projects: ProjectsView = Depends(ProjectsView),
+        projects: Projects = Depends(Projects),
         session: Session = Depends(get_session),
     ):
         self._projects = projects
@@ -97,22 +98,24 @@ class DocumentsView:
     def list_document_values(
         self,
         column: Column,
-        where_clauses: Any = None,
+        where_clauses: list[Any] = None,
         offset: int | None = None,
         limit: int | None = None,
     ) -> list[Any]:
         query = self._modify_documents_query(
             select([func.distinct(column)]).select_from(Document),
-            [filter_for_existence(column), *where_clauses],
+            [filter_for_existence(column), *(where_clauses or [])],
             offset=offset,
             limit=limit,
         )
         return self._session.exec(query).all()
 
-    def count_document_values(self, column: Column, where_clauses: Any = None) -> int:
+    def count_document_values(
+        self, column: Column, where_clauses: list[Any] = None
+    ) -> int:
         query = self._modify_documents_query(
             select([func.count(func.distinct(column))]).select_from(Document),
-            [filter_for_existence(column), *where_clauses],
+            [filter_for_existence(column), *(where_clauses or [])],
         )
         return self._session.execute(query).scalar()
 
@@ -196,7 +199,7 @@ class DocumentsView:
                 # Update existing document
                 document = documents_to_update.get(document_import.id)
                 if document is None:
-                    raise ValueError(f"No document with id={document_import.id}.")
+                    raise NotFoundError(f"No document with id={document_import.id}.")
                 self.update_document(
                     document, document_import, patch=patch, skip_flush=True
                 )

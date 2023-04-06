@@ -21,7 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import constr
 from sqlmodel import Column, or_
 
-from ..data.requirements import RequirementsView
+from ..data.requirements import Requirements
 from ..models.catalog_modules import CatalogModule
 from ..models.catalog_requirements import CatalogRequirement
 from ..models.catalogs import Catalog
@@ -40,8 +40,8 @@ from ..utils.filtering import (
     search_columns,
 )
 from ..utils.pagination import Page, page_params
-from .catalog_requirements import CatalogRequirementsView
-from .projects import ProjectsView
+from .catalog_requirements import CatalogRequirements
+from .projects import Projects
 
 
 def get_requirement_filters(
@@ -204,7 +204,7 @@ def get_requirements(
     where_clauses=Depends(get_requirement_filters),
     order_by_clauses=Depends(get_requirement_sort),
     page_params=Depends(page_params),
-    requirements_view: RequirementsView = Depends(RequirementsView),
+    requirements_view: Requirements = Depends(Requirements),
 ):
     requirements = requirements_view.list_requirements(
         where_clauses, order_by_clauses, **page_params
@@ -226,8 +226,8 @@ def get_requirements(
 def create_requirement(
     project_id: int,
     requirement_input: RequirementInput,
-    projects_view: ProjectsView = Depends(ProjectsView),
-    requirements_view: RequirementsView = Depends(RequirementsView),
+    projects_view: Projects = Depends(Projects),
+    requirements_view: Requirements = Depends(Requirements),
 ) -> RequirementOutput:
     project = projects_view.get_project(project_id)
     return requirements_view.create_requirement(project, requirement_input)
@@ -235,7 +235,7 @@ def create_requirement(
 
 @router.get("/requirements/{requirement_id}", response_model=RequirementOutput)
 def get_requirement(
-    requirement_id: int, requirements_view: RequirementsView = Depends(RequirementsView)
+    requirement_id: int, requirements_view: Requirements = Depends(Requirements)
 ) -> Requirement:
     return requirements_view.get_requirement(requirement_id)
 
@@ -244,7 +244,7 @@ def get_requirement(
 def update_requirement(
     requirement_id: int,
     requirement_input: RequirementInput,
-    requirements_view: RequirementsView = Depends(RequirementsView),
+    requirements_view: Requirements = Depends(Requirements),
 ) -> Requirement:
     requirement = requirements_view.get_requirement(requirement_id)
     requirements_view.update_requirement(requirement, requirement_input)
@@ -253,7 +253,7 @@ def update_requirement(
 
 @router.delete("/requirements/{requirement_id}", status_code=204)
 def delete_requirement(
-    requirement_id: int, requirements_view: RequirementsView = Depends(RequirementsView)
+    requirement_id: int, requirements_view: Requirements = Depends(Requirements)
 ) -> None:
     requirement = requirements_view.get_requirement(requirement_id)
     requirements_view.delete_requirement(requirement)
@@ -267,9 +267,9 @@ def delete_requirement(
 def import_requirements_from_catalog_modules(
     project_id: int,
     catalog_module_ids: list[int],
-    projects_view: ProjectsView = Depends(ProjectsView),
-    catalog_requirements_view: CatalogRequirementsView = Depends(),
-    requirements_view: RequirementsView = Depends(RequirementsView),
+    projects_view: Projects = Depends(Projects),
+    catalog_requirements_view: CatalogRequirements = Depends(),
+    requirements_view: Requirements = Depends(Requirements),
 ) -> Iterator[Requirement]:
     project = projects_view.get_project(project_id)
     catalog_requirements = catalog_requirements_view.list_catalog_requirements(
@@ -289,7 +289,7 @@ def get_requirement_representations(
     local_search: str | None = None,
     order_by_clauses=Depends(get_requirement_sort),
     page_params=Depends(page_params),
-    requirements_view: RequirementsView = Depends(RequirementsView),
+    requirements_view: Requirements = Depends(Requirements),
 ):
     if local_search:
         where_clauses.append(
@@ -311,7 +311,7 @@ def get_requirement_representations(
 @router.get("/requirement/field-names", response_model=list[str])
 def get_requirement_field_names(
     where_clauses=Depends(get_requirement_filters),
-    requirements_view: RequirementsView = Depends(RequirementsView),
+    requirements_view: Requirements = Depends(Requirements),
 ) -> set[str]:
     field_names = {"id", "summary", "project"}
     for field, names in [
@@ -338,7 +338,7 @@ def _create_requirement_field_values_handler(column: Column) -> Callable:
         where_clauses=Depends(get_requirement_filters),
         local_search: str | None = None,
         page_params=Depends(page_params),
-        requirements_view: RequirementsView = Depends(RequirementsView),
+        requirements_view: Requirements = Depends(Requirements),
     ) -> Page[str] | list[str]:
         if local_search:
             where_clauses.append(search_columns(local_search, column))

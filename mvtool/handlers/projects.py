@@ -21,7 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import constr
 from sqlmodel import Column, or_
 
-from ..data.projects import ProjectsView
+from ..data.projects import Projects
 from ..models.projects import (
     Project,
     ProjectInput,
@@ -124,7 +124,7 @@ def get_projects(
     where_clauses=Depends(get_project_filters),
     order_by_clauses=Depends(get_project_sort),
     page_params=Depends(page_params),
-    projects_view: ProjectsView = Depends(),
+    projects_view: Projects = Depends(),
 ):
     projects = projects_view.list_projects(
         where_clauses, order_by_clauses, **page_params
@@ -138,13 +138,13 @@ def get_projects(
 
 @router.post("/projects", status_code=201, response_model=ProjectOutput)
 def create_project(
-    project: ProjectInput, projects_view: ProjectsView = Depends()
+    project: ProjectInput, projects_view: Projects = Depends()
 ) -> Project:
     return projects_view.create_project(project)
 
 
 @router.get("/projects/{project_id}", response_model=ProjectOutput)
-def get_project(project_id: int, projects_view: ProjectsView = Depends()) -> Project:
+def get_project(project_id: int, projects_view: Projects = Depends()) -> Project:
     return projects_view.get_project(project_id)
 
 
@@ -152,7 +152,7 @@ def get_project(project_id: int, projects_view: ProjectsView = Depends()) -> Pro
 def update_project(
     project_id: int,
     project_input: ProjectInput,
-    projects_view: ProjectsView = Depends(),
+    projects_view: Projects = Depends(),
 ) -> Project:
     project = projects_view.get_project(project_id)
     projects_view.update_project(project, project_input)
@@ -160,7 +160,7 @@ def update_project(
 
 
 @router.delete("/projects/{project_id}", status_code=204)
-def delete_project(project_id: int, projects_view: ProjectsView = Depends()) -> None:
+def delete_project(project_id: int, projects_view: Projects = Depends()) -> None:
     project = projects_view.get_project(project_id)
     projects_view.delete_project(project)
 
@@ -174,7 +174,7 @@ def get_project_representations(
     local_search: str | None = None,
     order_by_clauses=Depends(get_project_sort),
     page_params=Depends(page_params),
-    projects_view: ProjectsView = Depends(),
+    projects_view: Projects = Depends(),
 ):
     if local_search:
         where_clauses.append(search_columns(local_search, Project.name))
@@ -192,7 +192,7 @@ def get_project_representations(
 @router.get("/project/field-names", response_model=list[str])
 def get_project_field_names(
     where_clauses=Depends(get_project_filters),
-    projects_view: ProjectsView = Depends(),
+    projects_view: Projects = Depends(),
 ) -> set[str]:
     field_names = {"id", "name"}
     for field, names in [

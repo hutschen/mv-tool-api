@@ -24,11 +24,11 @@ from sqlmodel import Session
 from ..database import get_session
 from ..models import Measure, MeasureImport, MeasureOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
-from ..handlers.catalog_modules import CatalogModulesView
+from ..handlers.catalog_modules import CatalogModules
 from ..handlers.documents import get_document_filters, get_document_sort
-from ..handlers.measures import MeasuresView
-from ..handlers.projects import ProjectsView
-from ..handlers.requirements import RequirementsView
+from ..handlers.measures import Measures
+from ..handlers.projects import Projects
+from ..handlers.requirements import Requirements
 from .common import Column, ColumnGroup
 from .documents import get_document_only_columns
 from .handlers import get_export_labels_handler, hide_columns
@@ -77,7 +77,7 @@ router.get(
 
 @router.get("/excel/measures", response_class=FileResponse)
 def download_measures_excel(
-    measures_view: MeasuresView = Depends(),
+    measures_view: Measures = Depends(),
     where_clauses=Depends(get_document_filters),
     sort_clauses=Depends(get_document_sort),
     columns: ColumnGroup = Depends(hide_columns(get_measure_columns)),
@@ -95,9 +95,9 @@ def download_measures_excel(
 def upload_measures_excel(
     fallback_requirement_id: int | None = None,
     fallback_catalog_module_id: int | None = None,
-    measures_view: MeasuresView = Depends(),
-    requirements_view: RequirementsView = Depends(),
-    catalog_modules_view: CatalogModulesView = Depends(),
+    measures_view: Measures = Depends(),
+    requirements_view: Requirements = Depends(),
+    catalog_modules_view: CatalogModules = Depends(),
     columns: ColumnGroup = Depends(get_measure_columns),
     temp_file=Depends(copy_upload_to_temp_file),
     skip_blanks: bool = False,  # skip blank cells

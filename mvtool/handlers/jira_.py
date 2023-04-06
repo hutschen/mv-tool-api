@@ -22,10 +22,10 @@ from fastapi import APIRouter, Depends, Response
 from pydantic import conint
 
 from ..data.jira_ import (
-    JiraIssuesView,
-    JiraIssueTypesView,
-    JiraProjectsView,
-    JiraUserView,
+    JiraIssues,
+    JiraIssueTypes,
+    JiraProjects,
+    JiraUsers,
 )
 from ..models import JiraIssue, JiraIssueInput, JiraIssueType, JiraProject, JiraUser
 
@@ -33,7 +33,7 @@ router = APIRouter()
 
 
 @router.get("/jira-user", response_model=JiraUser, tags=["jira-user"])
-def get_jira_user(jira_user_view: JiraUserView = Depends()):
+def get_jira_user(jira_user_view: JiraUsers = Depends()):
     return jira_user_view.get_jira_user()
 
 
@@ -41,7 +41,7 @@ _kwargs_jira_projects = dict(tags=["jira-project"])
 
 
 @router.get("/jira-projects", response_model=list[JiraProject], **_kwargs_jira_projects)
-def get_jira_projects(jira_projects_view: JiraProjectsView = Depends()):
+def get_jira_projects(jira_projects_view: JiraProjects = Depends()):
     return jira_projects_view.list_jira_projects()
 
 
@@ -51,7 +51,7 @@ def get_jira_projects(jira_projects_view: JiraProjectsView = Depends()):
     **_kwargs_jira_projects,
 )
 def get_jira_project(
-    jira_project_id: str, jira_projects_view: JiraProjectsView = Depends()
+    jira_project_id: str, jira_projects_view: JiraProjects = Depends()
 ):
     return jira_projects_view.get_jira_project(jira_project_id)
 
@@ -62,7 +62,7 @@ def get_jira_project(
     tags=["jira-issue-type"],
 )
 def get_jira_issue_types(
-    jira_project_id: str, jira_issue_types_view: JiraIssueTypesView = Depends()
+    jira_project_id: str, jira_issue_types_view: JiraIssueTypes = Depends()
 ):
     return jira_issue_types_view.list_jira_issue_types(jira_project_id)
 
@@ -79,7 +79,7 @@ def get_jira_issues(
     jira_project_id: str,
     offset: conint(ge=0) = 0,
     limit: conint(ge=0) | None = None,
-    jira_issues_view: JiraIssuesView = Depends(),
+    jira_issues_view: JiraIssues = Depends(),
 ) -> Iterator[JiraIssue]:
     return jira_issues_view.list_jira_issues(jira_project_id, offset, limit)
 
@@ -93,7 +93,7 @@ def get_jira_issues(
 def create_jira_issue(
     jira_project_id: str,
     jira_issue_input: JiraIssueInput,
-    jira_issues_view: JiraIssuesView = Depends(),
+    jira_issues_view: JiraIssues = Depends(),
 ) -> JiraIssue:
     return jira_issues_view.create_jira_issue(jira_project_id, jira_issue_input)
 
@@ -102,7 +102,7 @@ def create_jira_issue(
     "/jira-issues/{jira_issue_id}", response_model=JiraIssue, **_kwargs_jira_issues
 )
 def get_jira_issue(
-    jira_issue_id: str, jira_issues_view: JiraIssuesView = Depends()
+    jira_issue_id: str, jira_issues_view: JiraIssues = Depends()
 ) -> JiraIssue:
     return jira_issues_view.get_jira_issue(jira_issue_id)
 
@@ -113,7 +113,7 @@ def get_jira_issue(
 def update_jira_issue(
     jira_issue_id: str,
     jira_issue_input: JiraIssueInput,
-    jira_issues_view: JiraIssuesView = Depends(),
+    jira_issues_view: JiraIssues = Depends(),
 ) -> JiraIssue:
     return jira_issues_view.update_jira_issue(jira_issue_id, jira_issue_input)
 
@@ -124,5 +124,5 @@ def update_jira_issue(
     response_class=Response,
     **_kwargs_jira_issues,
 )
-def delete_jira_issue(jira_issue_id: str, jira_issues_view: JiraIssuesView = Depends()):
+def delete_jira_issue(jira_issue_id: str, jira_issues_view: JiraIssues = Depends()):
     jira_issues_view.delete_jira_issue(jira_issue_id)

@@ -35,17 +35,17 @@ from ..utils.fallback import fallback
 from ..utils.filtering import filter_for_existence
 from ..utils.iteration import CachedIterable
 from ..utils.models import field_is_set
-from ..handlers.documents import DocumentsView
-from ..handlers.jira_ import JiraIssuesView
-from .requirements import RequirementsView
+from ..handlers.documents import Documents
+from ..handlers.jira_ import JiraIssues
+from .requirements import Requirements
 
 
-class MeasuresView:
+class Measures:
     def __init__(
         self,
-        jira_issues: JiraIssuesView = Depends(JiraIssuesView),
-        requirements: RequirementsView = Depends(RequirementsView),
-        documents: DocumentsView = Depends(DocumentsView),
+        jira_issues: JiraIssues = Depends(JiraIssues),
+        requirements: Requirements = Depends(Requirements),
+        documents: Documents = Depends(Documents),
         session: Session = Depends(get_session),
     ):
         self._jira_issues = jira_issues
@@ -121,22 +121,24 @@ class MeasuresView:
     def list_measure_values(
         self,
         column: Column,
-        where_clauses: Any = None,
+        where_clauses: list[Any] | None = None,
         offset: int | None = None,
         limit: int | None = None,
     ) -> list[Any]:
         query = self._modify_measures_query(
             select([func.distinct(column)]).select_from(Measure),
-            [filter_for_existence(column), *where_clauses],
+            [filter_for_existence(column), *(where_clauses or [])],
             offset=offset,
             limit=limit,
         )
         return self.session.exec(query).all()
 
-    def count_measure_values(self, column: Column, where_clauses: Any = None) -> int:
+    def count_measure_values(
+        self, column: Column, where_clauses: list[Any] | None = None
+    ) -> int:
         query = self._modify_measures_query(
             select([func.count(func.distinct(column))]).select_from(Measure),
-            [filter_for_existence(column), *where_clauses],
+            [filter_for_existence(column), *(where_clauses or [])],
         )
         return self.session.execute(query).scalar()
 

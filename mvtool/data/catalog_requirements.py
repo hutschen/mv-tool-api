@@ -29,17 +29,18 @@ from ..models.catalog_requirements import (
     CatalogRequirementInput,
 )
 from ..models.catalogs import Catalog
+from ..utils.errors import NotFoundError
 from ..utils.etag_map import get_from_etag_map
 from ..utils.fallback import fallback
 from ..utils.filtering import filter_for_existence
 from ..utils.iteration import CachedIterable
-from .catalog_modules import CatalogModulesView
+from .catalog_modules import CatalogModules
 
 
-class CatalogRequirementsView:
+class CatalogRequirements:
     def __init__(
         self,
-        catalog_modules: CatalogModulesView = Depends(CatalogModulesView),
+        catalog_modules: CatalogModules = Depends(CatalogModules),
         session: Session = Depends(get_session),
     ):
         self._catalog_modules = catalog_modules
@@ -97,7 +98,7 @@ class CatalogRequirementsView:
     ) -> list[Any]:
         query = self._modify_catalog_requirements_query(
             select([func.distinct(column)]).select_from(CatalogRequirement),
-            [filter_for_existence(column), *where_clauses],
+            [filter_for_existence(column), *(where_clauses or [])],
             offset=offset,
             limit=limit,
         )
@@ -108,7 +109,7 @@ class CatalogRequirementsView:
     ) -> int:
         query = self._modify_catalog_requirements_query(
             select([func.count(func.distinct(column))]).select_from(CatalogRequirement),
-            [filter_for_existence(column), *where_clauses],
+            [filter_for_existence(column), *(where_clauses or [])],
         )
         return self._session.execute(query).scalar()
 
@@ -152,6 +153,11 @@ class CatalogRequirementsView:
 
         if not skip_flush:
             self._session.flush()
+
+    def delete_catalog_requirement(
+        self, catalog_requirement: CatalogRequirement, skip_flush: bool = False
+    ) -> None:
+        return delete_from_db(self._session, catalog_requirement, skip_flush)
 
     def bulk_create_update_catalog_requirements(
         self,
@@ -207,7 +213,7 @@ class CatalogRequirementsView:
                     catalog_requirement_import.id
                 )
                 if catalog_requirement is None:
-                    raise ValueError(
+                    raise NotFoundError(
                         f"No catalog requirement with id={catalog_requirement_import.id}."
                     )
                 self.update_catalog_requirement(
@@ -222,11 +228,6 @@ class CatalogRequirementsView:
 
         if not skip_flush:
             self._session.flush()
-
-    def delete_catalog_requirement(
-        self, catalog_requirement: CatalogRequirement, skip_flush: bool = False
-    ) -> None:
-        return delete_from_db(self._session, catalog_requirement, skip_flush)
 
     def convert_catalog_requirement_imports(
         self,

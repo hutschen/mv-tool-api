@@ -26,13 +26,13 @@ from ..models.projects import Project, ProjectImport, ProjectInput
 from ..utils.errors import NotFoundError
 from ..utils.iteration import CachedIterable
 from ..utils.models import field_is_set
-from .jira_ import JiraProjectsView
+from .jira_ import JiraProjects
 
 
-class ProjectsView:
+class Projects:
     def __init__(
         self,
-        jira_projects: JiraProjectsView = Depends(JiraProjectsView),
+        jira_projects: JiraProjects = Depends(JiraProjects),
         session: Session = Depends(get_session),
     ):
         self._jira_projects = jira_projects

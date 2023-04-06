@@ -27,7 +27,7 @@ from mvtool.gs_parser import GSBausteinParser
 from mvtool.models import Catalog, CatalogModule
 from mvtool.utils import errors
 from mvtool.handlers.catalog_modules import upload_gs_baustein
-from mvtool.handlers.catalogs import CatalogsView
+from mvtool.handlers.catalogs import Catalogs
 
 
 def get_gs_baustein_filenames():
@@ -63,7 +63,7 @@ def test_parse_gs_baustein_corrupted():
 
 def test_upload_gs_baustein(
     crud: CRUDOperations,
-    catalogs_view: CatalogsView,
+    catalogs_view: Catalogs,
     create_catalog: Catalog,
     word_temp_file: NamedTemporaryFile,
 ):

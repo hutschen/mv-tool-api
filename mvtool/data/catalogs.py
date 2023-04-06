@@ -29,7 +29,7 @@ from ..utils.filtering import filter_for_existence
 from ..utils.iteration import CachedIterable
 
 
-class CatalogsView:
+class Catalogs:
     def __init__(
         self,
         session: Session = Depends(get_session),
@@ -87,7 +87,7 @@ class CatalogsView:
     ) -> list[Any]:
         query = self._modify_catalogs_query(
             select([func.distinct(column)]).select_from(Catalog),
-            [filter_for_existence(column), *where_clauses],
+            [filter_for_existence(column), *(where_clauses or [])],
             offset=offset,
             limit=limit,
         )
@@ -98,7 +98,7 @@ class CatalogsView:
     ) -> int:
         query = self._modify_catalogs_query(
             select([func.count(func.distinct(column))]).select_from(Catalog),
-            [filter_for_existence(column), *where_clauses],
+            [filter_for_existence(column), *(where_clauses or [])],
         )
         return self._session.execute(query).scalar()
 

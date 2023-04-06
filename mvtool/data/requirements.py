@@ -33,17 +33,15 @@ from ..utils.fallback import fallback
 from ..utils.filtering import filter_for_existence
 from ..utils.iteration import CachedIterable
 from ..utils.models import field_is_set
-from .catalog_requirements import CatalogRequirementsView
-from .projects import ProjectsView
+from .catalog_requirements import CatalogRequirements
+from .projects import Projects
 
 
-class RequirementsView:
+class Requirements:
     def __init__(
         self,
-        projects: ProjectsView = Depends(ProjectsView),
-        catalog_requirements: CatalogRequirementsView = Depends(
-            CatalogRequirementsView
-        ),
+        projects: Projects = Depends(Projects),
+        catalog_requirements: CatalogRequirements = Depends(CatalogRequirements),
         session: Session = Depends(get_session),
     ):
         self._projects = projects
@@ -113,7 +111,7 @@ class RequirementsView:
     ) -> list[Any]:
         query = self._modify_requirements_query(
             select([func.distinct(column)]).select_from(Requirement),
-            [filter_for_existence(column), *where_clauses],
+            [filter_for_existence(column), *(where_clauses or [])],
             offset=offset,
             limit=limit,
         )
@@ -124,7 +122,7 @@ class RequirementsView:
     ) -> int:
         query = self._modify_requirements_query(
             select([func.count(func.distinct(column))]).select_from(Requirement),
-            [filter_for_existence(column), *where_clauses],
+            [filter_for_existence(column), *(where_clauses or [])],
         )
         return self._session.execute(query).scalar()
 

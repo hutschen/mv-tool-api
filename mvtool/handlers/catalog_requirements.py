@@ -21,7 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import constr
 from sqlmodel import Column, or_
 
-from ..data.catalog_requirements import CatalogRequirementsView
+from ..data.catalog_requirements import CatalogRequirements
 from ..models.catalog_modules import CatalogModule
 from ..models.catalog_requirements import (
     CatalogRequirement,
@@ -37,7 +37,7 @@ from ..utils.filtering import (
     search_columns,
 )
 from ..utils.pagination import Page, page_params
-from .catalog_modules import CatalogModulesView
+from .catalog_modules import CatalogModules
 
 
 def get_catalog_requirement_filters(
@@ -162,7 +162,7 @@ def get_catalog_requirements(
     where_clauses=Depends(get_catalog_requirement_filters),
     order_by_clauses=Depends(get_catalog_requirement_sort),
     page_params=Depends(page_params),
-    catalog_requirements_view: CatalogRequirementsView = Depends(),
+    catalog_requirements_view: CatalogRequirements = Depends(),
 ) -> Page[CatalogRequirementOutput] | list[CatalogRequirement]:
     crequirements = catalog_requirements_view.list_catalog_requirements(
         where_clauses, order_by_clauses, **page_params
@@ -186,8 +186,8 @@ def get_catalog_requirements(
 def create_catalog_requirement(
     catalog_module_id: int,
     catalog_requirement_input: CatalogRequirementInput,
-    catalog_modules_view: CatalogModulesView = Depends(),
-    catalog_requirements_view: CatalogRequirementsView = Depends(),
+    catalog_modules_view: CatalogModules = Depends(),
+    catalog_requirements_view: CatalogRequirements = Depends(),
 ) -> CatalogRequirement:
     catalog_module = catalog_modules_view.get_catalog_module(catalog_module_id)
     return catalog_requirements_view.create_catalog_requirement(
@@ -201,7 +201,7 @@ def create_catalog_requirement(
 )
 def get_catalog_requirement(
     catalog_requirement_id: int,
-    catalog_requirements_view: CatalogRequirementsView = Depends(),
+    catalog_requirements_view: CatalogRequirements = Depends(),
 ) -> CatalogRequirement:
     return catalog_requirements_view.get_catalog_requirement(catalog_requirement_id)
 
@@ -213,7 +213,7 @@ def get_catalog_requirement(
 def update_catalog_requirement(
     catalog_requirement_id: int,
     catalog_requirement_input: CatalogRequirementInput,
-    catalog_requirements_view: CatalogRequirementsView = Depends(),
+    catalog_requirements_view: CatalogRequirements = Depends(),
 ) -> CatalogRequirement:
     catalog_requirement = catalog_requirements_view.get_catalog_requirement(
         catalog_requirement_id
@@ -227,7 +227,7 @@ def update_catalog_requirement(
 @router.delete("/catalog-requirements/{catalog_requirement_id}", status_code=204)
 def delete_catalog_requirement(
     catalog_requirement_id: int,
-    catalog_requirements_view: CatalogRequirementsView = Depends(),
+    catalog_requirements_view: CatalogRequirements = Depends(),
 ) -> None:
     catalog_requirement = catalog_requirements_view.get_catalog_requirement(
         catalog_requirement_id
@@ -245,7 +245,7 @@ def get_catalog_requirement_representations(
     local_search: str | None = None,
     order_by_clauses=Depends(get_catalog_requirement_sort),
     page_params=Depends(page_params),
-    catalog_requirements_view: CatalogRequirementsView = Depends(),
+    catalog_requirements_view: CatalogRequirements = Depends(),
 ) -> Page[CatalogRequirementRepresentation] | list[CatalogRequirement]:
     if local_search:
         where_clauses.append(
@@ -271,7 +271,7 @@ def get_catalog_requirement_representations(
 @router.get("/catalog-requirement/field-names", response_model=list[str])
 def get_catalog_requirement_field_names(
     where_clauses=Depends(get_catalog_requirement_filters),
-    catalog_requirements_view: CatalogRequirementsView = Depends(),
+    catalog_requirements_view: CatalogRequirements = Depends(),
 ) -> set[str]:
     field_names = {"id", "summary", "catalog_module"}
     for field, names in [
@@ -292,7 +292,7 @@ def get_catalog_requirement_references(
     where_clauses: list[Any] = Depends(get_catalog_requirement_filters),
     local_search: str | None = None,
     page_params=Depends(page_params),
-    catalog_requirements_view: CatalogRequirementsView = Depends(),
+    catalog_requirements_view: CatalogRequirements = Depends(),
 ) -> Page[str] | list[str]:
     if local_search:
         where_clauses.append(search_columns(local_search, CatalogRequirement.reference))
