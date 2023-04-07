@@ -22,13 +22,11 @@ from fastapi.responses import FileResponse
 from sqlmodel import Session
 
 from ..database import get_session
+from ..handlers.catalog_modules import CatalogModules
+from ..handlers.measures import Measures, get_measure_filters, get_measure_sort
+from ..handlers.requirements import Requirements
 from ..models import Measure, MeasureImport, MeasureOutput
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
-from ..handlers.catalog_modules import CatalogModules
-from ..handlers.documents import get_document_filters, get_document_sort
-from ..handlers.measures import Measures
-from ..handlers.projects import Projects
-from ..handlers.requirements import Requirements
 from .common import Column, ColumnGroup
 from .documents import get_document_only_columns
 from .handlers import get_export_labels_handler, hide_columns
@@ -78,8 +76,8 @@ router.get(
 @router.get("/excel/measures", response_class=FileResponse)
 def download_measures_excel(
     measures_view: Measures = Depends(),
-    where_clauses=Depends(get_document_filters),
-    sort_clauses=Depends(get_document_sort),
+    where_clauses=Depends(get_measure_filters),
+    sort_clauses=Depends(get_measure_sort),
     columns: ColumnGroup = Depends(hide_columns(get_measure_columns)),
     temp_file=Depends(get_temp_file(".xlsx")),
     sheet_name="Measures",
