@@ -60,7 +60,7 @@ def get_catalog_requirement_columns(
     )
 
 
-router = APIRouter()
+router = APIRouter(tags=["catalog-requirement"])
 
 
 router.get(
