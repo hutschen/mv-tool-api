@@ -22,14 +22,14 @@ from fastapi.responses import FileResponse
 from sqlmodel import Session
 
 from ..database import get_session
-from ..models import CatalogModule, CatalogModuleImport, CatalogModuleOutput
-from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..handlers.catalog_modules import (
     CatalogModules,
     get_catalog_module_filters,
     get_catalog_module_sort,
 )
 from ..handlers.catalogs import Catalogs
+from ..models import CatalogModule, CatalogModuleImport, CatalogModuleOutput
+from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from .catalogs import get_catalog_columns
 from .common import Column, ColumnGroup
 from .handlers import get_export_labels_handler, hide_columns
@@ -56,13 +56,13 @@ def get_catalog_module_columns(
 router = APIRouter(tags=["catalog-module"])
 
 router.get(
-    "/excel/catalog_modules/column-names",
+    "/excel/catalog-modules/column-names",
     summary="Get column names for catalog module Excel export",
     response_model=list[str],
 )(get_export_labels_handler(get_catalog_module_columns))
 
 
-@router.get("/excel/catalog_modules", response_class=FileResponse)
+@router.get("/excel/catalog-modules", response_class=FileResponse)
 def download_catalog_modules_excel(
     catalog_modules_view: CatalogModules = Depends(),
     where_clauses=Depends(get_catalog_module_filters),
