@@ -19,15 +19,13 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import auth, database, migration
-from .views import (
+from . import auth, database, migration, tables
+from .handlers import (
     jira_,
     projects,
     requirements,
     measures,
     documents,
-    excel,
-    gs,
     catalogs,
     catalog_modules,
     catalog_requirements,
@@ -47,11 +45,10 @@ app.include_router(catalogs.router, prefix="/api")
 app.include_router(catalog_modules.router, prefix="/api")
 app.include_router(catalog_requirements.router, prefix="/api")
 app.include_router(projects.router, prefix="/api")
-app.include_router(excel.router, prefix="/api")
+app.include_router(tables.router, prefix="/api")
 app.include_router(requirements.router, prefix="/api")
 app.include_router(measures.router, prefix="/api")
 app.include_router(documents.router, prefix="/api")
-app.include_router(gs.router, prefix="/api")
 app.mount("/", AngularFiles(directory="htdocs", html=True))
 app.add_middleware(
     CORSMiddleware,
