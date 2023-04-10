@@ -18,8 +18,7 @@
 from typing import Any, Iterable, Iterator
 
 from fastapi import Depends
-from pytest import Session
-from sqlmodel import Column, func, select
+from sqlmodel import Column, Session, func, select
 from sqlmodel.sql.expression import Select
 
 from ..database import delete_from_db, get_session, read_from_db
