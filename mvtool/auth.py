@@ -24,7 +24,7 @@ from cryptography.fernet import InvalidToken
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
-from .errors import UnauthorizedError
+from .utils.errors import UnauthorizedError
 from .utils.crypto import decrypt, encrypt
 from .config import load_config, Config, JiraConfig, AuthConfig
 
