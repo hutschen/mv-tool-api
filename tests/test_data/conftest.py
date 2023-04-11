@@ -29,7 +29,7 @@ from mvtool.data.projects import Projects
 from mvtool.data.requirements import Requirements
 from mvtool.models.catalog_modules import CatalogModule, CatalogModuleInput
 from mvtool.models.catalog_requirements import CatalogRequirementInput
-from mvtool.models.catalogs import CatalogInput
+from mvtool.models.catalogs import Catalog, CatalogInput
 from mvtool.models.documents import DocumentInput
 from mvtool.models.jira_ import JiraProject
 from mvtool.models.projects import ProjectInput, Project
@@ -49,7 +49,7 @@ def session(config) -> Session:
 
 
 @pytest.fixture
-def catalogs(session: Session):
+def catalogs(session: Session) -> Catalogs:
     return Catalogs(session, None)
 
 
@@ -91,7 +91,7 @@ def measures(
 
 
 @pytest.fixture
-def catalog(catalogs: Catalogs):
+def catalog(catalogs: Catalogs) -> Catalog:
     catalog_input = CatalogInput(reference="ref", title="title")
     return catalogs.create_catalog(catalog_input)
 
