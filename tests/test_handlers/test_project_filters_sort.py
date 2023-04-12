@@ -15,44 +15,40 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from dataclasses import astuple, dataclass
+
 import pytest
 from fastapi import HTTPException
 
 from mvtool.handlers.projects import get_project_filters, get_project_sort
 
 
+@dataclass
+class ProjectFilterParams:
+    name: str = None
+    description: str = None
+    ids: list = None
+    jira_project_ids: list = None
+    has_description: bool = None
+    has_jira_project: bool = None
+    search: str = None
+
+
 @pytest.mark.parametrize(
-    "name, description, ids, jira_project_ids, has_description, has_jira_project, search, expected_length",
+    "params, expected_length",
     [
-        (None, None, None, None, None, None, None, 0),
-        ("name*", None, None, None, None, None, None, 1),
-        (None, "description*", None, None, None, None, None, 1),
-        (None, None, [1, 2], None, None, None, None, 1),
-        (None, None, None, ["JP1", "JP2"], None, None, None, 1),
-        (None, None, None, None, True, None, None, 1),
-        (None, None, None, None, None, True, None, 1),
-        (None, None, None, None, None, None, "search", 1),
+        (ProjectFilterParams(), 0),
+        (ProjectFilterParams(name="name*"), 1),
+        (ProjectFilterParams(description="description*"), 1),
+        (ProjectFilterParams(ids=[1, 2]), 1),
+        (ProjectFilterParams(jira_project_ids=["JP1", "JP2"]), 1),
+        (ProjectFilterParams(has_description=True), 1),
+        (ProjectFilterParams(has_jira_project=True), 1),
+        (ProjectFilterParams(search="search"), 1),
     ],
 )
-def test_get_project_filters(
-    name,
-    description,
-    ids,
-    jira_project_ids,
-    has_description,
-    has_jira_project,
-    search,
-    expected_length,
-):
-    filters = get_project_filters(
-        name,
-        description,
-        ids,
-        jira_project_ids,
-        has_description,
-        has_jira_project,
-        search,
-    )
+def test_get_project_filters(params: ProjectFilterParams, expected_length: int):
+    filters = get_project_filters(*astuple(params))
     assert isinstance(filters, list)
     assert len(filters) == expected_length
 

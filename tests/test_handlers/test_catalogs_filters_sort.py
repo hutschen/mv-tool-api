@@ -15,47 +15,42 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from dataclasses import astuple, dataclass
+
 import pytest
 from fastapi import HTTPException
 
 from mvtool.handlers.catalogs import get_catalog_filters, get_catalog_sort
 
 
+@dataclass
+class CatalogFilterParams:
+    reference: str = None
+    title: str = None
+    description: str = None
+    references: list = None
+    ids: list = None
+    has_reference: bool = None
+    has_description: bool = None
+    search: str = None
+
+
 @pytest.mark.parametrize(
-    "reference, title, description, references, ids, has_reference, has_description, search, expected_length",
+    "params, expected_length",
     [
-        (None, None, None, None, None, None, None, None, 0),
-        ("ref*", None, None, None, None, None, None, None, 1),
-        (None, "title*", None, None, None, None, None, None, 1),
-        (None, None, "desc*", None, None, None, None, None, 1),
-        (None, None, None, ["ref1", "ref2"], None, None, None, None, 1),
-        (None, None, None, None, [1, 2], None, None, None, 1),
-        (None, None, None, None, None, True, None, None, 1),
-        (None, None, None, None, None, None, True, None, 1),
-        (None, None, None, None, None, None, None, "search", 1),
+        (CatalogFilterParams(), 0),
+        (CatalogFilterParams(reference="ref*"), 1),
+        (CatalogFilterParams(title="title*"), 1),
+        (CatalogFilterParams(description="desc*"), 1),
+        (CatalogFilterParams(references=["ref1", "ref2"]), 1),
+        (CatalogFilterParams(ids=[1, 2]), 1),
+        (CatalogFilterParams(has_reference=True), 1),
+        (CatalogFilterParams(has_description=True), 1),
+        (CatalogFilterParams(search="search"), 1),
     ],
 )
-def test_get_catalog_filters(
-    reference,
-    title,
-    description,
-    references,
-    ids,
-    has_reference,
-    has_description,
-    search,
-    expected_length,
-):
-    filters = get_catalog_filters(
-        reference,
-        title,
-        description,
-        references,
-        ids,
-        has_reference,
-        has_description,
-        search,
-    )
+def test_get_catalog_filters(params: CatalogFilterParams, expected_length: int):
+    filters = get_catalog_filters(*astuple(params))
     assert isinstance(filters, list)
     assert len(filters) == expected_length
 

@@ -16,6 +16,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+from dataclasses import astuple, dataclass
+
 import pytest
 from fastapi import HTTPException
 
@@ -25,64 +27,50 @@ from mvtool.handlers.catalog_requirements import (
 )
 
 
+@dataclass
+class CatalogRequirementFilterParams:
+    reference: str = None
+    summary: str = None
+    description: str = None
+    gs_absicherung: str = None
+    gs_verantwortliche: str = None
+    references: list = None
+    gs_absicherungen: list = None
+    ids: list = None
+    catalog_ids: list = None
+    catalog_module_ids: list = None
+    has_reference: bool = None
+    has_description: bool = None
+    has_gs_absicherung: bool = None
+    has_gs_verantwortliche: bool = None
+    search: str = None
+
+
 @pytest.mark.parametrize(
-    "reference, summary, description, gs_absicherung, gs_verantwortliche, references, gs_absicherungen, ids, catalog_ids, catalog_module_ids, has_reference, has_description, has_gs_absicherung, has_gs_verantwortliche, search, expected_length",
+    "params, expected_length",
     [
-        # fmt: off
-        (None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, 0),
-        ("ref*", None, None, None, None, None, None, None, None, None, None, None, None, None, None, 1),
-        (None, "sum*", None, None, None, None, None, None, None, None, None, None, None, None, None, 1),
-        (None, None, "desc*", None, None, None, None, None, None, None, None, None, None, None, None, 1),
-        (None, None, None, "gs_abs*", None, None, None, None, None, None, None, None, None, None, None, 1),
-        (None, None, None, None, "gs_ver*", None, None, None, None, None, None, None, None, None, None, 1),
-        (None, None, None, None, None, ["ref1", "ref2"], None, None, None, None, None, None, None, None, None, 1),
-        (None, None, None, None, None, None, ["gs_abs1", "gs_abs2"], None, None, None, None, None, None, None, None, 1),
-        (None, None, None, None, None, None, None, [1, 2], None, None, None, None, None, None, None, 1),
-        (None, None, None, None, None, None, None, None, [1, 2], None, None, None, None, None, None, 1),
-        (None, None, None, None, None, None, None, None, None, [1, 2], None, None, None, None, None, 1),
-        (None, None, None, None, None, None, None, None, None, None, True, None, None, None, None, 1),
-        (None, None, None, None, None, None, None, None, None, None, None, True, None, None, None, 1),
-        (None, None, None, None, None, None, None, None, None, None, None, None, True, None, None, 1),
-        (None, None, None, None, None, None, None, None, None, None, None, None, None, True, None, 1),
-        (None, None, None, None, None, None, None, None, None, None, None, None, None, None, "search", 1),
-        # fmt: on
+        (CatalogRequirementFilterParams(), 0),
+        (CatalogRequirementFilterParams(reference="ref*"), 1),
+        (CatalogRequirementFilterParams(summary="sum*"), 1),
+        (CatalogRequirementFilterParams(description="desc*"), 1),
+        (CatalogRequirementFilterParams(gs_absicherung="gs_abs*"), 1),
+        (CatalogRequirementFilterParams(gs_verantwortliche="gs_ver*"), 1),
+        (CatalogRequirementFilterParams(references=["ref1", "ref2"]), 1),
+        (CatalogRequirementFilterParams(gs_absicherungen=["gs_abs1", "gs_abs2"]), 1),
+        (CatalogRequirementFilterParams(ids=[1, 2]), 1),
+        (CatalogRequirementFilterParams(catalog_ids=[1, 2]), 1),
+        (CatalogRequirementFilterParams(catalog_module_ids=[1, 2]), 1),
+        (CatalogRequirementFilterParams(has_reference=True), 1),
+        (CatalogRequirementFilterParams(has_description=True), 1),
+        (CatalogRequirementFilterParams(has_gs_absicherung=True), 1),
+        (CatalogRequirementFilterParams(has_gs_verantwortliche=True), 1),
+        (CatalogRequirementFilterParams(search="search"), 1),
     ],
 )
 def test_get_catalog_requirement_filters(
-    reference,
-    summary,
-    description,
-    gs_absicherung,
-    gs_verantwortliche,
-    references,
-    gs_absicherungen,
-    ids,
-    catalog_ids,
-    catalog_module_ids,
-    has_reference,
-    has_description,
-    has_gs_absicherung,
-    has_gs_verantwortliche,
-    search,
-    expected_length,
+    params: CatalogRequirementFilterParams, expected_length: int
 ):
-    filters = get_catalog_requirement_filters(
-        reference,
-        summary,
-        description,
-        gs_absicherung,
-        gs_verantwortliche,
-        references,
-        gs_absicherungen,
-        ids,
-        catalog_ids,
-        catalog_module_ids,
-        has_reference,
-        has_description,
-        has_gs_absicherung,
-        has_gs_verantwortliche,
-        search,
-    )
+    filters = get_catalog_requirement_filters(*astuple(params))
     assert len(filters) == expected_length
 
 
