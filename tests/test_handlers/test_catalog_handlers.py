@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import pytest
+from mvtool.data.catalogs import Catalogs
 
 from mvtool.handlers.catalogs import (
     create_catalog,
@@ -36,42 +37,7 @@ from mvtool.models.catalogs import (
 from mvtool.utils.pagination import Page
 
 
-def test_create_catalog(catalogs):
-    catalog_input = CatalogInput(title="title")
-    created_catalog = create_catalog(catalog_input, catalogs)
-
-    assert isinstance(created_catalog, Catalog)
-    assert created_catalog.title == catalog_input.title
-
-
-def test_get_catalog(catalogs, catalog):
-    catalog_id = catalog.id
-    retrieved_catalog = get_catalog(catalog_id, catalogs)
-
-    assert isinstance(retrieved_catalog, Catalog)
-    assert retrieved_catalog.id == catalog_id
-
-
-def test_update_catalog(catalogs, catalog):
-    catalog_id = catalog.id
-    catalog_input = CatalogInput(title="Updated Catalog")
-    updated_catalog = update_catalog(catalog_id, catalog_input, catalogs)
-
-    assert isinstance(updated_catalog, Catalog)
-    assert updated_catalog.id == catalog_id
-    assert updated_catalog.title == catalog_input.title
-
-
-def test_delete_catalog(catalogs, catalog):
-    catalog_id = catalog.id
-    delete_catalog(catalog_id, catalogs)
-
-    with pytest.raises(Exception):
-        # Check if the catalog was deleted
-        get_catalog(catalog_id, catalogs)
-
-
-def test_get_catalogs_list(catalogs, catalog):
+def test_get_catalogs_list(catalogs: Catalogs, catalog: Catalog):
     catalogs_list = get_catalogs([], [], {}, catalogs)
 
     assert isinstance(catalogs_list, list)
@@ -79,7 +45,7 @@ def test_get_catalogs_list(catalogs, catalog):
         assert isinstance(catalog_, Catalog)
 
 
-def test_get_catalogs_with_pagination(catalogs, catalog):
+def test_get_catalogs_with_pagination(catalogs: Catalogs, catalog: Catalog):
     page_params = dict(offset=0, limit=1)
     catalogs_page = get_catalogs([], [], page_params, catalogs)
 
@@ -89,29 +55,62 @@ def test_get_catalogs_with_pagination(catalogs, catalog):
         assert isinstance(catalog_, CatalogOutput)
 
 
-def test_get_catalog_representations_list(catalogs, catalog):
-    catalog_representations_list = get_catalog_representations(
-        [], None, [], {}, catalogs
-    )
+def test_create_catalog(catalogs: Catalogs):
+    catalog_input = CatalogInput(title="title")
+    created_catalog = create_catalog(catalog_input, catalogs)
 
-    assert isinstance(catalog_representations_list, list)
-    for catalog_representation in catalog_representations_list:
-        assert isinstance(catalog_representation, Catalog)
+    assert isinstance(created_catalog, Catalog)
+    assert created_catalog.title == catalog_input.title
 
 
-def test_get_catalog_representations_with_pagination(catalogs, catalog):
+def test_get_catalog(catalogs: Catalogs, catalog: Catalog):
+    catalog_id = catalog.id
+    retrieved_catalog = get_catalog(catalog_id, catalogs)
+
+    assert isinstance(retrieved_catalog, Catalog)
+    assert retrieved_catalog.id == catalog_id
+
+
+def test_update_catalog(catalogs: Catalogs, catalog: Catalog):
+    catalog_id = catalog.id
+    catalog_input = CatalogInput(title="Updated Catalog")
+    updated_catalog = update_catalog(catalog_id, catalog_input, catalogs)
+
+    assert isinstance(updated_catalog, Catalog)
+    assert updated_catalog.id == catalog_id
+    assert updated_catalog.title == catalog_input.title
+
+
+def test_delete_catalog(catalogs: Catalogs, catalog: Catalog):
+    catalog_id = catalog.id
+    delete_catalog(catalog_id, catalogs)
+
+    with pytest.raises(Exception):
+        # Check if the catalog was deleted
+        get_catalog(catalog_id, catalogs)
+
+
+def test_get_catalog_representations_list(catalogs: Catalogs, catalog: Catalog):
+    results = get_catalog_representations([], None, [], {}, catalogs)
+
+    assert isinstance(results, list)
+    for item in results:
+        assert isinstance(item, Catalog)
+
+
+def test_get_catalog_representations_with_pagination(
+    catalogs: Catalogs, catalog: Catalog
+):
     page_params = dict(offset=0, limit=1)
-    catalog_representations_page = get_catalog_representations(
-        [], None, [], page_params, catalogs
-    )
+    resulting_page = get_catalog_representations([], None, [], page_params, catalogs)
 
-    assert isinstance(catalog_representations_page, Page)
-    assert catalog_representations_page.total_count >= 1
-    for catalog_representation in catalog_representations_page.items:
-        assert isinstance(catalog_representation, CatalogRepresentation)
+    assert isinstance(resulting_page, Page)
+    assert resulting_page.total_count >= 1
+    for item in resulting_page.items:
+        assert isinstance(item, CatalogRepresentation)
 
 
-def test_get_catalog_representations_local_search(catalogs):
+def test_get_catalog_representations_local_search(catalogs: Catalogs):
     # Create two catalogs with different titles
     catalog_inputs = [
         CatalogInput(reference="apple", title="apple_title"),
@@ -135,14 +134,14 @@ def test_get_catalog_representations_local_search(catalogs):
     assert catalog.title == "banana_title"
 
 
-def test_get_catalog_field_names_default_list(catalogs):
+def test_get_catalog_field_names_default_list(catalogs: Catalogs):
     field_names = get_catalog_field_names([], catalogs)
 
     assert isinstance(field_names, set)
     assert field_names == {"id", "title"}
 
 
-def test_get_catalog_field_names_full_list(catalogs):
+def test_get_catalog_field_names_full_list(catalogs: Catalogs):
     # Create a catalog to get all fields
     catalog_input = CatalogInput(reference="ref", title="title", description="descr")
     catalogs.create_catalog(catalog_input)
@@ -154,7 +153,7 @@ def test_get_catalog_field_names_full_list(catalogs):
     assert field_names == {"id", "title", "reference", "description"}
 
 
-def test_get_catalog_references_list(catalogs):
+def test_get_catalog_references_list(catalogs: Catalogs):
     # Create a catalog with a reference
     catalog_input = CatalogInput(reference="ref", title="title")
     catalogs.create_catalog(catalog_input)
@@ -167,7 +166,7 @@ def test_get_catalog_references_list(catalogs):
     assert references == ["ref"]
 
 
-def test_get_catalog_references_with_pagination(catalogs):
+def test_get_catalog_references_with_pagination(catalogs: Catalogs):
     # Create a catalog with a reference
     catalog_input = CatalogInput(reference="ref", title="title")
     catalogs.create_catalog(catalog_input)
@@ -184,7 +183,7 @@ def test_get_catalog_references_with_pagination(catalogs):
     assert references_page.items == ["ref"]
 
 
-def test_get_catalog_references_local_search(catalogs):
+def test_get_catalog_references_local_search(catalogs: Catalogs):
     # Create two catalogs with different references
     catalog_inputs = [
         CatalogInput(reference="apple", title="title1"),
