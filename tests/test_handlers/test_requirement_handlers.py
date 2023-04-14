@@ -16,29 +16,31 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import pytest
+from fastapi import HTTPException
+
 from mvtool.data.catalog_requirements import CatalogRequirements
-from mvtool.data.requirements import Requirements
 from mvtool.data.projects import Projects
+from mvtool.data.requirements import Requirements
 from mvtool.handlers.requirements import (
-    get_requirements,
-    create_requirement,
-    get_requirement,
-    update_requirement,
-    delete_requirement,
-    import_requirements_from_catalog_modules,
-    get_requirement_representations,
-    get_requirement_field_names,
     _create_requirement_field_values_handler,
+    create_requirement,
+    delete_requirement,
+    get_requirement,
+    get_requirement_field_names,
+    get_requirement_representations,
+    get_requirements,
+    import_requirements_from_catalog_modules,
+    update_requirement,
 )
 from mvtool.models.catalog_modules import CatalogModule
 from mvtool.models.catalog_requirements import CatalogRequirement
+from mvtool.models.projects import Project
 from mvtool.models.requirements import (
     Requirement,
     RequirementInput,
     RequirementOutput,
     RequirementRepresentation,
 )
-from mvtool.models.projects import Project
 from mvtool.utils.pagination import Page
 
 
@@ -102,9 +104,10 @@ def test_delete_requirement(requirements: Requirements, requirement: Requirement
     requirement_id = requirement.id
     delete_requirement(requirement_id, requirements)
 
-    with pytest.raises(Exception):
-        # Check if the requirement was deleted
+    with pytest.raises(HTTPException) as excinfo:
         get_requirement(requirement_id, requirements)
+    assert excinfo.value.status_code == 404
+    assert "No Requirement with id" in excinfo.value.detail
 
 
 def test_import_requirements_from_catalog_modules(

@@ -17,6 +17,8 @@
 
 
 import pytest
+from fastapi import HTTPException
+
 from mvtool.data.documents import Documents
 from mvtool.data.projects import Projects
 from mvtool.handlers.documents import (
@@ -58,48 +60,44 @@ def test_get_documents_with_pagination(documents: Documents, document: Document)
 
 
 def test_create_document(projects: Projects, documents: Documents, project: Project):
-    project_id = project.id
-    document_input = DocumentInput(title="Example Document", project_id=project_id)
-    created_document = create_document(project_id, document_input, projects, documents)
+    document_input = DocumentInput(title="New Document")
+    created_document = create_document(project.id, document_input, projects, documents)
 
     assert isinstance(created_document, Document)
     assert created_document.title == document_input.title
-    assert created_document.project_id == project_id
+    assert created_document.project_id == project.id
 
 
 def test_get_document(documents: Documents, document: Document):
-    document_id = document.id
-    retrieved_document = get_document(document_id, documents)
+    retrieved_document = get_document(document.id, documents)
 
     assert isinstance(retrieved_document, Document)
-    assert retrieved_document.id == document_id
+    assert retrieved_document.id == document.id
 
 
 def test_update_document(documents: Documents, document: Document):
-    document_id = document.id
-    document_input = DocumentInput(
-        title="Updated Document", project_id=document.project_id
-    )
-    updated_document = update_document(document_id, document_input, documents)
+    document_input = DocumentInput(title="Updated Document")
+    updated_document = update_document(document.id, document_input, documents)
 
     assert isinstance(updated_document, Document)
-    assert updated_document.id == document_id
+    assert updated_document.id == document.id
     assert updated_document.title == document_input.title
 
 
 def test_delete_document(documents: Documents, document: Document):
-    document_id = document.id
-    delete_document(document_id, documents)
+    delete_document(document.id, documents)
 
-    with pytest.raises(Exception):
-        # Check if the document was deleted
-        get_document(document_id, documents)
+    with pytest.raises(HTTPException) as excinfo:
+        get_document(document.id, documents)
+    assert excinfo.value.status_code == 404
+    assert "No Document with id" in excinfo.value.detail
 
 
 def test_get_document_representations_list(documents: Documents, document: Document):
     results = get_document_representations([], None, [], {}, documents)
 
     assert isinstance(results, list)
+    assert len(results) == 1
     for item in results:
         assert isinstance(item, Document)
 
@@ -129,14 +127,12 @@ def test_get_document_representations_local_search(
 
     # Get representations using local_search to filter the documents
     local_search = "banana"
-    document_representations_list = get_document_representations(
-        [], local_search, [], {}, documents
-    )
+    results = get_document_representations([], local_search, [], {}, documents)
 
     # Check if the correct document is returned after filtering
-    assert isinstance(document_representations_list, list)
-    assert len(document_representations_list) == 1
-    document = document_representations_list[0]
+    assert isinstance(results, list)
+    assert len(results) == 1
+    document = results[0]
     assert isinstance(document, Document)
     assert document.reference == "banana"
     assert document.title == "banana_title"
@@ -153,7 +149,6 @@ def test_get_document_field_names_full_list(documents: Documents, project: Proje
     # Create a document to get all fields
     document_input = DocumentInput(
         title="Example Document",
-        project_id=project.id,
         reference="Example Reference",
         description="Example description",
     )
@@ -203,7 +198,7 @@ def test_get_document_references_with_pagination(
 
 
 def test_get_document_references_local_search(documents: Documents, project: Project):
-    # Create two documents with different titles
+    # Create two documents with different references
     document_inputs = [
         DocumentInput(reference="apple", title="apple_title", project_id=project.id),
         DocumentInput(reference="banana", title="banana_title", project_id=project.id),

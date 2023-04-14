@@ -17,8 +17,9 @@
 
 
 import pytest
-from mvtool.data.catalog_modules import CatalogModules
+from fastapi import HTTPException
 
+from mvtool.data.catalog_modules import CatalogModules
 from mvtool.data.catalog_requirements import CatalogRequirements
 from mvtool.handlers.catalog_requirements import (
     create_catalog_requirement,
@@ -59,7 +60,7 @@ def test_get_catalog_requirements_with_pagination(
     )
 
     assert isinstance(catalog_requirements_page, Page)
-    assert catalog_requirements_page.total_count >= 1
+    assert catalog_requirements_page.total_count == 1
     for catalog_requirement_ in catalog_requirements_page.items:
         assert isinstance(catalog_requirement_, CatalogRequirementOutput)
 
@@ -122,9 +123,10 @@ def test_delete_catalog_requirement(
     catalog_requirement_id = catalog_requirement.id
     delete_catalog_requirement(catalog_requirement_id, catalog_requirements)
 
-    with pytest.raises(Exception):
-        # Check if the catalog requirement was deleted
+    with pytest.raises(HTTPException) as excinfo:
         get_catalog_requirement(catalog_requirement_id, catalog_requirements)
+    assert excinfo.value.status_code == 404
+    assert "No CatalogRequirement with id" in excinfo.value.detail
 
 
 def test_get_catalog_requirement_representations_list(
@@ -148,7 +150,7 @@ def test_get_catalog_requirement_representations_with_pagination(
     )
 
     assert isinstance(resulting_page, Page)
-    assert resulting_page.total_count >= 1
+    assert resulting_page.total_count == 1
     for item in resulting_page.items:
         assert isinstance(item, CatalogRequirementRepresentation)
 
@@ -212,7 +214,7 @@ def test_get_catalog_requirement_representations_with_pagination(
     )
 
     assert isinstance(resulting_page, Page)
-    assert resulting_page.total_count >= 1
+    assert resulting_page.total_count == 1
     for item in resulting_page.items:
         assert isinstance(item, CatalogRequirementRepresentation)
 

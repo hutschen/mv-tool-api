@@ -60,7 +60,7 @@ def test_get_catalog_modules_with_pagination(catalog_modules, catalog_module):
     catalog_modules_page = get_catalog_modules([], [], page_params, catalog_modules)
 
     assert isinstance(catalog_modules_page, Page)
-    assert catalog_modules_page.total_count >= 1
+    assert catalog_modules_page.total_count == 1
     for catalog_module_ in catalog_modules_page.items:
         assert isinstance(catalog_module_, CatalogModuleOutput)
 
@@ -103,9 +103,10 @@ def test_delete_catalog_module(catalog_modules, catalog_module):
     catalog_module_id = catalog_module.id
     delete_catalog_module(catalog_module_id, catalog_modules)
 
-    with pytest.raises(Exception):
-        # Check if the catalog module was deleted
+    with pytest.raises(HTTPException) as excinfo:
         get_catalog_module(catalog_module_id, catalog_modules)
+    assert excinfo.value.status_code == 404
+    assert "No CatalogModule with id" in excinfo.value.detail
 
 
 def test_get_catalog_module_representation_list(catalog_modules, catalog_module):
@@ -125,7 +126,7 @@ def test_get_catalog_module_representation_with_pagination(
     )
 
     assert isinstance(resulting_page, Page)
-    assert resulting_page.total_count >= 1
+    assert resulting_page.total_count == 1
     for item in resulting_page.items:
         assert isinstance(item, CatalogModuleRepresentation)
 

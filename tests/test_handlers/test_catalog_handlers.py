@@ -16,8 +16,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import pytest
-from mvtool.data.catalogs import Catalogs
+from fastapi import HTTPException
 
+from mvtool.data.catalogs import Catalogs
 from mvtool.handlers.catalogs import (
     create_catalog,
     delete_catalog,
@@ -50,7 +51,7 @@ def test_get_catalogs_with_pagination(catalogs: Catalogs, catalog: Catalog):
     catalogs_page = get_catalogs([], [], page_params, catalogs)
 
     assert isinstance(catalogs_page, Page)
-    assert catalogs_page.total_count >= 1
+    assert catalogs_page.total_count == 1
     for catalog_ in catalogs_page.items:
         assert isinstance(catalog_, CatalogOutput)
 
@@ -85,9 +86,10 @@ def test_delete_catalog(catalogs: Catalogs, catalog: Catalog):
     catalog_id = catalog.id
     delete_catalog(catalog_id, catalogs)
 
-    with pytest.raises(Exception):
-        # Check if the catalog was deleted
+    with pytest.raises(HTTPException) as excinfo:
         get_catalog(catalog_id, catalogs)
+    assert excinfo.value.status_code == 404
+    assert "No Catalog with id" in excinfo.value.detail
 
 
 def test_get_catalog_representations_list(catalogs: Catalogs, catalog: Catalog):
@@ -105,7 +107,7 @@ def test_get_catalog_representations_with_pagination(
     resulting_page = get_catalog_representations([], None, [], page_params, catalogs)
 
     assert isinstance(resulting_page, Page)
-    assert resulting_page.total_count >= 1
+    assert resulting_page.total_count == 1
     for item in resulting_page.items:
         assert isinstance(item, CatalogRepresentation)
 

@@ -17,6 +17,7 @@
 
 import jira
 import pytest
+from fastapi import HTTPException
 
 from mvtool.data.projects import Projects
 from mvtool.handlers.projects import (
@@ -85,9 +86,10 @@ def test_delete_project(projects: Projects, project: Project):
     project_id = project.id
     delete_project(project_id, projects)
 
-    with pytest.raises(Exception):
-        # Check if the project was deleted
+    with pytest.raises(HTTPException) as excinfo:
         get_project(project_id, projects)
+    assert excinfo.value.status_code == 404
+    assert "No Project with id" in excinfo.value.detail
 
 
 def test_get_project_representations_list(projects: Projects, project: Project):
@@ -105,7 +107,7 @@ def test_get_project_representations_with_pagination(
     resulting_page = get_project_representations([], None, [], page_params, projects)
 
     assert isinstance(resulting_page, Page)
-    assert resulting_page.total_count >= 1
+    assert resulting_page.total_count == 1
     for item in resulting_page.items:
         assert isinstance(item, ProjectRepresentation)
 
