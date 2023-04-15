@@ -124,45 +124,45 @@ def get_projects(
     where_clauses=Depends(get_project_filters),
     order_by_clauses=Depends(get_project_sort),
     page_params=Depends(page_params),
-    projects_view: Projects = Depends(),
+    projects: Projects = Depends(),
 ):
-    projects = projects_view.list_projects(
+    projects_list = projects.list_projects(
         where_clauses, order_by_clauses, **page_params
     )
     if page_params:
-        projects_count = projects_view.count_projects(where_clauses)
-        return Page[ProjectOutput](items=projects, total_count=projects_count)
+        return Page[ProjectOutput](
+            items=projects_list,
+            total_count=projects.count_projects(where_clauses),
+        )
     else:
-        return projects
+        return projects_list
 
 
 @router.post("/projects", status_code=201, response_model=ProjectOutput)
-def create_project(
-    project: ProjectInput, projects_view: Projects = Depends()
-) -> Project:
-    return projects_view.create_project(project)
+def create_project(project: ProjectInput, projects: Projects = Depends()) -> Project:
+    return projects.create_project(project)
 
 
 @router.get("/projects/{project_id}", response_model=ProjectOutput)
-def get_project(project_id: int, projects_view: Projects = Depends()) -> Project:
-    return projects_view.get_project(project_id)
+def get_project(project_id: int, projects: Projects = Depends()) -> Project:
+    return projects.get_project(project_id)
 
 
 @router.put("/projects/{project_id}", response_model=ProjectOutput)
 def update_project(
     project_id: int,
     project_input: ProjectInput,
-    projects_view: Projects = Depends(),
+    projects: Projects = Depends(),
 ) -> Project:
-    project = projects_view.get_project(project_id)
-    projects_view.update_project(project, project_input)
+    project = projects.get_project(project_id)
+    projects.update_project(project, project_input)
     return project
 
 
 @router.delete("/projects/{project_id}", status_code=204)
-def delete_project(project_id: int, projects_view: Projects = Depends()) -> None:
-    project = projects_view.get_project(project_id)
-    projects_view.delete_project(project)
+def delete_project(project_id: int, projects: Projects = Depends()) -> None:
+    project = projects.get_project(project_id)
+    projects.delete_project(project)
 
 
 @router.get(
@@ -174,33 +174,33 @@ def get_project_representations(
     local_search: str | None = None,
     order_by_clauses=Depends(get_project_sort),
     page_params=Depends(page_params),
-    projects_view: Projects = Depends(),
+    projects: Projects = Depends(),
 ):
     if local_search:
         where_clauses.append(search_columns(local_search, Project.name))
 
-    projects = projects_view.list_projects(
+    projects_list = projects.list_projects(
         where_clauses, order_by_clauses, **page_params, query_jira=False
     )
     if page_params:
-        projects_count = projects_view.count_projects(where_clauses)
-        return Page[ProjectRepresentation](items=projects, total_count=projects_count)
+        return Page[ProjectRepresentation](
+            items=projects_list,
+            total_count=projects.count_projects(where_clauses),
+        )
     else:
-        return projects
+        return projects_list
 
 
 @router.get("/project/field-names", response_model=list[str])
 def get_project_field_names(
     where_clauses=Depends(get_project_filters),
-    projects_view: Projects = Depends(),
+    projects: Projects = Depends(),
 ) -> set[str]:
     field_names = {"id", "name"}
     for field, names in [
         (Project.description, ["description"]),
         (Project.jira_project_id, ["jira_project"]),
     ]:
-        if projects_view.count_projects(
-            [filter_for_existence(field, True), *where_clauses]
-        ):
+        if projects.count_projects([filter_for_existence(field, True), *where_clauses]):
             field_names.update(names)
     return field_names

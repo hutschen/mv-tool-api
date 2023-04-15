@@ -162,20 +162,18 @@ def get_catalog_requirements(
     where_clauses=Depends(get_catalog_requirement_filters),
     order_by_clauses=Depends(get_catalog_requirement_sort),
     page_params=Depends(page_params),
-    catalog_requirements_view: CatalogRequirements = Depends(),
+    catalog_requirements: CatalogRequirements = Depends(),
 ) -> Page[CatalogRequirementOutput] | list[CatalogRequirement]:
-    crequirements = catalog_requirements_view.list_catalog_requirements(
+    catalog_requirements_list = catalog_requirements.list_catalog_requirements(
         where_clauses, order_by_clauses, **page_params
     )
     if page_params:
-        crequirements_count = catalog_requirements_view.count_catalog_requirements(
-            where_clauses
-        )
         return Page[CatalogRequirementOutput](
-            items=crequirements, total_count=crequirements_count
+            items=catalog_requirements_list,
+            total_count=catalog_requirements.count_catalog_requirements(where_clauses),
         )
     else:
-        return crequirements
+        return catalog_requirements_list
 
 
 @router.post(
@@ -186,12 +184,12 @@ def get_catalog_requirements(
 def create_catalog_requirement(
     catalog_module_id: int,
     catalog_requirement_input: CatalogRequirementInput,
-    catalog_modules_view: CatalogModules = Depends(),
-    catalog_requirements_view: CatalogRequirements = Depends(),
+    catalog_modules: CatalogModules = Depends(),
+    catalog_requirements: CatalogRequirements = Depends(),
 ) -> CatalogRequirement:
-    catalog_module = catalog_modules_view.get_catalog_module(catalog_module_id)
-    return catalog_requirements_view.create_catalog_requirement(
-        catalog_module, catalog_requirement_input
+    return catalog_requirements.create_catalog_requirement(
+        catalog_modules.get_catalog_module(catalog_module_id),
+        catalog_requirement_input,
     )
 
 
@@ -201,9 +199,9 @@ def create_catalog_requirement(
 )
 def get_catalog_requirement(
     catalog_requirement_id: int,
-    catalog_requirements_view: CatalogRequirements = Depends(),
+    catalog_requirements: CatalogRequirements = Depends(),
 ) -> CatalogRequirement:
-    return catalog_requirements_view.get_catalog_requirement(catalog_requirement_id)
+    return catalog_requirements.get_catalog_requirement(catalog_requirement_id)
 
 
 @router.put(
@@ -213,12 +211,12 @@ def get_catalog_requirement(
 def update_catalog_requirement(
     catalog_requirement_id: int,
     catalog_requirement_input: CatalogRequirementInput,
-    catalog_requirements_view: CatalogRequirements = Depends(),
+    catalog_requirements: CatalogRequirements = Depends(),
 ) -> CatalogRequirement:
-    catalog_requirement = catalog_requirements_view.get_catalog_requirement(
+    catalog_requirement = catalog_requirements.get_catalog_requirement(
         catalog_requirement_id
     )
-    catalog_requirements_view.update_catalog_requirement(
+    catalog_requirements.update_catalog_requirement(
         catalog_requirement, catalog_requirement_input
     )
     return catalog_requirement
@@ -227,12 +225,12 @@ def update_catalog_requirement(
 @router.delete("/catalog-requirements/{catalog_requirement_id}", status_code=204)
 def delete_catalog_requirement(
     catalog_requirement_id: int,
-    catalog_requirements_view: CatalogRequirements = Depends(),
+    catalog_requirements: CatalogRequirements = Depends(),
 ) -> None:
-    catalog_requirement = catalog_requirements_view.get_catalog_requirement(
+    catalog_requirement = catalog_requirements.get_catalog_requirement(
         catalog_requirement_id
     )
-    catalog_requirements_view.delete_catalog_requirement(catalog_requirement)
+    catalog_requirements.delete_catalog_requirement(catalog_requirement)
 
 
 @router.get(
@@ -245,7 +243,7 @@ def get_catalog_requirement_representations(
     local_search: str | None = None,
     order_by_clauses=Depends(get_catalog_requirement_sort),
     page_params=Depends(page_params),
-    catalog_requirements_view: CatalogRequirements = Depends(),
+    catalog_requirements: CatalogRequirements = Depends(),
 ) -> Page[CatalogRequirementRepresentation] | list[CatalogRequirement]:
     if local_search:
         where_clauses.append(
@@ -254,24 +252,22 @@ def get_catalog_requirement_representations(
             )
         )
 
-    crequirements = catalog_requirements_view.list_catalog_requirements(
+    catalog_requirements_list = catalog_requirements.list_catalog_requirements(
         where_clauses, order_by_clauses, **page_params
     )
     if page_params:
-        crequirements_count = catalog_requirements_view.count_catalog_requirements(
-            where_clauses
-        )
         return Page[CatalogRequirementRepresentation](
-            items=crequirements, total_count=crequirements_count
+            items=catalog_requirements_list,
+            total_count=catalog_requirements.count_catalog_requirements(where_clauses),
         )
     else:
-        return crequirements
+        return catalog_requirements_list
 
 
 @router.get("/catalog-requirement/field-names", response_model=list[str])
 def get_catalog_requirement_field_names(
     where_clauses=Depends(get_catalog_requirement_filters),
-    catalog_requirements_view: CatalogRequirements = Depends(),
+    catalog_requirements: CatalogRequirements = Depends(),
 ) -> set[str]:
     field_names = {"id", "summary", "catalog_module"}
     for field, names in [
@@ -280,7 +276,7 @@ def get_catalog_requirement_field_names(
         (CatalogRequirement.gs_absicherung, ["gs_absicherung"]),
         (CatalogRequirement.gs_verantwortliche, ["gs_verantwortliche"]),
     ]:
-        if catalog_requirements_view.count_catalog_requirements(
+        if catalog_requirements.count_catalog_requirements(
             [filter_for_existence(field, True), *where_clauses]
         ):
             field_names.update(names)
@@ -292,17 +288,19 @@ def get_catalog_requirement_references(
     where_clauses: list[Any] = Depends(get_catalog_requirement_filters),
     local_search: str | None = None,
     page_params=Depends(page_params),
-    catalog_requirements_view: CatalogRequirements = Depends(),
+    catalog_requirements: CatalogRequirements = Depends(),
 ) -> Page[str] | list[str]:
     if local_search:
         where_clauses.append(search_columns(local_search, CatalogRequirement.reference))
-    references = catalog_requirements_view.list_catalog_requirement_values(
+    references = catalog_requirements.list_catalog_requirement_values(
         CatalogRequirement.reference, where_clauses, **page_params
     )
     if page_params:
-        references_count = catalog_requirements_view.count_catalog_requirement_values(
-            CatalogRequirement.reference, where_clauses
+        return Page[str](
+            items=references,
+            total_count=catalog_requirements.count_catalog_requirement_values(
+                CatalogRequirement.reference, where_clauses
+            ),
         )
-        return Page[str](items=references, total_count=references_count)
     else:
         return references

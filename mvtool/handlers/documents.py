@@ -138,16 +138,18 @@ def get_documents(
     where_clauses=Depends(get_document_filters),
     order_by_clauses=Depends(get_document_sort),
     page_params=Depends(page_params),
-    documents_view: Documents = Depends(),
+    documents: Documents = Depends(),
 ):
-    documents = documents_view.list_documents(
+    documents_list = documents.list_documents(
         where_clauses, order_by_clauses, **page_params
     )
     if page_params:
-        documents_count = documents_view.count_documents(where_clauses)
-        return Page[DocumentOutput](items=documents, total_count=documents_count)
+        return Page[DocumentOutput](
+            items=documents_list,
+            total_count=documents.count_documents(where_clauses),
+        )
     else:
-        return documents
+        return documents_list
 
 
 @router.post(
@@ -159,30 +161,32 @@ def create_document(
     projects_view: Projects = Depends(),
     documents_view: Documents = Depends(),
 ) -> Document:
-    project = projects_view.get_project(project_id)
-    return documents_view.create_document(project, document_input)
+    return documents_view.create_document(
+        projects_view.get_project(project_id),
+        document_input,
+    )
 
 
 @router.get("/documents/{document_id}", response_model=DocumentOutput)
-def get_document(document_id: int, documents_view: Documents = Depends()) -> Document:
-    return documents_view.get_document(document_id)
+def get_document(document_id: int, documents: Documents = Depends()) -> Document:
+    return documents.get_document(document_id)
 
 
 @router.put("/documents/{document_id}", response_model=DocumentOutput)
 def update_document(
     document_id: int,
     document_input: DocumentInput,
-    documents_view: Documents = Depends(),
+    documents: Documents = Depends(),
 ) -> Document:
-    document = documents_view.get_document(document_id)
-    documents_view.update_document(document, document_input)
+    document = documents.get_document(document_id)
+    documents.update_document(document, document_input)
     return document
 
 
 @router.delete("/documents/{document_id}", status_code=204, response_class=Response)
-def delete_document(document_id: int, documents_view: Documents = Depends()) -> None:
-    document = documents_view.get_document(document_id)
-    documents_view.delete_document(document)
+def delete_document(document_id: int, documents: Documents = Depends()) -> None:
+    document = documents.get_document(document_id)
+    documents.delete_document(document)
 
 
 @router.get(
@@ -194,36 +198,36 @@ def get_document_representations(
     local_search: str | None = None,
     order_by_clauses=Depends(get_document_sort),
     page_params=Depends(page_params),
-    documents_view: Documents = Depends(),
+    documents: Documents = Depends(),
 ):
     if local_search:
         where_clauses.append(
             search_columns(local_search, Document.reference, Document.title)
         )
 
-    documents = documents_view.list_documents(
+    documents_list = documents.list_documents(
         where_clauses, order_by_clauses, **page_params, query_jira=False
     )
     if page_params:
-        documents_count = documents_view.count_documents(where_clauses)
         return Page[DocumentRepresentation](
-            items=documents, total_count=documents_count
+            items=documents_list,
+            total_count=documents.count_documents(where_clauses),
         )
     else:
-        return documents
+        return documents_list
 
 
 @router.get("/document/field-names", response_model=list[str])
 def get_document_field_names(
     where_clauses=Depends(get_document_filters),
-    document_view: Documents = Depends(),
+    documents: Documents = Depends(),
 ) -> set[str]:
     field_names = {"id", "title", "project"}
     for field, names in [
         (Document.reference, ["reference"]),
         (Document.description, ["description"]),
     ]:
-        if document_view.count_documents(
+        if documents.count_documents(
             [filter_for_existence(field, True), *where_clauses]
         ):
             field_names.update(names)
@@ -235,18 +239,20 @@ def get_document_references(
     where_clauses: list[Any] = Depends(get_document_filters),
     local_search: str | None = None,
     page_params=Depends(page_params),
-    document_view: Documents = Depends(),
+    documents: Documents = Depends(),
 ):
     if local_search:
         where_clauses.append(search_columns(local_search, Document.reference))
 
-    references = document_view.list_document_values(
+    references = documents.list_document_values(
         Document.reference, where_clauses, **page_params
     )
     if page_params:
-        references_count = document_view.count_document_values(
-            Document.reference, where_clauses
+        return Page[str](
+            items=references,
+            total_count=documents.count_document_values(
+                Document.reference, where_clauses
+            ),
         )
-        return Page[str](items=references, total_count=references_count)
     else:
         return references

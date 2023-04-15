@@ -130,12 +130,15 @@ def get_catalogs(
     page_params=Depends(page_params),
     catalogs: Catalogs = Depends(),
 ):
-    catalogs_ = catalogs.list_catalogs(where_clauses, order_by_clauses, **page_params)
+    catalogs_list = catalogs.list_catalogs(
+        where_clauses, order_by_clauses, **page_params
+    )
     if page_params:
-        catalogs_count = catalogs.count_catalogs(where_clauses)
-        return Page[CatalogOutput](items=catalogs_, total_count=catalogs_count)
+        return Page[CatalogOutput](
+            items=catalogs_list, total_count=catalogs.count_catalogs(where_clauses)
+        )
     else:
-        return catalogs_
+        return catalogs_list
 
 
 @router.post("/catalogs", status_code=201, response_model=CatalogOutput)
@@ -167,8 +170,7 @@ def delete_catalog(
     catalog_id: int,
     catalogs: Catalogs = Depends(),
 ) -> None:
-    catalog = catalogs.get_catalog(catalog_id)
-    catalogs.delete_catalog(catalog)
+    catalogs.delete_catalog(catalogs.get_catalog(catalog_id))
 
 
 @router.get(
@@ -187,12 +189,16 @@ def get_catalog_representations(
             search_columns(local_search, Catalog.reference, Catalog.title)
         )
 
-    catalogs_ = catalogs.list_catalogs(where_clauses, order_by_clauses, **page_params)
+    catalogs_list = catalogs.list_catalogs(
+        where_clauses, order_by_clauses, **page_params
+    )
     if page_params:
-        catalogs_count = catalogs.count_catalogs(where_clauses)
-        return Page[CatalogRepresentation](items=catalogs_, total_count=catalogs_count)
+        return Page[CatalogRepresentation](
+            items=catalogs_list,
+            total_count=catalogs.count_catalogs(where_clauses),
+        )
     else:
-        return catalogs_
+        return catalogs_list
 
 
 @router.get("/catalog/field-names", response_model=list[str])
@@ -224,9 +230,9 @@ def get_catalog_references(
         Catalog.reference, where_clauses, **page_params
     )
     if page_params:
-        references_count = catalogs.count_catalog_values(
-            Catalog.reference, where_clauses
+        return Page[str](
+            items=references,
+            total_count=catalogs.count_catalog_values(Catalog.reference, where_clauses),
         )
-        return Page[str](items=references, total_count=references_count)
     else:
         return references
