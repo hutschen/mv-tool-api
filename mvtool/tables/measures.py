@@ -53,6 +53,8 @@ def get_measure_columns(
             Column("Summary", "summary", required=True),
             Column("Description", "description"),
             document_only_columns,
+            Column("Compliance Status", "compliance_status"),
+            Column("Compliance Comment", "compliance_comment"),
             jira_issue_columns,
             Column("Completion Status", "completion_status"),
             Column("Completion Comment", "completion_comment"),
