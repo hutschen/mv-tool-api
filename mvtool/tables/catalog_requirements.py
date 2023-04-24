@@ -28,7 +28,7 @@ from ..models.catalog_requirements import (
     CatalogRequirementImport,
     CatalogRequirementOutput,
 )
-from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
+from ..utils.temp_file import get_temp_file
 from ..handlers.catalog_modules import CatalogModules
 from ..handlers.catalog_requirements import (
     CatalogRequirements,
@@ -37,7 +37,7 @@ from ..handlers.catalog_requirements import (
 )
 from .catalog_modules import get_catalog_module_columns
 from .common import Column, ColumnGroup
-from .handlers import get_export_labels_handler, hide_columns
+from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
 
 
 def get_catalog_requirement_columns(
@@ -98,7 +98,7 @@ def upload_catalog_requirements_excel(
     catalog_modules_view: CatalogModules = Depends(),
     catalog_requirements_view: CatalogRequirements = Depends(),
     columns: ColumnGroup = Depends(get_catalog_requirement_columns),
-    temp_file: NamedTemporaryFile = Depends(copy_upload_to_temp_file),
+    df: pd.DataFrame = Depends(get_uploaded_dataframe),
     skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
     session: Session = Depends(get_session),
@@ -108,10 +108,6 @@ def upload_catalog_requirements_excel(
         if fallback_catalog_module_id is not None
         else None
     )
-
-    # Create data frame from uploaded file
-    df = pd.read_excel(temp_file, engine="openpyxl")
-    df.drop_duplicates(keep="last", inplace=True)
 
     # Import data frame into database
     catalog_requirement_imports = columns.import_from_dataframe(

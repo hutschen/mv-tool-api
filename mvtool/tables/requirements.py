@@ -33,10 +33,10 @@ from ..handlers.requirements import (
 )
 from ..models import Requirement, RequirementOutput
 from ..models.requirements import RequirementImport
-from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
+from ..utils.temp_file import get_temp_file
 from .catalog_requirements import get_catalog_requirement_columns
 from .common import Column, ColumnGroup
-from .handlers import get_export_labels_handler, hide_columns
+from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
 from .projects import get_project_columns
 
 
@@ -100,7 +100,7 @@ def upload_requirements_excel(
     catalog_modules_view: CatalogModules = Depends(),
     requirements_view: Requirements = Depends(),
     columns: ColumnGroup = Depends(get_requirement_columns),
-    temp_file=Depends(copy_upload_to_temp_file),
+    df: pd.DataFrame = Depends(get_uploaded_dataframe),
     skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
     session: Session = Depends(get_session),
@@ -115,10 +115,6 @@ def upload_requirements_excel(
         if fallback_catalog_module_id is not None
         else None
     )
-
-    # Create a data frame from the uploaded Excel file
-    df = pd.read_excel(temp_file, engine="openpyxl")
-    df.drop_duplicates(keep="last", inplace=True)
 
     # Import the data frame
     requirement_imports = columns.import_from_dataframe(df, skip_nan=skip_blanks)

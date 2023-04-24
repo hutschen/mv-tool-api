@@ -20,11 +20,11 @@ from fastapi.responses import FileResponse
 from sqlmodel import Session
 
 from ..database import get_session
-from ..models import Project, ProjectImport, ProjectOutput
-from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from ..handlers.projects import Projects, get_project_filters, get_project_sort
+from ..models import Project, ProjectImport, ProjectOutput
+from ..utils.temp_file import get_temp_file
 from .common import Column, ColumnGroup
-from .handlers import get_export_labels_handler, hide_columns
+from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
 from .jira_ import get_jira_project_columns
 
 
@@ -84,15 +84,11 @@ def download_projects_excel(
 def upload_projects_excel(
     projects_view: Projects = Depends(),
     columns: ColumnGroup = Depends(get_project_columns),
-    temp_file=Depends(copy_upload_to_temp_file),
+    df: pd.DataFrame = Depends(get_uploaded_dataframe),
     skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
     session: Session = Depends(get_session),
 ) -> list[Project]:
-    # Create a data frame from the uploaded Excel file
-    df = pd.read_excel(temp_file, engine="openpyxl")
-    df.drop_duplicates(keep="last", inplace=True)
-
     # Import the data frame
     project_imports = columns.import_from_dataframe(df, skip_nan=skip_blanks)
     projects = list(

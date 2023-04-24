@@ -26,10 +26,10 @@ from ..handlers.catalog_modules import CatalogModules
 from ..handlers.measures import Measures, get_measure_filters, get_measure_sort
 from ..handlers.requirements import Requirements
 from ..models import Measure, MeasureImport, MeasureOutput
-from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
+from ..utils.temp_file import get_temp_file
 from .common import Column, ColumnGroup
 from .documents import get_document_only_columns
-from .handlers import get_export_labels_handler, hide_columns
+from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
 from .jira_ import get_jira_issue_columns
 from .requirements import get_requirement_columns
 
@@ -53,6 +53,8 @@ def get_measure_columns(
             Column("Summary", "summary", required=True),
             Column("Description", "description"),
             document_only_columns,
+            Column("Compliance Status", "compliance_status"),
+            Column("Compliance Comment", "compliance_comment"),
             jira_issue_columns,
             Column("Completion Status", "completion_status"),
             Column("Completion Comment", "completion_comment"),
@@ -97,7 +99,7 @@ def upload_measures_excel(
     requirements_view: Requirements = Depends(),
     catalog_modules_view: CatalogModules = Depends(),
     columns: ColumnGroup = Depends(get_measure_columns),
-    temp_file=Depends(copy_upload_to_temp_file),
+    df: pd.DataFrame = Depends(get_uploaded_dataframe),
     skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
     session: Session = Depends(get_session),
@@ -112,10 +114,6 @@ def upload_measures_excel(
         if fallback_catalog_module_id is not None
         else None
     )
-
-    # Create a data frame from the uploaded Excel file
-    df = pd.read_excel(temp_file, engine="openpyxl")
-    df.drop_duplicates(keep="last", inplace=True)
 
     # Import the data frame
     measure_imports = columns.import_from_dataframe(df, skip_nan=skip_blanks)
