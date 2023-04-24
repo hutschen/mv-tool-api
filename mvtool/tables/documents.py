@@ -23,11 +23,11 @@ from sqlmodel import Session
 
 from ..database import get_session
 from ..models.documents import Document, DocumentImport, DocumentOutput
-from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
+from ..utils.temp_file import get_temp_file
 from ..handlers.documents import Documents, get_document_filters, get_document_sort
 from ..handlers.projects import Projects
 from .common import Column, ColumnGroup
-from .handlers import get_export_labels_handler, hide_columns
+from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
 from .projects import get_project_columns
 
 
@@ -85,7 +85,7 @@ def upload_documents_excel(
     projects_view: Projects = Depends(),
     documents_view: Documents = Depends(),
     columns: ColumnGroup = Depends(get_document_columns),
-    temp_file=Depends(copy_upload_to_temp_file),
+    df: pd.DataFrame = Depends(get_uploaded_dataframe),
     skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
     session: Session = Depends(get_session),
@@ -95,10 +95,6 @@ def upload_documents_excel(
         if fallback_project_id is not None
         else None
     )
-
-    # Create data frame from uploaded file
-    df = pd.read_excel(temp_file, engine="openpyxl")
-    df.drop_duplicates(keep="last", inplace=True)
 
     # Import data frame into database
     document_imports = columns.import_from_dataframe(df, skip_nan=skip_blanks)
