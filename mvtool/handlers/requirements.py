@@ -169,6 +169,8 @@ def get_requirement_sort(
             "reference": [Requirement.reference],
             "summary": [Requirement.summary],
             "description": [Requirement.description],
+            "gs_absicherung": [CatalogRequirement.gs_absicherung],
+            "gs_verantwortliche": [CatalogRequirement.gs_verantwortliche],
             "target_object": [Requirement.target_object],
             "milestone": [Requirement.milestone],
             "project": [Project.name],
