@@ -273,12 +273,18 @@ def import_requirements_from_catalog_modules(
     projects: Projects = Depends(Projects),
     catalog_requirements: CatalogRequirements = Depends(),
     requirements: Requirements = Depends(Requirements),
-) -> Iterator[Requirement]:
-    return requirements.bulk_create_requirements_from_catalog_requirements(
-        projects.get_project(project_id),
-        catalog_requirements.list_catalog_requirements(
-            [filter_by_values(CatalogRequirement.catalog_module_id, catalog_module_ids)]
-        ),
+) -> list[Requirement]:
+    return list(
+        requirements.bulk_create_requirements_from_catalog_requirements(
+            projects.get_project(project_id),
+            catalog_requirements.list_catalog_requirements(
+                [
+                    filter_by_values(
+                        CatalogRequirement.catalog_module_id, catalog_module_ids
+                    )
+                ]
+            ),
+        )
     )
 
 
