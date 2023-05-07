@@ -16,8 +16,8 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # set verification comment to null and verified to false
-    # when verification method is not set
+    # Set verification_method to 'R' when verification_method is NULL
+    # and either a verification_comment exists or verified is set to TRUE
     op.execute(
         """
         UPDATE measure

@@ -148,16 +148,18 @@ def get_catalog_modules(
     where_clauses=Depends(get_catalog_module_filters),
     order_by_clauses=Depends(get_catalog_module_sort),
     page_params=Depends(page_params),
-    catalog_modules_view: CatalogModules = Depends(),
+    catalog_modules: CatalogModules = Depends(),
 ):
-    cmodules = catalog_modules_view.list_catalog_modules(
+    catalog_modules_list = catalog_modules.list_catalog_modules(
         where_clauses, order_by_clauses, **page_params
     )
     if page_params:
-        cmodule_count = catalog_modules_view.count_catalog_modules(where_clauses)
-        return Page[CatalogModuleOutput](items=cmodules, total_count=cmodule_count)
+        return Page[CatalogModuleOutput](
+            items=catalog_modules_list,
+            total_count=catalog_modules.count_catalog_modules(where_clauses),
+        )
     else:
-        return cmodules
+        return catalog_modules_list
 
 
 @router.post(
@@ -169,36 +171,38 @@ def create_catalog_module(
     catalog_id: int,
     catalog_module_input: CatalogModuleInput,
     catalogs_view: Catalogs = Depends(),
-    catalog_modules_view: CatalogModules = Depends(),
+    catalog_modules: CatalogModules = Depends(),
 ) -> CatalogModule:
-    catalog = catalogs_view.get_catalog(catalog_id)
-    return catalog_modules_view.create_catalog_module(catalog, catalog_module_input)
+    return catalog_modules.create_catalog_module(
+        catalogs_view.get_catalog(catalog_id),
+        catalog_module_input,
+    )
 
 
 @router.get("/catalog-modules/{catalog_module_id}", response_model=CatalogModuleOutput)
 def get_catalog_module(
-    catalog_module_id: int, catalog_modules_view: CatalogModules = Depends()
+    catalog_module_id: int, catalog_modules: CatalogModules = Depends()
 ) -> CatalogModule:
-    return catalog_modules_view.get_catalog_module(catalog_module_id)
+    return catalog_modules.get_catalog_module(catalog_module_id)
 
 
 @router.put("/catalog-modules/{catalog_module_id}", response_model=CatalogModuleOutput)
 def update_catalog_module(
     catalog_module_id: int,
     catalog_module_input: CatalogModuleInput,
-    catalog_modules_view: CatalogModules = Depends(),
+    catalog_modules: CatalogModules = Depends(),
 ) -> CatalogModule:
-    catalog_module = catalog_modules_view.get_catalog_module(catalog_module_id)
-    catalog_modules_view.update_catalog_module(catalog_module, catalog_module_input)
+    catalog_module = catalog_modules.get_catalog_module(catalog_module_id)
+    catalog_modules.update_catalog_module(catalog_module, catalog_module_input)
     return catalog_module
 
 
 @router.delete("/catalog-modules/{catalog_module_id}", status_code=204)
 def delete_catalog_module(
-    catalog_module_id: int, catalog_modules_view: CatalogModules = Depends()
+    catalog_module_id: int, catalog_modules: CatalogModules = Depends()
 ) -> None:
-    catalog_module = catalog_modules_view.get_catalog_module(catalog_module_id)
-    catalog_modules_view.delete_catalog_module(catalog_module)
+    catalog_module = catalog_modules.get_catalog_module(catalog_module_id)
+    catalog_modules.delete_catalog_module(catalog_module)
 
 
 @router.get(
@@ -211,23 +215,23 @@ def get_catalog_module_representation(
     local_search: str | None = None,
     order_by_clauses=Depends(get_catalog_module_sort),
     page_params=Depends(page_params),
-    catalog_modules_view: CatalogModules = Depends(),
+    catalog_modules: CatalogModules = Depends(),
 ):
     if local_search:
         where_clauses.append(
             search_columns(local_search, CatalogModule.reference, CatalogModule.title)
         )
 
-    cmodules = catalog_modules_view.list_catalog_modules(
+    catalog_modules_list = catalog_modules.list_catalog_modules(
         where_clauses, order_by_clauses, **page_params
     )
     if page_params:
-        cmodule_count = catalog_modules_view.count_catalog_modules(where_clauses)
         return Page[CatalogModuleRepresentation](
-            items=cmodules, total_count=cmodule_count
+            items=catalog_modules_list,
+            total_count=catalog_modules.count_catalog_modules(where_clauses),
         )
     else:
-        return cmodules
+        return catalog_modules_list
 
 
 @router.get(
@@ -236,14 +240,14 @@ def get_catalog_module_representation(
 )
 def get_catalog_module_field_names(
     where_clauses=Depends(get_catalog_module_filters),
-    catalog_modules_view: CatalogModules = Depends(),
+    catalog_modules: CatalogModules = Depends(),
 ) -> set[str]:
     field_names = {"id", "title", "catalog"}
     for field, names in [
         (CatalogModule.reference, ["reference"]),
         (CatalogModule.description, ["description"]),
     ]:
-        if catalog_modules_view.count_catalog_modules(
+        if catalog_modules.count_catalog_modules(
             [filter_for_existence(field, True), *where_clauses]
         ):
             field_names.update(names)
@@ -258,19 +262,21 @@ def get_catalog_module_references(
     where_clauses=Depends(get_catalog_module_filters),
     local_search: str | None = None,
     page_params=Depends(page_params),
-    catalog_modules_view: CatalogModules = Depends(),
+    catalog_modules: CatalogModules = Depends(),
 ):
     if local_search:
         where_clauses.append(search_columns(local_search, CatalogModule.reference))
 
-    references = catalog_modules_view.list_catalog_module_values(
+    references = catalog_modules.list_catalog_module_values(
         CatalogModule.reference, where_clauses, **page_params
     )
     if page_params:
-        reference_count = catalog_modules_view.count_catalog_module_values(
-            CatalogModule.reference, where_clauses
+        return Page[str](
+            items=references,
+            total_count=catalog_modules.count_catalog_module_values(
+                CatalogModule.reference, where_clauses
+            ),
         )
-        return Page[str](items=references, total_count=reference_count)
     else:
         return references
 

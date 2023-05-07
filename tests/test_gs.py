@@ -59,24 +59,3 @@ def test_parse_gs_baustein_corrupted():
         GSBausteinParser.parse("tests/data/gs_bausteine/_corrupted.docx")
     assert error_info.value.status_code == 400
     assert error_info.value.detail == "Word file seems to be corrupted"
-
-
-def test_upload_gs_baustein(
-    crud: CRUDOperations,
-    catalogs_view: Catalogs,
-    create_catalog: Catalog,
-    word_temp_file: NamedTemporaryFile,
-):
-    upload_file = Mock()
-    upload_file.file = io.FileIO("tests/data/gs_bausteine/_valid.docx", "r")
-
-    result = upload_gs_baustein(
-        catalog_id=create_catalog.id,
-        upload_file=upload_file,
-        temp_file=word_temp_file,
-        catalogs=catalogs_view,
-        session=crud.session,
-    )
-
-    assert isinstance(result, CatalogModule)
-    assert create_catalog.catalog_modules[0] is result

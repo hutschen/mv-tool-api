@@ -169,6 +169,8 @@ def get_requirement_sort(
             "reference": [Requirement.reference],
             "summary": [Requirement.summary],
             "description": [Requirement.description],
+            "gs_absicherung": [CatalogRequirement.gs_absicherung],
+            "gs_verantwortliche": [CatalogRequirement.gs_verantwortliche],
             "target_object": [Requirement.target_object],
             "milestone": [Requirement.milestone],
             "project": [Project.name],
@@ -204,18 +206,18 @@ def get_requirements(
     where_clauses=Depends(get_requirement_filters),
     order_by_clauses=Depends(get_requirement_sort),
     page_params=Depends(page_params),
-    requirements_view: Requirements = Depends(Requirements),
+    requirements: Requirements = Depends(Requirements),
 ):
-    requirements = requirements_view.list_requirements(
+    requirements_list = requirements.list_requirements(
         where_clauses, order_by_clauses, **page_params
     )
     if page_params:
-        requirements_count = requirements_view.count_requirements(where_clauses)
         return Page[RequirementOutput](
-            items=requirements, total_count=requirements_count
+            items=requirements_list,
+            total_count=requirements.count_requirements(where_clauses),
         )
     else:
-        return requirements
+        return requirements_list
 
 
 @router.post(
@@ -226,37 +228,38 @@ def get_requirements(
 def create_requirement(
     project_id: int,
     requirement_input: RequirementInput,
-    projects_view: Projects = Depends(Projects),
-    requirements_view: Requirements = Depends(Requirements),
+    projects: Projects = Depends(Projects),
+    requirements: Requirements = Depends(Requirements),
 ) -> RequirementOutput:
-    project = projects_view.get_project(project_id)
-    return requirements_view.create_requirement(project, requirement_input)
+    return requirements.create_requirement(
+        projects.get_project(project_id),
+        requirement_input,
+    )
 
 
 @router.get("/requirements/{requirement_id}", response_model=RequirementOutput)
 def get_requirement(
-    requirement_id: int, requirements_view: Requirements = Depends(Requirements)
+    requirement_id: int, requirements: Requirements = Depends(Requirements)
 ) -> Requirement:
-    return requirements_view.get_requirement(requirement_id)
+    return requirements.get_requirement(requirement_id)
 
 
 @router.put("/requirements/{requirement_id}", response_model=RequirementOutput)
 def update_requirement(
     requirement_id: int,
     requirement_input: RequirementInput,
-    requirements_view: Requirements = Depends(Requirements),
+    requirements: Requirements = Depends(Requirements),
 ) -> Requirement:
-    requirement = requirements_view.get_requirement(requirement_id)
-    requirements_view.update_requirement(requirement, requirement_input)
+    requirement = requirements.get_requirement(requirement_id)
+    requirements.update_requirement(requirement, requirement_input)
     return requirement
 
 
 @router.delete("/requirements/{requirement_id}", status_code=204)
 def delete_requirement(
-    requirement_id: int, requirements_view: Requirements = Depends(Requirements)
+    requirement_id: int, requirements: Requirements = Depends(Requirements)
 ) -> None:
-    requirement = requirements_view.get_requirement(requirement_id)
-    requirements_view.delete_requirement(requirement)
+    requirements.delete_requirement(requirements.get_requirement(requirement_id))
 
 
 @router.post(
@@ -267,16 +270,21 @@ def delete_requirement(
 def import_requirements_from_catalog_modules(
     project_id: int,
     catalog_module_ids: list[int],
-    projects_view: Projects = Depends(Projects),
-    catalog_requirements_view: CatalogRequirements = Depends(),
-    requirements_view: Requirements = Depends(Requirements),
-) -> Iterator[Requirement]:
-    project = projects_view.get_project(project_id)
-    catalog_requirements = catalog_requirements_view.list_catalog_requirements(
-        [filter_by_values(CatalogRequirement.catalog_module_id, catalog_module_ids)]
-    )
-    return requirements_view.bulk_create_requirements_from_catalog_requirements(
-        project, catalog_requirements
+    projects: Projects = Depends(Projects),
+    catalog_requirements: CatalogRequirements = Depends(),
+    requirements: Requirements = Depends(Requirements),
+) -> list[Requirement]:
+    return list(
+        requirements.bulk_create_requirements_from_catalog_requirements(
+            projects.get_project(project_id),
+            catalog_requirements.list_catalog_requirements(
+                [
+                    filter_by_values(
+                        CatalogRequirement.catalog_module_id, catalog_module_ids
+                    )
+                ]
+            ),
+        )
     )
 
 
@@ -289,29 +297,29 @@ def get_requirement_representations(
     local_search: str | None = None,
     order_by_clauses=Depends(get_requirement_sort),
     page_params=Depends(page_params),
-    requirements_view: Requirements = Depends(Requirements),
+    requirements: Requirements = Depends(Requirements),
 ):
     if local_search:
         where_clauses.append(
             search_columns(local_search, Requirement.reference, Requirement.summary)
         )
 
-    requirements = requirements_view.list_requirements(
+    requirements_list = requirements.list_requirements(
         where_clauses, order_by_clauses, **page_params, query_jira=False
     )
     if page_params:
-        requirements_count = requirements_view.count_requirements(where_clauses)
         return Page[RequirementRepresentation](
-            items=requirements, total_count=requirements_count
+            items=requirements_list,
+            total_count=requirements.count_requirements(where_clauses),
         )
     else:
-        return requirements
+        return requirements_list
 
 
 @router.get("/requirement/field-names", response_model=list[str])
 def get_requirement_field_names(
     where_clauses=Depends(get_requirement_filters),
-    requirements_view: Requirements = Depends(Requirements),
+    requirements: Requirements = Depends(Requirements),
 ) -> set[str]:
     field_names = {"id", "summary", "project"}
     for field, names in [
@@ -326,7 +334,7 @@ def get_requirement_field_names(
             ["catalog_requirement", "catalog_module", "catalog"],
         ),
     ]:
-        if requirements_view.count_requirements(
+        if requirements.count_requirements(
             [filter_for_existence(field, True), *where_clauses]
         ):
             field_names.update(names)
@@ -338,19 +346,21 @@ def _create_requirement_field_values_handler(column: Column) -> Callable:
         where_clauses=Depends(get_requirement_filters),
         local_search: str | None = None,
         page_params=Depends(page_params),
-        requirements_view: Requirements = Depends(Requirements),
+        requirements: Requirements = Depends(Requirements),
     ) -> Page[str] | list[str]:
         if local_search:
             where_clauses.append(search_columns(local_search, column))
 
-        items = requirements_view.list_requirement_values(
+        items = requirements.list_requirement_values(
             column, where_clauses, **page_params
         )
         if page_params:
-            references_count = requirements_view.count_requirement_values(
-                column, where_clauses
+            return Page[str](
+                items=items,
+                total_count=requirements.count_requirement_values(
+                    column, where_clauses
+                ),
             )
-            return Page[str](items=items, total_count=references_count)
         else:
             return items
 

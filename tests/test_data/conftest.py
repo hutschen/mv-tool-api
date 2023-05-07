@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from pkg_resources import Requirement
 import pytest
 from sqlmodel import Session
 
@@ -29,9 +30,10 @@ from mvtool.data.projects import Projects
 from mvtool.data.requirements import Requirements
 from mvtool.models.catalog_modules import CatalogModule, CatalogModuleInput
 from mvtool.models.catalog_requirements import CatalogRequirementInput
-from mvtool.models.catalogs import CatalogInput
+from mvtool.models.catalogs import Catalog, CatalogInput
 from mvtool.models.documents import DocumentInput
 from mvtool.models.jira_ import JiraProject
+from mvtool.models.measures import MeasureInput
 from mvtool.models.projects import ProjectInput, Project
 from mvtool.models.requirements import RequirementInput
 
@@ -49,7 +51,7 @@ def session(config) -> Session:
 
 
 @pytest.fixture
-def catalogs(session: Session):
+def catalogs(session: Session) -> Catalogs:
     return Catalogs(session, None)
 
 
@@ -91,7 +93,7 @@ def measures(
 
 
 @pytest.fixture
-def catalog(catalogs: Catalogs):
+def catalog(catalogs: Catalogs) -> Catalog:
     catalog_input = CatalogInput(reference="ref", title="title")
     return catalogs.create_catalog(catalog_input)
 
@@ -130,3 +132,9 @@ def requirement(requirements: Requirements, project: Project):
 def document(documents: Documents, project: Project):
     document_input = DocumentInput(reference="ref", title="title")
     return documents.create_document(project, document_input)
+
+
+@pytest.fixture
+def measure(measures: Measures, requirement: Requirement):
+    measure_input = MeasureInput(reference="ref", summary="title")
+    return measures.create_measure(requirement, measure_input)

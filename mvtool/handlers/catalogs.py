@@ -128,49 +128,49 @@ def get_catalogs(
     where_clauses=Depends(get_catalog_filters),
     order_by_clauses=Depends(get_catalog_sort),
     page_params=Depends(page_params),
-    catalogs_view: Catalogs = Depends(),
+    catalogs: Catalogs = Depends(),
 ):
-    catalogs = catalogs_view.list_catalogs(
+    catalogs_list = catalogs.list_catalogs(
         where_clauses, order_by_clauses, **page_params
     )
     if page_params:
-        catalogs_count = catalogs_view.count_catalogs(where_clauses)
-        return Page[CatalogOutput](items=catalogs, total_count=catalogs_count)
+        return Page[CatalogOutput](
+            items=catalogs_list, total_count=catalogs.count_catalogs(where_clauses)
+        )
     else:
-        return catalogs
+        return catalogs_list
 
 
 @router.post("/catalogs", status_code=201, response_model=CatalogOutput)
 def create_catalog(
     catalog: CatalogInput,
-    catalogs_view: Catalogs = Depends(),
+    catalogs: Catalogs = Depends(),
 ) -> Catalog:
-    return catalogs_view.create_catalog(catalog)
+    return catalogs.create_catalog(catalog)
 
 
 @router.get("/catalogs/{catalog_id}", response_model=CatalogOutput)
-def get_catalog(catalog_id: int, catalogs_view: Catalogs = Depends()) -> Catalog:
-    return catalogs_view.get_catalog(catalog_id)
+def get_catalog(catalog_id: int, catalogs: Catalogs = Depends()) -> Catalog:
+    return catalogs.get_catalog(catalog_id)
 
 
 @router.put("/catalogs/{catalog_id}", response_model=CatalogOutput)
 def update_catalog(
     catalog_id: int,
     catalog_input: CatalogInput,
-    catalogs_view: Catalogs = Depends(),
+    catalogs: Catalogs = Depends(),
 ) -> Catalog:
-    catalog = catalogs_view.get_catalog(catalog_id)
-    catalogs_view.update_catalog(catalog, catalog_input)
+    catalog = catalogs.get_catalog(catalog_id)
+    catalogs.update_catalog(catalog, catalog_input)
     return catalog
 
 
 @router.delete("/catalogs/{catalog_id}", status_code=204)
 def delete_catalog(
     catalog_id: int,
-    catalogs_view: Catalogs = Depends(),
+    catalogs: Catalogs = Depends(),
 ) -> None:
-    catalog = catalogs_view.get_catalog(catalog_id)
-    catalogs_view.delete_catalog(catalog)
+    catalogs.delete_catalog(catalogs.get_catalog(catalog_id))
 
 
 @router.get(
@@ -182,36 +182,36 @@ def get_catalog_representations(
     local_search: str | None = None,
     order_by_clauses=Depends(get_catalog_sort),
     page_params=Depends(page_params),
-    catalogs_view: Catalogs = Depends(),
+    catalogs: Catalogs = Depends(),
 ):
     if local_search:
         where_clauses.append(
             search_columns(local_search, Catalog.reference, Catalog.title)
         )
 
-    catalogs = catalogs_view.list_catalogs(
+    catalogs_list = catalogs.list_catalogs(
         where_clauses, order_by_clauses, **page_params
     )
     if page_params:
-        catalogs_count = catalogs_view.count_catalogs(where_clauses)
-        return Page[CatalogRepresentation](items=catalogs, total_count=catalogs_count)
+        return Page[CatalogRepresentation](
+            items=catalogs_list,
+            total_count=catalogs.count_catalogs(where_clauses),
+        )
     else:
-        return catalogs
+        return catalogs_list
 
 
 @router.get("/catalog/field-names", response_model=list[str])
 def get_catalog_field_names(
     where_clauses=Depends(get_catalog_filters),
-    catalogs_view: Catalogs = Depends(),
+    catalogs: Catalogs = Depends(),
 ) -> set[str]:
     field_names = {"id", "title"}
     for field, names in [
         (Catalog.reference, ["reference"]),
         (Catalog.description, ["description"]),
     ]:
-        if catalogs_view.count_catalogs(
-            [filter_for_existence(field, True), *where_clauses]
-        ):
+        if catalogs.count_catalogs([filter_for_existence(field, True), *where_clauses]):
             field_names.update(names)
     return field_names
 
@@ -221,18 +221,18 @@ def get_catalog_references(
     where_clauses: list[Any] = Depends(get_catalog_filters),
     local_search: str | None = None,
     page_params=Depends(page_params),
-    catalogs_view: Catalogs = Depends(),
+    catalogs: Catalogs = Depends(),
 ):
     if local_search:
         where_clauses.append(search_columns(local_search, Catalog.reference))
 
-    references = catalogs_view.list_catalog_values(
+    references = catalogs.list_catalog_values(
         Catalog.reference, where_clauses, **page_params
     )
     if page_params:
-        references_count = catalogs_view.count_catalog_values(
-            Catalog.reference, where_clauses
+        return Page[str](
+            items=references,
+            total_count=catalogs.count_catalog_values(Catalog.reference, where_clauses),
         )
-        return Page[str](items=references, total_count=references_count)
     else:
         return references
