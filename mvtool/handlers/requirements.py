@@ -15,11 +15,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any, Callable, Iterator
+from typing import Any, Callable
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import constr
-from sqlmodel import Column, or_
+from sqlmodel import Column
 
 from ..data.requirements import Requirements
 from ..models.catalog_modules import CatalogModule
@@ -34,9 +34,11 @@ from ..models.requirements import (
 )
 from ..utils import combine_flags
 from ..utils.filtering import (
-    filter_by_pattern,
+    filter_by_pattern_many,
     filter_by_values,
+    filter_by_values_many,
     filter_for_existence,
+    filter_for_existence_many,
     search_columns,
 )
 from ..utils.pagination import Page, page_params
@@ -87,71 +89,69 @@ def get_requirement_filters(
     where_clauses = []
 
     # filter by pattern
-    for column, value in (
-        (Requirement.reference, reference),
-        (Requirement.summary, summary),
-        (Requirement.description, description),
-        (CatalogRequirement.gs_absicherung, gs_absicherung),
-        (CatalogRequirement.gs_verantwortliche, gs_verantwortliche),
-        (Requirement.target_object, target_object),
-        (Requirement.milestone, milestone),
-        (Requirement.compliance_comment, compliance_comment),
-    ):
-        if value:
-            where_clauses.append(filter_by_pattern(column, value))
+    where_clauses.extend(
+        filter_by_pattern_many(
+            (Requirement.reference, reference),
+            (Requirement.summary, summary),
+            (Requirement.description, description),
+            (CatalogRequirement.gs_absicherung, gs_absicherung),
+            (CatalogRequirement.gs_verantwortliche, gs_verantwortliche),
+            (Requirement.target_object, target_object),
+            (Requirement.milestone, milestone),
+            (Requirement.compliance_comment, compliance_comment),
+        )
+    )
 
     # filter by values or by ids
-    for column, values in (
-        (Requirement.reference, references),
-        (Requirement.target_object, target_objects),
-        (Requirement.milestone, milestones),
-        (Requirement.compliance_status, compliance_statuses),
-        (Requirement.id, ids),
-        (Requirement.project_id, project_ids),
-        (Requirement.catalog_requirement_id, catalog_requirement_ids),
-        (CatalogRequirement.catalog_module_id, catalog_module_ids),
-        (CatalogModule.catalog_id, catalog_ids),
-    ):
-        if values:
-            where_clauses.append(filter_by_values(column, values))
+    where_clauses.extend(
+        filter_by_values_many(
+            (Requirement.reference, references),
+            (Requirement.target_object, target_objects),
+            (Requirement.milestone, milestones),
+            (Requirement.compliance_status, compliance_statuses),
+            (Requirement.id, ids),
+            (Requirement.project_id, project_ids),
+            (Requirement.catalog_requirement_id, catalog_requirement_ids),
+            (CatalogRequirement.catalog_module_id, catalog_module_ids),
+            (CatalogModule.catalog_id, catalog_ids),
+        )
+    )
 
     # filter for existence
-    for column, value in (
-        (Requirement.reference, has_reference),
-        (Requirement.description, has_description),
-        (Requirement.target_object, has_target_object),
-        (Requirement.milestone, has_milestone),
-        (Requirement.compliance_status, has_compliance_status),
-        (Requirement.compliance_comment, has_compliance_comment),
-        (
-            Requirement.catalog_requirement_id,
-            combine_flags(has_catalog_requirement, has_catalog_module, has_catalog),
-        ),
-        (CatalogRequirement.gs_absicherung, has_gs_absicherung),
-        (CatalogRequirement.gs_verantwortliche, has_gs_verantwortliche),
-    ):
-        if value is not None:
-            where_clauses.append(filter_for_existence(column, value))
+    where_clauses.extend(
+        filter_for_existence_many(
+            (Requirement.reference, has_reference),
+            (Requirement.description, has_description),
+            (Requirement.target_object, has_target_object),
+            (Requirement.milestone, has_milestone),
+            (Requirement.compliance_status, has_compliance_status),
+            (Requirement.compliance_comment, has_compliance_comment),
+            (
+                Requirement.catalog_requirement_id,
+                combine_flags(has_catalog_requirement, has_catalog_module, has_catalog),
+            ),
+            (CatalogRequirement.gs_absicherung, has_gs_absicherung),
+            (CatalogRequirement.gs_verantwortliche, has_gs_verantwortliche),
+        )
+    )
 
     # filter by search string
     if search:
         where_clauses.append(
-            or_(
-                filter_by_pattern(column, f"*{search}*")
-                for column in (
-                    Requirement.reference,
-                    Requirement.summary,
-                    Requirement.description,
-                    Requirement.target_object,
-                    Requirement.milestone,
-                    Requirement.compliance_comment,
-                    CatalogRequirement.reference,
-                    CatalogRequirement.summary,
-                    CatalogModule.reference,
-                    CatalogModule.title,
-                    Catalog.reference,
-                    Catalog.title,
-                )
+            search_columns(
+                search,
+                Requirement.reference,
+                Requirement.summary,
+                Requirement.description,
+                Requirement.target_object,
+                Requirement.milestone,
+                Requirement.compliance_comment,
+                CatalogRequirement.reference,
+                CatalogRequirement.summary,
+                CatalogModule.reference,
+                CatalogModule.title,
+                Catalog.reference,
+                Catalog.title,
             )
         )
 

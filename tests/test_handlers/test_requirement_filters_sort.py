@@ -62,6 +62,8 @@ class RequirementFilterParams:
         (RequirementFilterParams(reference="ref*"), 1),
         (RequirementFilterParams(summary="title*"), 1),
         (RequirementFilterParams(description="desc*"), 1),
+        (RequirementFilterParams(gs_absicherung="absicherung*"), 1),
+        (RequirementFilterParams(gs_verantwortliche="verantwortliche*"), 1),
         (RequirementFilterParams(target_object="target*"), 1),
         (RequirementFilterParams(milestone="milestone*"), 1),
         (RequirementFilterParams(compliance_comment="comment*"), 1),
