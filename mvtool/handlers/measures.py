@@ -20,7 +20,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import constr
-from sqlmodel import Column, or_
+from sqlmodel import Column
 
 from ..data.measures import Measures
 from ..handlers.jira_ import JiraIssues, JiraProjects
@@ -39,9 +39,10 @@ from ..models.requirements import Requirement
 from ..utils import combine_flags
 from ..utils.errors import ValueHttpError
 from ..utils.filtering import (
-    filter_by_pattern,
-    filter_by_values,
+    filter_by_pattern_many,
+    filter_by_values_many,
     filter_for_existence,
+    filter_for_existence_many,
     search_columns,
 )
 from ..utils.pagination import Page, page_params
@@ -102,86 +103,84 @@ def get_measure_filters(
     where_clauses = []
 
     # filter by pattern
-    for column, value in [
-        (Measure.reference, reference),
-        (Measure.summary, summary),
-        (Measure.description, description),
-        (Measure.compliance_comment, compliance_comment),
-        (Measure.completion_comment, completion_comment),
-        (Measure.verification_comment, verification_comment),
-        (Requirement.target_object, target_object),
-        (Requirement.milestone, milestone),
-    ]:
-        if value is not None:
-            where_clauses.append(filter_by_pattern(column, value))
+    where_clauses.extend(
+        filter_by_pattern_many(
+            (Measure.reference, reference),
+            (Measure.summary, summary),
+            (Measure.description, description),
+            (Measure.compliance_comment, compliance_comment),
+            (Measure.completion_comment, completion_comment),
+            (Measure.verification_comment, verification_comment),
+            (Requirement.target_object, target_object),
+            (Requirement.milestone, milestone),
+        )
+    )
 
     # filter by values or by ids
-    for column, values in [
-        (Measure.reference, references),
-        (Measure.compliance_status, compliance_statuses),
-        (Measure.completion_status, completion_statuses),
-        (Measure.verification_status, verification_statuses),
-        (Measure.verification_method, verification_methods),
-        (Measure.id, ids),
-        (Measure.document_id, document_ids),
-        (Measure.jira_issue_id, jira_issue_ids),
-        (Requirement.project_id, project_ids),
-        (Measure.requirement_id, requirement_ids),
-        (Requirement.catalog_requirement_id, catalog_requirement_ids),
-        (CatalogRequirement.catalog_module_id, catalog_module_ids),
-        (CatalogModule.catalog_id, catalog_ids),
-        (Requirement.target_object, target_objects),
-        (Requirement.milestone, milestones),
-    ]:
-        if values:
-            where_clauses.append(filter_by_values(column, values))
+    where_clauses.extend(
+        filter_by_values_many(
+            (Measure.reference, references),
+            (Measure.compliance_status, compliance_statuses),
+            (Measure.completion_status, completion_statuses),
+            (Measure.verification_status, verification_statuses),
+            (Measure.verification_method, verification_methods),
+            (Measure.id, ids),
+            (Measure.document_id, document_ids),
+            (Measure.jira_issue_id, jira_issue_ids),
+            (Requirement.project_id, project_ids),
+            (Measure.requirement_id, requirement_ids),
+            (Requirement.catalog_requirement_id, catalog_requirement_ids),
+            (CatalogRequirement.catalog_module_id, catalog_module_ids),
+            (CatalogModule.catalog_id, catalog_ids),
+            (Requirement.target_object, target_objects),
+            (Requirement.milestone, milestones),
+        )
+    )
 
     # filter for existence
-    for column, value in [
-        (Measure.reference, has_reference),
-        (Measure.description, has_description),
-        (Measure.compliance_status, has_compliance_status),
-        (Measure.compliance_comment, has_compliance_comment),
-        (Measure.completion_status, has_completion_status),
-        (Measure.completion_comment, has_completion_comment),
-        (Measure.verification_status, has_verification_status),
-        (Measure.verification_method, has_verification_method),
-        (Measure.verification_comment, has_verification_comment),
-        (Measure.document_id, has_document),
-        (Measure.jira_issue_id, has_jira_issue),
-        (
-            Requirement.catalog_requirement_id,
-            combine_flags(has_catalog_requirement, has_catalog_module, has_catalog),
-        ),
-        (Requirement.target_object, has_target_object),
-        (Requirement.milestone, has_milestone),
-    ]:
-        if value is not None:
-            where_clauses.append(filter_for_existence(column, value))
+    where_clauses.extend(
+        filter_for_existence_many(
+            (Measure.reference, has_reference),
+            (Measure.description, has_description),
+            (Measure.compliance_status, has_compliance_status),
+            (Measure.compliance_comment, has_compliance_comment),
+            (Measure.completion_status, has_completion_status),
+            (Measure.completion_comment, has_completion_comment),
+            (Measure.verification_status, has_verification_status),
+            (Measure.verification_method, has_verification_method),
+            (Measure.verification_comment, has_verification_comment),
+            (Measure.document_id, has_document),
+            (Measure.jira_issue_id, has_jira_issue),
+            (
+                Requirement.catalog_requirement_id,
+                combine_flags(has_catalog_requirement, has_catalog_module, has_catalog),
+            ),
+            (Requirement.target_object, has_target_object),
+            (Requirement.milestone, has_milestone),
+        )
+    )
 
     # filter by search string
     if search:
         where_clauses.append(
-            or_(
-                filter_by_pattern(column, f"*{search}*")
-                for column in (
-                    Measure.reference,
-                    Measure.summary,
-                    Measure.description,
-                    Measure.compliance_comment,
-                    Measure.completion_comment,
-                    Measure.verification_comment,
-                    Document.reference,
-                    Document.title,
-                    Requirement.reference,
-                    Requirement.summary,
-                    CatalogRequirement.reference,
-                    CatalogRequirement.summary,
-                    CatalogModule.reference,
-                    CatalogModule.title,
-                    Catalog.reference,
-                    Catalog.title,
-                )
+            search_columns(
+                search,
+                Measure.reference,
+                Measure.summary,
+                Measure.description,
+                Measure.compliance_comment,
+                Measure.completion_comment,
+                Measure.verification_comment,
+                Document.reference,
+                Document.title,
+                Requirement.reference,
+                Requirement.summary,
+                CatalogRequirement.reference,
+                CatalogRequirement.summary,
+                CatalogModule.reference,
+                CatalogModule.title,
+                Catalog.reference,
+                Catalog.title,
             )
         )
 
