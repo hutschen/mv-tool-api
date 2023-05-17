@@ -21,7 +21,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
 from pydantic import constr
-from sqlmodel import Column, Session, or_
+from sqlmodel import Column, Session
 
 from ..data.catalog_modules import CatalogModules
 from ..database import get_session
@@ -35,9 +35,10 @@ from ..models.catalog_modules import (
 from ..models.catalogs import Catalog
 from ..utils.errors import ValueHttpError
 from ..utils.filtering import (
-    filter_by_pattern,
-    filter_by_values,
+    filter_by_pattern_many,
+    filter_by_values_many,
     filter_for_existence,
+    filter_for_existence_many,
     search_columns,
 )
 from ..utils.pagination import Page, page_params
@@ -68,43 +69,41 @@ def get_catalog_module_filters(
     where_clauses = []
 
     # filter by pattern
-    for column, value in [
-        (CatalogModule.reference, reference),
-        (CatalogModule.title, title),
-        (CatalogModule.description, description),
-    ]:
-        if value is not None:
-            where_clauses.append(filter_by_pattern(column, value))
+    where_clauses.extend(
+        filter_by_pattern_many(
+            (CatalogModule.reference, reference),
+            (CatalogModule.title, title),
+            (CatalogModule.description, description),
+        )
+    )
 
     # filter by values or ids
-    for column, values in [
-        (CatalogModule.reference, references),
-        (CatalogModule.id, ids),
-        (CatalogModule.catalog_id, catalog_ids),
-    ]:
-        if values:
-            where_clauses.append(filter_by_values(column, values))
+    where_clauses.extend(
+        filter_by_values_many(
+            (CatalogModule.reference, references),
+            (CatalogModule.id, ids),
+            (CatalogModule.catalog_id, catalog_ids),
+        )
+    )
 
     # filter for existence
-    for column, value in [
-        (CatalogModule.reference, has_reference),
-        (CatalogModule.description, has_description),
-    ]:
-        if value is not None:
-            where_clauses.append(filter_for_existence(column, value))
+    where_clauses.extend(
+        filter_for_existence_many(
+            (CatalogModule.reference, has_reference),
+            (CatalogModule.description, has_description),
+        )
+    )
 
     # filter by search string
     if search:
         where_clauses.append(
-            or_(
-                filter_by_pattern(column, f"*{search}*")
-                for column in (
-                    CatalogModule.reference,
-                    CatalogModule.title,
-                    CatalogModule.description,
-                    Catalog.reference,
-                    Catalog.title,
-                )
+            search_columns(
+                search,
+                CatalogModule.reference,
+                CatalogModule.title,
+                CatalogModule.description,
+                Catalog.reference,
+                Catalog.title,
             )
         )
 
