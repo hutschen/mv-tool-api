@@ -30,8 +30,11 @@ from ..models.catalogs import (
 )
 from ..utils.filtering import (
     filter_by_pattern,
+    filter_by_pattern_many,
     filter_by_values,
+    filter_by_values_many,
     filter_for_existence,
+    filter_for_existence_many,
     search_columns,
 )
 from ..utils.pagination import Page, page_params
@@ -59,36 +62,31 @@ def get_catalog_filters(
     where_clauses = []
 
     # filter by pattern
-    for column, value in [
-        (Catalog.reference, reference),
-        (Catalog.title, title),
-        (Catalog.description, description),
-    ]:
-        if value is not None:
-            where_clauses.append(filter_by_pattern(column, value))
+    where_clauses.extend(
+        filter_by_pattern_many(
+            (Catalog.reference, reference),
+            (Catalog.title, title),
+            (Catalog.description, description),
+        )
+    )
 
     # filter by values or by ids
-    for column, values in (
-        (Catalog.id, ids),
-        (Catalog.reference, references),
-    ):
-        if values:
-            where_clauses.append(filter_by_values(column, values))
+    where_clauses.extend(
+        filter_by_values_many((Catalog.id, ids), (Catalog.reference, references))
+    )
 
     # filter for existence
-    for column, value in [
-        (Catalog.reference, has_reference),
-        (Catalog.description, has_description),
-    ]:
-        if value is not None:
-            where_clauses.append(filter_for_existence(column, value))
+    where_clauses.extend(
+        filter_for_existence_many(
+            (Catalog.reference, has_reference), (Catalog.description, has_description)
+        )
+    )
 
     # filter by search string
     if search:
         where_clauses.append(
-            or_(
-                filter_by_pattern(column, f"*{search}*")
-                for column in (Catalog.reference, Catalog.title, Catalog.description)
+            search_columns(
+                search, Catalog.reference, Catalog.title, Catalog.description
             )
         )
 

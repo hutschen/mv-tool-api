@@ -35,6 +35,12 @@ def filter_by_pattern(column: Column, pattern: str) -> Any:
     return column.ilike(pattern)
 
 
+def filter_by_pattern_many(*args: tuple[Column, str | None]):
+    for column, pattern in args:
+        if pattern:
+            yield filter_by_pattern(column, pattern)
+
+
 def filter_by_values(column: Column, values: list[str | int]) -> Any:
     """Generate where clause to filter column by values"""
     assert len(values) > 0, "str_list must not be empty"
@@ -42,6 +48,12 @@ def filter_by_values(column: Column, values: list[str | int]) -> Any:
         return column == values[0]
     else:
         return column.in_(values)
+
+
+def filter_by_values_many(*args: tuple[Column, list[str] | list[int] | None]):
+    for column, values in args:
+        if values:
+            yield filter_by_values(column, values)
 
 
 def filter_for_existence(column: Column, exists: bool = True) -> Any:
@@ -53,6 +65,12 @@ def filter_for_existence(column: Column, exists: bool = True) -> Any:
         return (and_ if exists else or_)(none_clause, str_clause)
     else:
         return none_clause
+
+
+def filter_for_existence_many(*args: tuple[Column, bool | None]):
+    for column, exists in args:
+        if exists is not None:
+            yield filter_for_existence(column, exists)
 
 
 def search_columns(search_str: str, columns_head: Column, *columns_tail: Column) -> Any:
