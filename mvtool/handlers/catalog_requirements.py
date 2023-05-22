@@ -31,9 +31,10 @@ from ..models.catalog_requirements import (
 )
 from ..models.catalogs import Catalog
 from ..utils.filtering import (
-    filter_by_pattern,
-    filter_by_values,
+    filter_by_pattern_many,
+    filter_by_values_many,
     filter_for_existence,
+    filter_for_existence_many,
     search_columns,
 )
 from ..utils.pagination import Page, page_params
@@ -69,53 +70,51 @@ def get_catalog_requirement_filters(
     where_clauses = []
 
     # filter by pattern
-    for column, value in (
-        (CatalogRequirement.reference, reference),
-        (CatalogRequirement.summary, summary),
-        (CatalogRequirement.description, description),
-        (CatalogRequirement.gs_absicherung, gs_absicherung),
-        (CatalogRequirement.gs_verantwortliche, gs_verantwortliche),
-    ):
-        if value:
-            where_clauses.append(filter_by_pattern(column, value))
+    where_clauses.extend(
+        filter_by_pattern_many(
+            (CatalogRequirement.reference, reference),
+            (CatalogRequirement.summary, summary),
+            (CatalogRequirement.description, description),
+            (CatalogRequirement.gs_absicherung, gs_absicherung),
+            (CatalogRequirement.gs_verantwortliche, gs_verantwortliche),
+        )
+    )
 
     # filter by values or ids
-    for column, values in (
-        (CatalogRequirement.reference, references),
-        (CatalogRequirement.gs_absicherung, gs_absicherungen),
-        (CatalogRequirement.id, ids),
-        (CatalogModule.catalog_id, catalog_ids),
-        (CatalogRequirement.catalog_module_id, catalog_module_ids),
-    ):
-        if values:
-            where_clauses.append(filter_by_values(column, values))
+    where_clauses.extend(
+        filter_by_values_many(
+            (CatalogRequirement.reference, references),
+            (CatalogRequirement.gs_absicherung, gs_absicherungen),
+            (CatalogRequirement.id, ids),
+            (CatalogModule.catalog_id, catalog_ids),
+            (CatalogRequirement.catalog_module_id, catalog_module_ids),
+        )
+    )
 
     # filter for existence
-    for column, value in (
-        (CatalogRequirement.reference, has_reference),
-        (CatalogRequirement.description, has_description),
-        (CatalogRequirement.gs_absicherung, has_gs_absicherung),
-        (CatalogRequirement.gs_verantwortliche, has_gs_verantwortliche),
-    ):
-        if value is not None:
-            where_clauses.append(filter_for_existence(column, value))
+    where_clauses.extend(
+        filter_for_existence_many(
+            (CatalogRequirement.reference, has_reference),
+            (CatalogRequirement.description, has_description),
+            (CatalogRequirement.gs_absicherung, has_gs_absicherung),
+            (CatalogRequirement.gs_verantwortliche, has_gs_verantwortliche),
+        )
+    )
 
     # filter by search string
     if search:
         where_clauses.append(
-            or_(
-                filter_by_pattern(column, f"*{search}*")
-                for column in (
-                    CatalogRequirement.reference,
-                    CatalogRequirement.summary,
-                    CatalogRequirement.description,
-                    CatalogRequirement.gs_absicherung,
-                    CatalogRequirement.gs_verantwortliche,
-                    CatalogModule.reference,
-                    CatalogModule.title,
-                    Catalog.reference,
-                    Catalog.title,
-                )
+            search_columns(
+                search,
+                CatalogRequirement.reference,
+                CatalogRequirement.summary,
+                CatalogRequirement.description,
+                CatalogRequirement.gs_absicherung,
+                CatalogRequirement.gs_verantwortliche,
+                CatalogModule.reference,
+                CatalogModule.title,
+                Catalog.reference,
+                Catalog.title,
             )
         )
 
