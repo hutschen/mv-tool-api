@@ -42,10 +42,14 @@ def get_project_filters(
     # filter by pattern
     name: str | None = None,
     description: str | None = None,
+    neg_name: bool = False,
+    neg_description: bool = False,
     #
     # filter by ids
     ids: list[int] | None = Query(None),
     jira_project_ids: list[str] | None = Query(None),
+    neg_ids: bool = False,
+    neg_jira_project_ids: bool = False,
     #
     # filter for existence
     has_description: bool | None = None,
@@ -58,13 +62,17 @@ def get_project_filters(
 
     # filter by pattern
     where_clauses.extend(
-        filter_by_pattern_many((Project.name, name), (Project.description, description))
+        filter_by_pattern_many(
+            (Project.name, name, neg_name),
+            (Project.description, description, neg_description),
+        )
     )
 
     # filter by ids
     where_clauses.extend(
         filter_by_values_many(
-            (Project.id, ids), (Project.jira_project_id, jira_project_ids)
+            (Project.id, ids, neg_ids),
+            (Project.jira_project_id, jira_project_ids, neg_jira_project_ids),
         )
     )
 
