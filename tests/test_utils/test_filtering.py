@@ -16,8 +16,28 @@
 import pytest
 from sqlalchemy import Column, String, select
 from sqlalchemy.dialects import sqlite
+from sqlmodel import AutoString
 
-from mvtool.utils.filtering import filter_by_values
+from mvtool.utils.filtering import filter_by_pattern, filter_by_values
+
+
+@pytest.mark.parametrize(
+    "pattern, negate, expected",
+    [
+        ("test", False, "WHERE lower(test) LIKE lower('test')"),
+        ("test", True, "WHERE lower(test) NOT LIKE lower('test')"),
+    ],
+)
+def test_filter_by_pattern(pattern, negate, expected):
+    column = Column("test", AutoString)
+
+    where_clause = filter_by_pattern(column, pattern, negate)
+    select_statement = select([column]).where(where_clause)
+    compiled_statement = select_statement.compile(
+        dialect=sqlite.dialect(), compile_kwargs={"literal_binds": True}
+    )
+
+    assert str(compiled_statement) == "SELECT test \n" + expected
 
 
 @pytest.mark.parametrize(
