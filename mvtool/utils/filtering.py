@@ -44,19 +44,24 @@ def filter_by_pattern_many(
             yield filter_by_pattern(column, pattern, *more)
 
 
-def filter_by_values(column: Column, values: list[str | int]) -> Any:
+def filter_by_values(
+    column: Column, values: list[str | int], negate: bool = False
+) -> Any:
     """Generate where clause to filter column by values"""
     assert len(values) > 0, "str_list must not be empty"
     if len(values) == 1:
-        return column == values[0]
+        return column != values[0] if negate else column == values[0]
     else:
-        return column.in_(values)
+        return ~column.in_(values) if negate else column.in_(values)
 
 
-def filter_by_values_many(*args: tuple[Column, list[str] | list[int] | None]):
-    for column, values in args:
+def filter_by_values_many(
+    *args: tuple[Column, list[str] | list[int] | None]
+    | tuple[Column, list[str] | list[int] | None, bool]
+):
+    for column, values, *more in args:
         if values:
-            yield filter_by_values(column, values)
+            yield filter_by_values(column, values, *more)
 
 
 def filter_for_existence(column: Column, exists: bool = True) -> Any:
