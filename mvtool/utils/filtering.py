@@ -20,7 +20,7 @@ from typing import Any
 from sqlmodel import Column, AutoString, and_, or_
 
 
-def filter_by_pattern(column: Column, pattern: str) -> Any:
+def filter_by_pattern(column: Column, pattern: str, negate: bool = False) -> Any:
     """Generate where clause to filter column by string that may contain * and ?"""
     assert isinstance(column.type, AutoString), "column must be of type string"
 
@@ -32,13 +32,16 @@ def filter_by_pattern(column: Column, pattern: str) -> Any:
         .replace("?", "_")
         .replace("*", "%")
     )
-    return column.ilike(pattern)
+
+    return ~column.ilike(pattern) if negate else column.ilike(pattern)
 
 
-def filter_by_pattern_many(*args: tuple[Column, str | None]):
-    for column, pattern in args:
+def filter_by_pattern_many(
+    *args: tuple[Column, str | None] | tuple[Column, str | None, bool]
+):
+    for column, pattern, *more in args:
         if pattern:
-            yield filter_by_pattern(column, pattern)
+            yield filter_by_pattern(column, pattern, *more)
 
 
 def filter_by_values(column: Column, values: list[str | int]) -> Any:
