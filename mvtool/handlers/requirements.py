@@ -56,12 +56,24 @@ def get_requirement_filters(
     target_object: str | None = None,
     milestone: str | None = None,
     compliance_comment: str | None = None,
+    neg_reference: bool = False,
+    neg_summary: bool = False,
+    neg_description: bool = False,
+    neg_gs_absicherung: bool = False,
+    neg_gs_verantwortliche: bool = False,
+    neg_target_object: bool = False,
+    neg_milestone: bool = False,
+    neg_compliance_comment: bool = False,
     #
     # filter by values
     references: list[str] | None = Query(default=None),
     target_objects: list[str] | None = Query(default=None),
     milestones: list[str] | None = Query(default=None),
     compliance_statuses: list[str] | None = Query(default=None),
+    neg_references: bool = False,
+    neg_target_objects: bool = False,
+    neg_milestones: bool = False,
+    neg_compliance_statuses: bool = False,
     #
     # filter by ids
     ids: list[int] | None = Query(default=None),
@@ -69,6 +81,11 @@ def get_requirement_filters(
     catalog_requirement_ids: list[int] | None = Query(default=None),
     catalog_module_ids: list[int] | None = Query(default=None),
     catalog_ids: list[int] | None = Query(default=None),
+    neg_ids: bool = False,
+    neg_project_ids: bool = False,
+    neg_catalog_requirement_ids: bool = False,
+    neg_catalog_module_ids: bool = False,
+    neg_catalog_ids: bool = False,
     #
     # filter for existence
     has_reference: bool | None = None,
@@ -91,29 +108,33 @@ def get_requirement_filters(
     # filter by pattern
     where_clauses.extend(
         filter_by_pattern_many(
-            (Requirement.reference, reference),
-            (Requirement.summary, summary),
-            (Requirement.description, description),
-            (CatalogRequirement.gs_absicherung, gs_absicherung),
-            (CatalogRequirement.gs_verantwortliche, gs_verantwortliche),
-            (Requirement.target_object, target_object),
-            (Requirement.milestone, milestone),
-            (Requirement.compliance_comment, compliance_comment),
+            # fmt: off
+            (Requirement.reference, reference, neg_reference),
+            (Requirement.summary, summary, neg_summary),
+            (Requirement.description, description, neg_description),
+            (CatalogRequirement.gs_absicherung, gs_absicherung, neg_gs_absicherung),
+            (CatalogRequirement.gs_verantwortliche, gs_verantwortliche, neg_gs_verantwortliche),
+            (Requirement.target_object, target_object, neg_target_object),
+            (Requirement.milestone, milestone, neg_milestone),
+            (Requirement.compliance_comment, compliance_comment, neg_compliance_comment),
+            # fmt: on
         )
     )
 
     # filter by values or by ids
     where_clauses.extend(
         filter_by_values_many(
-            (Requirement.reference, references),
-            (Requirement.target_object, target_objects),
-            (Requirement.milestone, milestones),
-            (Requirement.compliance_status, compliance_statuses),
-            (Requirement.id, ids),
-            (Requirement.project_id, project_ids),
-            (Requirement.catalog_requirement_id, catalog_requirement_ids),
-            (CatalogRequirement.catalog_module_id, catalog_module_ids),
-            (CatalogModule.catalog_id, catalog_ids),
+            # fmt: off
+            (Requirement.reference, references, neg_references),
+            (Requirement.target_object, target_objects, neg_target_objects),
+            (Requirement.milestone, milestones, neg_milestones),
+            (Requirement.compliance_status, compliance_statuses, neg_compliance_statuses),
+            (Requirement.id, ids, neg_ids),
+            (Requirement.project_id, project_ids, neg_project_ids),
+            (Requirement.catalog_requirement_id, catalog_requirement_ids, neg_catalog_requirement_ids),
+            (CatalogRequirement.catalog_module_id, catalog_module_ids, neg_catalog_module_ids),
+            (CatalogModule.catalog_id, catalog_ids, neg_catalog_ids),
+            # fmt: on
         )
     )
 
