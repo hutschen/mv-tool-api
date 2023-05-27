@@ -51,13 +51,19 @@ def get_catalog_module_filters(
     reference: str | None = None,
     title: str | None = None,
     description: str | None = None,
+    neg_reference: bool = False,
+    neg_title: bool = False,
+    neg_description: bool = False,
     #
     # filter by values
     references: list[str] | None = Query(None),
+    neg_references: bool = False,
     #
     # filter by ids
     ids: list[int] | None = Query(None),
     catalog_ids: list[int] | None = Query(None),
+    neg_ids: bool = False,
+    neg_catalog_ids: bool = False,
     #
     # filter for existence
     has_reference: bool | None = None,
@@ -71,18 +77,18 @@ def get_catalog_module_filters(
     # filter by pattern
     where_clauses.extend(
         filter_by_pattern_many(
-            (CatalogModule.reference, reference),
-            (CatalogModule.title, title),
-            (CatalogModule.description, description),
+            (CatalogModule.reference, reference, neg_reference),
+            (CatalogModule.title, title, neg_title),
+            (CatalogModule.description, description, neg_description),
         )
     )
 
     # filter by values or ids
     where_clauses.extend(
         filter_by_values_many(
-            (CatalogModule.reference, references),
-            (CatalogModule.id, ids),
-            (CatalogModule.catalog_id, catalog_ids),
+            (CatalogModule.reference, references, neg_references),
+            (CatalogModule.id, ids, neg_ids),
+            (CatalogModule.catalog_id, catalog_ids, neg_catalog_ids),
         )
     )
 

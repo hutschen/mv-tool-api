@@ -46,13 +46,19 @@ def get_document_filters(
     reference: str | None = None,
     title: str | None = None,
     description: str | None = None,
+    neg_reference: bool = False,
+    neg_title: bool = False,
+    neg_description: bool = False,
     #
     # filter by values
     references: list[str] | None = Query(None),
+    neg_references: bool = False,
     #
     # filter by ids
     ids: list[int] | None = Query(None),
     project_ids: list[int] | None = Query(None),
+    neg_ids: bool = False,
+    neg_project_ids: bool = False,
     #
     # filter for existence
     has_reference: bool | None = None,
@@ -66,18 +72,18 @@ def get_document_filters(
     # filter by pattern
     where_clauses.extend(
         filter_by_pattern_many(
-            (Document.reference, reference),
-            (Document.title, title),
-            (Document.description, description),
+            (Document.reference, reference, neg_reference),
+            (Document.title, title, neg_title),
+            (Document.description, description, neg_description),
         )
     )
 
     # filter by values or by ids
     where_clauses.extend(
         filter_by_values_many(
-            (Document.id, ids),
-            (Document.reference, references),
-            (Document.project_id, project_ids),
+            (Document.id, ids, neg_ids),
+            (Document.reference, references, neg_references),
+            (Document.project_id, project_ids, neg_project_ids),
         )
     )
 

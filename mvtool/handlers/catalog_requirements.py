@@ -19,7 +19,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import constr
-from sqlmodel import Column, or_
+from sqlmodel import Column
 
 from ..data.catalog_requirements import CatalogRequirements
 from ..models.catalog_modules import CatalogModule
@@ -48,15 +48,25 @@ def get_catalog_requirement_filters(
     description: str | None = None,
     gs_absicherung: str | None = None,
     gs_verantwortliche: str | None = None,
+    neg_reference: bool = False,
+    neg_summary: bool = False,
+    neg_description: bool = False,
+    neg_gs_absicherung: bool = False,
+    neg_gs_verantwortliche: bool = False,
     #
     # filter by values
     references: list[str] | None = Query(None),
     gs_absicherungen: list[str] | None = Query(None),
+    neg_references: bool = False,
+    neg_gs_absicherungen: bool = False,
     #
     # filter by ids
     ids: list[int] | None = Query(None),
     catalog_ids: list[int] | None = Query(None),
     catalog_module_ids: list[int] | None = Query(None),
+    neg_ids: bool = False,
+    neg_catalog_ids: bool = False,
+    neg_catalog_module_ids: bool = False,
     #
     # filter for existence
     has_reference: bool | None = None,
@@ -72,22 +82,26 @@ def get_catalog_requirement_filters(
     # filter by pattern
     where_clauses.extend(
         filter_by_pattern_many(
-            (CatalogRequirement.reference, reference),
-            (CatalogRequirement.summary, summary),
-            (CatalogRequirement.description, description),
-            (CatalogRequirement.gs_absicherung, gs_absicherung),
-            (CatalogRequirement.gs_verantwortliche, gs_verantwortliche),
+            # fmt: off
+            (CatalogRequirement.reference, reference, neg_reference),
+            (CatalogRequirement.summary, summary, neg_summary),
+            (CatalogRequirement.description, description, neg_description),
+            (CatalogRequirement.gs_absicherung, gs_absicherung, neg_gs_absicherung),
+            (CatalogRequirement.gs_verantwortliche, gs_verantwortliche, neg_gs_verantwortliche),
+            # fmt: on
         )
     )
 
     # filter by values or ids
     where_clauses.extend(
         filter_by_values_many(
-            (CatalogRequirement.reference, references),
-            (CatalogRequirement.gs_absicherung, gs_absicherungen),
-            (CatalogRequirement.id, ids),
-            (CatalogModule.catalog_id, catalog_ids),
-            (CatalogRequirement.catalog_module_id, catalog_module_ids),
+            # fmt: off
+            (CatalogRequirement.reference, references, neg_references),
+            (CatalogRequirement.gs_absicherung, gs_absicherungen, neg_gs_absicherungen),
+            (CatalogRequirement.id, ids, neg_ids),
+            (CatalogModule.catalog_id, catalog_ids, neg_catalog_ids),
+            (CatalogRequirement.catalog_module_id, catalog_module_ids, neg_catalog_module_ids),
+            # fmt: on
         )
     )
 

@@ -59,6 +59,14 @@ def get_measure_filters(
     verification_comment: str | None = None,
     target_object: str | None = None,
     milestone: str | None = None,
+    neg_reference: bool = False,
+    neg_summary: bool = False,
+    neg_description: bool = False,
+    neg_compliance_comment: bool = False,
+    neg_completion_comment: bool = False,
+    neg_verification_comment: bool = False,
+    neg_target_object: bool = False,
+    neg_milestone: bool = False,
     #
     # filter by values
     references: list[str] | None = Query(default=None),
@@ -68,6 +76,13 @@ def get_measure_filters(
     verification_methods: list[str] | None = Query(default=None),
     target_objects: list[str] | None = Query(default=None),
     milestones: list[str] | None = Query(default=None),
+    neg_references: bool = False,
+    neg_compliance_statuses: bool = False,
+    neg_completion_statuses: bool = False,
+    neg_verification_statuses: bool = False,
+    neg_verification_methods: bool = False,
+    neg_target_objects: bool = False,
+    neg_milestones: bool = False,
     #
     # filter by ids
     ids: list[int] | None = Query(default=None),
@@ -78,6 +93,14 @@ def get_measure_filters(
     catalog_requirement_ids: list[int] | None = Query(default=None),
     catalog_module_ids: list[int] | None = Query(default=None),
     catalog_ids: list[int] | None = Query(default=None),
+    neg_ids: bool = False,
+    neg_document_ids: bool = False,
+    neg_jira_issue_ids: bool = False,
+    neg_project_ids: bool = False,
+    neg_requirement_ids: bool = False,
+    neg_catalog_requirement_ids: bool = False,
+    neg_catalog_module_ids: bool = False,
+    neg_catalog_ids: bool = False,
     #
     # filter for existence
     has_reference: bool | None = None,
@@ -105,35 +128,39 @@ def get_measure_filters(
     # filter by pattern
     where_clauses.extend(
         filter_by_pattern_many(
-            (Measure.reference, reference),
-            (Measure.summary, summary),
-            (Measure.description, description),
-            (Measure.compliance_comment, compliance_comment),
-            (Measure.completion_comment, completion_comment),
-            (Measure.verification_comment, verification_comment),
-            (Requirement.target_object, target_object),
-            (Requirement.milestone, milestone),
+            # fmt: off
+            (Measure.reference, reference, neg_reference),
+            (Measure.summary, summary, neg_summary),
+            (Measure.description, description, neg_description),
+            (Measure.compliance_comment, compliance_comment, neg_compliance_comment),
+            (Measure.completion_comment, completion_comment, neg_completion_comment),
+            (Measure.verification_comment, verification_comment, neg_verification_comment),
+            (Requirement.target_object, target_object, neg_target_object),
+            (Requirement.milestone, milestone, neg_milestone),
+            # fmt: on
         )
     )
 
     # filter by values or by ids
     where_clauses.extend(
         filter_by_values_many(
-            (Measure.reference, references),
-            (Measure.compliance_status, compliance_statuses),
-            (Measure.completion_status, completion_statuses),
-            (Measure.verification_status, verification_statuses),
-            (Measure.verification_method, verification_methods),
-            (Measure.id, ids),
-            (Measure.document_id, document_ids),
-            (Measure.jira_issue_id, jira_issue_ids),
-            (Requirement.project_id, project_ids),
-            (Measure.requirement_id, requirement_ids),
-            (Requirement.catalog_requirement_id, catalog_requirement_ids),
-            (CatalogRequirement.catalog_module_id, catalog_module_ids),
-            (CatalogModule.catalog_id, catalog_ids),
-            (Requirement.target_object, target_objects),
-            (Requirement.milestone, milestones),
+            # fmt: off
+            (Measure.reference, references, neg_references),
+            (Measure.compliance_status, compliance_statuses, neg_compliance_statuses),
+            (Measure.completion_status, completion_statuses, neg_completion_statuses),
+            (Measure.verification_status, verification_statuses, neg_verification_statuses),
+            (Measure.verification_method, verification_methods, neg_verification_methods),
+            (Measure.id, ids, neg_ids),
+            (Measure.document_id, document_ids, neg_document_ids),
+            (Measure.jira_issue_id, jira_issue_ids, neg_jira_issue_ids),
+            (Requirement.project_id, project_ids, neg_project_ids),
+            (Measure.requirement_id, requirement_ids, neg_requirement_ids),
+            (Requirement.catalog_requirement_id, catalog_requirement_ids, neg_catalog_requirement_ids),
+            (CatalogRequirement.catalog_module_id, catalog_module_ids, neg_catalog_module_ids),
+            (CatalogModule.catalog_id, catalog_ids, neg_catalog_ids),
+            (Requirement.target_object, target_objects, neg_target_objects),
+            (Requirement.milestone, milestones, neg_milestones),
+            # fmt: on
         )
     )
 

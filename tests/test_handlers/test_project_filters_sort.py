@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from dataclasses import astuple, dataclass
+from dataclasses import asdict, dataclass
 
 import pytest
 from fastapi import HTTPException
@@ -25,12 +25,23 @@ from mvtool.handlers.projects import get_project_filters, get_project_sort
 
 @dataclass
 class ProjectFilterParams:
+    # filter by pattern
     name: str = None
     description: str = None
+    neg_name: bool = False
+    neg_description: bool = False
+    #
+    # filter by values
     ids: list = None
     jira_project_ids: list = None
+    neg_ids: bool = False
+    neg_jira_project_ids: bool = False
+    #
+    # filter for existence
     has_description: bool = None
     has_jira_project: bool = None
+    #
+    # filter by search string
     search: str = None
 
 
@@ -40,6 +51,8 @@ class ProjectFilterParams:
         (ProjectFilterParams(), 0),
         (ProjectFilterParams(name="name*"), 1),
         (ProjectFilterParams(description="description*"), 1),
+        (ProjectFilterParams(name="name*", neg_name=True), 1),
+        (ProjectFilterParams(description="description*", neg_description=True), 1),
         (ProjectFilterParams(ids=[1, 2]), 1),
         (ProjectFilterParams(jira_project_ids=["JP1", "JP2"]), 1),
         (ProjectFilterParams(has_description=True), 1),
@@ -48,7 +61,7 @@ class ProjectFilterParams:
     ],
 )
 def test_get_project_filters(params: ProjectFilterParams, expected_length: int):
-    filters = get_project_filters(*astuple(params))
+    filters = get_project_filters(**asdict(params))
     assert isinstance(filters, list)
     assert len(filters) == expected_length
 
