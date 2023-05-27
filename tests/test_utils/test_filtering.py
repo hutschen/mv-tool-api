@@ -14,11 +14,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import pytest
-from sqlalchemy import Column, String, select
+from sqlalchemy import Column, select
 from sqlalchemy.dialects import sqlite
-from sqlmodel import AutoString
+from sqlmodel import AutoString, Integer
 
-from mvtool.utils.filtering import filter_by_pattern, filter_by_values
+from mvtool.utils.filtering import (
+    filter_by_pattern,
+    filter_by_values,
+    filter_for_existence,
+)
 
 
 @pytest.mark.parametrize(
@@ -50,9 +54,31 @@ def test_filter_by_pattern(pattern, negate, expected):
     ],
 )
 def test_filter_by_values(values, negate, expected):
-    column = Column("test", String)
+    column = Column("test", Integer)
 
     where_clause = filter_by_values(column, values, negate)
+    select_statement = select([column]).where(where_clause)
+    compiled_statement = select_statement.compile(
+        dialect=sqlite.dialect(), compile_kwargs={"literal_binds": True}
+    )
+
+    assert str(compiled_statement) == "SELECT test \n" + expected
+
+
+@pytest.mark.parametrize(
+    "column_type,exists,expected",
+    [
+        # Test cases
+        (AutoString, True, "WHERE test IS NOT NULL AND test != ''"),
+        (AutoString, False, "WHERE test IS NULL OR test = ''"),
+        (Integer, True, "WHERE test IS NOT NULL"),
+        (Integer, False, "WHERE test IS NULL"),
+    ],
+)
+def test_filter_for_existence(column_type, exists, expected):
+    column = Column("test", column_type)
+
+    where_clause = filter_for_existence(column, exists)
     select_statement = select([column]).where(where_clause)
     compiled_statement = select_statement.compile(
         dialect=sqlite.dialect(), compile_kwargs={"literal_binds": True}
