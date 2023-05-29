@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from dataclasses import astuple, dataclass
+from dataclasses import asdict, dataclass
 
 import pytest
 from fastapi import HTTPException
@@ -26,37 +26,70 @@ from mvtool.handlers.documents import get_document_filters, get_document_sort
 
 @dataclass
 class DocumentFilterParams:
-    reference: str = None
-    title: str = None
-    description: str = None
-    ids: list = None
-    references: list = None
-    project_ids: list = None
-    has_reference: bool = None
-    has_description: bool = None
-    search: str = None
+    # filter by pattern
+    reference: str | None = None
+    title: str | None = None
+    description: str | None = None
+    neg_reference: bool = False
+    neg_title: bool = False
+    neg_description: bool = False
+    #
+    # filter by values
+    references: list[str] | None = None
+    neg_references: bool = False
+    #
+    # filter by ids
+    ids: list[int] | None = None
+    project_ids: list[int] | None = None
+    neg_ids: bool = False
+    neg_project_ids: bool = False
+    #
+    # filter for existence
+    has_reference: bool | None = None
+    has_description: bool | None = None
+    #
+    # filter by search string
+    search: str | None = None
 
 
 @pytest.mark.parametrize(
     "params, expected_length",
     [
+        # fmt: off
         (DocumentFilterParams(), 0),
+        #
+        # filter by pattern
         (DocumentFilterParams(reference="ref*"), 1),
         (DocumentFilterParams(title="title*"), 1),
         (DocumentFilterParams(description="desc*"), 1),
+        (DocumentFilterParams(reference="ref*", neg_reference=True), 1),
+        (DocumentFilterParams(title="title*", neg_title=True), 1),
+        (DocumentFilterParams(description="desc*", neg_description=True), 1),
+        #
+        # filter by values
         (DocumentFilterParams(references=["ref1", "ref2"]), 1),
+        (DocumentFilterParams(references=["ref1", "ref2"], neg_references=True), 1),
+        #
+        # filter by ids
         (DocumentFilterParams(ids=[1, 2]), 1),
         (DocumentFilterParams(project_ids=[1, 2]), 1),
+        (DocumentFilterParams(ids=[1, 2], neg_ids=True), 1),
+        (DocumentFilterParams(project_ids=[1, 2], neg_project_ids=True), 1),
+        #
+        # filter for existence
         (DocumentFilterParams(has_reference=True), 1),
         (DocumentFilterParams(has_description=True), 1),
+        #
+        # filter by search string
         (DocumentFilterParams(search="search"), 1),
+        # fmt: on
     ],
 )
 def test_get_document_filters(
     params: DocumentFilterParams,
     expected_length,
 ):
-    filters = get_document_filters(*astuple(params))
+    filters = get_document_filters(**asdict(params))
     assert isinstance(filters, list)
     assert len(filters) == expected_length
 

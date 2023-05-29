@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from dataclasses import astuple, dataclass
+from dataclasses import asdict, dataclass
 from fastapi import HTTPException
 import pytest
 
@@ -24,56 +24,105 @@ from mvtool.handlers.requirements import get_requirement_filters, get_requiremen
 
 @dataclass
 class RequirementFilterParams:
-    reference: str = None
-    summary: str = None
-    description: str = None
-    gs_absicherung: str = None
-    gs_verantwortliche: str = None
-    target_object: str = None
-    milestone: str = None
-    compliance_comment: str = None
-    references: list = None
-    target_objects: list = None
-    milestones: list = None
-    compliance_statuses: list = None
-    ids: list = None
-    project_ids: list = None
-    catalog_requirement_ids: list = None
-    catalog_module_ids: list = None
-    catalog_ids: list = None
-    has_reference: bool = None
-    has_description: bool = None
-    has_target_object: bool = None
-    has_milestone: bool = None
-    has_compliance_status: bool = None
-    has_compliance_comment: bool = None
-    has_catalog: bool = None
-    has_catalog_module: bool = None
-    has_catalog_requirement: bool = None
-    has_gs_absicherung: bool = None
-    has_gs_verantwortliche: bool = None
-    search: str = None
+    # filter by pattern
+    reference: str | None = None
+    summary: str | None = None
+    description: str | None = None
+    gs_absicherung: str | None = None
+    gs_verantwortliche: str | None = None
+    target_object: str | None = None
+    milestone: str | None = None
+    compliance_comment: str | None = None
+    neg_reference: bool = False
+    neg_summary: bool = False
+    neg_description: bool = False
+    neg_gs_absicherung: bool = False
+    neg_gs_verantwortliche: bool = False
+    neg_target_object: bool = False
+    neg_milestone: bool = False
+    neg_compliance_comment: bool = False
+    #
+    # filter by values
+    references: list[str] | None = None
+    target_objects: list[str] | None = None
+    milestones: list[str] | None = None
+    compliance_statuses: list[str] | None = None
+    neg_references: bool = (False,)
+    neg_target_objects: bool = (False,)
+    neg_milestones: bool = (False,)
+    neg_compliance_statuses: bool = (False,)
+    #
+    # filter by ids
+    ids: list[int] | None = None
+    project_ids: list[int] | None = None
+    catalog_requirement_ids: list[int] | None = None
+    catalog_module_ids: list[int] | None = None
+    catalog_ids: list[int] | None = None
+    neg_ids: bool = False
+    neg_project_ids: bool = False
+    neg_catalog_requirement_ids: bool = False
+    neg_catalog_module_ids: bool = False
+    neg_catalog_ids: bool = False
+    #
+    # filter for existence
+    has_reference: bool | None = None
+    has_description: bool | None = None
+    has_target_object: bool | None = None
+    has_milestone: bool | None = None
+    has_compliance_status: bool | None = None
+    has_compliance_comment: bool | None = None
+    has_catalog: bool | None = None
+    has_catalog_module: bool | None = None
+    has_catalog_requirement: bool | None = None
+    has_gs_absicherung: bool | None = None
+    has_gs_verantwortliche: bool | None = None
+    #
+    # filter by search string
+    search: str | None = None
 
 
 @pytest.mark.parametrize(
     "params, expected_length",
     [
+        # fmt: off
         (RequirementFilterParams(), 0),
+        #
+        # filter by pattern
         (RequirementFilterParams(reference="ref*"), 1),
         (RequirementFilterParams(summary="title*"), 1),
         (RequirementFilterParams(description="desc*"), 1),
+        (RequirementFilterParams(gs_absicherung="absicherung*"), 1),
+        (RequirementFilterParams(gs_verantwortliche="verantwortliche*"), 1),
         (RequirementFilterParams(target_object="target*"), 1),
         (RequirementFilterParams(milestone="milestone*"), 1),
         (RequirementFilterParams(compliance_comment="comment*"), 1),
+        (RequirementFilterParams(reference="ref*", neg_reference=True), 1),
+        (RequirementFilterParams(summary="title*", neg_summary=True), 1),
+        (RequirementFilterParams(description="desc*", neg_description=True), 1),
+        (RequirementFilterParams(gs_absicherung="absicherung*", neg_gs_absicherung=True), 1),
+        (RequirementFilterParams(gs_verantwortliche="verantwortliche*", neg_gs_verantwortliche=True), 1),
+        (RequirementFilterParams(target_object="target*", neg_target_object=True), 1),
+        (RequirementFilterParams(milestone="milestone*", neg_milestone=True), 1),
+        (RequirementFilterParams(compliance_comment="comment*", neg_compliance_comment=True), 1),
+        #
+        # filter by values
         (RequirementFilterParams(references=["ref1", "ref2"]), 1),
         (RequirementFilterParams(target_objects=["target1", "target2"]), 1),
         (RequirementFilterParams(milestones=["milestone1", "milestone2"]), 1),
         (RequirementFilterParams(compliance_statuses=["status1", "status2"]), 1),
-        (RequirementFilterParams(ids=[1, 2]), 1),
-        (RequirementFilterParams(project_ids=[1, 2]), 1),
-        (RequirementFilterParams(catalog_requirement_ids=[1, 2]), 1),
-        (RequirementFilterParams(catalog_module_ids=[1, 2]), 1),
-        (RequirementFilterParams(catalog_ids=[1, 2]), 1),
+        (RequirementFilterParams(references=["ref1", "ref2"], neg_references=True), 1),
+        (RequirementFilterParams(target_objects=["target1", "target2"], neg_target_objects=True), 1),
+        (RequirementFilterParams(milestones=["milestone1", "milestone2"], neg_milestones=True), 1),
+        (RequirementFilterParams(compliance_statuses=["status1", "status2"], neg_compliance_statuses=True), 1),
+        #
+        # filter by ids
+        (RequirementFilterParams(ids=[1, 2], neg_ids=True), 1),
+        (RequirementFilterParams(project_ids=[1, 2], neg_project_ids=True), 1),
+        (RequirementFilterParams(catalog_requirement_ids=[1, 2], neg_catalog_requirement_ids=True), 1),
+        (RequirementFilterParams(catalog_module_ids=[1, 2], neg_catalog_module_ids=True), 1),
+        (RequirementFilterParams(catalog_ids=[1, 2], neg_catalog_ids=True), 1),
+        #
+        # filter for existence
         (RequirementFilterParams(has_reference=True), 1),
         (RequirementFilterParams(has_description=True), 1),
         (RequirementFilterParams(has_target_object=True), 1),
@@ -85,11 +134,14 @@ class RequirementFilterParams:
         (RequirementFilterParams(has_catalog_requirement=True), 1),
         (RequirementFilterParams(has_gs_absicherung=True), 1),
         (RequirementFilterParams(has_gs_verantwortliche=True), 1),
+        #
+        # filter by search string
         (RequirementFilterParams(search="search*"), 1),
+        # fmt: on
     ],
 )
 def test_get_requirement_filters(params, expected_length):
-    filters = get_requirement_filters(*astuple(params))
+    filters = get_requirement_filters(**asdict(params))
     assert isinstance(filters, list)
     assert len(filters) == expected_length
 

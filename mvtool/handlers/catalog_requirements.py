@@ -19,7 +19,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import constr
-from sqlmodel import Column, or_
+from sqlmodel import Column
 
 from ..data.catalog_requirements import CatalogRequirements
 from ..models.catalog_modules import CatalogModule
@@ -31,9 +31,10 @@ from ..models.catalog_requirements import (
 )
 from ..models.catalogs import Catalog
 from ..utils.filtering import (
-    filter_by_pattern,
-    filter_by_values,
+    filter_by_pattern_many,
+    filter_by_values_many,
     filter_for_existence,
+    filter_for_existence_many,
     search_columns,
 )
 from ..utils.pagination import Page, page_params
@@ -47,15 +48,25 @@ def get_catalog_requirement_filters(
     description: str | None = None,
     gs_absicherung: str | None = None,
     gs_verantwortliche: str | None = None,
+    neg_reference: bool = False,
+    neg_summary: bool = False,
+    neg_description: bool = False,
+    neg_gs_absicherung: bool = False,
+    neg_gs_verantwortliche: bool = False,
     #
     # filter by values
     references: list[str] | None = Query(None),
     gs_absicherungen: list[str] | None = Query(None),
+    neg_references: bool = False,
+    neg_gs_absicherungen: bool = False,
     #
     # filter by ids
     ids: list[int] | None = Query(None),
     catalog_ids: list[int] | None = Query(None),
     catalog_module_ids: list[int] | None = Query(None),
+    neg_ids: bool = False,
+    neg_catalog_ids: bool = False,
+    neg_catalog_module_ids: bool = False,
     #
     # filter for existence
     has_reference: bool | None = None,
@@ -69,53 +80,55 @@ def get_catalog_requirement_filters(
     where_clauses = []
 
     # filter by pattern
-    for column, value in (
-        (CatalogRequirement.reference, reference),
-        (CatalogRequirement.summary, summary),
-        (CatalogRequirement.description, description),
-        (CatalogRequirement.gs_absicherung, gs_absicherung),
-        (CatalogRequirement.gs_verantwortliche, gs_verantwortliche),
-    ):
-        if value:
-            where_clauses.append(filter_by_pattern(column, value))
+    where_clauses.extend(
+        filter_by_pattern_many(
+            # fmt: off
+            (CatalogRequirement.reference, reference, neg_reference),
+            (CatalogRequirement.summary, summary, neg_summary),
+            (CatalogRequirement.description, description, neg_description),
+            (CatalogRequirement.gs_absicherung, gs_absicherung, neg_gs_absicherung),
+            (CatalogRequirement.gs_verantwortliche, gs_verantwortliche, neg_gs_verantwortliche),
+            # fmt: on
+        )
+    )
 
     # filter by values or ids
-    for column, values in (
-        (CatalogRequirement.reference, references),
-        (CatalogRequirement.gs_absicherung, gs_absicherungen),
-        (CatalogRequirement.id, ids),
-        (CatalogModule.catalog_id, catalog_ids),
-        (CatalogRequirement.catalog_module_id, catalog_module_ids),
-    ):
-        if values:
-            where_clauses.append(filter_by_values(column, values))
+    where_clauses.extend(
+        filter_by_values_many(
+            # fmt: off
+            (CatalogRequirement.reference, references, neg_references),
+            (CatalogRequirement.gs_absicherung, gs_absicherungen, neg_gs_absicherungen),
+            (CatalogRequirement.id, ids, neg_ids),
+            (CatalogModule.catalog_id, catalog_ids, neg_catalog_ids),
+            (CatalogRequirement.catalog_module_id, catalog_module_ids, neg_catalog_module_ids),
+            # fmt: on
+        )
+    )
 
     # filter for existence
-    for column, value in (
-        (CatalogRequirement.reference, has_reference),
-        (CatalogRequirement.description, has_description),
-        (CatalogRequirement.gs_absicherung, has_gs_absicherung),
-        (CatalogRequirement.gs_verantwortliche, has_gs_verantwortliche),
-    ):
-        if value is not None:
-            where_clauses.append(filter_for_existence(column, value))
+    where_clauses.extend(
+        filter_for_existence_many(
+            (CatalogRequirement.reference, has_reference),
+            (CatalogRequirement.description, has_description),
+            (CatalogRequirement.gs_absicherung, has_gs_absicherung),
+            (CatalogRequirement.gs_verantwortliche, has_gs_verantwortliche),
+        )
+    )
 
     # filter by search string
     if search:
         where_clauses.append(
-            or_(
-                filter_by_pattern(column, f"*{search}*")
-                for column in (
-                    CatalogRequirement.reference,
-                    CatalogRequirement.summary,
-                    CatalogRequirement.description,
-                    CatalogRequirement.gs_absicherung,
-                    CatalogRequirement.gs_verantwortliche,
-                    CatalogModule.reference,
-                    CatalogModule.title,
-                    Catalog.reference,
-                    Catalog.title,
-                )
+            search_columns(
+                search,
+                CatalogRequirement.reference,
+                CatalogRequirement.summary,
+                CatalogRequirement.description,
+                CatalogRequirement.gs_absicherung,
+                CatalogRequirement.gs_verantwortliche,
+                CatalogModule.reference,
+                CatalogModule.title,
+                Catalog.reference,
+                Catalog.title,
             )
         )
 

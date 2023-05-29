@@ -19,7 +19,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import constr
-from sqlmodel import Column, or_
+from sqlmodel import Column
 
 from ..data.projects import Projects
 from ..models.projects import (
@@ -29,9 +29,10 @@ from ..models.projects import (
     ProjectRepresentation,
 )
 from ..utils.filtering import (
-    filter_by_pattern,
-    filter_by_values,
+    filter_by_pattern_many,
+    filter_by_values_many,
     filter_for_existence,
+    filter_for_existence_many,
     search_columns,
 )
 from ..utils.pagination import Page, page_params
@@ -41,10 +42,14 @@ def get_project_filters(
     # filter by pattern
     name: str | None = None,
     description: str | None = None,
+    neg_name: bool = False,
+    neg_description: bool = False,
     #
     # filter by ids
     ids: list[int] | None = Query(None),
     jira_project_ids: list[str] | None = Query(None),
+    neg_ids: bool = False,
+    neg_jira_project_ids: bool = False,
     #
     # filter for existence
     has_description: bool | None = None,
@@ -56,37 +61,32 @@ def get_project_filters(
     where_clauses = []
 
     # filter by pattern
-    for column, value in [
-        (Project.name, name),
-        (Project.description, description),
-    ]:
-        if value is not None:
-            where_clauses.append(filter_by_pattern(column, value))
+    where_clauses.extend(
+        filter_by_pattern_many(
+            (Project.name, name, neg_name),
+            (Project.description, description, neg_description),
+        )
+    )
 
     # filter by ids
-    for column, values in (
-        (Project.id, ids),
-        (Project.jira_project_id, jira_project_ids),
-    ):
-        if values:
-            where_clauses.append(filter_by_values(column, values))
+    where_clauses.extend(
+        filter_by_values_many(
+            (Project.id, ids, neg_ids),
+            (Project.jira_project_id, jira_project_ids, neg_jira_project_ids),
+        )
+    )
 
     # filter for existence
-    for column, value in [
-        (Project.description, has_description),
-        (Project.jira_project_id, has_jira_project),
-    ]:
-        if value is not None:
-            where_clauses.append(filter_for_existence(column, value))
+    where_clauses.extend(
+        filter_for_existence_many(
+            (Project.description, has_description),
+            (Project.jira_project_id, has_jira_project),
+        )
+    )
 
     # filter by search string
     if search:
-        where_clauses.append(
-            or_(
-                filter_by_pattern(column, f"*{search}*")
-                for column in (Project.name, Project.description)
-            )
-        )
+        where_clauses.append(search_columns(search, Project.name, Project.description))
 
     return where_clauses
 

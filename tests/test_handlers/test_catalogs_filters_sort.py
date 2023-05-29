@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from dataclasses import astuple, dataclass
+from dataclasses import asdict, dataclass
 
 import pytest
 from fastapi import HTTPException
@@ -25,32 +25,61 @@ from mvtool.handlers.catalogs import get_catalog_filters, get_catalog_sort
 
 @dataclass
 class CatalogFilterParams:
-    reference: str = None
-    title: str = None
-    description: str = None
-    references: list = None
-    ids: list = None
-    has_reference: bool = None
-    has_description: bool = None
-    search: str = None
+    # filter by pattern
+    reference: str | None = None
+    title: str | None = None
+    description: str | None = None
+    neg_reference: bool = False
+    neg_title: bool = False
+    neg_description: bool = False
+    #
+    # filter by values
+    references: list[str] | None = None
+    neg_references: bool = False
+    #
+    # filter by ids
+    ids: list[int] | None = None
+    neg_ids: bool = False
+    #
+    # filter for existence
+    has_reference: bool | None = None
+    has_description: bool | None = None
+    #
+    # filter by search string
+    search: str | None = None
 
 
 @pytest.mark.parametrize(
     "params, expected_length",
     [
         (CatalogFilterParams(), 0),
+        #
+        # filter by pattern
         (CatalogFilterParams(reference="ref*"), 1),
         (CatalogFilterParams(title="title*"), 1),
         (CatalogFilterParams(description="desc*"), 1),
+        (CatalogFilterParams(reference="ref*", neg_reference=True), 1),
+        (CatalogFilterParams(title="title*", neg_title=True), 1),
+        (CatalogFilterParams(description="desc*", neg_description=True), 1),
+        #
+        # filter by values
         (CatalogFilterParams(references=["ref1", "ref2"]), 1),
+        (CatalogFilterParams(references=["ref1", "ref2"], neg_references=True), 1),
+        #
+        # filter by ids
         (CatalogFilterParams(ids=[1, 2]), 1),
+        (CatalogFilterParams(ids=[1, 2], neg_ids=True), 1),
+        #
+        # filter for existence
         (CatalogFilterParams(has_reference=True), 1),
         (CatalogFilterParams(has_description=True), 1),
+        #
+        # filter by search string
         (CatalogFilterParams(search="search"), 1),
     ],
 )
 def test_get_catalog_filters(params: CatalogFilterParams, expected_length: int):
-    filters = get_catalog_filters(*astuple(params))
+    filters = get_catalog_filters(**asdict(params))
     assert isinstance(filters, list)
     assert len(filters) == expected_length
 

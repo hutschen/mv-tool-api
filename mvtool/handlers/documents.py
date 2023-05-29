@@ -20,7 +20,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import constr
-from sqlmodel import Column, or_
+from sqlmodel import Column
 
 from ..data.documents import Documents
 from ..models.documents import (
@@ -31,9 +31,10 @@ from ..models.documents import (
 )
 from ..models.projects import Project
 from ..utils.filtering import (
-    filter_by_pattern,
-    filter_by_values,
+    filter_by_pattern_many,
+    filter_by_values_many,
     filter_for_existence,
+    filter_for_existence_many,
     search_columns,
 )
 from ..utils.pagination import Page, page_params
@@ -45,13 +46,19 @@ def get_document_filters(
     reference: str | None = None,
     title: str | None = None,
     description: str | None = None,
+    neg_reference: bool = False,
+    neg_title: bool = False,
+    neg_description: bool = False,
     #
     # filter by values
     references: list[str] | None = Query(None),
+    neg_references: bool = False,
     #
     # filter by ids
     ids: list[int] | None = Query(None),
     project_ids: list[int] | None = Query(None),
+    neg_ids: bool = False,
+    neg_project_ids: bool = False,
     #
     # filter for existence
     has_reference: bool | None = None,
@@ -63,41 +70,36 @@ def get_document_filters(
     where_clauses = []
 
     # filter by pattern
-    for column, value in (
-        (Document.reference, reference),
-        (Document.title, title),
-        (Document.description, description),
-    ):
-        if value:
-            where_clauses.append(filter_by_pattern(column, value))
+    where_clauses.extend(
+        filter_by_pattern_many(
+            (Document.reference, reference, neg_reference),
+            (Document.title, title, neg_title),
+            (Document.description, description, neg_description),
+        )
+    )
 
     # filter by values or by ids
-    for column, values in (
-        (Document.id, ids),
-        (Document.reference, references),
-        (Document.project_id, project_ids),
-    ):
-        if values:
-            where_clauses.append(filter_by_values(column, values))
+    where_clauses.extend(
+        filter_by_values_many(
+            (Document.id, ids, neg_ids),
+            (Document.reference, references, neg_references),
+            (Document.project_id, project_ids, neg_project_ids),
+        )
+    )
 
     # filter for existence
-    for column, value in (
-        (Document.reference, has_reference),
-        (Document.description, has_description),
-    ):
-        if value is not None:
-            where_clauses.append(filter_for_existence(column, value))
+    where_clauses.extend(
+        filter_for_existence_many(
+            (Document.reference, has_reference),
+            (Document.description, has_description),
+        )
+    )
 
     # filter by search string
     if search:
         where_clauses.append(
-            or_(
-                filter_by_pattern(column, f"*{search}*")
-                for column in (
-                    Document.reference,
-                    Document.title,
-                    Document.description,
-                )
+            search_columns(
+                search, Document.reference, Document.title, Document.description
             )
         )
 
