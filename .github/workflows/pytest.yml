@@ -1,0 +1,44 @@
+name: Run Pytests
+
+on:
+  push:
+    branches:
+        - 'main'
+        - 'develop'
+        - 'release/*'
+        - 'hotfix/*'
+        - 'bugfix/*'
+
+jobs:
+  pytest:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install Pipenv
+      run: |
+        python -m pip install pipenv
+
+    - name: Install dependencies
+      run: |
+        pipenv install --ignore-pipfile --deploy --dev
+
+    # This is a workaround for https://github.com/hutschen/mv-tool-api/issues/139
+    - name: Create dummy config file
+      run: |
+        echo "jira:" >> config.yml
+        echo "  url: http://localhost:2990/jira" >> config.yml
+        echo "database:" >> config.yml
+        echo "  url: sqlite://" >> config.yml
+        
+
+    - name: Run Pytests
+      run: |
+        pipenv run pytest
