@@ -30,7 +30,7 @@ class DataFrame:
         self.data = {}
 
         for row in rows:
-            column_names = self.column_names
+            column_names = set(self.data.keys())
             labels = set()
 
             # Fill in values
@@ -46,5 +46,5 @@ class DataFrame:
                 self.data[column_name].append(None)
 
     @property
-    def column_names(self) -> set[str]:
-        return set(self.data.keys())
+    def column_names(self) -> list[str]:
+        return list(self.data.keys())
