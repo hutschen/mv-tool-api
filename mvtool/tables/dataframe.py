@@ -48,3 +48,8 @@ class DataFrame:
     @property
     def column_names(self) -> list[str]:
         return list(self.data.keys())
+
+    def __getitem__(self, column_names: Iterable[str]) -> list[Any]:
+        df = DataFrame()
+        df.data = {column_name: self.data[column_name] for column_name in column_names}
+        return df
