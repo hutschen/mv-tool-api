@@ -49,7 +49,8 @@ class DataFrame:
     def column_names(self) -> list[str]:
         return list(self.data.keys())
 
-    def __getitem__(self, column_names: Iterable[str]) -> list[Any]:
+    def __getitem__(self, column_names: Iterable[str] | str) -> list[Any]:
+        column_names = [column_names] if isinstance(column_names, str) else column_names
         df = DataFrame()
         df.data = {column_name: self.data[column_name] for column_name in column_names}
         return df
