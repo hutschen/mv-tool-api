@@ -16,9 +16,9 @@
 from tempfile import NamedTemporaryFile
 
 import pytest
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 
-from mvtool.tables.dataframe import Cell, DataFrame, read_excel
+from mvtool.tables.dataframe import Cell, DataFrame, read_excel, write_excel
 
 
 def test_dataframe_init():
@@ -143,3 +143,44 @@ def test_read_excel():
             "B": [2, 4],
             "C": [None, 5],
         }
+
+
+def test_write_excel():
+    # Create a DataFrame and add some data
+    df = DataFrame(
+        [
+            [Cell("A", 1), Cell("B", 2)],
+            [Cell("A", 3), Cell("B", 4)],
+        ]
+    )
+
+    # Save the DataFrame to a temporary file
+    with NamedTemporaryFile(suffix=".xlsx") as temp:
+        write_excel(df, temp.name)
+
+        # Now read the file with openpyxl and check the data
+        wb = load_workbook(temp.name)
+        ws = wb.active
+
+        assert ws["A1"].value == "A"
+        assert ws["B1"].value == "B"
+        assert ws["A2"].value == 1
+        assert ws["B2"].value == 2
+        assert ws["A3"].value == 3
+        assert ws["B3"].value == 4
+
+
+def test_write_excel_empty():
+    # Create an empty DataFrame
+    df = DataFrame([])
+
+    # Save the DataFrame to a temporary file
+    with NamedTemporaryFile(suffix=".xlsx") as temp:
+        write_excel(df, temp.name)
+
+        # Now read the file with openpyxl and check the data
+        wb = load_workbook(temp.name)
+        ws = wb.active
+
+        # The worksheet should be empty
+        assert ws.calculate_dimension() == "A1:A1"
