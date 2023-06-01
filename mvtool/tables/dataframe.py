@@ -13,10 +13,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from openpyxl.worksheet.worksheet import Worksheet
-from openpyxl import load_workbook
-from ..utils.errors import ValueHttpError
 from typing import IO, Any, Iterable, NamedTuple
+
+from openpyxl import Workbook, load_workbook
+from openpyxl.worksheet.table import Table
+from openpyxl.worksheet.worksheet import Worksheet
+
+from ..utils.errors import ValueHttpError
 
 
 class Cell(NamedTuple):
@@ -89,3 +92,23 @@ def read_excel(file_obj: str | IO[bytes]) -> DataFrame:
 
     # Load data from workbook
     return DataFrame(_iter_rows(workbook.active))
+
+
+def write_excel(df: DataFrame, file_obj: str | IO[bytes]):
+    # Create workbook
+    workbook = Workbook()
+    worksheet: Worksheet = workbook.active
+
+    # Fill worksheet with data
+    worksheet.append(df.column_names)
+    is_empty = True
+    for row in df:
+        worksheet.append(cell.value for cell in row)
+        is_empty = False
+
+    # Add table to worksheet
+    if not is_empty:
+        table = Table(displayName=worksheet.title, ref=worksheet.calculate_dimension())
+        worksheet.add_table(table)
+
+    workbook.save(file_obj)
