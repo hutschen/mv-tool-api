@@ -48,6 +48,15 @@ class DataFrame:
             for column_name in column_names - labels:
                 self.data[column_name].append(None)
 
+    def __iter__(self):
+        for values in zip(*self.data.values()):
+            yield (Cell(l, v) for l, v in zip(self.data.keys(), values))
+
+    def __len__(self):
+        for _, values in self.data.items():
+            return len(values)
+        return 0
+
     @property
     def column_names(self) -> list[str]:
         return list(self.data.keys())

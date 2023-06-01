@@ -34,6 +34,37 @@ def test_dataframe_init():
     }
 
 
+def test_dataframe_iter_rows():
+    df = DataFrame(
+        [
+            [Cell("A", 1), Cell("B", 2)],
+            [Cell("A", 3), Cell("B", 4)],
+        ]
+    )
+
+    rows = [list(r) for r in list(df)]
+    assert rows == [
+        [Cell("A", 1), Cell("B", 2)],
+        [Cell("A", 3), Cell("B", 4)],
+    ]
+
+
+def test_dataframe_row_count():
+    df = DataFrame(
+        [
+            [Cell("A", 1), Cell("B", 2)],
+            [Cell("A", 3), Cell("B", 4)],
+            [Cell("A", 5), Cell("B", 6)],
+        ]
+    )
+    assert len(df) == 3
+
+
+def test_dataframe_row_count_empty():
+    df = DataFrame()
+    assert len(df) == 0
+
+
 def test_dataframe_missing_value():
     df = DataFrame(
         [
