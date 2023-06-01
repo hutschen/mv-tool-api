@@ -13,9 +13,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import pytest
+from tempfile import NamedTemporaryFile
 
-from mvtool.tables.dataframe import Cell, DataFrame
+import pytest
+from openpyxl import Workbook
+
+from mvtool.tables.dataframe import Cell, DataFrame, read_excel
 
 
 def test_dataframe_init():
@@ -88,3 +91,24 @@ def test_dataframe_getitem_invalid_column():
 
     with pytest.raises(KeyError):
         df["C"]
+
+
+def test_read_excel():
+    # Create a workbook and add some data
+    wb = Workbook()
+    ws = wb.active
+    ws.append(["A", "B", "C"])
+    ws.append([1, 2])
+    ws.append([3, 4, 5])
+
+    # Save the workbook to a temporary file
+    with NamedTemporaryFile(suffix=".xlsx") as temp:
+        wb.save(temp.name)
+
+        # Now read the file with read_excel and check the data
+        df = read_excel(temp.name)
+        assert df.data == {
+            "A": [1, 3],
+            "B": [2, 4],
+            "C": [None, 5],
+        }
