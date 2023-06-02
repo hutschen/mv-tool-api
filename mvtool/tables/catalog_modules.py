@@ -31,7 +31,7 @@ from ..handlers.catalogs import Catalogs
 from ..models import CatalogModule, CatalogModuleImport, CatalogModuleOutput
 from ..utils.temp_file import get_temp_file
 from .catalogs import get_catalog_columns
-from .common import Column, ColumnGroup
+from .columns import Column, ColumnGroup
 from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
 
 

@@ -23,7 +23,7 @@ from ..database import get_session
 from ..handlers.projects import Projects, get_project_filters, get_project_sort
 from ..models import Project, ProjectImport, ProjectOutput
 from ..utils.temp_file import get_temp_file
-from .common import Column, ColumnGroup
+from .columns import Column, ColumnGroup
 from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
 from .jira_ import get_jira_project_columns
 

@@ -17,7 +17,7 @@ import pandas as pd
 import pytest
 
 from mvtool.models.common import ETagMixin
-from mvtool.tables.common import (
+from mvtool.tables.columns import (
     Cell,
     Column,
     ColumnGroup,

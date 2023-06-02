@@ -36,7 +36,7 @@ from ..handlers.catalog_requirements import (
     get_catalog_requirement_sort,
 )
 from .catalog_modules import get_catalog_module_columns
-from .common import Column, ColumnGroup
+from .columns import Column, ColumnGroup
 from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
 
 

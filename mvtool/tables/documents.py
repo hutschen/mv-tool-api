@@ -26,7 +26,7 @@ from ..models.documents import Document, DocumentImport, DocumentOutput
 from ..utils.temp_file import get_temp_file
 from ..handlers.documents import Documents, get_document_filters, get_document_sort
 from ..handlers.projects import Projects
-from .common import Column, ColumnGroup
+from .columns import Column, ColumnGroup
 from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
 from .projects import get_project_columns
 

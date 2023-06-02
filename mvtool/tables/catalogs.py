@@ -24,7 +24,7 @@ from ..database import get_session
 from ..models import Catalog, CatalogImport, CatalogOutput
 from ..utils.temp_file import get_temp_file
 from ..handlers.catalogs import Catalogs, get_catalog_filters, get_catalog_sort
-from .common import Column, ColumnGroup
+from .columns import Column, ColumnGroup
 from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
 
 

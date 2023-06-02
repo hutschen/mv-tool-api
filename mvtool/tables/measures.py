@@ -27,7 +27,7 @@ from ..handlers.measures import Measures, get_measure_filters, get_measure_sort
 from ..handlers.requirements import Requirements
 from ..models import Measure, MeasureImport, MeasureOutput
 from ..utils.temp_file import get_temp_file
-from .common import Column, ColumnGroup
+from .columns import Column, ColumnGroup
 from .documents import get_document_only_columns
 from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
 from .jira_ import get_jira_issue_columns

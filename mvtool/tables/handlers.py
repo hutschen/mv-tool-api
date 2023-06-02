@@ -22,7 +22,7 @@ from fastapi import Depends, HTTPException, Query
 
 from ..auth import get_jira
 from ..utils.temp_file import copy_upload_to_temp_file
-from .common import ColumnGroup
+from .columns import ColumnGroup
 
 
 def hide_columns(get_columns: Callable) -> Callable:
