@@ -15,22 +15,14 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import (
-    Any,
-    Collection,
-    Generator,
-    Generic,
-    Iterable,
-    Iterator,
-    NamedTuple,
-    TypeVar,
-)
+from typing import Collection, Generator, Generic, Iterable, Iterator, TypeVar
 
 import pandas as pd
 from pydantic import BaseModel, ValidationError
 
 from ..utils.errors import ValueHttpError
 from ..utils.iteration import CachedIterable
+from .dataframe import Cell
 
 E = TypeVar("E", bound=BaseModel)  # Export model
 I = TypeVar("I", bound=BaseModel)  # Import model
@@ -72,18 +64,6 @@ class RowValidationError(ValueHttpError):
                 messages.append(message)
 
         super().__init__(messages)
-
-
-class Cell(NamedTuple):
-    """Represents a cell in a table.
-
-    Attributes:
-        label (str): The label of the cell.
-        value (Any): The value of the cell.
-    """
-
-    label: str
-    value: Any
 
 
 class Column:
