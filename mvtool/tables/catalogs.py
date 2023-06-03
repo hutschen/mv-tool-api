@@ -15,16 +15,16 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlmodel import Session
 
 from ..database import get_session
+from ..handlers.catalogs import Catalogs, get_catalog_filters, get_catalog_sort
 from ..models import Catalog, CatalogImport, CatalogOutput
 from ..utils.temp_file import get_temp_file
-from ..handlers.catalogs import Catalogs, get_catalog_filters, get_catalog_sort
 from .columns import Column, ColumnGroup
+from .dataframe import DataFrame, write_excel
 from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
 
 
@@ -61,8 +61,7 @@ def download_catalogs_excel(
     filename="catalogs.xlsx",
 ) -> FileResponse:
     catalogs = catalogs_view.list_catalogs(where_clauses, sort_clauses)
-    df = columns.export_to_dataframe(catalogs)
-    df.to_excel(temp_file, sheet_name=sheet_name, index=False)
+    write_excel(columns.export_to_dataframe(catalogs), temp_file, sheet_name)
     return FileResponse(temp_file.name, filename=filename)
 
 
@@ -70,13 +69,13 @@ def download_catalogs_excel(
 def upload_catalogs_excel(
     catalogs_view: Catalogs = Depends(),
     columns: ColumnGroup = Depends(get_catalog_columns),
-    df: pd.DataFrame = Depends(get_uploaded_dataframe),
+    df: DataFrame = Depends(get_uploaded_dataframe),
     skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
     session: Session = Depends(get_session),
 ) -> list[Catalog]:
     # Import data frame into database
-    catalog_imports = columns.import_from_dataframe(df, skip_nan=skip_blanks)
+    catalog_imports = columns.import_from_dataframe(df, skip_none=skip_blanks)
     catalogs = list(
         catalogs_view.bulk_create_update_catalogs(
             catalog_imports, patch=True, skip_flush=dry_run

@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlmodel import Session
@@ -28,6 +26,7 @@ from ..handlers.requirements import Requirements
 from ..models import Measure, MeasureImport, MeasureOutput
 from ..utils.temp_file import get_temp_file
 from .columns import Column, ColumnGroup
+from .dataframe import DataFrame, write_excel
 from .documents import get_document_only_columns
 from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
 from .jira_ import get_jira_issue_columns
@@ -86,8 +85,7 @@ def download_measures_excel(
     filename="measures.xlsx",
 ) -> FileResponse:
     measures = measures_view.list_measures(where_clauses, sort_clauses)
-    df = columns.export_to_dataframe(measures)
-    df.to_excel(temp_file, sheet_name=sheet_name, index=False, engine="openpyxl")
+    write_excel(columns.export_to_dataframe(measures), temp_file, sheet_name)
     return FileResponse(temp_file.name, filename=filename)
 
 
@@ -99,7 +97,7 @@ def upload_measures_excel(
     requirements_view: Requirements = Depends(),
     catalog_modules_view: CatalogModules = Depends(),
     columns: ColumnGroup = Depends(get_measure_columns),
-    df: pd.DataFrame = Depends(get_uploaded_dataframe),
+    df: DataFrame = Depends(get_uploaded_dataframe),
     skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
     session: Session = Depends(get_session),
@@ -116,7 +114,7 @@ def upload_measures_excel(
     )
 
     # Import the data frame
-    measure_imports = columns.import_from_dataframe(df, skip_nan=skip_blanks)
+    measure_imports = columns.import_from_dataframe(df, skip_none=skip_blanks)
     measures = list(
         measures_view.bulk_create_update_measures(
             measure_imports,

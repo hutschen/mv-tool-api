@@ -18,7 +18,6 @@
 
 from tempfile import NamedTemporaryFile
 
-import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlmodel import Session
@@ -36,6 +35,7 @@ from ..models.requirements import RequirementImport
 from ..utils.temp_file import get_temp_file
 from .catalog_requirements import get_catalog_requirement_columns
 from .columns import Column, ColumnGroup
+from .dataframe import DataFrame, write_excel
 from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
 from .projects import get_project_columns
 
@@ -86,7 +86,7 @@ def download_requirements_excel(
 ) -> FileResponse:
     requirements = requirements_view.list_requirements(where_clauses, sort_clauses)
     df = columns.export_to_dataframe(requirements)
-    df.to_excel(temp_file.name, sheet_name=sheet_name, index=False)
+    write_excel(df, temp_file, sheet_name=sheet_name)
     return FileResponse(temp_file.name, filename=filename)
 
 
@@ -100,7 +100,7 @@ def upload_requirements_excel(
     catalog_modules_view: CatalogModules = Depends(),
     requirements_view: Requirements = Depends(),
     columns: ColumnGroup = Depends(get_requirement_columns),
-    df: pd.DataFrame = Depends(get_uploaded_dataframe),
+    df: DataFrame = Depends(get_uploaded_dataframe),
     skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
     session: Session = Depends(get_session),
@@ -117,7 +117,7 @@ def upload_requirements_excel(
     )
 
     # Import the data frame
-    requirement_imports = columns.import_from_dataframe(df, skip_nan=skip_blanks)
+    requirement_imports = columns.import_from_dataframe(df, skip_none=skip_blanks)
     requirements = list(
         requirements_view.bulk_create_update_requirements(
             requirement_imports,

@@ -16,7 +16,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlmodel import Session
@@ -32,6 +31,7 @@ from ..models import CatalogModule, CatalogModuleImport, CatalogModuleOutput
 from ..utils.temp_file import get_temp_file
 from .catalogs import get_catalog_columns
 from .columns import Column, ColumnGroup
+from .dataframe import DataFrame, write_excel
 from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
 
 
@@ -75,8 +75,7 @@ def download_catalog_modules_excel(
     catalog_modules = catalog_modules_view.list_catalog_modules(
         where_clauses, sort_clauses
     )
-    df = columns.export_to_dataframe(catalog_modules)
-    df.to_excel(temp_file, sheet_name=sheet_name, index=False)
+    write_excel(columns.export_to_dataframe(catalog_modules), temp_file, sheet_name)
     return FileResponse(temp_file.name, filename=filename)
 
 
@@ -88,7 +87,7 @@ def upload_catalog_modules_excel(
     catalogs_view: Catalogs = Depends(),
     catalog_modules_view: CatalogModules = Depends(),
     columns: ColumnGroup = Depends(get_catalog_module_columns),
-    df: pd.DataFrame = Depends(get_uploaded_dataframe),
+    df: DataFrame = Depends(get_uploaded_dataframe),
     skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
     session: Session = Depends(get_session),
@@ -100,7 +99,7 @@ def upload_catalog_modules_excel(
     )
 
     # Import data frame into database
-    catalog_module_imports = columns.import_from_dataframe(df, skip_nan=skip_blanks)
+    catalog_module_imports = columns.import_from_dataframe(df, skip_none=skip_blanks)
     catalog_modules = list(
         catalog_modules_view.bulk_create_update_catalog_modules(
             catalog_module_imports, fallback_catalog, patch=True, skip_flush=dry_run
