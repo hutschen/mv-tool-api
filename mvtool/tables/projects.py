@@ -13,8 +13,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlmodel import Session
@@ -23,7 +21,8 @@ from ..database import get_session
 from ..handlers.projects import Projects, get_project_filters, get_project_sort
 from ..models import Project, ProjectImport, ProjectOutput
 from ..utils.temp_file import get_temp_file
-from .common import Column, ColumnGroup
+from .columns import Column, ColumnGroup
+from .dataframe import DataFrame, write_excel
 from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
 from .jira_ import get_jira_project_columns
 
@@ -75,8 +74,7 @@ def download_projects_excel(
     filename="projects.xlsx",
 ) -> FileResponse:
     projects = projects_view.list_projects(where_clauses, sort_clauses)
-    df = columns.export_to_dataframe(projects)
-    df.to_excel(temp_file, sheet_name=sheet_name, index=False, engine="openpyxl")
+    write_excel(columns.export_to_dataframe(projects), temp_file, sheet_name)
     return FileResponse(temp_file.name, filename=filename)
 
 
@@ -84,13 +82,13 @@ def download_projects_excel(
 def upload_projects_excel(
     projects_view: Projects = Depends(),
     columns: ColumnGroup = Depends(get_project_columns),
-    df: pd.DataFrame = Depends(get_uploaded_dataframe),
+    df: DataFrame = Depends(get_uploaded_dataframe),
     skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
     session: Session = Depends(get_session),
 ) -> list[Project]:
     # Import the data frame
-    project_imports = columns.import_from_dataframe(df, skip_nan=skip_blanks)
+    project_imports = columns.import_from_dataframe(df, skip_none=skip_blanks)
     projects = list(
         projects_view.bulk_create_update_projects(
             project_imports, patch=True, skip_flush=dry_run

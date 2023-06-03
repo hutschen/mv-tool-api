@@ -15,7 +15,7 @@
 
 import pytest
 
-from mvtool.tables.common import Column
+from mvtool.tables.columns import Column
 
 
 @pytest.mark.parametrize(
