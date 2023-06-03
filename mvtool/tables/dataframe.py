@@ -94,10 +94,14 @@ def read_excel(file_obj: str | IO[bytes]) -> DataFrame:
     return DataFrame(_iter_rows(workbook.active))
 
 
-def write_excel(df: DataFrame, file_obj: str | IO[bytes]):
+def write_excel(
+    df: DataFrame, file_obj: str | IO[bytes], sheet_name: str | None = None
+):
     # Create workbook
     workbook = Workbook()
     worksheet: Worksheet = workbook.active
+    if sheet_name:
+        worksheet.title = sheet_name
 
     # Fill worksheet with data
     worksheet.append(df.column_names)
