@@ -16,7 +16,6 @@ python-multipart = "*"
 python-docx = "*"
 alembic = "*"
 cryptography = "*"
-pandas = "*"
 
 [dev-packages]
 pytest = "*"
