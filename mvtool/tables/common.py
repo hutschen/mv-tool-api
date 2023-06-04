@@ -48,6 +48,12 @@ class MissingColumnsError(ValueHttpError):
         super().__init__(f"Missing columns: {', '.join(missing_labels)}")
 
 
+class MissingAnyColumnError(MissingColumnsError):
+    """Exception raised when all columns are missing."""
+
+    pass
+
+
 class RowValidationError(ValueHttpError):
     """Exception raised when there is a validation error in a row.
 
@@ -287,6 +293,7 @@ class ColumnGroup(Generic[I, E]):
             I | None: An instance of the import model or None if the row is empty.
 
         Raises:
+            MissingAnyColumnError: If there are all columns missing in the row.
             MissingColumnsError: If there are any missing required columns in the row.
             RowValidationError: If there is a validation error while creating the import
                 model instance.
@@ -296,6 +303,7 @@ class ColumnGroup(Generic[I, E]):
         required_labels: set[str] = set()  # required labels
         column_groups: list[ColumnGroup] = []  # subordinated columns groups (nodes)
 
+        # split import columns into columns and column groups
         for column in self.import_columns:
             if isinstance(column, Column):
                 label = f"{self.label} {column.label}"
@@ -307,6 +315,7 @@ class ColumnGroup(Generic[I, E]):
 
         model_kwargs = {}  # kwargs for the model constructor
 
+        # iterate over the row and populate the kwargs with values from the cells
         existing_labels = set()
         for cell in row:
             column = columns.get(cell.label, None)
@@ -314,20 +323,30 @@ class ColumnGroup(Generic[I, E]):
                 existing_labels.add(cell.label)
                 model_kwargs[column.attr_name] = cell.value
 
-        if model_kwargs and not all(v is None for v in model_kwargs.values()):
-            # check if all required labels (columns) are present
-            missing_labels = required_labels - existing_labels
-            if missing_labels:
-                raise MissingColumnsError(missing_labels)
+        # if there are no values for import columns, return False
+        if not model_kwargs:
+            raise MissingAnyColumnError(required_labels)
 
-            # proceed with subordinated column groups (nodes)
-            for column_group in column_groups:
-                model_kwargs[column_group.attr_name] = column_group.import_from_row(row)
+        # check if all required labels (columns) are present
+        missing_labels = required_labels - existing_labels
+        if missing_labels:
+            raise MissingColumnsError(missing_labels)
 
+        # if there are only none values for import columns, return True
+        if all(v is None for v in model_kwargs.values()):
+            return None
+
+        # proceed with subordinated column groups (nodes)
+        for column_group in column_groups:
             try:
-                return self.import_model(**model_kwargs)
-            except ValidationError as e:
-                raise RowValidationError(self, e)
+                model_kwargs[column_group.attr_name] = column_group.import_from_row(row)
+            except MissingAnyColumnError:
+                pass
+
+        try:
+            return self.import_model(**model_kwargs)
+        except ValidationError as e:
+            raise RowValidationError(self, e)
 
     def import_from_dataframe(self, df: pd.DataFrame, skip_nan=True) -> Iterator[I]:
         """Import data from a Pandas DataFrame using the import columns of the column
@@ -348,6 +367,4 @@ class ColumnGroup(Generic[I, E]):
             else:
                 row = (Cell(l, (None if pd.isna(v) else v)) for l, v in l_v)
 
-            model_instance = self.import_from_row(row)
-            if model_instance is not None:
-                yield model_instance
+            yield self.import_from_row(row)

@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pkg_resources import Requirement
 import pytest
 from sqlmodel import Session
 
@@ -34,8 +33,8 @@ from mvtool.models.catalogs import Catalog, CatalogInput
 from mvtool.models.documents import DocumentInput
 from mvtool.models.jira_ import JiraProject
 from mvtool.models.measures import MeasureInput
-from mvtool.models.projects import ProjectInput, Project
-from mvtool.models.requirements import RequirementInput
+from mvtool.models.projects import Project, ProjectInput
+from mvtool.models.requirements import Requirement, RequirementInput
 
 
 @pytest.fixture
