@@ -367,6 +367,4 @@ class ColumnGroup(Generic[I, E]):
             else:
                 row = (Cell(l, (None if pd.isna(v) else v)) for l, v in l_v)
 
-            model_instance = self.import_from_row(row)
-            if model_instance is not None:
-                yield model_instance
+            yield self.import_from_row(row)
