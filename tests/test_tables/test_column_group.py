@@ -21,6 +21,7 @@ from mvtool.tables.common import (
     Cell,
     Column,
     ColumnGroup,
+    MissingAnyColumnError,
     MissingColumnsError,
     RowValidationError,
 )
@@ -99,10 +100,11 @@ def test_column_group_import_from_row(column_group: ColumnGroup):
     assert imported_obj.nested.field3 == "C"
 
 
-def test_column_group_import_from_row_empty_row(column_group: ColumnGroup):
+def test_column_group_import_from_empty_row(column_group: ColumnGroup):
     empty_row = []
-    imported_obj = column_group.import_from_row(empty_row)
-    assert imported_obj is None
+    with pytest.raises(MissingAnyColumnError) as exc_info:
+        column_group.import_from_row(empty_row)
+    assert exc_info.value.missing_labels == {"Group Field 1", "Group Field 2"}
 
 
 def test_column_group_import_from_row_missing_columns_error(column_group):
@@ -153,18 +155,3 @@ def test_column_group_import_from_dataframe(column_group: ColumnGroup):
     assert imported_objs[1].field1 == "D"
     assert imported_objs[1].field2 == 3
     assert imported_objs[1].nested.field3 == "F"
-
-
-def test_import_from_dataframe_skip_emtpy_rows(column_group):
-    data = {
-        "Group Field 1": ["A", None, "B"],
-        "Group Field 2": [1, None, 2],
-        "Nested Field 3": ["C", "D", "E"],
-    }
-    df = pd.DataFrame(data)
-
-    imported_objs = list(column_group.import_from_dataframe(df))
-
-    # Check if the imported objects do not contain None
-    assert all(obj is not None for obj in imported_objs)
-    assert len(imported_objs) == 2
