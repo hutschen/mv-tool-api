@@ -41,7 +41,10 @@ class ProjectImport(ETagMixin, AbstractProjectInput):
     jira_project: JiraProjectImport | None = None
 
 
-class Project(ProjectInput, CommonFieldsMixin, table=True):
+class Project(CommonFieldsMixin, table=True):
+    name: str
+    description: str | None
+    jira_project_id: str | None
     requirements: list[Requirement] = Relationship(
         back_populates="project",
         sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},

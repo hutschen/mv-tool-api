@@ -38,7 +38,10 @@ class DocumentImport(ETagMixin, DocumentInput):
     project: "ProjectImport | None"
 
 
-class Document(DocumentInput, CommonFieldsMixin, table=True):
+class Document(CommonFieldsMixin, table=True):
+    reference: str | None
+    title: str
+    description: str | None
     project_id: int | None = Field(default=None, foreign_key="project.id")
     project: "Project" = Relationship(
         back_populates="documents", sa_relationship_kwargs=dict(lazy="joined")

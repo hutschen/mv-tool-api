@@ -25,8 +25,8 @@ from .common import AbstractComplianceInput, CommonFieldsMixin, ETagMixin
 from .jira_ import JiraIssue, JiraIssueImport
 
 if TYPE_CHECKING:
-    from .documents import Document, DocumentOutput, DocumentImport
-    from .requirements import Requirement, RequirementOutput, RequirementImport
+    from .documents import Document, DocumentImport, DocumentOutput
+    from .requirements import Requirement, RequirementImport, RequirementOutput
 
 
 class AbstractMeasureInput(AbstractComplianceInput):
@@ -73,6 +73,20 @@ class MeasureImport(ETagMixin, AbstractMeasureInput):
 
 
 class Measure(MeasureInput, CommonFieldsMixin, table=True):
+    reference: str | None
+    summary: str
+    description: str | None
+    compliance_status: constr(regex=r"^(C|PC|NC|N/A)$") | None
+    compliance_comment: str | None
+    completion_status: constr(regex=r"^(open|in progress|completed)$") | None
+    completion_comment: str | None
+    verification_method: constr(regex=r"^(I|T|R)$") | None
+    verification_status: constr(
+        regex=r"^(verified|partially verified|not verified)$"
+    ) | None
+    verification_comment: str | None
+    jira_issue_id: str | None
+
     requirement_id: int | None = Field(default=None, foreign_key="requirement.id")
     requirement: "Requirement" = Relationship(
         back_populates="measures", sa_relationship_kwargs=dict(lazy="joined")

@@ -32,8 +32,11 @@ class CatalogImport(ETagMixin, CatalogInput):
     id: int | None = None
 
 
-class Catalog(CatalogInput, CommonFieldsMixin, table=True):
+class Catalog(CommonFieldsMixin, table=True):
     __tablename__ = "catalog"
+    reference: str | None
+    title: str
+    description: str | None
     catalog_modules: list[CatalogModule] = Relationship(
         back_populates="catalog",
         sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},

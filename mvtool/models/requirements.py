@@ -17,7 +17,7 @@
 
 from typing import TYPE_CHECKING
 
-from pydantic import confloat
+from pydantic import confloat, constr
 from sqlmodel import Field, Relationship, Session, SQLModel, func, or_, select
 
 from .common import AbstractComplianceInput, CommonFieldsMixin, ETagMixin
@@ -52,7 +52,14 @@ class RequirementImport(ETagMixin, AbstractRequirementInput, AbstractComplianceI
     milestone: str | None
 
 
-class Requirement(RequirementInput, CommonFieldsMixin, table=True):
+class Requirement(CommonFieldsMixin, table=True):
+    reference: str | None
+    summary: str
+    description: str | None
+    compliance_status: constr(regex=r"^(C|PC|NC|N/A)$") | None
+    compliance_comment: str | None
+    target_object: str | None
+    milestone: str | None
     project_id: int | None = Field(default=None, foreign_key="project.id")
     project: "Project" = Relationship(
         back_populates="requirements", sa_relationship_kwargs=dict(lazy="joined")

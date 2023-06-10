@@ -24,7 +24,7 @@ from .catalog_requirements import CatalogRequirement
 from .common import CommonFieldsMixin, ETagMixin
 
 if TYPE_CHECKING:
-    from . import Catalog, CatalogOutput, CatalogImport
+    from . import Catalog, CatalogImport, CatalogOutput
 
 
 class CatalogModuleInput(SQLModel):
@@ -38,8 +38,11 @@ class CatalogModuleImport(ETagMixin, CatalogModuleInput):
     catalog: "CatalogImport | None" = None
 
 
-class CatalogModule(CatalogModuleInput, CommonFieldsMixin, table=True):
+class CatalogModule(CommonFieldsMixin, table=True):
     __tablename__ = "catalog_module"
+    reference: str | None
+    title: str
+    description: str | None
     catalog_requirements: list[CatalogRequirement] = Relationship(
         back_populates="catalog_module",
         sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},

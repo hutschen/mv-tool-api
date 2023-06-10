@@ -39,8 +39,16 @@ class CatalogRequirementImport(ETagMixin, CatalogRequirementInput):
     catalog_module: "CatalogModuleImport | None" = None
 
 
-class CatalogRequirement(CatalogRequirementInput, CommonFieldsMixin, table=True):
+class CatalogRequirement(CommonFieldsMixin, table=True):
     __tablename__ = "catalog_requirement"
+    reference: str | None
+    summary: str
+    description: str | None
+
+    # Special fields for IT Grundschutz Kompendium
+    gs_absicherung: constr(regex=r"^(B|S|H)$") | None
+    gs_verantwortliche: str | None
+
     catalog_module_id: int | None = Field(default=None, foreign_key="catalog_module.id")
     catalog_module: "CatalogModule" = Relationship(
         back_populates="catalog_requirements",
