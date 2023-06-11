@@ -75,7 +75,7 @@ class Projects:
         )
 
         # Execute projects query
-        projects: list[Project] = self._session.exec(query).all()
+        projects: list[Project] = self._session.execute(query).scalars().all()
 
         # set jira projects on projects
         if query_jira:

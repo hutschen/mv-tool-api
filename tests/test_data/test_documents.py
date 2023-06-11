@@ -41,7 +41,7 @@ def test_modify_documents_query_where_clause(
     # Test filtering with a single where clause
     where_clauses = [Document.reference == "banana"]
     query = documents._modify_documents_query(select(Document), where_clauses)
-    results: list[Document] = session.exec(query).all()
+    results: list[Document] = session.execute(query).scalars().all()
     assert len(results) == 1
     assert results[0].reference == "banana"
 
@@ -63,7 +63,7 @@ def test_modify_documents_query_order_by(
     query = documents._modify_documents_query(
         select(Document), order_by_clauses=order_by_clauses
     )
-    results = session.exec(query).all()
+    results = session.execute(query).scalars().all()
     assert [r.reference for r in results] == ["cherry", "banana", "apple"]
 
 
@@ -81,7 +81,7 @@ def test_modify_documents_query_offset(
 
     # Test offset
     query = documents._modify_documents_query(select(Document), offset=2)
-    results = session.exec(query).all()
+    results = session.execute(query).scalars().all()
     assert len(results) == 1
 
 
@@ -99,7 +99,7 @@ def test_modify_documents_query_limit(
 
     # Test limit
     query = documents._modify_documents_query(select(Document), limit=1)
-    results = session.exec(query).all()
+    results = session.execute(query).scalars().all()
     assert len(results) == 1
 
 

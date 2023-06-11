@@ -79,7 +79,7 @@ class CatalogModules:
             offset,
             limit,
         )
-        return self._session.exec(query).all()
+        return self._session.execute(query).scalars().all()
 
     def count_catalog_modules(self, where_clauses: Any = None) -> int:
         query = self._modify_catalog_modules_query(
@@ -101,7 +101,7 @@ class CatalogModules:
             offset=offset,
             limit=limit,
         )
-        return self._session.exec(query).all()
+        return self._session.execute(query).scalars().all()
 
     def count_catalog_module_values(
         self, column: Column, where_clauses: list[Any] | None = None

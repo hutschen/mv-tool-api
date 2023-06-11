@@ -46,7 +46,7 @@ def test_modify_measures_query_where_clause(
     # Test filtering with a single where clause
     where_clauses = [Measure.reference == "banana"]
     query = measures._modify_measures_query(select(Measure), where_clauses)
-    results: list[Measure] = session.exec(query).all()
+    results: list[Measure] = session.execute(query).scalars().all()
     assert len(results) == 1
     assert results[0].reference == "banana"
 
@@ -68,7 +68,7 @@ def test_modify_measures_query_order_by(
     query = measures._modify_measures_query(
         select(Measure), order_by_clauses=order_by_clauses
     )
-    results = session.exec(query).all()
+    results = session.execute(query).scalars().all()
     assert [r.reference for r in results] == ["cherry", "banana", "apple"]
 
 
@@ -86,7 +86,7 @@ def test_modify_measures_query_offset(
 
     # Test offset
     query = measures._modify_measures_query(select(Measure), offset=2)
-    results = session.exec(query).all()
+    results = session.execute(query).scalars().all()
     assert len(results) == 1
 
 
@@ -104,7 +104,7 @@ def test_modify_measures_query_limit(
 
     # Test limit
     query = measures._modify_measures_query(select(Measure), limit=1)
-    results = session.exec(query).all()
+    results = session.execute(query).scalars().all()
     assert len(results) == 1
 
 

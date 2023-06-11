@@ -97,7 +97,7 @@ class Measures:
         )
 
         # execute measures query
-        measures = self.session.exec(query).all()
+        measures = self.session.execute(query).scalars().all()
 
         # set jira project and issue on measures
         if query_jira:
@@ -131,7 +131,7 @@ class Measures:
             offset=offset,
             limit=limit,
         )
-        return self.session.exec(query).all()
+        return self.session.execute(query).scalars().all()
 
     def count_measure_values(
         self, column: Column, where_clauses: list[Any] | None = None

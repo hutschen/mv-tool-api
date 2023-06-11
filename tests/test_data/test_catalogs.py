@@ -34,7 +34,7 @@ def test_modify_catalogs_query_where_clause(session: Session, catalogs: Catalogs
     # Test filtering with a single where clause
     where_clauses = [Catalog.reference == "apple"]
     query = catalogs._modify_catalogs_query(select(Catalog), where_clauses)
-    results = session.exec(query).all()
+    results = session.execute(query).scalars().all()
     assert len(results) == 1
     assert results[0].reference == "apple"
 
@@ -50,7 +50,7 @@ def test_modify_catalogs_query_order_by(session: Session, catalogs: Catalogs):
     query = catalogs._modify_catalogs_query(
         select(Catalog), order_by_clauses=order_by_clauses
     )
-    results = session.exec(query).all()
+    results = session.execute(query).scalars().all()
     assert [r.reference for r in results] == ["cherry", "banana", "apple"]
 
 
@@ -62,7 +62,7 @@ def test_modify_catalogs_query_offset(session: Session, catalogs: Catalogs):
 
     # Test offset
     query = catalogs._modify_catalogs_query(select(Catalog), offset=2)
-    results = session.exec(query).all()
+    results = session.execute(query).scalars().all()
     assert len(results) == 1
 
 
@@ -74,7 +74,7 @@ def test_modify_catalogs_query_limit(session: Session, catalogs: Catalogs):
 
     # Test limit
     query = catalogs._modify_catalogs_query(select(Catalog), limit=1)
-    results = session.exec(query).all()
+    results = session.execute(query).scalars().all()
     assert len(results) == 1
 
 

@@ -52,7 +52,7 @@ def test_modify_catalog_requirements_query_where_clause(
     query = catalog_requirements._modify_catalog_requirements_query(
         select(CatalogRequirement), where_clauses
     )
-    results: list[CatalogRequirement] = session.exec(query).all()
+    results: list[CatalogRequirement] = session.execute(query).scalars().all()
 
     # Check if the query result is correct
     assert len(results) == 1
@@ -80,7 +80,7 @@ def test_modify_catalog_requirements_query_order_by(
     query = catalog_requirements._modify_catalog_requirements_query(
         select(CatalogRequirement), order_by_clauses=order_by_clauses
     )
-    results: list[CatalogRequirement] = session.exec(query).all()
+    results: list[CatalogRequirement] = session.execute(query).scalars().all()
 
     # Check if the query result is correct
     assert [r.reference for r in results] == ["cherry", "banana", "apple"]
@@ -106,7 +106,7 @@ def test_modify_catalog_requirements_query_offset(
     query = catalog_requirements._modify_catalog_requirements_query(
         select(CatalogRequirement), offset=2
     )
-    results = session.exec(query).all()
+    results = session.execute(query).scalars().all()
     assert len(results) == 1
 
 
@@ -130,7 +130,7 @@ def test_modify_catalog_requirements_query_limit(
     query = catalog_requirements._modify_catalog_requirements_query(
         select(CatalogRequirement), limit=1
     )
-    results = session.exec(query).all()
+    results = session.execute(query).scalars().all()
     assert len(results) == 1
 
 

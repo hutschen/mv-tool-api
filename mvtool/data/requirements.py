@@ -90,7 +90,7 @@ class Requirements:
         )
 
         # execute query, set jira_project and return requirements
-        requirements = self._session.exec(query).all()
+        requirements = self._session.execute(query).scalars().all()
         if query_jira:
             for requirement in requirements:
                 self._set_jira_project(requirement)
@@ -115,7 +115,7 @@ class Requirements:
             offset=offset,
             limit=limit,
         )
-        return self._session.exec(query).all()
+        return self._session.execute(query).scalars().all()
 
     def count_requirement_values(
         self, column: Column, where_clauses: Any = None

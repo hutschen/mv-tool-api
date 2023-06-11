@@ -80,7 +80,7 @@ class CatalogRequirements:
             offset,
             limit,
         )
-        return self._session.exec(query).all()
+        return self._session.execute(query).scalars().all()
 
     def count_catalog_requirements(self, where_clauses: list[Any] | None = None) -> int:
         query = self._modify_catalog_requirements_query(
@@ -102,7 +102,7 @@ class CatalogRequirements:
             offset=offset,
             limit=limit,
         )
-        return self._session.exec(query).all()
+        return self._session.execute(query).scalars().all()
 
     def count_catalog_requirement_values(
         self, column: Column, where_clauses: list[Any] | None = None
