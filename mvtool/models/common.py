@@ -19,20 +19,18 @@ from datetime import datetime
 from hashlib import md5
 from typing import Any
 
-from pydantic import BaseModel, constr, validator
-from sqlmodel import Field, SQLModel
+from pydantic import constr, validator
+from sqlalchemy import Column, DateTime, Integer
+from sqlmodel import SQLModel
 
 
-class CommonFieldsMixin(SQLModel):
-    id: int = Field(default=None, primary_key=True)
-    created: datetime = Field(default_factory=datetime.utcnow)
-    updated: datetime = Field(
-        default_factory=datetime.utcnow,
-        sa_column_kwargs=dict(onupdate=datetime.utcnow),
-    )
+class CommonFieldsMixin:
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    created = Column(DateTime, default=datetime.utcnow)
+    updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
-class ETagMixin(BaseModel):
+class ETagMixin(SQLModel):
     @property
     def etag(self) -> str:
         model_json = self.json(sort_keys=True, ensure_ascii=False).encode("utf-8")

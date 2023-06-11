@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2023 Helmar Hutschenreuter
 #
@@ -16,17 +16,20 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
-from pydantic import PrivateAttr, constr, validator
-from sqlmodel import Field, Relationship, SQLModel
+from pydantic import constr, validator
+from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
+from sqlmodel import SQLModel
 
+from ..database import Base
 from .common import AbstractComplianceInput, CommonFieldsMixin, ETagMixin
 from .jira_ import JiraIssue, JiraIssueImport
 
 if TYPE_CHECKING:
-    from .documents import Document, DocumentImport, DocumentOutput
-    from .requirements import Requirement, RequirementImport, RequirementOutput
+    from .documents import DocumentImport, DocumentOutput
+    from .requirements import RequirementImport, RequirementOutput
 
 
 class AbstractMeasureInput(AbstractComplianceInput):
@@ -72,31 +75,28 @@ class MeasureImport(ETagMixin, AbstractMeasureInput):
     jira_issue: JiraIssueImport | None
 
 
-class Measure(MeasureInput, CommonFieldsMixin, table=True):
-    reference: str | None
-    summary: str
-    description: str | None
-    compliance_status: constr(regex=r"^(C|PC|NC|N/A)$") | None
-    compliance_comment: str | None
-    completion_status: constr(regex=r"^(open|in progress|completed)$") | None
-    completion_comment: str | None
-    verification_method: constr(regex=r"^(I|T|R)$") | None
-    verification_status: constr(
-        regex=r"^(verified|partially verified|not verified)$"
-    ) | None
-    verification_comment: str | None
-    jira_issue_id: str | None
+class Measure(CommonFieldsMixin, Base):
+    __tablename__ = "measure"
+    reference = Column(String, nullable=True)
+    summary = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    compliance_status = Column(String, nullable=True)
+    compliance_comment = Column(String, nullable=True)
+    completion_status = Column(String, nullable=True)
+    completion_comment = Column(String, nullable=True)
+    verification_method = Column(String, nullable=True)
+    verification_status = Column(String, nullable=True)
+    verification_comment = Column(String, nullable=True)
+    jira_issue_id = Column(String, nullable=True)
 
-    requirement_id: int | None = Field(default=None, foreign_key="requirement.id")
-    requirement: "Requirement" = Relationship(
-        back_populates="measures", sa_relationship_kwargs=dict(lazy="joined")
-    )
-    document_id: int | None = Field(default=None, foreign_key="document.id")
-    document: "Document" = Relationship(
-        back_populates="measures", sa_relationship_kwargs=dict(lazy="joined")
-    )
+    requirement_id = Column(Integer, ForeignKey("requirement.id"), nullable=True)
+    requirement = relationship("Requirement", back_populates="measures", lazy="joined")
+    document_id = Column(Integer, ForeignKey("document.id"), nullable=True)
+    document = relationship("Document", back_populates="measures", lazy="joined")
 
-    _get_jira_issue: Callable = PrivateAttr()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._get_jira_issue = lambda _: None
 
     @property
     def jira_issue(self) -> JiraIssue | None:

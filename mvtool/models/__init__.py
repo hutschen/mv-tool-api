@@ -81,33 +81,33 @@ from .requirements import (
 
 # Update forward references for catalog module models
 CatalogModuleImport.update_forward_refs(CatalogImport=CatalogImport)
-CatalogModule.update_forward_refs(Catalog=Catalog)
+# CatalogModule.update_forward_refs(Catalog=Catalog)
 CatalogModuleOutput.update_forward_refs(CatalogOutput=CatalogOutput)
 
 # Update forward references for catalog requirement models
 CatalogRequirementImport.update_forward_refs(CatalogModuleImport=CatalogModuleImport)
-CatalogRequirement.update_forward_refs(CatalogModule=CatalogModule)
+# CatalogRequirement.update_forward_refs(CatalogModule=CatalogModule)
 CatalogRequirementOutput.update_forward_refs(CatalogModuleOutput=CatalogModuleOutput)
 
 # Update forward references for requirement models
 RequirementImport.update_forward_refs(
     CatalogRequirementImport=CatalogRequirementImport, ProjectImport=ProjectImport
 )
-Requirement.update_forward_refs(CatalogRequirement=CatalogRequirement)
+# Requirement.update_forward_refs(CatalogRequirement=CatalogRequirement)
 RequirementOutput.update_forward_refs(
     ProjectOutput=ProjectOutput, CatalogRequirementOutput=CatalogRequirementOutput
 )
 
 # Update forward references for document models
 DocumentImport.update_forward_refs(ProjectImport=ProjectImport)
-Document.update_forward_refs(Project=Project)
+# Document.update_forward_refs(Project=Project)
 DocumentOutput.update_forward_refs(ProjectOutput=ProjectOutput)
 
 # Update forward references for measure models
 MeasureImport.update_forward_refs(
     RequirementImport=RequirementImport, DocumentImport=DocumentImport
 )
-Measure.update_forward_refs(Requirement=Requirement, Document=Document)
+# Measure.update_forward_refs(Requirement=Requirement, Document=Document)
 MeasureOutput.update_forward_refs(
     RequirementOutput=RequirementOutput, DocumentOutput=DocumentOutput
 )

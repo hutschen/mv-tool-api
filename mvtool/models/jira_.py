@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2023 Helmar Hutschenreuter
 #
@@ -17,8 +17,6 @@
 
 
 from sqlmodel import SQLModel
-
-from mvtool.models.common import ETagMixin
 
 
 class JiraUser(SQLModel):

@@ -15,13 +15,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Callable
+from pydantic import confloat
+from sqlalchemy import Column, String, func, or_, select
+from sqlalchemy.orm import Session, relationship
+from sqlmodel import SQLModel
 
-from pydantic import PrivateAttr, confloat
-from sqlmodel import Relationship, Session, SQLModel, func, or_, select
-
+from ..database import Base
 from .common import CommonFieldsMixin, ETagMixin
-from .documents import Document
 from .jira_ import JiraProject, JiraProjectImport
 from .measures import Measure
 from .requirements import Requirement
@@ -41,26 +41,26 @@ class ProjectImport(ETagMixin, AbstractProjectInput):
     jira_project: JiraProjectImport | None = None
 
 
-class Project(CommonFieldsMixin, table=True):
-    name: str
-    description: str | None
-    jira_project_id: str | None
-    requirements: list[Requirement] = Relationship(
-        back_populates="project",
-        sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
+class Project(CommonFieldsMixin, Base):
+    __tablename__ = "project"
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    jira_project_id = Column(String, nullable=True)
+    requirements = relationship(
+        "Requirement", back_populates="project", cascade="all,delete,delete-orphan"
     )
-    documents: list[Document] = Relationship(
-        back_populates="project",
-        sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
+    documents = relationship(
+        "Document", back_populates="project", cascade="all,delete,delete-orphan"
     )
 
-    _get_jira_project: Callable = PrivateAttr()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._get_jira_project = lambda _: None
 
     @property
-    def jira_project(self) -> JiraProject:
+    def jira_project(self):
         if self.jira_project_id is None:
             return None
-
         return getattr(self, "_get_jira_project")(self.jira_project_id)
 
     @property
@@ -83,7 +83,7 @@ class Project(CommonFieldsMixin, table=True):
         )
 
     @property
-    def completion_progress(self) -> float | None:
+    def completion_progress(self):
         session = Session.object_session(self)
 
         # get the total number of measures in project
@@ -98,7 +98,7 @@ class Project(CommonFieldsMixin, table=True):
         return completed / total if total else None
 
     @property
-    def verification_progress(self) -> float | None:
+    def verification_progress(self):
         session = Session.object_session(self)
 
         # get the total number of measures in project
