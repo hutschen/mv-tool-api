@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from sqlmodel import SQLModel
-
 from .catalog_modules import (
     CatalogModule,
     CatalogModuleImport,
@@ -81,26 +79,22 @@ from .requirements import (
 
 # Update forward references for catalog module models
 CatalogModuleImport.update_forward_refs(CatalogImport=CatalogImport)
-# CatalogModule.update_forward_refs(Catalog=Catalog)
 CatalogModuleOutput.update_forward_refs(CatalogOutput=CatalogOutput)
 
 # Update forward references for catalog requirement models
 CatalogRequirementImport.update_forward_refs(CatalogModuleImport=CatalogModuleImport)
-# CatalogRequirement.update_forward_refs(CatalogModule=CatalogModule)
 CatalogRequirementOutput.update_forward_refs(CatalogModuleOutput=CatalogModuleOutput)
 
 # Update forward references for requirement models
 RequirementImport.update_forward_refs(
     CatalogRequirementImport=CatalogRequirementImport, ProjectImport=ProjectImport
 )
-# Requirement.update_forward_refs(CatalogRequirement=CatalogRequirement)
 RequirementOutput.update_forward_refs(
     ProjectOutput=ProjectOutput, CatalogRequirementOutput=CatalogRequirementOutput
 )
 
 # Update forward references for document models
 DocumentImport.update_forward_refs(ProjectImport=ProjectImport)
-# Document.update_forward_refs(Project=Project)
 DocumentOutput.update_forward_refs(ProjectOutput=ProjectOutput)
 
 # Update forward references for measure models

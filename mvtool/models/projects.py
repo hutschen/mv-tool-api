@@ -15,10 +15,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pydantic import confloat
+from pydantic import BaseModel, confloat
 from sqlalchemy import Column, String, func, or_, select
 from sqlalchemy.orm import Session, relationship
-from sqlmodel import SQLModel
 
 from ..database import Base
 from .common import CommonFieldsMixin, ETagMixin
@@ -27,7 +26,7 @@ from .measures import Measure
 from .requirements import Requirement
 
 
-class AbstractProjectInput(SQLModel):
+class AbstractProjectInput(BaseModel):
     name: str
     description: str | None
 
@@ -117,12 +116,18 @@ class Project(CommonFieldsMixin, Base):
         return verified / total if total else None
 
 
-class ProjectRepresentation(SQLModel):
+class ProjectRepresentation(BaseModel):
+    class Config:
+        orm_mode = True
+
     id: int
     name: str
 
 
 class ProjectOutput(ProjectInput):
+    class Config:
+        orm_mode = True
+
     id: int
     jira_project: JiraProject | None
     completion_progress: confloat(ge=0, le=1) | None

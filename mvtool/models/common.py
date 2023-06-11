@@ -19,9 +19,8 @@ from datetime import datetime
 from hashlib import md5
 from typing import Any
 
-from pydantic import constr, validator
+from pydantic import BaseModel, constr, validator
 from sqlalchemy import Column, DateTime, Integer
-from sqlmodel import SQLModel
 
 
 class CommonFieldsMixin:
@@ -32,7 +31,7 @@ class CommonFieldsMixin:
     )
 
 
-class ETagMixin(SQLModel):
+class ETagMixin(BaseModel):
     @property
     def etag(self) -> str:
         model_json = self.json(sort_keys=True, ensure_ascii=False).encode("utf-8")
@@ -42,7 +41,7 @@ class ETagMixin(SQLModel):
         return isinstance(other, self.__class__) and self.etag == other.etag
 
 
-class AbstractComplianceInput(SQLModel):
+class AbstractComplianceInput(BaseModel):
     compliance_status: constr(regex=r"^(C|PC|NC|N/A)$") | None
     compliance_comment: str | None
 

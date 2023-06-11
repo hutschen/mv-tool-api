@@ -15,16 +15,15 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from pydantic import BaseModel
 
-from sqlmodel import SQLModel
 
-
-class JiraUser(SQLModel):
+class JiraUser(BaseModel):
     display_name: str
     email_address: str
 
 
-class JiraProjectImport(SQLModel):
+class JiraProjectImport(BaseModel):
     key: str
 
 
@@ -35,24 +34,27 @@ class JiraProject(JiraProjectImport):
     url: str
 
 
-class JiraIssueType(SQLModel):
+class JiraIssueType(BaseModel):
+    class Config:
+        orm_mode = True
+
     id: str
     name: str
 
 
-class JiraIssueStatus(SQLModel):
+class JiraIssueStatus(BaseModel):
     name: str
     color_name: str
     completed: bool
 
 
-class JiraIssueInput(SQLModel):
+class JiraIssueInput(BaseModel):
     summary: str
     description: str | None
     issuetype_id: str
 
 
-class JiraIssueImport(SQLModel):
+class JiraIssueImport(BaseModel):
     key: str
 
 

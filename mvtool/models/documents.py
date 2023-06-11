@@ -17,9 +17,9 @@
 
 from typing import TYPE_CHECKING
 
+from pydantic import BaseModel
 from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
-from sqlmodel import SQLModel
 
 from ..database import Base
 from .common import CommonFieldsMixin, ETagMixin
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from .projects import ProjectImport, ProjectOutput
 
 
-class DocumentInput(SQLModel):
+class DocumentInput(BaseModel):
     reference: str | None
     title: str
     description: str | None
@@ -49,12 +49,18 @@ class Document(CommonFieldsMixin, Base):
     measures = relationship("Measure", back_populates="document")
 
 
-class DocumentRepresentation(SQLModel):
+class DocumentRepresentation(BaseModel):
+    class Config:
+        orm_mode = True
+
     id: int
     reference: str | None
     title: str
 
 
 class DocumentOutput(DocumentInput):
+    class Config:
+        orm_mode = True
+
     id: int
     project: "ProjectOutput"

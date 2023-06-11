@@ -15,15 +15,15 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from pydantic import BaseModel
 from sqlalchemy import Column, String
 from sqlalchemy.orm import relationship
-from sqlmodel import SQLModel
 
 from ..database import Base
 from .common import CommonFieldsMixin, ETagMixin
 
 
-class CatalogInput(SQLModel):
+class CatalogInput(BaseModel):
     reference: str | None
     title: str
     description: str | None
@@ -43,11 +43,17 @@ class Catalog(CommonFieldsMixin, Base):
     )
 
 
-class CatalogRepresentation(SQLModel):
+class CatalogRepresentation(BaseModel):
+    class Config:
+        orm_mode = True
+
     id: int
     reference: str | None
     title: str
 
 
 class CatalogOutput(CatalogInput):
+    class Config:
+        orm_mode = True
+
     id: int

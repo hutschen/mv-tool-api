@@ -17,10 +17,9 @@
 
 from typing import TYPE_CHECKING
 
-from pydantic import confloat
+from pydantic import BaseModel, confloat
 from sqlalchemy import Column, ForeignKey, Integer, String, func, or_, select
 from sqlalchemy.orm import Session, relationship
-from sqlmodel import SQLModel
 
 from ..database import Base
 from .common import AbstractComplianceInput, CommonFieldsMixin, ETagMixin
@@ -31,13 +30,17 @@ if TYPE_CHECKING:
     from .projects import ProjectImport, ProjectOutput
 
 
-class AbstractRequirementInput(SQLModel):
+class AbstractRequirementInput(BaseModel):
     reference: str | None
     summary: str
     description: str | None
 
 
 class RequirementInput(AbstractRequirementInput, AbstractComplianceInput):
+    # Enable ORM mode to create requirement inputs from catalog requirements
+    class Config:
+        orm_mode = True
+
     catalog_requirement_id: int | None
     target_object: str | None
     milestone: str | None
@@ -148,13 +151,19 @@ class Requirement(CommonFieldsMixin, Base):
         return verified / total if total else 0.0
 
 
-class RequirementRepresentation(SQLModel):
+class RequirementRepresentation(BaseModel):
+    class Config:
+        orm_mode = True
+
     id: int
     reference: str | None
     summary: str
 
 
 class RequirementOutput(AbstractRequirementInput):
+    class Config:
+        orm_mode = True
+
     id: int
     project: "ProjectOutput"
     catalog_requirement: "CatalogRequirementOutput | None"

@@ -18,10 +18,9 @@
 
 from typing import TYPE_CHECKING
 
-from pydantic import constr, validator
+from pydantic import BaseModel, constr, validator
 from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
-from sqlmodel import SQLModel
 
 from ..database import Base
 from .common import AbstractComplianceInput, CommonFieldsMixin, ETagMixin
@@ -120,13 +119,19 @@ class Measure(CommonFieldsMixin, Base):
             return self.completion_status
 
 
-class MeasureRepresentation(SQLModel):
+class MeasureRepresentation(BaseModel):
+    class Config:
+        orm_mode = True
+
     id: int
     reference: str | None
     summary: str
 
 
 class MeasureOutput(MeasureRepresentation):
+    class Config:
+        orm_mode = True
+
     description: str | None
     compliance_status: str | None
     compliance_comment: str | None
