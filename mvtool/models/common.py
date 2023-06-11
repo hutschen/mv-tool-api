@@ -26,8 +26,10 @@ from sqlmodel import SQLModel
 
 class CommonFieldsMixin:
     id = Column(Integer, primary_key=True, autoincrement=True)
-    created = Column(DateTime, default=datetime.utcnow)
-    updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
 
 
 class ETagMixin(SQLModel):
