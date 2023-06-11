@@ -90,46 +90,11 @@ def drop_all():
 T = TypeVar("T", bound=SQLModel)
 
 
-class CRUDOperations(Generic[T]):
-    def __init__(self, session: Session = Depends(get_session)):
-        self.session = session
-
-    def read_all_from_db(self, sqlmodel: Type[T], **filters) -> list[T]:
-        query = select(sqlmodel)
-
-        for key, value in filters.items():
-            if value is not None:
-                query = query.where(sqlmodel.__dict__[key] == value)
-        query = query.order_by(sqlmodel.id)
-
-        return self.session.exec(query).all()
-
-    def create_in_db(self, item: T) -> T:
-        self.session.add(item)
-        self.session.flush()
-        self.session.refresh(item)
-        return item
-
-    def read_from_db(self, sqlmodel: Type[T], id: int) -> T:
-        item = self.session.get(sqlmodel, id)
-        if item:
-            return item
-        else:
-            item_name = sqlmodel.__name__
-            raise NotFoundError(f"No {item_name} with id={id}.")
-
-    def update_in_db(self, id: int, item_update: T) -> T:
-        sqlmodel = item_update.__class__
-        item = self.read_from_db(sqlmodel, id)
-        item_update.id = item.id
-        self.session.merge(item_update)
-        self.session.flush()
-        return item
-
-    def delete_from_db(self, sqlmodel: Type[T], id: int) -> None:
-        item = self.read_from_db(sqlmodel, id)
-        self.session.delete(item)
-        self.session.flush()
+def create_in_db(session: Session, item: T) -> T:
+    session.add(item)
+    session.flush()
+    session.refresh(item)
+    return item
 
 
 def read_from_db(session: Session, sqlmodel: Type[T], id: int) -> T:

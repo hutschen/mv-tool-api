@@ -17,12 +17,14 @@
 
 import pytest
 from fastapi import HTTPException
+
 from mvtool.database import (
-    CRUDOperations,
     create_all,
+    create_in_db,
     dispose_connection,
     drop_all,
     get_session,
+    read_from_db,
     setup_connection,
 )
 from mvtool.models import Project
@@ -42,14 +44,12 @@ def test_session_commit(config):
     create_all()
 
     for session in get_session():
-        crud = CRUDOperations(session)
         item = Project(name="test")
-        crud.create_in_db(item)
+        create_in_db(session, item)
         item_id = item.id
 
     for session in get_session():
-        crud = CRUDOperations(session)
-        item = crud.read_from_db(Project, item_id)
+        item = read_from_db(session, Project, item_id)
         assert item.name == "test"
 
     drop_all()
@@ -63,18 +63,16 @@ def test_session_rollback(config):
     # create a new item and rollback the session by raising an exception
     with pytest.raises(Exception) as error_info:
         for session in get_session():
-            crud = CRUDOperations(session)
             item = Project(name="test")
-            crud.create_in_db(item)
+            create_in_db(session, item)
             item_id = item.id
             raise Exception("rollback")
     assert "rollback" in str(error_info.value)
 
     # ensure that the item is not in the database
     for session in get_session():
-        crud = CRUDOperations(session)
         with pytest.raises(HTTPException):
-            crud.read_from_db(Project, item_id)
+            read_from_db(session, Project, item_id)
 
     drop_all()
     dispose_connection()
