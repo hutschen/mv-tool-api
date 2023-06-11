@@ -55,7 +55,11 @@ class Project(CommonFieldsMixin, Base):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._get_jira_project = lambda _: None
+
+        def _get_jira_project(jira_project_id):
+            raise NotImplementedError("Getter for JIRA project not set")
+
+        self._get_jira_project = _get_jira_project
 
     @property
     def jira_project(self):

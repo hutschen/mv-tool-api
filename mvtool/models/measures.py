@@ -96,7 +96,11 @@ class Measure(CommonFieldsMixin, Base):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._get_jira_issue = lambda _: None
+
+        def _get_jira_issue(jira_issue_id):
+            raise NotImplementedError("Getter for JIRA issue not set")
+
+        self._get_jira_issue = _get_jira_issue
 
     @property
     def jira_issue(self) -> JiraIssue | None:

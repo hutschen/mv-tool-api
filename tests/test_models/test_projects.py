@@ -22,7 +22,7 @@ from mvtool.models import Measure, Project, Requirement
 
 def test_project_jira_project_without_getter():
     project = Project(name="test", jira_project_id="test")
-    with pytest.raises(AttributeError):
+    with pytest.raises(NotImplementedError):
         project.jira_project
 
 

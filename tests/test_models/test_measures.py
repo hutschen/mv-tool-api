@@ -23,7 +23,7 @@ from mvtool.models.measures import Measure
 
 def test_measure_jira_issue_without_getter():
     measure = Measure(summary="test", jira_issue_id="test")
-    with pytest.raises(AttributeError):
+    with pytest.raises(NotImplementedError):
         measure.jira_issue
 
 
