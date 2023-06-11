@@ -7,7 +7,6 @@ Create Date: 2023-03-04 14:39:56.711992
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlmodel.sql.sqltypes import AutoString
 
 
 # revision identifiers, used by Alembic.
@@ -21,7 +20,7 @@ def upgrade() -> None:
     # create verification_status column in measure table
     with op.batch_alter_table("measure", schema=None) as batch_op:
         batch_op.add_column(
-            sa.Column("verification_status", AutoString(), nullable=True)
+            sa.Column("verification_status", sa.String(), nullable=True)
         )
 
     # copy data from verified to verification_status where verified is true

@@ -21,11 +21,9 @@ if (
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-from mvtool.models import SQLModel
-from mvtool.database import naming_convention
+from mvtool.database import Base
 
-target_metadata = SQLModel.metadata
-target_metadata.naming_convention = naming_convention
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
