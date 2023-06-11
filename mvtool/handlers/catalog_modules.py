@@ -289,7 +289,7 @@ def get_catalog_module_references(
 @router.post(
     "/catalogs/{catalog_id}/catalog-modules/gs-baustein",
     status_code=201,
-    response_model=CatalogModule,
+    response_model=CatalogModuleOutput,
 )
 def upload_gs_baustein(
     catalog_id: int,
