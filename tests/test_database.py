@@ -20,25 +20,25 @@ from fastapi import HTTPException
 from mvtool.database import (
     CRUDOperations,
     create_all,
-    dispose_engine,
+    dispose_connection,
     drop_all,
     get_session,
-    setup_engine,
+    setup_connection,
 )
 from mvtool.models import Project
 
 
 def test_setup_engine(config):
-    engine = setup_engine(config.database)
+    engine = setup_connection(config.database)
     assert engine is not None
 
-    engine_2 = setup_engine(config.database)
+    engine_2 = setup_connection(config.database)
     assert engine is engine_2
-    dispose_engine()
+    dispose_connection()
 
 
 def test_session_commit(config):
-    setup_engine(config.database)
+    setup_connection(config.database)
     create_all()
 
     for session in get_session():
@@ -53,11 +53,11 @@ def test_session_commit(config):
         assert item.name == "test"
 
     drop_all()
-    dispose_engine()
+    dispose_connection()
 
 
 def test_session_rollback(config):
-    setup_engine(config.database)
+    setup_connection(config.database)
     create_all()
 
     # create a new item and rollback the session by raising an exception
@@ -77,4 +77,4 @@ def test_session_rollback(config):
             crud.read_from_db(Project, item_id)
 
     drop_all()
-    dispose_engine()
+    dispose_connection()

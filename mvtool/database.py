@@ -44,7 +44,7 @@ class __State:
     engine = None
 
 
-def setup_engine(database_config: DatabaseConfig):
+def setup_connection(database_config: DatabaseConfig):
     if __State.engine is None:
         if database_config.url.startswith("sqlite"):
             __State.engine = create_engine(
@@ -62,7 +62,7 @@ def setup_engine(database_config: DatabaseConfig):
     return __State.engine
 
 
-def dispose_engine():
+def dispose_connection():
     __State.engine.dispose()
     __State.engine = None
 

@@ -39,14 +39,14 @@ from mvtool.models.requirements import Requirement, RequirementInput
 
 @pytest.fixture
 def session(config) -> Session:
-    database.setup_engine(config.database)
+    database.setup_connection(config.database)
     database.create_all()
 
     for session in database.get_session():
         yield session
 
     database.drop_all()
-    database.dispose_engine()
+    database.dispose_connection()
 
 
 @pytest.fixture

@@ -211,14 +211,14 @@ def jira_issues(jira):
 
 @pytest.fixture
 def crud(config):
-    database.setup_engine(config.database)
+    database.setup_connection(config.database)
     database.create_all()
 
     for session in database.get_session():
         yield Mock(wraps=database.CRUDOperations(session))
 
     database.drop_all()
-    database.dispose_engine()
+    database.dispose_connection()
 
 
 @pytest.fixture
