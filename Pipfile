@@ -8,7 +8,7 @@ fastapi = {extras = ["all"], version = "*"}
 pydantic = "*"
 jira = "*"
 pyyaml = "*"
-sqlalchemy = "*"
+sqlalchemy = "~=1.4.0"
 sqlmodel = "*"
 cachetools = "*"
 openpyxl = "*"
