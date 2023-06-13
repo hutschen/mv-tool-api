@@ -20,7 +20,7 @@ from tempfile import NamedTemporaryFile
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
-from sqlmodel import Session
+from sqlalchemy.orm import Session
 
 from ..database import get_session
 from ..handlers.catalog_modules import CatalogModules

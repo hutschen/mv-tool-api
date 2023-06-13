@@ -70,9 +70,8 @@ def test_link_jira_issue(
     measure_input.jira_issue_id = None
     create_measure.jira_issue_id = None
 
-    measure_input_update = MeasureInput.from_orm(
-        measure_input, update=dict(jira_issue_id=jira_issue.id)
-    )
+    measure_input_update = MeasureInput(**measure_input.dict())
+    measure_input_update.jira_issue_id = jira_issue.id
 
     measures_view.update_measure(create_measure, measure_input_update)
     assert create_measure.jira_issue_id == jira_issue.id

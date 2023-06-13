@@ -16,13 +16,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import pytest
+from sqlalchemy.orm import Session
 
 from mvtool.models import Measure, Project, Requirement
 
 
 def test_project_jira_project_without_getter():
     project = Project(name="test", jira_project_id="test")
-    with pytest.raises(AttributeError):
+    with pytest.raises(NotImplementedError):
         project.jira_project
 
 
@@ -44,33 +45,38 @@ def test_project_completion_progress_no_measures(
 
 
 def test_project_completion_progress_nothing_to_complete(
-    create_project: Project, create_requirement: Requirement
+    session: Session, create_project: Project, create_requirement: Requirement
 ):
     create_requirement.compliance_status = "NC"
+    session.flush()
 
     assert create_requirement.completion_progress == None
     assert create_project.completion_progress == None
 
 
 def test_project_completion_progress_complete(
+    session: Session,
     create_project: Project,
     create_requirement: Requirement,
     create_measure: Measure,
 ):
     create_requirement.compliance_status = "C"
     create_measure.completion_status = "completed"
+    session.flush()
 
     assert create_requirement.completion_progress == 1.0
     assert create_project.completion_progress == 1.0
 
 
 def test_project_completion_progress_incomplete(
+    session: Session,
     create_project: Project,
     create_requirement: Requirement,
     create_measure: Measure,
 ):
     create_requirement.compliance_status = "C"
     create_measure.completion_status = "open"
+    session.flush()
 
     assert create_requirement.completion_progress == 0.0
     assert create_project.completion_progress == 0.0
@@ -87,33 +93,38 @@ def test_project_verification_progress_no_measures(
 
 
 def test_project_verification_progress_nothing_to_verify(
-    create_project: Project, create_requirement: Requirement
+    session: Session, create_project: Project, create_requirement: Requirement
 ):
     create_requirement.compliance_status = "NC"
+    session.flush()
 
     assert create_requirement.verification_progress == None
     assert create_project.verification_progress == None
 
 
 def test_project_verification_progress_verified(
+    session: Session,
     create_project: Project,
     create_requirement: Requirement,
     create_measure: Measure,
 ):
     create_requirement.compliance_status = "C"
     create_measure.verification_status = "verified"
+    session.flush()
 
     assert create_requirement.verification_progress == 1.0
     assert create_project.verification_progress == 1.0
 
 
 def test_project_verification_progress_unverified(
+    session: Session,
     create_project: Project,
     create_requirement: Requirement,
     create_measure: Measure,
 ):
     create_requirement.compliance_status = "C"
     create_measure.verification_status = "not verified"
+    session.flush()
 
     assert create_requirement.verification_progress == 0.0
     assert create_project.verification_progress == 0.0

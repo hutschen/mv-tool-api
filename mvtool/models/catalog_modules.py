@@ -18,16 +18,18 @@
 
 from typing import TYPE_CHECKING
 
-from sqlmodel import Field, Relationship, SQLModel
+from pydantic import BaseModel
+from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
 
-from .catalog_requirements import CatalogRequirement
+from ..database import Base
 from .common import CommonFieldsMixin, ETagMixin
 
 if TYPE_CHECKING:
-    from . import Catalog, CatalogOutput, CatalogImport
+    from . import CatalogImport, CatalogOutput
 
 
-class CatalogModuleInput(SQLModel):
+class CatalogModuleInput(BaseModel):
     reference: str | None
     title: str
     description: str | None
@@ -38,24 +40,32 @@ class CatalogModuleImport(ETagMixin, CatalogModuleInput):
     catalog: "CatalogImport | None" = None
 
 
-class CatalogModule(CatalogModuleInput, CommonFieldsMixin, table=True):
+class CatalogModule(CommonFieldsMixin, Base):
     __tablename__ = "catalog_module"
-    catalog_requirements: list[CatalogRequirement] = Relationship(
+    reference = Column(String, nullable=True)
+    title = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    catalog_requirements = relationship(
+        "CatalogRequirement",
         back_populates="catalog_module",
-        sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
+        cascade="all,delete,delete-orphan",
     )
-    catalog_id: int | None = Field(default=None, foreign_key="catalog.id")
-    catalog: "Catalog" = Relationship(
-        back_populates="catalog_modules", sa_relationship_kwargs=dict(lazy="joined")
-    )
+    catalog_id = Column(Integer, ForeignKey("catalog.id"), nullable=True)
+    catalog = relationship("Catalog", back_populates="catalog_modules", lazy="joined")
 
 
-class CatalogModuleRepresentation(SQLModel):
+class CatalogModuleRepresentation(BaseModel):
+    class Config:
+        orm_mode = True
+
     id: int
     reference: str | None
     title: str
 
 
 class CatalogModuleOutput(CatalogModuleInput):
+    class Config:
+        orm_mode = True
+
     id: int
     catalog: "CatalogOutput"

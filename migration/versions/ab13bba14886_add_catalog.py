@@ -7,7 +7,6 @@ Create Date: 2022-10-07 21:40:28.491366
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlmodel.sql.sqltypes import AutoString
 from datetime import datetime
 
 
@@ -24,9 +23,9 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("created", sa.DateTime(), nullable=False),
         sa.Column("updated", sa.DateTime(), nullable=False),
-        sa.Column("reference", AutoString(), nullable=True),
-        sa.Column("title", AutoString(), nullable=False),
-        sa.Column("description", AutoString(), nullable=True),
+        sa.Column("reference", sa.String(), nullable=True),
+        sa.Column("title", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
     with op.batch_alter_table("catalog_module", schema=None) as batch_op:

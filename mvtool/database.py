@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2022 Helmar Hutschenreuter
 #
@@ -15,21 +15,17 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Type, TypeVar, Generic
-from fastapi import Depends
-from sqlmodel import create_engine, Session, SQLModel, select
-from sqlmodel.sql.expression import Select, SelectOfScalar
-from sqlmodel.pool import StaticPool
+from typing import Type, TypeVar
 
-from .utils.errors import NotFoundError
+from sqlalchemy import MetaData, create_engine
+from sqlalchemy.engine.base import Engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
+
 from .config import DatabaseConfig
+from .utils.errors import NotFoundError
 
-# workaround for https://github.com/tiangolo/sqlmodel/issues/189
-SelectOfScalar.inherit_cache = True
-Select.inherit_cache = True
-
-# configure naming conventions to make migration easier
-# see https://alembic.sqlalchemy.org/en/latest/naming.html#the-importance-of-naming-constraints
 naming_convention = {
     "ix": "ix_%(column_0_label)s",
     "uq": "uq_%(table_name)s_%(column_0_name)s",
@@ -37,14 +33,16 @@ naming_convention = {
     "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
     "pk": "pk_%(table_name)s",
 }
-SQLModel.metadata.naming_convention = naming_convention
+
+Base = declarative_base(metadata=MetaData(naming_convention=naming_convention))
 
 
 class __State:
-    engine = None
+    engine: Engine | None = None
+    session_local: sessionmaker | None = None
 
 
-def setup_engine(database_config: DatabaseConfig):
+def setup_connection(database_config: DatabaseConfig):
     if __State.engine is None:
         if database_config.url.startswith("sqlite"):
             __State.engine = create_engine(
@@ -54,21 +52,35 @@ def setup_engine(database_config: DatabaseConfig):
                 poolclass=StaticPool,  # Maintain a single connection for all threads
             )
         else:
-            __State.engine = create_engine(
+            __State.engine = create_engine(  # type: ignore
                 database_config.url,
                 echo=database_config.echo,
                 pool_pre_ping=True,  # check connections before using them
             )
+
+        # Create sessionmaker instance after engine is initialized
+        __State.session_local = sessionmaker(
+            bind=__State.engine, autocommit=False, autoflush=False
+        )
+
     return __State.engine
 
 
-def dispose_engine():
+def dispose_connection():
+    if __State.engine is None:
+        raise RuntimeError("Engine is not initialized")
+
     __State.engine.dispose()
     __State.engine = None
+    __State.session_local = None
 
 
+# @contextmanager
 def get_session():
-    session = Session(__State.engine)
+    if __State.session_local is None:
+        raise RuntimeError("sessionmaker is not initialized")
+
+    session: Session = __State.session_local()
     try:
         yield session
         session.commit()
@@ -80,64 +92,35 @@ def get_session():
 
 
 def create_all():
-    SQLModel.metadata.create_all(__State.engine)
+    if __State.engine is None:
+        raise RuntimeError("Engine is not initialized")
+
+    Base.metadata.create_all(bind=__State.engine)
 
 
 def drop_all():
-    SQLModel.metadata.drop_all(__State.engine)
+    if __State.engine is None:
+        raise RuntimeError("Engine is not initialized")
+
+    Base.metadata.drop_all(bind=__State.engine)
 
 
-T = TypeVar("T", bound=SQLModel)
+T = TypeVar("T", bound=Base)
 
 
-class CRUDOperations(Generic[T]):
-    def __init__(self, session: Session = Depends(get_session)):
-        self.session = session
-
-    def read_all_from_db(self, sqlmodel: Type[T], **filters) -> list[T]:
-        query = select(sqlmodel)
-
-        for key, value in filters.items():
-            if value is not None:
-                query = query.where(sqlmodel.__dict__[key] == value)
-        query = query.order_by(sqlmodel.id)
-
-        return self.session.exec(query).all()
-
-    def create_in_db(self, item: T) -> T:
-        self.session.add(item)
-        self.session.flush()
-        self.session.refresh(item)
-        return item
-
-    def read_from_db(self, sqlmodel: Type[T], id: int) -> T:
-        item = self.session.get(sqlmodel, id)
-        if item:
-            return item
-        else:
-            item_name = sqlmodel.__name__
-            raise NotFoundError(f"No {item_name} with id={id}.")
-
-    def update_in_db(self, id: int, item_update: T) -> T:
-        sqlmodel = item_update.__class__
-        item = self.read_from_db(sqlmodel, id)
-        item_update.id = item.id
-        self.session.merge(item_update)
-        self.session.flush()
-        return item
-
-    def delete_from_db(self, sqlmodel: Type[T], id: int) -> None:
-        item = self.read_from_db(sqlmodel, id)
-        self.session.delete(item)
-        self.session.flush()
+def create_in_db(session: Session, item: T) -> T:
+    session.add(item)
+    session.flush()
+    session.refresh(item)
+    return item
 
 
-def read_from_db(session: Session, sqlmodel: Type[T], id: int) -> T:
-    item = session.get(sqlmodel, id)
+def read_from_db(session: Session, orm_class: Type[T], id: int) -> T:
+    item = session.get(orm_class, id)
     if item:
         return item
     else:
-        item_name = sqlmodel.__name__
+        item_name = orm_class.__name__
         raise NotFoundError(f"No {item_name} with id={id}.")
 
 

@@ -21,7 +21,8 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
 from pydantic import constr
-from sqlmodel import Column, Session
+from sqlalchemy import Column
+from sqlalchemy.orm import Session
 
 from ..data.catalog_modules import CatalogModules
 from ..database import get_session
@@ -289,7 +290,7 @@ def get_catalog_module_references(
 @router.post(
     "/catalogs/{catalog_id}/catalog-modules/gs-baustein",
     status_code=201,
-    response_model=CatalogModule,
+    response_model=CatalogModuleOutput,
 )
 def upload_gs_baustein(
     catalog_id: int,

@@ -16,7 +16,9 @@
 from unittest.mock import Mock
 
 import pytest
-from sqlmodel import Session, desc, select
+from sqlalchemy import desc
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import select
 
 from mvtool.data.requirements import Requirements
 from mvtool.models.catalog_modules import CatalogModule
@@ -44,7 +46,7 @@ def test_modify_requirements_query_where_clause(
     # Test filtering with a single where clause
     where_clauses = [Requirement.reference == "banana"]
     query = requirements._modify_requirements_query(select(Requirement), where_clauses)
-    results: list[Requirement] = session.exec(query).all()
+    results: list[Requirement] = session.execute(query).scalars().all()
     assert len(results) == 1
     assert results[0].reference == "banana"
 
@@ -66,7 +68,7 @@ def test_modify_requirements_query_order_by(
     query = requirements._modify_requirements_query(
         select(Requirement), order_by_clauses=order_by_clauses
     )
-    results = session.exec(query).all()
+    results = session.execute(query).scalars().all()
     assert [r.reference for r in results] == ["cherry", "banana", "apple"]
 
 
@@ -84,7 +86,7 @@ def test_modify_requirements_query_offset(
 
     # Test offset
     query = requirements._modify_requirements_query(select(Requirement), offset=2)
-    results = session.exec(query).all()
+    results = session.execute(query).scalars().all()
     assert len(results) == 1
 
 
@@ -102,7 +104,7 @@ def test_modify_requirements_query_limit(
 
     # Test limit
     query = requirements._modify_requirements_query(select(Requirement), limit=1)
-    results = session.exec(query).all()
+    results = session.execute(query).scalars().all()
     assert len(results) == 1
 
 

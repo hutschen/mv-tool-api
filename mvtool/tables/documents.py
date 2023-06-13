@@ -17,7 +17,7 @@
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
-from sqlmodel import Session
+from sqlalchemy.orm import Session
 
 from ..database import get_session
 from ..handlers.documents import Documents, get_document_filters, get_document_sort

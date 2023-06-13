@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import pytest
-from sqlmodel import Session
+from sqlalchemy.orm import Session
 
 from mvtool import database
 from mvtool.data.catalog_modules import CatalogModules
@@ -39,14 +39,14 @@ from mvtool.models.requirements import Requirement, RequirementInput
 
 @pytest.fixture
 def session(config) -> Session:
-    database.setup_engine(config.database)
+    database.setup_connection(config.database)
     database.create_all()
 
     for session in database.get_session():
         yield session
 
     database.drop_all()
-    database.dispose_engine()
+    database.dispose_connection()
 
 
 @pytest.fixture

@@ -62,12 +62,12 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup():
     migration.migrate(config.database)
-    database.setup_engine(config.database)
+    database.setup_connection(config.database)
 
 
 @app.on_event("shutdown")
 def on_shutdown():
-    database.dispose_engine()
+    database.dispose_connection()
 
 
 def serve():

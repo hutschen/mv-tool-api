@@ -15,10 +15,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 from unittest.mock import Mock
+
 import pytest
-from sqlmodel import Session, desc, select
+from sqlalchemy import desc
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import select
 
 from mvtool.data.catalog_requirements import CatalogRequirements
 from mvtool.models.catalog_modules import CatalogModule, CatalogModuleImport
@@ -27,7 +29,6 @@ from mvtool.models.catalog_requirements import (
     CatalogRequirementImport,
     CatalogRequirementInput,
 )
-from mvtool.models.catalogs import Catalog
 from mvtool.utils.errors import NotFoundError, ValueHttpError
 
 
@@ -52,7 +53,7 @@ def test_modify_catalog_requirements_query_where_clause(
     query = catalog_requirements._modify_catalog_requirements_query(
         select(CatalogRequirement), where_clauses
     )
-    results: list[CatalogRequirement] = session.exec(query).all()
+    results: list[CatalogRequirement] = session.execute(query).scalars().all()
 
     # Check if the query result is correct
     assert len(results) == 1
@@ -80,7 +81,7 @@ def test_modify_catalog_requirements_query_order_by(
     query = catalog_requirements._modify_catalog_requirements_query(
         select(CatalogRequirement), order_by_clauses=order_by_clauses
     )
-    results: list[CatalogRequirement] = session.exec(query).all()
+    results: list[CatalogRequirement] = session.execute(query).scalars().all()
 
     # Check if the query result is correct
     assert [r.reference for r in results] == ["cherry", "banana", "apple"]
@@ -106,7 +107,7 @@ def test_modify_catalog_requirements_query_offset(
     query = catalog_requirements._modify_catalog_requirements_query(
         select(CatalogRequirement), offset=2
     )
-    results = session.exec(query).all()
+    results = session.execute(query).scalars().all()
     assert len(results) == 1
 
 
@@ -130,7 +131,7 @@ def test_modify_catalog_requirements_query_limit(
     query = catalog_requirements._modify_catalog_requirements_query(
         select(CatalogRequirement), limit=1
     )
-    results = session.exec(query).all()
+    results = session.execute(query).scalars().all()
     assert len(results) == 1
 
 

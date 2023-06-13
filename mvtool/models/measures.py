@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2023 Helmar Hutschenreuter
 #
@@ -16,17 +16,19 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
-from pydantic import PrivateAttr, constr, validator
-from sqlmodel import Field, Relationship, SQLModel
+from pydantic import BaseModel, constr, validator
+from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
 
+from ..database import Base
 from .common import AbstractComplianceInput, CommonFieldsMixin, ETagMixin
 from .jira_ import JiraIssue, JiraIssueImport
 
 if TYPE_CHECKING:
-    from .documents import Document, DocumentOutput, DocumentImport
-    from .requirements import Requirement, RequirementOutput, RequirementImport
+    from .documents import DocumentImport, DocumentOutput
+    from .requirements import RequirementImport, RequirementOutput
 
 
 class AbstractMeasureInput(AbstractComplianceInput):
@@ -72,17 +74,32 @@ class MeasureImport(ETagMixin, AbstractMeasureInput):
     jira_issue: JiraIssueImport | None
 
 
-class Measure(MeasureInput, CommonFieldsMixin, table=True):
-    requirement_id: int | None = Field(default=None, foreign_key="requirement.id")
-    requirement: "Requirement" = Relationship(
-        back_populates="measures", sa_relationship_kwargs=dict(lazy="joined")
-    )
-    document_id: int | None = Field(default=None, foreign_key="document.id")
-    document: "Document" = Relationship(
-        back_populates="measures", sa_relationship_kwargs=dict(lazy="joined")
-    )
+class Measure(CommonFieldsMixin, Base):
+    __tablename__ = "measure"
+    reference = Column(String, nullable=True)
+    summary = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    compliance_status = Column(String, nullable=True)
+    compliance_comment = Column(String, nullable=True)
+    completion_status = Column(String, nullable=True)
+    completion_comment = Column(String, nullable=True)
+    verification_method = Column(String, nullable=True)
+    verification_status = Column(String, nullable=True)
+    verification_comment = Column(String, nullable=True)
+    jira_issue_id = Column(String, nullable=True)
 
-    _get_jira_issue: Callable = PrivateAttr()
+    requirement_id = Column(Integer, ForeignKey("requirement.id"), nullable=True)
+    requirement = relationship("Requirement", back_populates="measures", lazy="joined")
+    document_id = Column(Integer, ForeignKey("document.id"), nullable=True)
+    document = relationship("Document", back_populates="measures", lazy="joined")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        def _get_jira_issue(jira_issue_id):
+            raise NotImplementedError("Getter for JIRA issue not set")
+
+        self._get_jira_issue = _get_jira_issue
 
     @property
     def jira_issue(self) -> JiraIssue | None:
@@ -102,13 +119,19 @@ class Measure(MeasureInput, CommonFieldsMixin, table=True):
             return self.completion_status
 
 
-class MeasureRepresentation(SQLModel):
+class MeasureRepresentation(BaseModel):
+    class Config:
+        orm_mode = True
+
     id: int
     reference: str | None
     summary: str
 
 
 class MeasureOutput(MeasureRepresentation):
+    class Config:
+        orm_mode = True
+
     description: str | None
     compliance_status: str | None
     compliance_comment: str | None

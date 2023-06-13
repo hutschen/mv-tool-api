@@ -18,8 +18,9 @@
 from typing import Any, Iterable, Iterator
 
 from fastapi import Depends
-from sqlmodel import Column, Session, func, select
-from sqlmodel.sql.expression import Select
+from sqlalchemy import Column, func
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import Select, select
 
 from ..database import delete_from_db, get_session, read_from_db
 from ..models.catalog_modules import CatalogModule
@@ -80,7 +81,7 @@ class CatalogRequirements:
             offset,
             limit,
         )
-        return self._session.exec(query).all()
+        return self._session.execute(query).scalars().all()
 
     def count_catalog_requirements(self, where_clauses: list[Any] | None = None) -> int:
         query = self._modify_catalog_requirements_query(
@@ -102,7 +103,7 @@ class CatalogRequirements:
             offset=offset,
             limit=limit,
         )
-        return self._session.exec(query).all()
+        return self._session.execute(query).scalars().all()
 
     def count_catalog_requirement_values(
         self, column: Column, where_clauses: list[Any] | None = None

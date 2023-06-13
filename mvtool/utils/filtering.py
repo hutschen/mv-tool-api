@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2023 Helmar Hutschenreuter
 #
@@ -17,12 +17,13 @@
 
 
 from typing import Any
-from sqlmodel import Column, AutoString, and_, or_
+
+from sqlalchemy import Column, String, and_, or_
 
 
 def filter_by_pattern(column: Column, pattern: str, negate: bool = False) -> Any:
     """Generate where clause to filter column by string that may contain * and ?"""
-    assert isinstance(column.type, AutoString), "column must be of type string"
+    assert isinstance(column.type, String), "column must be of type string"
 
     #  change commonly used wildcards * and ? to SQL wildcards % and _
     pattern = (
@@ -67,7 +68,7 @@ def filter_by_values_many(
 def filter_for_existence(column: Column, exists: bool = True) -> Any:
     """Generate where clause to filter column for existence"""
     none_clause = column.isnot(None) if exists else column.is_(None)
-    if isinstance(column.type, AutoString):
+    if isinstance(column.type, String):
         # also check for empty string if column is of type string
         str_clause = column != "" if exists else column == ""
         return (and_ if exists else or_)(none_clause, str_clause)

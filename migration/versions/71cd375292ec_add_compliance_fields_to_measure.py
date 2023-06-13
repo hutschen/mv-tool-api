@@ -7,7 +7,6 @@ Create Date: 2023-01-07 09:31:32.614607
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlmodel.sql.sqltypes import AutoString
 
 
 # revision identifiers, used by Alembic.
@@ -19,10 +18,8 @@ depends_on = None
 
 def upgrade() -> None:
     with op.batch_alter_table("measure", schema=None) as batch_op:
-        batch_op.add_column(sa.Column("compliance_status", AutoString(), nullable=True))
-        batch_op.add_column(
-            sa.Column("compliance_comment", AutoString(), nullable=True)
-        )
+        batch_op.add_column(sa.Column("compliance_status", sa.String(), nullable=True))
+        batch_op.add_column(sa.Column("compliance_comment", sa.String(), nullable=True))
 
 
 def downgrade() -> None:

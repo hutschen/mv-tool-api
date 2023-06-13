@@ -19,10 +19,12 @@ from unittest.mock import Mock
 
 import jira
 import pytest
-from sqlmodel import Session, desc, select
+from sqlalchemy import desc
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import select
 
 from mvtool.data.projects import Projects
-from mvtool.models.jira_ import JiraProject, JiraProjectImport
+from mvtool.models.jira_ import JiraProjectImport
 from mvtool.models.projects import Project, ProjectImport, ProjectInput
 from mvtool.utils.errors import NotFoundError
 
@@ -36,7 +38,7 @@ def test_modify_projects_query_where_clause(session: Session, projects: Projects
     # Test filtering with a single where clause
     where_clauses = [Project.name == "banana"]
     query = projects._modify_projects_query(select(Project), where_clauses)
-    results: list[Project] = session.exec(query).all()
+    results: list[Project] = session.execute(query).scalars().all()
 
     # Check the results
     assert len(results) == 1
@@ -54,7 +56,7 @@ def test_modify_projects_query_order_by(session: Session, projects: Projects):
     query = projects._modify_projects_query(
         select(Project), order_by_clauses=order_by_clauses
     )
-    results: list[Project] = session.exec(query).all()
+    results: list[Project] = session.execute(query).scalars().all()
 
     # Check the results
     assert [r.name for r in results] == ["cherry", "banana", "apple"]
@@ -68,7 +70,7 @@ def test_modify_projects_query_offset(session: Session, projects: Projects):
 
     # Test offset
     query = projects._modify_projects_query(select(Project), offset=1)
-    results: list[Project] = session.exec(query).all()
+    results: list[Project] = session.execute(query).scalars().all()
 
     # Check the results
     assert len(results) == 2
@@ -82,7 +84,7 @@ def test_modify_projects_query_limit(session: Session, projects: Projects):
 
     # Test limit
     query = projects._modify_projects_query(select(Project), limit=2)
-    results: list[Project] = session.exec(query).all()
+    results: list[Project] = session.execute(query).scalars().all()
 
     # Check the results
     assert len(results) == 2

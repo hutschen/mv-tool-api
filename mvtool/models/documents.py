@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2023 Helmar Hutschenreuter
 #
@@ -15,19 +15,20 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 from typing import TYPE_CHECKING
 
-from sqlmodel import Field, Relationship, SQLModel
+from pydantic import BaseModel
+from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
 
+from ..database import Base
 from .common import CommonFieldsMixin, ETagMixin
-from .measures import Measure
 
 if TYPE_CHECKING:
-    from .projects import Project, ProjectImport, ProjectOutput
+    from .projects import ProjectImport, ProjectOutput
 
 
-class DocumentInput(SQLModel):
+class DocumentInput(BaseModel):
     reference: str | None
     title: str
     description: str | None
@@ -38,20 +39,28 @@ class DocumentImport(ETagMixin, DocumentInput):
     project: "ProjectImport | None"
 
 
-class Document(DocumentInput, CommonFieldsMixin, table=True):
-    project_id: int | None = Field(default=None, foreign_key="project.id")
-    project: "Project" = Relationship(
-        back_populates="documents", sa_relationship_kwargs=dict(lazy="joined")
-    )
-    measures: list[Measure] = Relationship(back_populates="document")
+class Document(CommonFieldsMixin, Base):
+    __tablename__ = "document"
+    reference = Column(String, nullable=True)
+    title = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    project_id = Column(Integer, ForeignKey("project.id"), nullable=True)
+    project = relationship("Project", back_populates="documents", lazy="joined")
+    measures = relationship("Measure", back_populates="document")
 
 
-class DocumentRepresentation(SQLModel):
+class DocumentRepresentation(BaseModel):
+    class Config:
+        orm_mode = True
+
     id: int
     reference: str | None
     title: str
 
 
 class DocumentOutput(DocumentInput):
+    class Config:
+        orm_mode = True
+
     id: int
     project: "ProjectOutput"

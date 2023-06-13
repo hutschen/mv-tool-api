@@ -20,15 +20,14 @@ from hashlib import md5
 from typing import Any
 
 from pydantic import BaseModel, constr, validator
-from sqlmodel import Field, SQLModel
+from sqlalchemy import Column, DateTime, Integer
 
 
-class CommonFieldsMixin(SQLModel):
-    id: int = Field(default=None, primary_key=True)
-    created: datetime = Field(default_factory=datetime.utcnow)
-    updated: datetime = Field(
-        default_factory=datetime.utcnow,
-        sa_column_kwargs=dict(onupdate=datetime.utcnow),
+class CommonFieldsMixin:
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    created = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
 
 
@@ -42,7 +41,7 @@ class ETagMixin(BaseModel):
         return isinstance(other, self.__class__) and self.etag == other.etag
 
 
-class AbstractComplianceInput(SQLModel):
+class AbstractComplianceInput(BaseModel):
     compliance_status: constr(regex=r"^(C|PC|NC|N/A)$") | None
     compliance_comment: str | None
 

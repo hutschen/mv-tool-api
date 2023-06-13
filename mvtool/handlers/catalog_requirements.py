@@ -19,7 +19,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import constr
-from sqlmodel import Column
+from sqlalchemy import Column
 
 from ..data.catalog_requirements import CatalogRequirements
 from ..models.catalog_modules import CatalogModule

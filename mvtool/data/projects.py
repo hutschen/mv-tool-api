@@ -18,8 +18,9 @@
 from typing import Any, Iterable
 
 from fastapi import Depends
-from sqlmodel import Session, func, select
-from sqlmodel.sql.expression import Select
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import Select, select
 
 from ..database import delete_from_db, get_session, read_from_db
 from ..models.projects import Project, ProjectImport, ProjectInput
@@ -75,7 +76,7 @@ class Projects:
         )
 
         # Execute projects query
-        projects: list[Project] = self._session.exec(query).all()
+        projects: list[Project] = self._session.execute(query).scalars().all()
 
         # set jira projects on projects
         if query_jira:

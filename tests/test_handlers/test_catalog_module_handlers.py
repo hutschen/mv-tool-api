@@ -21,7 +21,7 @@ from unittest.mock import Mock
 
 import pytest
 from fastapi import HTTPException, UploadFile
-from sqlmodel import Session
+from sqlalchemy.orm import Session
 
 from mvtool.data.catalog_modules import CatalogModules
 from mvtool.data.catalogs import Catalogs

@@ -19,10 +19,13 @@
 from typing import Any, Iterable, Iterator
 
 from fastapi import Depends
-from sqlmodel import Column, Session, func, select
-from sqlmodel.sql.expression import Select
+from sqlalchemy import Column, func
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import Select, select
 
 from ..database import delete_from_db, get_session, read_from_db
+from ..handlers.documents import Documents
+from ..handlers.jira_ import JiraIssues
 from ..models.catalog_modules import CatalogModule
 from ..models.catalog_requirements import CatalogRequirement
 from ..models.catalogs import Catalog
@@ -35,8 +38,6 @@ from ..utils.fallback import fallback
 from ..utils.filtering import filter_for_existence
 from ..utils.iteration import CachedIterable
 from ..utils.models import field_is_set
-from ..handlers.documents import Documents
-from ..handlers.jira_ import JiraIssues
 from .requirements import Requirements
 
 
@@ -97,7 +98,7 @@ class Measures:
         )
 
         # execute measures query
-        measures = self.session.exec(query).all()
+        measures = self.session.execute(query).scalars().all()
 
         # set jira project and issue on measures
         if query_jira:
@@ -131,7 +132,7 @@ class Measures:
             offset=offset,
             limit=limit,
         )
-        return self.session.exec(query).all()
+        return self.session.execute(query).scalars().all()
 
     def count_measure_values(
         self, column: Column, where_clauses: list[Any] | None = None

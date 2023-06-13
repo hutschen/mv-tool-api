@@ -17,64 +17,62 @@
 
 import pytest
 from fastapi import HTTPException
+
 from mvtool.database import (
-    CRUDOperations,
     create_all,
-    dispose_engine,
+    create_in_db,
+    dispose_connection,
     drop_all,
     get_session,
-    setup_engine,
+    read_from_db,
+    setup_connection,
 )
 from mvtool.models import Project
 
 
 def test_setup_engine(config):
-    engine = setup_engine(config.database)
+    engine = setup_connection(config.database)
     assert engine is not None
 
-    engine_2 = setup_engine(config.database)
+    engine_2 = setup_connection(config.database)
     assert engine is engine_2
-    dispose_engine()
+    dispose_connection()
 
 
 def test_session_commit(config):
-    setup_engine(config.database)
+    setup_connection(config.database)
     create_all()
 
     for session in get_session():
-        crud = CRUDOperations(session)
         item = Project(name="test")
-        crud.create_in_db(item)
+        create_in_db(session, item)
         item_id = item.id
 
     for session in get_session():
-        crud = CRUDOperations(session)
-        item = crud.read_from_db(Project, item_id)
+        item = read_from_db(session, Project, item_id)
         assert item.name == "test"
 
     drop_all()
-    dispose_engine()
+    dispose_connection()
 
 
 def test_session_rollback(config):
-    setup_engine(config.database)
+    setup_connection(config.database)
     create_all()
 
     # create a new item and rollback the session by raising an exception
     with pytest.raises(Exception) as error_info:
         for session in get_session():
-            crud = CRUDOperations(session)
             item = Project(name="test")
-            crud.create_in_db(item)
+            create_in_db(session, item)
             item_id = item.id
             raise Exception("rollback")
     assert "rollback" in str(error_info.value)
 
     # ensure that the item is not in the database
     for session in get_session():
-        crud = CRUDOperations(session)
         with pytest.raises(HTTPException):
-            crud.read_from_db(Project, item_id)
+            read_from_db(session, Project, item_id)
 
     drop_all()
-    dispose_engine()
+    dispose_connection()

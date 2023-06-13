@@ -17,28 +17,30 @@
 
 from typing import TYPE_CHECKING
 
-from pydantic import confloat
-from sqlmodel import Field, Relationship, Session, SQLModel, func, or_, select
+from pydantic import BaseModel, confloat
+from sqlalchemy import Column, ForeignKey, Integer, String, func, or_, select
+from sqlalchemy.orm import Session, relationship
 
+from ..database import Base
 from .common import AbstractComplianceInput, CommonFieldsMixin, ETagMixin
 from .measures import Measure
 
 if TYPE_CHECKING:
-    from .catalog_requirements import (
-        CatalogRequirement,
-        CatalogRequirementImport,
-        CatalogRequirementOutput,
-    )
-    from .projects import Project, ProjectImport, ProjectOutput
+    from .catalog_requirements import CatalogRequirementImport, CatalogRequirementOutput
+    from .projects import ProjectImport, ProjectOutput
 
 
-class AbstractRequirementInput(SQLModel):
+class AbstractRequirementInput(BaseModel):
     reference: str | None
     summary: str
     description: str | None
 
 
 class RequirementInput(AbstractRequirementInput, AbstractComplianceInput):
+    # Enable ORM mode to create requirement inputs from catalog requirements
+    class Config:
+        orm_mode = True
+
     catalog_requirement_id: int | None
     target_object: str | None
     milestone: str | None
@@ -52,20 +54,25 @@ class RequirementImport(ETagMixin, AbstractRequirementInput, AbstractComplianceI
     milestone: str | None
 
 
-class Requirement(RequirementInput, CommonFieldsMixin, table=True):
-    project_id: int | None = Field(default=None, foreign_key="project.id")
-    project: "Project" = Relationship(
-        back_populates="requirements", sa_relationship_kwargs=dict(lazy="joined")
+class Requirement(CommonFieldsMixin, Base):
+    __tablename__ = "requirement"
+    reference = Column(String, nullable=True)
+    summary = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    compliance_status = Column(String, nullable=True)
+    compliance_comment = Column(String, nullable=True)
+    target_object = Column(String, nullable=True)
+    milestone = Column(String, nullable=True)
+    project_id = Column(Integer, ForeignKey("project.id"), nullable=True)
+    project = relationship("Project", back_populates="requirements", lazy="joined")
+    catalog_requirement_id = Column(
+        Integer, ForeignKey("catalog_requirement.id"), nullable=True
     )
-    catalog_requirement_id: int | None = Field(
-        default=None, foreign_key="catalog_requirement.id"
+    catalog_requirement = relationship(
+        "CatalogRequirement", back_populates="requirements", lazy="joined"
     )
-    catalog_requirement: "CatalogRequirement" = Relationship(
-        back_populates="requirements", sa_relationship_kwargs=dict(lazy="joined")
-    )
-    measures: list[Measure] = Relationship(
-        back_populates="requirement",
-        sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
+    measures = relationship(
+        "Measure", back_populates="requirement", cascade="all,delete,delete-orphan"
     )
 
     @property
@@ -144,13 +151,19 @@ class Requirement(RequirementInput, CommonFieldsMixin, table=True):
         return verified / total if total else 0.0
 
 
-class RequirementRepresentation(SQLModel):
+class RequirementRepresentation(BaseModel):
+    class Config:
+        orm_mode = True
+
     id: int
     reference: str | None
     summary: str
 
 
 class RequirementOutput(AbstractRequirementInput):
+    class Config:
+        orm_mode = True
+
     id: int
     project: "ProjectOutput"
     catalog_requirement: "CatalogRequirementOutput | None"

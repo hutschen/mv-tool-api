@@ -15,19 +15,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import io
 import os
-from tempfile import NamedTemporaryFile
-from unittest.mock import Mock
 
 import pytest
 
-from mvtool.database import CRUDOperations
 from mvtool.gs_parser import GSBausteinParser
-from mvtool.models import Catalog, CatalogModule
 from mvtool.utils import errors
-from mvtool.handlers.catalog_modules import upload_gs_baustein
-from mvtool.handlers.catalogs import Catalogs
 
 
 def get_gs_baustein_filenames():
