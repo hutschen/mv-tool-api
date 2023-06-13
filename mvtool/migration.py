@@ -15,12 +15,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from alembic import command
 from alembic.config import Config
 from alembic.migration import MigrationContext
-from alembic import command
 from sqlalchemy import create_engine, inspect
-from sqlmodel import SQLModel
+
 from .config import DatabaseConfig
+from .database import Base
 
 INITIAL_REV = "aaf70fa9151e"
 INITIAL_LAYOUT = {
@@ -96,7 +97,7 @@ def migrate(database_config: DatabaseConfig):
             # assume that the database is empty, so use sqlalchemy.create_all()
             with engine.connect() as connection:
                 engine = connection.engine
-                SQLModel.metadata.create_all(engine)
+                Base.metadata.create_all(engine)
             command.stamp(alembic_config, "head")
     else:
         # upgrade database to the latest revision

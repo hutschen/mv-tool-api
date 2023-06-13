@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import pytest
-from sqlmodel import Session
+from sqlalchemy.orm import Session
 
 from mvtool import database
 from mvtool.data.catalog_modules import CatalogModules

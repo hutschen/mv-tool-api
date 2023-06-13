@@ -15,12 +15,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 from unittest.mock import Mock
 
 import jira
 import pytest
-from sqlmodel import Session, desc, select
+from sqlalchemy import desc
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import select
 
 from mvtool.data.measures import Measures
 from mvtool.models.catalog_requirements import CatalogRequirementImport

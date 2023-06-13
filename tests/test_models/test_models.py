@@ -16,12 +16,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import pytest
-from sqlmodel import Session
+from sqlalchemy.orm import Session
+
 from mvtool.database import create_in_db, delete_from_db
 from mvtool.models import (
+    CatalogModule,
     CatalogRequirement,
     Document,
-    CatalogModule,
     Measure,
     Project,
     Requirement,

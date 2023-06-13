@@ -21,7 +21,8 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
 from pydantic import constr
-from sqlmodel import Column, Session
+from sqlalchemy import Column
+from sqlalchemy.orm import Session
 
 from ..data.catalog_modules import CatalogModules
 from ..database import get_session

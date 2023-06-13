@@ -20,7 +20,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import constr
-from sqlmodel import Column
+from sqlalchemy import Column
 
 from ..data.documents import Documents
 from ..models.documents import (

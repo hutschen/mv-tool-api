@@ -19,10 +19,12 @@ from unittest.mock import Mock
 
 import jira
 import pytest
-from sqlmodel import Session, desc, select
+from sqlalchemy import desc
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import select
 
 from mvtool.data.projects import Projects
-from mvtool.models.jira_ import JiraProject, JiraProjectImport
+from mvtool.models.jira_ import JiraProjectImport
 from mvtool.models.projects import Project, ProjectImport, ProjectInput
 from mvtool.utils.errors import NotFoundError
 

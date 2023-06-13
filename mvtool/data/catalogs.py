@@ -18,8 +18,9 @@
 from typing import Any, Iterable, Iterator
 
 from fastapi import Depends
-from sqlmodel import Column, Session, func, select
-from sqlmodel.sql.expression import Select
+from sqlalchemy import Column, func
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import Select, select
 
 from ..auth import get_jira
 from ..database import delete_from_db, get_session, read_from_db

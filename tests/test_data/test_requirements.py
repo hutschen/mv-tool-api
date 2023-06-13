@@ -16,7 +16,9 @@
 from unittest.mock import Mock
 
 import pytest
-from sqlmodel import Session, desc, select
+from sqlalchemy import desc
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import select
 
 from mvtool.data.requirements import Requirements
 from mvtool.models.catalog_modules import CatalogModule

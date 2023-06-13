@@ -16,8 +16,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from unittest.mock import Mock
+
 import pytest
-from sqlmodel import Session, desc, select
+from sqlalchemy import desc
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import select
 
 from mvtool.data.catalog_modules import CatalogModules
 from mvtool.models.catalog_modules import (
