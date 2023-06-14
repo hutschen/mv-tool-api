@@ -23,7 +23,7 @@ from sqlalchemy import Column, func
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import Select, select
 
-from ..database import delete_from_db, get_session, read_from_db
+from ..db.database import delete_from_db, get_session, read_from_db
 from ..handlers.documents import Documents
 from ..handlers.jira_ import JiraIssues
 from ..models.catalog_modules import CatalogModule

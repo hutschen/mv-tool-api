@@ -19,7 +19,7 @@ from pydantic import BaseModel
 from sqlalchemy import Column, String
 from sqlalchemy.orm import relationship
 
-from ..database import Base
+from ..db.database import Base
 from .common import CommonFieldsMixin, ETagMixin
 
 

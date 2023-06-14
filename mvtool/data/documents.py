@@ -23,7 +23,7 @@ from sqlalchemy import Column, func
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import Select, select
 
-from ..database import delete_from_db, get_session, read_from_db
+from ..db.database import delete_from_db, get_session, read_from_db
 from ..models.documents import Document, DocumentImport, DocumentInput
 from ..models.projects import Project
 from ..utils.errors import NotFoundError

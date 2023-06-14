@@ -21,7 +21,7 @@ from pydantic import BaseModel
 from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
-from ..database import Base
+from ..db.database import Base
 from .common import CommonFieldsMixin, ETagMixin
 
 if TYPE_CHECKING:

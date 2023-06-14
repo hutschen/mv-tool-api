@@ -22,7 +22,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import Select, select
 
-from ..database import delete_from_db, get_session, read_from_db
+from ..db.database import delete_from_db, get_session, read_from_db
 from ..models.projects import Project, ProjectImport, ProjectInput
 from ..utils.errors import NotFoundError
 from ..utils.iteration import CachedIterable

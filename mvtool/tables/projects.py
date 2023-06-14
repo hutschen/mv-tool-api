@@ -17,7 +17,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from ..database import get_session
+from ..db.database import get_session
 from ..handlers.projects import Projects, get_project_filters, get_project_sort
 from ..models import Project, ProjectImport, ProjectOutput
 from ..utils.temp_file import get_temp_file

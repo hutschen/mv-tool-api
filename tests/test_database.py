@@ -18,7 +18,7 @@
 import pytest
 from fastapi import HTTPException
 
-from mvtool.database import (
+from mvtool.db.database import (
     create_all,
     create_in_db,
     dispose_connection,

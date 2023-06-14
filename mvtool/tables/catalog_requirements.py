@@ -21,7 +21,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from ..database import get_session
+from ..db.database import get_session
 from ..handlers.catalog_modules import CatalogModules
 from ..handlers.catalog_requirements import (
     CatalogRequirements,

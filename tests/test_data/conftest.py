@@ -18,7 +18,7 @@
 import pytest
 from sqlalchemy.orm import Session
 
-from mvtool import database
+from mvtool.db import database
 from mvtool.data.catalog_modules import CatalogModules
 from mvtool.data.catalog_requirements import CatalogRequirements
 from mvtool.data.catalogs import Catalogs

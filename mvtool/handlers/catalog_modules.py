@@ -25,7 +25,7 @@ from sqlalchemy import Column
 from sqlalchemy.orm import Session
 
 from ..data.catalog_modules import CatalogModules
-from ..database import get_session
+from ..db.database import get_session
 from ..gs_parser import GSBausteinParser
 from ..models.catalog_modules import (
     CatalogModule,

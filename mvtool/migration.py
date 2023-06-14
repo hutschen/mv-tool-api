@@ -21,7 +21,7 @@ from alembic.migration import MigrationContext
 from sqlalchemy import create_engine, inspect
 
 from .config import DatabaseConfig
-from .database import Base
+from .db.database import Base
 
 INITIAL_REV = "aaf70fa9151e"
 INITIAL_LAYOUT = {

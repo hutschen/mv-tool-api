@@ -19,7 +19,7 @@ from pydantic import BaseModel, confloat
 from sqlalchemy import Column, String, func, or_, select
 from sqlalchemy.orm import Session, relationship
 
-from ..database import Base
+from ..db.database import Base
 from .common import CommonFieldsMixin, ETagMixin
 from .jira_ import JiraProject, JiraProjectImport
 from .measures import Measure

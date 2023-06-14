@@ -22,7 +22,7 @@ import jira
 import pytest
 from jira import JIRAError
 
-from mvtool import database
+from mvtool.db import database
 from mvtool.config import Config, DatabaseConfig, JiraConfig
 from mvtool.handlers.catalog_modules import CatalogModules
 from mvtool.handlers.catalog_requirements import CatalogRequirements
