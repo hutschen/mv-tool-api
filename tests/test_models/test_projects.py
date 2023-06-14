@@ -17,8 +17,9 @@
 
 import pytest
 from sqlalchemy.orm import Session
+from mvtool.db.schema import Project, Requirement
 
-from mvtool.models import Measure, Project, Requirement
+from mvtool.db.schema import Measure
 
 
 def test_project_jira_project_without_getter():

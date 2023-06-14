@@ -16,8 +16,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from sqlalchemy.orm import Session
+from mvtool.db.schema import Requirement
 
-from mvtool.models import Measure, Requirement
+from mvtool.db.schema import Measure
 
 
 def test_requirement_completion_progress_incomplete(create_requirement: Requirement):

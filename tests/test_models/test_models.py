@@ -19,13 +19,15 @@ import pytest
 from sqlalchemy.orm import Session
 
 from mvtool.db.database import create_in_db, delete_from_db
-from mvtool.models import (
+from mvtool.db.schema import (
     CatalogModule,
     CatalogRequirement,
     Document,
-    Measure,
     Project,
     Requirement,
+)
+from mvtool.db.schema import (
+    Measure,
 )
 
 

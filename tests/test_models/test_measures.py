@@ -18,7 +18,7 @@
 
 import pytest
 
-from mvtool.models.measures import Measure
+from mvtool.db.schema import Measure
 
 
 def test_measure_jira_issue_without_getter():

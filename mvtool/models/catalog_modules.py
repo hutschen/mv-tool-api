@@ -19,11 +19,8 @@
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
-from sqlalchemy import Column, ForeignKey, Integer, String
-from sqlalchemy.orm import relationship
 
-from ..db.database import Base
-from .common import CommonFieldsMixin, ETagMixin
+from .common import ETagMixin
 
 if TYPE_CHECKING:
     from . import CatalogImport, CatalogOutput
@@ -38,20 +35,6 @@ class CatalogModuleInput(BaseModel):
 class CatalogModuleImport(ETagMixin, CatalogModuleInput):
     id: int | None = None
     catalog: "CatalogImport | None" = None
-
-
-class CatalogModule(CommonFieldsMixin, Base):
-    __tablename__ = "catalog_module"
-    reference = Column(String, nullable=True)
-    title = Column(String, nullable=False)
-    description = Column(String, nullable=True)
-    catalog_requirements = relationship(
-        "CatalogRequirement",
-        back_populates="catalog_module",
-        cascade="all,delete,delete-orphan",
-    )
-    catalog_id = Column(Integer, ForeignKey("catalog.id"), nullable=True)
-    catalog = relationship("Catalog", back_populates="catalog_modules", lazy="joined")
 
 
 class CatalogModuleRepresentation(BaseModel):

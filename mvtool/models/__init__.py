@@ -16,28 +16,24 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from .catalog_modules import (
-    CatalogModule,
     CatalogModuleImport,
     CatalogModuleInput,
     CatalogModuleOutput,
     CatalogModuleRepresentation,
 )
 from .catalog_requirements import (
-    CatalogRequirement,
     CatalogRequirementImport,
     CatalogRequirementInput,
     CatalogRequirementOutput,
     CatalogRequirementRepresentation,
 )
 from .catalogs import (
-    Catalog,
     CatalogImport,
     CatalogInput,
     CatalogOutput,
     CatalogRepresentation,
 )
 from .documents import (
-    Document,
     DocumentImport,
     DocumentInput,
     DocumentOutput,
@@ -55,14 +51,12 @@ from .jira_ import (
 )
 from .measures import (
     AbstractMeasureInput,
-    Measure,
     MeasureImport,
     MeasureInput,
     MeasureOutput,
     MeasureRepresentation,
 )
 from .projects import (
-    Project,
     ProjectImport,
     ProjectInput,
     ProjectOutput,
@@ -70,7 +64,6 @@ from .projects import (
 )
 from .requirements import (
     AbstractRequirementInput,
-    Requirement,
     RequirementImport,
     RequirementInput,
     RequirementOutput,

@@ -22,8 +22,10 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import Select, select
 
+from ..db.schema import Project
+
 from ..db.database import delete_from_db, get_session, read_from_db
-from ..models.projects import Project, ProjectImport, ProjectInput
+from ..models.projects import ProjectImport, ProjectInput
 from ..utils.errors import NotFoundError
 from ..utils.iteration import CachedIterable
 from ..utils.models import field_is_set

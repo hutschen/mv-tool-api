@@ -19,6 +19,7 @@ import pytest
 from fastapi import HTTPException
 
 from mvtool.data.catalogs import Catalogs
+from mvtool.db.schema import Catalog
 from mvtool.handlers.catalogs import (
     create_catalog,
     delete_catalog,
@@ -30,7 +31,6 @@ from mvtool.handlers.catalogs import (
     update_catalog,
 )
 from mvtool.models.catalogs import (
-    Catalog,
     CatalogInput,
     CatalogOutput,
     CatalogRepresentation,

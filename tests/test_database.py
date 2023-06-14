@@ -27,7 +27,7 @@ from mvtool.db.database import (
     read_from_db,
     setup_connection,
 )
-from mvtool.models import Project
+from mvtool.db.schema import Project
 
 
 def test_setup_engine(config):

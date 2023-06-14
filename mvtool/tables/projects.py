@@ -17,9 +17,11 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
+from ..db.schema import Project
+
 from ..db.database import get_session
 from ..handlers.projects import Projects, get_project_filters, get_project_sort
-from ..models import Project, ProjectImport, ProjectOutput
+from ..models import ProjectImport, ProjectOutput
 from ..utils.temp_file import get_temp_file
 from .columns import Column, ColumnGroup
 from .dataframe import DataFrame, write_excel

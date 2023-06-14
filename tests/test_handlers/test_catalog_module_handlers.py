@@ -38,12 +38,11 @@ from mvtool.handlers.catalog_modules import (
     upload_gs_baustein,
 )
 from mvtool.models.catalog_modules import (
-    CatalogModule,
     CatalogModuleInput,
     CatalogModuleOutput,
     CatalogModuleRepresentation,
 )
-from mvtool.models.catalogs import Catalog
+from mvtool.db.schema import Catalog, CatalogModule
 from mvtool.utils.pagination import Page
 
 

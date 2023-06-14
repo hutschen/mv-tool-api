@@ -18,7 +18,9 @@
 import re
 import docx
 
-from .models import CatalogModule, CatalogRequirement
+from .db.schema import CatalogModule
+
+from .db.schema import CatalogRequirement
 from .utils.errors import ValueHttpError
 
 

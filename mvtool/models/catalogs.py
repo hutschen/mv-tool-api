@@ -16,11 +16,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from pydantic import BaseModel
-from sqlalchemy import Column, String
-from sqlalchemy.orm import relationship
 
-from ..db.database import Base
-from .common import CommonFieldsMixin, ETagMixin
+from .common import ETagMixin
 
 
 class CatalogInput(BaseModel):
@@ -31,16 +28,6 @@ class CatalogInput(BaseModel):
 
 class CatalogImport(ETagMixin, CatalogInput):
     id: int | None = None
-
-
-class Catalog(CommonFieldsMixin, Base):
-    __tablename__ = "catalog"
-    reference = Column(String, nullable=True)
-    title = Column(String, nullable=False)
-    description = Column(String, nullable=True)
-    catalog_modules = relationship(
-        "CatalogModule", back_populates="catalog", cascade="all,delete,delete-orphan"
-    )
 
 
 class CatalogRepresentation(BaseModel):

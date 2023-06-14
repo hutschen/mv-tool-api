@@ -21,9 +21,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import constr
 from sqlalchemy import Column
 
+from ..db.schema import Project
+
 from ..data.projects import Projects
 from ..models.projects import (
-    Project,
     ProjectInput,
     ProjectOutput,
     ProjectRepresentation,

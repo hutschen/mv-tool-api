@@ -24,8 +24,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import Select, select
 
 from ..db.database import delete_from_db, get_session, read_from_db
-from ..models.documents import Document, DocumentImport, DocumentInput
-from ..models.projects import Project
+from ..models.documents import DocumentImport, DocumentInput
+from ..db.schema import Document, Project
 from ..utils.errors import NotFoundError
 from ..utils.etag_map import get_from_etag_map
 from ..utils.fallback import fallback

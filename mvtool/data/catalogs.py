@@ -22,9 +22,11 @@ from sqlalchemy import Column, func
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import Select, select
 
+from ..db.schema import Catalog
+
 from ..auth import get_jira
 from ..db.database import delete_from_db, get_session, read_from_db
-from ..models.catalogs import Catalog, CatalogImport, CatalogInput
+from ..models.catalogs import CatalogImport, CatalogInput
 from ..utils.errors import NotFoundError
 from ..utils.filtering import filter_for_existence
 from ..utils.iteration import CachedIterable

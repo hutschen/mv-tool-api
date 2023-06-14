@@ -19,11 +19,9 @@
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, constr, validator
-from sqlalchemy import Column, ForeignKey, Integer, String
-from sqlalchemy.orm import relationship
 
-from ..db.database import Base
-from .common import AbstractComplianceInput, CommonFieldsMixin, ETagMixin
+
+from .common import AbstractComplianceInput, ETagMixin
 from .jira_ import JiraIssue, JiraIssueImport
 
 if TYPE_CHECKING:
@@ -72,51 +70,6 @@ class MeasureImport(ETagMixin, AbstractMeasureInput):
     requirement: "RequirementImport | None"
     document: "DocumentImport | None"
     jira_issue: JiraIssueImport | None
-
-
-class Measure(CommonFieldsMixin, Base):
-    __tablename__ = "measure"
-    reference = Column(String, nullable=True)
-    summary = Column(String, nullable=False)
-    description = Column(String, nullable=True)
-    compliance_status = Column(String, nullable=True)
-    compliance_comment = Column(String, nullable=True)
-    completion_status = Column(String, nullable=True)
-    completion_comment = Column(String, nullable=True)
-    verification_method = Column(String, nullable=True)
-    verification_status = Column(String, nullable=True)
-    verification_comment = Column(String, nullable=True)
-    jira_issue_id = Column(String, nullable=True)
-
-    requirement_id = Column(Integer, ForeignKey("requirement.id"), nullable=True)
-    requirement = relationship("Requirement", back_populates="measures", lazy="joined")
-    document_id = Column(Integer, ForeignKey("document.id"), nullable=True)
-    document = relationship("Document", back_populates="measures", lazy="joined")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        def _get_jira_issue(jira_issue_id):
-            raise NotImplementedError("Getter for JIRA issue not set")
-
-        self._get_jira_issue = _get_jira_issue
-
-    @property
-    def jira_issue(self) -> JiraIssue | None:
-        if self.jira_issue_id is None:
-            return None
-
-        return getattr(self, "_get_jira_issue")(self.jira_issue_id)
-
-    @property
-    def completion_status_hint(self):
-        if self.compliance_status not in ("C", "PC", None):
-            return None
-
-        if self.jira_issue and self.jira_issue.status.completed:
-            return "completed"
-        else:
-            return self.completion_status
 
 
 class MeasureRepresentation(BaseModel):

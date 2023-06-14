@@ -20,6 +20,8 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
+from ..db.schema import CatalogModule
+
 from ..db.database import get_session
 from ..handlers.catalog_modules import (
     CatalogModules,
@@ -27,7 +29,7 @@ from ..handlers.catalog_modules import (
     get_catalog_module_sort,
 )
 from ..handlers.catalogs import Catalogs
-from ..models import CatalogModule, CatalogModuleImport, CatalogModuleOutput
+from ..models import CatalogModuleImport, CatalogModuleOutput
 from ..utils.temp_file import get_temp_file
 from .catalogs import get_catalog_columns
 from .columns import Column, ColumnGroup

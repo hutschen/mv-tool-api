@@ -26,12 +26,12 @@ from sqlalchemy.sql import Select, select
 from ..db.database import delete_from_db, get_session, read_from_db
 from ..handlers.documents import Documents
 from ..handlers.jira_ import JiraIssues
-from ..models.catalog_modules import CatalogModule
-from ..models.catalog_requirements import CatalogRequirement
-from ..models.catalogs import Catalog
-from ..models.documents import Document
-from ..models.measures import Measure, MeasureImport, MeasureInput
-from ..models.requirements import Requirement
+from ..db.schema import CatalogModule, Measure
+from ..db.schema import CatalogRequirement
+from ..db.schema import Catalog
+from ..db.schema import Document
+from ..models.measures import MeasureImport, MeasureInput
+from ..db.schema import Requirement
 from ..utils.errors import NotFoundError
 from ..utils.etag_map import get_from_etag_map
 from ..utils.fallback import fallback
