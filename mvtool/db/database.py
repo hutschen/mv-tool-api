@@ -17,24 +17,23 @@
 
 from typing import Type, TypeVar
 
-from sqlalchemy import MetaData, create_engine
+from sqlalchemy import create_engine
 from sqlalchemy.engine.base import Engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session, sessionmaker, registry
 from sqlalchemy.pool import StaticPool
 
 from ..config import DatabaseConfig
 from ..utils.errors import NotFoundError
 
-naming_convention = {
+mapper_registry = registry()
+mapper_registry.metadata.naming_convention = {
     "ix": "ix_%(column_0_label)s",
     "uq": "uq_%(table_name)s_%(column_0_name)s",
     "ck": "ck_%(table_name)s_%(constraint_name)s",
     "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
     "pk": "pk_%(table_name)s",
 }
-
-Base = declarative_base(metadata=MetaData(naming_convention=naming_convention))
+Base = mapper_registry.generate_base()
 
 
 class __State:
