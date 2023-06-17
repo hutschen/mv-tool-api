@@ -24,11 +24,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import select
 
 from mvtool.data.measures import Measures
+from mvtool.db.schema import Document, Measure, Requirement
 from mvtool.models.catalog_requirements import CatalogRequirementImport
-from mvtool.models.documents import Document, DocumentImport
+from mvtool.models.documents import DocumentImport
 from mvtool.models.jira_ import JiraIssue, JiraIssueImport
-from mvtool.models.measures import Measure, MeasureImport, MeasureInput
-from mvtool.models.requirements import Requirement, RequirementImport
+from mvtool.models.measures import MeasureImport, MeasureInput
+from mvtool.models.requirements import RequirementImport
 from mvtool.utils.errors import NotFoundError, ValueHttpError
 
 

@@ -15,20 +15,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from datetime import datetime
 from hashlib import md5
 from typing import Any
 
 from pydantic import BaseModel, constr, validator
-from sqlalchemy import Column, DateTime, Integer
-
-
-class CommonFieldsMixin:
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    created = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
-    )
 
 
 class ETagMixin(BaseModel):

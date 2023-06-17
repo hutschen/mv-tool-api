@@ -23,9 +23,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import select
 
 from mvtool.data.catalog_requirements import CatalogRequirements
-from mvtool.models.catalog_modules import CatalogModule, CatalogModuleImport
+from mvtool.db.schema import CatalogModule, CatalogRequirement
+from mvtool.models.catalog_modules import CatalogModuleImport
 from mvtool.models.catalog_requirements import (
-    CatalogRequirement,
     CatalogRequirementImport,
     CatalogRequirementInput,
 )

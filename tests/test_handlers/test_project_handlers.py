@@ -20,6 +20,7 @@ import pytest
 from fastapi import HTTPException
 
 from mvtool.data.projects import Projects
+from mvtool.db.schema import Project
 from mvtool.handlers.projects import (
     create_project,
     delete_project,
@@ -30,7 +31,6 @@ from mvtool.handlers.projects import (
     update_project,
 )
 from mvtool.models.projects import (
-    Project,
     ProjectInput,
     ProjectOutput,
     ProjectRepresentation,

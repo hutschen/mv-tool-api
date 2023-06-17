@@ -19,11 +19,13 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from ..database import get_session
+from ..db.schema import Measure
+
+from ..db.database import get_session
 from ..handlers.catalog_modules import CatalogModules
 from ..handlers.measures import Measures, get_measure_filters, get_measure_sort
 from ..handlers.requirements import Requirements
-from ..models import Measure, MeasureImport, MeasureOutput
+from ..models import MeasureImport, MeasureOutput
 from ..utils.temp_file import get_temp_file
 from .columns import Column, ColumnGroup
 from .dataframe import DataFrame, write_excel

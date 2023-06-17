@@ -19,7 +19,9 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import auth, database, migration, tables
+from .db import database
+
+from . import auth, migration, tables
 from .handlers import (
     jira_,
     projects,

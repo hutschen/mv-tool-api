@@ -23,8 +23,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from .config import DatabaseConfig
-from .utils.errors import NotFoundError
+from ..config import DatabaseConfig
+from ..utils.errors import NotFoundError
 
 naming_convention = {
     "ix": "ix_%(column_0_label)s",

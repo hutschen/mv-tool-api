@@ -19,10 +19,12 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from ..database import get_session
+from ..db.schema import Document
+
+from ..db.database import get_session
 from ..handlers.documents import Documents, get_document_filters, get_document_sort
 from ..handlers.projects import Projects
-from ..models.documents import Document, DocumentImport, DocumentOutput
+from ..models.documents import DocumentImport, DocumentOutput
 from ..utils.temp_file import get_temp_file
 from .columns import Column, ColumnGroup
 from .dataframe import DataFrame, write_excel

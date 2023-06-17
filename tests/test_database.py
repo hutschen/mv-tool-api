@@ -18,7 +18,7 @@
 import pytest
 from fastapi import HTTPException
 
-from mvtool.database import (
+from mvtool.db.database import (
     create_all,
     create_in_db,
     dispose_connection,
@@ -27,7 +27,7 @@ from mvtool.database import (
     read_from_db,
     setup_connection,
 )
-from mvtool.models import Project
+from mvtool.db.schema import Project
 
 
 def test_setup_engine(config):

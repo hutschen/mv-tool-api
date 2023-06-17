@@ -21,13 +21,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import select
 
 from mvtool.data.requirements import Requirements
-from mvtool.models.catalog_modules import CatalogModule
+from mvtool.db.schema import CatalogModule, CatalogRequirement, Project, Requirement
 from mvtool.models.catalog_requirements import (
-    CatalogRequirement,
     CatalogRequirementImport,
 )
-from mvtool.models.projects import Project, ProjectImport
-from mvtool.models.requirements import Requirement, RequirementImport, RequirementInput
+from mvtool.models.projects import ProjectImport
+from mvtool.models.requirements import RequirementImport, RequirementInput
 from mvtool.utils.errors import NotFoundError, ValueHttpError
 
 

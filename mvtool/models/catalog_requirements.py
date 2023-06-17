@@ -19,11 +19,8 @@
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, constr
-from sqlalchemy import Column, ForeignKey, Integer, String
-from sqlalchemy.orm import relationship
 
-from ..database import Base
-from .common import CommonFieldsMixin, ETagMixin
+from .common import ETagMixin
 from .requirements import AbstractRequirementInput
 
 if TYPE_CHECKING:
@@ -39,23 +36,6 @@ class CatalogRequirementInput(AbstractRequirementInput):
 class CatalogRequirementImport(ETagMixin, CatalogRequirementInput):
     id: int | None = None
     catalog_module: "CatalogModuleImport | None" = None
-
-
-class CatalogRequirement(CommonFieldsMixin, Base):
-    __tablename__ = "catalog_requirement"
-    reference = Column(String, nullable=True)
-    summary = Column(String, nullable=False)
-    description = Column(String, nullable=True)
-
-    # Special fields for IT Grundschutz Kompendium
-    gs_absicherung = Column(String, nullable=True)
-    gs_verantwortliche = Column(String, nullable=True)
-
-    catalog_module_id = Column(Integer, ForeignKey("catalog_module.id"), nullable=True)
-    catalog_module = relationship(
-        "CatalogModule", back_populates="catalog_requirements", lazy="joined"
-    )
-    requirements = relationship("Requirement", back_populates="catalog_requirement")
 
 
 class CatalogRequirementRepresentation(BaseModel):

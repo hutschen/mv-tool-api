@@ -23,7 +23,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import select
 
 from mvtool.data.catalogs import Catalogs
-from mvtool.models.catalogs import Catalog, CatalogImport, CatalogInput
+from mvtool.db.schema import Catalog
+from mvtool.models.catalogs import CatalogImport, CatalogInput
 from mvtool.utils.errors import NotFoundError
 
 

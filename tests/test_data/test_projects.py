@@ -24,8 +24,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import select
 
 from mvtool.data.projects import Projects
+from mvtool.db.schema import Project
 from mvtool.models.jira_ import JiraProjectImport
-from mvtool.models.projects import Project, ProjectImport, ProjectInput
+from mvtool.models.projects import ProjectImport, ProjectInput
 from mvtool.utils.errors import NotFoundError
 
 

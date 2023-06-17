@@ -22,8 +22,9 @@ from jira import JIRAError
 
 from mvtool import app
 from mvtool.auth import get_jira
-from mvtool.database import get_session
-from mvtool.models import CatalogRequirement, Document, Project, Requirement
+from mvtool.db.database import get_session
+from mvtool.db.schema import CatalogRequirement, Project, Requirement
+from mvtool.db.schema import Document
 
 
 @pytest.fixture

@@ -23,8 +23,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import select
 
 from mvtool.data.documents import Documents
-from mvtool.models.documents import Document, DocumentImport, DocumentInput
-from mvtool.models.projects import Project, ProjectImport
+from mvtool.db.schema import Document, Project
+from mvtool.models.documents import DocumentImport, DocumentInput
+from mvtool.models.projects import ProjectImport
 from mvtool.utils.errors import NotFoundError, ValueHttpError
 
 

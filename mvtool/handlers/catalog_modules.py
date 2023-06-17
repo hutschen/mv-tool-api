@@ -25,15 +25,14 @@ from sqlalchemy import Column
 from sqlalchemy.orm import Session
 
 from ..data.catalog_modules import CatalogModules
-from ..database import get_session
+from ..db.database import get_session
 from ..gs_parser import GSBausteinParser
 from ..models.catalog_modules import (
-    CatalogModule,
     CatalogModuleInput,
     CatalogModuleOutput,
     CatalogModuleRepresentation,
 )
-from ..models.catalogs import Catalog
+from ..db.schema import Catalog, CatalogModule
 from ..utils.errors import ValueHttpError
 from ..utils.filtering import (
     filter_by_pattern_many,

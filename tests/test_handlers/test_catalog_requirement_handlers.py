@@ -31,9 +31,8 @@ from mvtool.handlers.catalog_requirements import (
     get_catalog_requirements,
     update_catalog_requirement,
 )
-from mvtool.models.catalog_modules import CatalogModule
+from mvtool.db.schema import CatalogModule, CatalogRequirement
 from mvtool.models.catalog_requirements import (
-    CatalogRequirement,
     CatalogRequirementInput,
     CatalogRequirementOutput,
     CatalogRequirementRepresentation,

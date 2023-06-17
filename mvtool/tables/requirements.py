@@ -22,7 +22,9 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from ..database import get_session
+from ..db.schema import Requirement
+
+from ..db.database import get_session
 from ..handlers.catalog_modules import CatalogModules
 from ..handlers.projects import Projects
 from ..handlers.requirements import (
@@ -30,7 +32,7 @@ from ..handlers.requirements import (
     get_requirement_filters,
     get_requirement_sort,
 )
-from ..models import Requirement, RequirementOutput
+from ..models import RequirementOutput
 from ..models.requirements import RequirementImport
 from ..utils.temp_file import get_temp_file
 from .catalog_requirements import get_catalog_requirement_columns

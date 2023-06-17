@@ -18,7 +18,7 @@
 import pytest
 from sqlalchemy.orm import Session
 
-from mvtool import database
+from mvtool.db import database
 from mvtool.data.catalog_modules import CatalogModules
 from mvtool.data.catalog_requirements import CatalogRequirements
 from mvtool.data.catalogs import Catalogs
@@ -27,14 +27,15 @@ from mvtool.data.jira_ import JiraIssues, JiraProjects
 from mvtool.data.measures import Measures
 from mvtool.data.projects import Projects
 from mvtool.data.requirements import Requirements
-from mvtool.models.catalog_modules import CatalogModule, CatalogModuleInput
+from mvtool.db.schema import Catalog, CatalogModule, Project, Requirement
+from mvtool.models.catalog_modules import CatalogModuleInput
 from mvtool.models.catalog_requirements import CatalogRequirementInput
-from mvtool.models.catalogs import Catalog, CatalogInput
+from mvtool.models.catalogs import CatalogInput
 from mvtool.models.documents import DocumentInput
 from mvtool.models.jira_ import JiraProject
 from mvtool.models.measures import MeasureInput
-from mvtool.models.projects import Project, ProjectInput
-from mvtool.models.requirements import Requirement, RequirementInput
+from mvtool.models.projects import ProjectInput
+from mvtool.models.requirements import RequirementInput
 
 
 @pytest.fixture

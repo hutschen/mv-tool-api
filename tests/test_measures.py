@@ -17,10 +17,11 @@
 
 import pytest
 from fastapi import HTTPException
+from mvtool.db.schema import Measure
 
 from mvtool.handlers.jira_ import JiraIssues, JiraProjects
 from mvtool.handlers.measures import Measures, create_and_link_jira_issue_to_measure
-from mvtool.models import JiraIssue, JiraIssueInput, Measure, MeasureInput
+from mvtool.models import JiraIssue, JiraIssueInput, MeasureInput
 
 
 def test_create_and_link_jira_issue(

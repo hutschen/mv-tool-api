@@ -32,11 +32,10 @@ from mvtool.handlers.requirements import (
     import_requirements_from_catalog_modules,
     update_requirement,
 )
-from mvtool.models.catalog_modules import CatalogModule
-from mvtool.models.catalog_requirements import CatalogRequirement
-from mvtool.models.projects import Project
+from mvtool.db.schema import CatalogModule, Requirement
+from mvtool.db.schema import CatalogRequirement
+from mvtool.db.schema import Project
 from mvtool.models.requirements import (
-    Requirement,
     RequirementInput,
     RequirementOutput,
     RequirementRepresentation,

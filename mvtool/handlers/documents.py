@@ -24,12 +24,11 @@ from sqlalchemy import Column
 
 from ..data.documents import Documents
 from ..models.documents import (
-    Document,
     DocumentInput,
     DocumentOutput,
     DocumentRepresentation,
 )
-from ..models.projects import Project
+from ..db.schema import Document, Project
 from ..utils.filtering import (
     filter_by_pattern_many,
     filter_by_values_many,

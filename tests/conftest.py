@@ -22,8 +22,9 @@ import jira
 import pytest
 from jira import JIRAError
 
-from mvtool import database
+from mvtool.db import database
 from mvtool.config import Config, DatabaseConfig, JiraConfig
+from mvtool.db.schema import Catalog, CatalogModule, Project, Requirement
 from mvtool.handlers.catalog_modules import CatalogModules
 from mvtool.handlers.catalog_requirements import CatalogRequirements
 from mvtool.handlers.catalogs import Catalogs
@@ -33,9 +34,7 @@ from mvtool.handlers.measures import Measures
 from mvtool.handlers.projects import Projects
 from mvtool.handlers.requirements import Requirements
 from mvtool.models import (
-    Catalog,
     CatalogInput,
-    CatalogModule,
     CatalogModuleInput,
     CatalogRequirementInput,
     DocumentInput,
@@ -43,9 +42,7 @@ from mvtool.models import (
     JiraIssueInput,
     JiraIssueStatus,
     MeasureInput,
-    Project,
     ProjectInput,
-    Requirement,
     RequirementInput,
 )
 from mvtool.models.jira_ import JiraProject

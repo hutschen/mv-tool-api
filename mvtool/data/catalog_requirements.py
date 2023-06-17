@@ -22,14 +22,13 @@ from sqlalchemy import Column, func
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import Select, select
 
-from ..database import delete_from_db, get_session, read_from_db
-from ..models.catalog_modules import CatalogModule
+from ..db.database import delete_from_db, get_session, read_from_db
+from ..db.schema import CatalogModule, CatalogRequirement
 from ..models.catalog_requirements import (
-    CatalogRequirement,
     CatalogRequirementImport,
     CatalogRequirementInput,
 )
-from ..models.catalogs import Catalog
+from ..db.schema import Catalog
 from ..utils.errors import NotFoundError
 from ..utils.etag_map import get_from_etag_map
 from ..utils.fallback import fallback
