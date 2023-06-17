@@ -77,7 +77,7 @@ class Catalogs:
 
     def count_catalogs(self, where_clauses: list[Any] | None = None) -> int:
         query = self._modify_catalogs_query(
-            select([func.count()]).select_from(Catalog), where_clauses
+            select(func.count()).select_from(Catalog), where_clauses
         )
         return self._session.execute(query).scalar()
 
@@ -89,7 +89,7 @@ class Catalogs:
         limit: int | None = None,
     ) -> list[Any]:
         query = self._modify_catalogs_query(
-            select([func.distinct(column)]).select_from(Catalog),
+            select(func.distinct(column)).select_from(Catalog),
             [filter_for_existence(column), *(where_clauses or [])],
             offset=offset,
             limit=limit,
@@ -100,7 +100,7 @@ class Catalogs:
         self, column: Column, where_clauses: list[Any] | None = None
     ) -> int:
         query = self._modify_catalogs_query(
-            select([func.count(func.distinct(column))]).select_from(Catalog),
+            select(func.count(func.distinct(column))).select_from(Catalog),
             [filter_for_existence(column), *(where_clauses or [])],
         )
         return self._session.execute(query).scalar()

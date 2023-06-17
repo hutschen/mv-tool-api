@@ -83,7 +83,7 @@ class CatalogModules:
 
     def count_catalog_modules(self, where_clauses: Any = None) -> int:
         query = self._modify_catalog_modules_query(
-            select([func.count()]).select_from(CatalogModule),
+            select(func.count()).select_from(CatalogModule),
             where_clauses,
         )
         return self._session.execute(query).scalar()
@@ -96,7 +96,7 @@ class CatalogModules:
         limit: int | None = None,
     ) -> list[Any]:
         query = self._modify_catalog_modules_query(
-            select([func.distinct(column)]).select_from(CatalogModule),
+            select(func.distinct(column)).select_from(CatalogModule),
             [filter_for_existence(column), *(where_clauses or [])],
             offset=offset,
             limit=limit,
@@ -107,7 +107,7 @@ class CatalogModules:
         self, column: Column, where_clauses: list[Any] | None = None
     ) -> int:
         query = self._modify_catalog_modules_query(
-            select([func.count(func.distinct(column))]).select_from(CatalogModule),
+            select(func.count(func.distinct(column))).select_from(CatalogModule),
             [filter_for_existence(column), *(where_clauses or [])],
         )
         return self._session.execute(query).scalar()

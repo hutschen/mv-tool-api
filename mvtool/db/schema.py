@@ -100,7 +100,7 @@ class Project(CommonFieldsMixin, Base):
     @property
     def _compliant_count_query(self):
         return (
-            select([func.count()])
+            select(func.count())
             .select_from(Requirement)
             .outerjoin(Measure)
             .where(
@@ -173,7 +173,7 @@ class Requirement(CommonFieldsMixin, Base):
         session = Session.object_session(self)
 
         # get the compliance states of all measures subordinated to this requirement
-        compliance_query = select([Measure.compliance_status]).where(
+        compliance_query = select(Measure.compliance_status).where(
             Measure.requirement_id == self.id, Measure.compliance_status != None
         )
         compliance_states = session.execute(compliance_query).scalars().all()
@@ -196,7 +196,7 @@ class Requirement(CommonFieldsMixin, Base):
     @property
     def _compliant_count_query(self):
         return (
-            select([func.count()])
+            select(func.count())
             .select_from(Measure)
             .where(
                 Measure.requirement_id == self.id,

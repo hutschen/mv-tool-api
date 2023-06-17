@@ -115,7 +115,7 @@ class Measures:
 
     def count_measures(self, where_clauses: Any = None) -> int:
         query = self._modify_measures_query(
-            select([func.count()]).select_from(Measure), where_clauses
+            select(func.count()).select_from(Measure), where_clauses
         )
         return self.session.execute(query).scalar()
 
@@ -127,7 +127,7 @@ class Measures:
         limit: int | None = None,
     ) -> list[Any]:
         query = self._modify_measures_query(
-            select([func.distinct(column)]).select_from(Measure),
+            select(func.distinct(column)).select_from(Measure),
             [filter_for_existence(column), *(where_clauses or [])],
             offset=offset,
             limit=limit,
@@ -138,7 +138,7 @@ class Measures:
         self, column: Column, where_clauses: list[Any] | None = None
     ) -> int:
         query = self._modify_measures_query(
-            select([func.count(func.distinct(column))]).select_from(Measure),
+            select(func.count(func.distinct(column))).select_from(Measure),
             [filter_for_existence(column), *(where_clauses or [])],
         )
         return self.session.execute(query).scalar()

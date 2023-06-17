@@ -35,7 +35,7 @@ def test_filter_by_pattern(pattern, negate, expected):
     column = Column("test", String)
 
     where_clause = filter_by_pattern(column, pattern, negate)
-    select_statement = select([column]).where(where_clause)
+    select_statement = select(column).where(where_clause)
     compiled_statement = select_statement.compile(
         dialect=sqlite.dialect(), compile_kwargs={"literal_binds": True}
     )
@@ -56,7 +56,7 @@ def test_filter_by_values(values, negate, expected):
     column = Column("test", Integer)
 
     where_clause = filter_by_values(column, values, negate)
-    select_statement = select([column]).where(where_clause)
+    select_statement = select(column).where(where_clause)
     compiled_statement = select_statement.compile(
         dialect=sqlite.dialect(), compile_kwargs={"literal_binds": True}
     )
@@ -78,7 +78,7 @@ def test_filter_for_existence(column_type, exists, expected):
     column = Column("test", column_type)
 
     where_clause = filter_for_existence(column, exists)
-    select_statement = select([column]).where(where_clause)
+    select_statement = select(column).where(where_clause)
     compiled_statement = select_statement.compile(
         dialect=sqlite.dialect(), compile_kwargs={"literal_binds": True}
     )

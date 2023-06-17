@@ -99,7 +99,7 @@ class Requirements:
 
     def count_requirements(self, where_clauses: Any = None) -> int:
         query = self._modify_requirements_query(
-            select([func.count()]).select_from(Requirement), where_clauses
+            select(func.count()).select_from(Requirement), where_clauses
         )
         return self._session.execute(query).scalar()
 
@@ -111,7 +111,7 @@ class Requirements:
         limit: int | None = None,
     ) -> list[Any]:
         query = self._modify_requirements_query(
-            select([func.distinct(column)]).select_from(Requirement),
+            select(func.distinct(column)).select_from(Requirement),
             [filter_for_existence(column), *(where_clauses or [])],
             offset=offset,
             limit=limit,
@@ -122,7 +122,7 @@ class Requirements:
         self, column: Column, where_clauses: Any = None
     ) -> int:
         query = self._modify_requirements_query(
-            select([func.count(func.distinct(column))]).select_from(Requirement),
+            select(func.count(func.distinct(column))).select_from(Requirement),
             [filter_for_existence(column), *(where_clauses or [])],
         )
         return self._session.execute(query).scalar()

@@ -92,7 +92,7 @@ class Documents:
 
     def count_documents(self, where_clauses: Any = None) -> int:
         query = self._modify_documents_query(
-            select([func.count()]).select_from(Document), where_clauses
+            select(func.count()).select_from(Document), where_clauses
         )
         return self._session.execute(query).scalar()
 
@@ -104,7 +104,7 @@ class Documents:
         limit: int | None = None,
     ) -> list[Any]:
         query = self._modify_documents_query(
-            select([func.distinct(column)]).select_from(Document),
+            select(func.distinct(column)).select_from(Document),
             [filter_for_existence(column), *(where_clauses or [])],
             offset=offset,
             limit=limit,
@@ -115,7 +115,7 @@ class Documents:
         self, column: Column, where_clauses: list[Any] = None
     ) -> int:
         query = self._modify_documents_query(
-            select([func.count(func.distinct(column))]).select_from(Document),
+            select(func.count(func.distinct(column))).select_from(Document),
             [filter_for_existence(column), *(where_clauses or [])],
         )
         return self._session.execute(query).scalar()

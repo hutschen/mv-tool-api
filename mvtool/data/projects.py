@@ -95,7 +95,7 @@ class Projects:
 
     def count_projects(self, where_clauses: list[Any] | None = None) -> int:
         query = self._modify_projects_query(
-            select([func.count()]).select_from(Project), where_clauses
+            select(func.count()).select_from(Project), where_clauses
         )
         return self._session.execute(query).scalar()
 

@@ -84,7 +84,7 @@ class CatalogRequirements:
 
     def count_catalog_requirements(self, where_clauses: list[Any] | None = None) -> int:
         query = self._modify_catalog_requirements_query(
-            select([func.count()]).select_from(CatalogRequirement),
+            select(func.count()).select_from(CatalogRequirement),
             where_clauses,
         )
         return self._session.execute(query).scalar()
@@ -97,7 +97,7 @@ class CatalogRequirements:
         limit: int | None = None,
     ) -> list[Any]:
         query = self._modify_catalog_requirements_query(
-            select([func.distinct(column)]).select_from(CatalogRequirement),
+            select(func.distinct(column)).select_from(CatalogRequirement),
             [filter_for_existence(column), *(where_clauses or [])],
             offset=offset,
             limit=limit,
@@ -108,7 +108,7 @@ class CatalogRequirements:
         self, column: Column, where_clauses: list[Any] | None = None
     ) -> int:
         query = self._modify_catalog_requirements_query(
-            select([func.count(func.distinct(column))]).select_from(CatalogRequirement),
+            select(func.count(func.distinct(column))).select_from(CatalogRequirement),
             [filter_for_existence(column), *(where_clauses or [])],
         )
         return self._session.execute(query).scalar()
