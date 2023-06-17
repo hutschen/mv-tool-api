@@ -307,7 +307,7 @@ def upload_gs_baustein(
         raise ValueHttpError("Could not parse GS Baustein")
 
     # Assign catalog and save catalog module to database
-    catalog_module.catalog = catalog
     session.add(catalog_module)
+    catalog_module.catalog = catalog
     session.flush()
     return catalog_module

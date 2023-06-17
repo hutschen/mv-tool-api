@@ -127,9 +127,9 @@ class Documents:
         skip_flush: bool = False,
     ) -> Document:
         document = Document(**creation.dict(exclude={"id", "project"}))
+        self._session.add(document)
         document.project = project
 
-        self._session.add(document)
         if not skip_flush:
             self._session.flush()
         return document

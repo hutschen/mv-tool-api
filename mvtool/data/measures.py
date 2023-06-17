@@ -152,6 +152,7 @@ class Measures:
         measure = Measure(
             **creation.dict(exclude={"id", "requirement", "jira_issue", "document"})
         )
+        self.session.add(measure)
         measure.requirement = requirement
 
         # check ids of dependencies
@@ -161,7 +162,6 @@ class Measures:
             self._jira_issues.check_jira_issue_id(creation.jira_issue_id)
             try_to_get_jira_issue = False
 
-        self.session.add(measure)
         if not skip_flush:
             self.session.flush()
 

@@ -119,8 +119,8 @@ class CatalogModules:
         skip_flush: bool = False,
     ) -> CatalogModule:
         catalog_module = CatalogModule(**creation.dict(exclude={"id", "catalog"}))
-        catalog_module.catalog = catalog
         self._session.add(catalog_module)
+        catalog_module.catalog = catalog
         if not skip_flush:
             self._session.flush()
         return catalog_module

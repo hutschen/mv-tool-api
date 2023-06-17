@@ -122,8 +122,8 @@ class CatalogRequirements:
         catalog_requirement = CatalogRequirement(
             **creation.dict(exclude={"id", "catalog_module"})
         )
-        catalog_requirement.catalog_module = catalog_module
         self._session.add(catalog_requirement)
+        catalog_requirement.catalog_module = catalog_module
         if not skip_flush:
             self._session.flush()
         return catalog_requirement

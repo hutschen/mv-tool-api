@@ -136,6 +136,7 @@ class Requirements:
         requirement = Requirement(
             **creation.dict(exclude={"id", "project", "catalog_requirement"})
         )
+        self._session.add(requirement)
         requirement.project = project
 
         # check catalog_requirement_id and set catalog_requirement
@@ -146,7 +147,6 @@ class Requirements:
                 )
             )
 
-        self._session.add(requirement)
         if not skip_flush:
             self._session.flush()
         return requirement
