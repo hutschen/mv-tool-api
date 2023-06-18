@@ -20,22 +20,21 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import constr
-from sqlmodel import Column
+from sqlalchemy import Column
 
 from ..data.measures import Measures
 from ..handlers.jira_ import JiraIssues, JiraProjects
-from ..models.catalog_modules import CatalogModule
-from ..models.catalog_requirements import CatalogRequirement
-from ..models.catalogs import Catalog
-from ..models.documents import Document
+from ..db.schema import CatalogModule, Measure
+from ..db.schema import CatalogRequirement
+from ..db.schema import Catalog
+from ..db.schema import Document
 from ..models.jira_ import JiraIssue, JiraIssueInput
 from ..models.measures import (
-    Measure,
     MeasureInput,
     MeasureOutput,
     MeasureRepresentation,
 )
-from ..models.requirements import Requirement
+from ..db.schema import Requirement
 from ..utils import combine_flags
 from ..utils.errors import ValueHttpError
 from ..utils.filtering import (

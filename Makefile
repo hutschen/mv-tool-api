@@ -22,7 +22,7 @@ dependencies-update:
 
 dependencies-licenses:
 	pipenv run pip-licenses --packages \
-		fastapi pydantic jira pyyaml fastapi-utils sqlalchemy sqlmodel \
+		fastapi pydantic jira pyyaml fastapi-utils sqlalchemy \
 		cachetools openpyxl python-multipart python-docx \
 		--with-authors --with-urls --format=md > licenses.md
 

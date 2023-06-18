@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2023 Helmar Hutschenreuter
 #
@@ -16,17 +16,17 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
-from pydantic import PrivateAttr, constr, validator
-from sqlmodel import Field, Relationship, SQLModel
+from pydantic import BaseModel, constr, validator
 
-from .common import AbstractComplianceInput, CommonFieldsMixin, ETagMixin
+
+from .common import AbstractComplianceInput, ETagMixin
 from .jira_ import JiraIssue, JiraIssueImport
 
 if TYPE_CHECKING:
-    from .documents import Document, DocumentOutput, DocumentImport
-    from .requirements import Requirement, RequirementOutput, RequirementImport
+    from .documents import DocumentImport, DocumentOutput
+    from .requirements import RequirementImport, RequirementOutput
 
 
 class AbstractMeasureInput(AbstractComplianceInput):
@@ -72,43 +72,19 @@ class MeasureImport(ETagMixin, AbstractMeasureInput):
     jira_issue: JiraIssueImport | None
 
 
-class Measure(MeasureInput, CommonFieldsMixin, table=True):
-    requirement_id: int | None = Field(default=None, foreign_key="requirement.id")
-    requirement: "Requirement" = Relationship(
-        back_populates="measures", sa_relationship_kwargs=dict(lazy="joined")
-    )
-    document_id: int | None = Field(default=None, foreign_key="document.id")
-    document: "Document" = Relationship(
-        back_populates="measures", sa_relationship_kwargs=dict(lazy="joined")
-    )
+class MeasureRepresentation(BaseModel):
+    class Config:
+        orm_mode = True
 
-    _get_jira_issue: Callable = PrivateAttr()
-
-    @property
-    def jira_issue(self) -> JiraIssue | None:
-        if self.jira_issue_id is None:
-            return None
-
-        return getattr(self, "_get_jira_issue")(self.jira_issue_id)
-
-    @property
-    def completion_status_hint(self):
-        if self.compliance_status not in ("C", "PC", None):
-            return None
-
-        if self.jira_issue and self.jira_issue.status.completed:
-            return "completed"
-        else:
-            return self.completion_status
-
-
-class MeasureRepresentation(SQLModel):
     id: int
     reference: str | None
     summary: str
 
 
 class MeasureOutput(MeasureRepresentation):
+    class Config:
+        orm_mode = True
+
     description: str | None
     compliance_status: str | None
     compliance_comment: str | None

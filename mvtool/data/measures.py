@@ -19,24 +19,25 @@
 from typing import Any, Iterable, Iterator
 
 from fastapi import Depends
-from sqlmodel import Column, Session, func, select
-from sqlmodel.sql.expression import Select
+from sqlalchemy import Column, func
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import Select, select
 
-from ..database import delete_from_db, get_session, read_from_db
-from ..models.catalog_modules import CatalogModule
-from ..models.catalog_requirements import CatalogRequirement
-from ..models.catalogs import Catalog
-from ..models.documents import Document
-from ..models.measures import Measure, MeasureImport, MeasureInput
-from ..models.requirements import Requirement
+from ..db.database import delete_from_db, get_session, read_from_db
+from ..handlers.documents import Documents
+from ..handlers.jira_ import JiraIssues
+from ..db.schema import CatalogModule, Measure
+from ..db.schema import CatalogRequirement
+from ..db.schema import Catalog
+from ..db.schema import Document
+from ..models.measures import MeasureImport, MeasureInput
+from ..db.schema import Requirement
 from ..utils.errors import NotFoundError
 from ..utils.etag_map import get_from_etag_map
 from ..utils.fallback import fallback
 from ..utils.filtering import filter_for_existence
 from ..utils.iteration import CachedIterable
 from ..utils.models import field_is_set
-from ..handlers.documents import Documents
-from ..handlers.jira_ import JiraIssues
 from .requirements import Requirements
 
 
@@ -97,7 +98,7 @@ class Measures:
         )
 
         # execute measures query
-        measures = self.session.exec(query).all()
+        measures = self.session.execute(query).scalars().all()
 
         # set jira project and issue on measures
         if query_jira:
@@ -114,7 +115,7 @@ class Measures:
 
     def count_measures(self, where_clauses: Any = None) -> int:
         query = self._modify_measures_query(
-            select([func.count()]).select_from(Measure), where_clauses
+            select(func.count()).select_from(Measure), where_clauses
         )
         return self.session.execute(query).scalar()
 
@@ -126,18 +127,18 @@ class Measures:
         limit: int | None = None,
     ) -> list[Any]:
         query = self._modify_measures_query(
-            select([func.distinct(column)]).select_from(Measure),
+            select(func.distinct(column)).select_from(Measure),
             [filter_for_existence(column), *(where_clauses or [])],
             offset=offset,
             limit=limit,
         )
-        return self.session.exec(query).all()
+        return self.session.execute(query).scalars().all()
 
     def count_measure_values(
         self, column: Column, where_clauses: list[Any] | None = None
     ) -> int:
         query = self._modify_measures_query(
-            select([func.count(func.distinct(column))]).select_from(Measure),
+            select(func.count(func.distinct(column))).select_from(Measure),
             [filter_for_existence(column), *(where_clauses or [])],
         )
         return self.session.execute(query).scalar()
@@ -151,6 +152,7 @@ class Measures:
         measure = Measure(
             **creation.dict(exclude={"id", "requirement", "jira_issue", "document"})
         )
+        self.session.add(measure)
         measure.requirement = requirement
 
         # check ids of dependencies
@@ -160,7 +162,6 @@ class Measures:
             self._jira_issues.check_jira_issue_id(creation.jira_issue_id)
             try_to_get_jira_issue = False
 
-        self.session.add(measure)
         if not skip_flush:
             self.session.flush()
 

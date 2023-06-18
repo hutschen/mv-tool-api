@@ -18,16 +18,15 @@
 
 from typing import TYPE_CHECKING
 
-from sqlmodel import Field, Relationship, SQLModel
+from pydantic import BaseModel
 
-from .catalog_requirements import CatalogRequirement
-from .common import CommonFieldsMixin, ETagMixin
+from .common import ETagMixin
 
 if TYPE_CHECKING:
-    from . import Catalog, CatalogOutput, CatalogImport
+    from . import CatalogImport, CatalogOutput
 
 
-class CatalogModuleInput(SQLModel):
+class CatalogModuleInput(BaseModel):
     reference: str | None
     title: str
     description: str | None
@@ -38,24 +37,18 @@ class CatalogModuleImport(ETagMixin, CatalogModuleInput):
     catalog: "CatalogImport | None" = None
 
 
-class CatalogModule(CatalogModuleInput, CommonFieldsMixin, table=True):
-    __tablename__ = "catalog_module"
-    catalog_requirements: list[CatalogRequirement] = Relationship(
-        back_populates="catalog_module",
-        sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
-    )
-    catalog_id: int | None = Field(default=None, foreign_key="catalog.id")
-    catalog: "Catalog" = Relationship(
-        back_populates="catalog_modules", sa_relationship_kwargs=dict(lazy="joined")
-    )
+class CatalogModuleRepresentation(BaseModel):
+    class Config:
+        orm_mode = True
 
-
-class CatalogModuleRepresentation(SQLModel):
     id: int
     reference: str | None
     title: str
 
 
 class CatalogModuleOutput(CatalogModuleInput):
+    class Config:
+        orm_mode = True
+
     id: int
     catalog: "CatalogOutput"

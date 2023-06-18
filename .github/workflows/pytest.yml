@@ -1,16 +1,17 @@
-name: Run Pytests
+name: Run pytest
 
 on:
   push:
     branches:
         - 'main'
         - 'develop'
+        - 'feature/*'
         - 'release/*'
         - 'hotfix/*'
         - 'bugfix/*'
 
 jobs:
-  pytest:
+  run-pytest:
 
     runs-on: ubuntu-latest
 

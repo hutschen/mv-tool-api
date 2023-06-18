@@ -32,12 +32,11 @@ from mvtool.handlers.documents import (
     update_document,
 )
 from mvtool.models.documents import (
-    Document,
     DocumentInput,
     DocumentOutput,
     DocumentRepresentation,
 )
-from mvtool.models.projects import Project
+from mvtool.db.schema import Document, Project
 from mvtool.utils.pagination import Page
 
 

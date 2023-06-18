@@ -13,11 +13,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import pandas as pd
 import pytest
 
 from mvtool.models.common import ETagMixin
-from mvtool.tables.common import (
+from mvtool.tables.columns import (
     Cell,
     Column,
     ColumnGroup,
@@ -25,6 +24,7 @@ from mvtool.tables.common import (
     MissingColumnsError,
     RowValidationError,
 )
+from mvtool.tables.dataframe import DataFrame
 
 
 class NestedModel(ETagMixin):
@@ -128,25 +128,24 @@ def test_column_group_export_to_dataframe(column_group: ColumnGroup):
         MainModel(field1="A", field2=1, nested=NestedModel(field3="C")),
         MainModel(field1="D", field2=3, nested=NestedModel(field3="F")),
     ]
+
     df = column_group.export_to_dataframe(objs)
-    expected_df = pd.DataFrame(
-        {
-            "Group Field 1": ["A", "D"],
-            "Group Field 2": [1, 3],
-            "Nested Field 3": ["C", "F"],
-        }
-    )
-    pd.testing.assert_frame_equal(df, expected_df)
+    expected_df_data = {
+        "Group Field 1": ["A", "D"],
+        "Group Field 2": [1, 3],
+        "Nested Field 3": ["C", "F"],
+    }
+    assert df.data == expected_df_data
 
 
 def test_column_group_import_from_dataframe(column_group: ColumnGroup):
-    df = pd.DataFrame(
-        {
-            "Group Field 1": ["A", "D"],
-            "Group Field 2": [1, 3],
-            "Nested Field 3": ["C", "F"],
-        }
-    )
+    df = DataFrame()
+    df.data = {
+        "Group Field 1": ["A", "D"],
+        "Group Field 2": [1, 3],
+        "Nested Field 3": ["C", "F"],
+    }
+
     imported_objs: list[MainModel] = list(column_group.import_from_dataframe(df))
     assert len(imported_objs) == 2
     assert imported_objs[0].field1 == "A"

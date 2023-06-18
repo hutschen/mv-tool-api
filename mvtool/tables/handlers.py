@@ -17,12 +17,12 @@
 
 from typing import Callable
 
-import pandas as pd
 from fastapi import Depends, HTTPException, Query
 
 from ..auth import get_jira
 from ..utils.temp_file import copy_upload_to_temp_file
-from .common import ColumnGroup
+from .columns import ColumnGroup
+from .dataframe import DataFrame, read_excel
 
 
 def hide_columns(get_columns: Callable) -> Callable:
@@ -46,28 +46,6 @@ def get_export_labels_handler(get_columns: Callable) -> Callable:
     return handler
 
 
-def get_uploaded_dataframe(
-    temp_file=Depends(copy_upload_to_temp_file),
-    skip_duplicates: bool = False,
-) -> pd.DataFrame:
-    # Default list of na_values of pandas without 'N/A'
-    na_values = [
-        # fmt: off
-        "", "#N/A", "#N/A N/A", "#NA", "-1.#IND", "-1.#QNAN", "-NaN", "-nan",
-        "1.#IND", "1.#QNAN", "<NA>", "NA", "NULL", "NaN", "None", "n/a", "nan", "null"
-        # fmt: on
-    ]
-
-    try:
-        df = pd.read_excel(
-            temp_file, engine="openpyxl", keep_default_na=False, na_values=na_values
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid file. Only Excel files are supported: " + str(e),
-        )
-
-    if skip_duplicates:
-        df.drop_duplicates(keep="last", inplace=True)
-    return df
+def get_uploaded_dataframe(temp_file=Depends(copy_upload_to_temp_file)) -> DataFrame:
+    # TODO: Any other data formats can also be converted into a data frame here.
+    return read_excel(temp_file)

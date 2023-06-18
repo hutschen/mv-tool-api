@@ -19,7 +19,9 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import auth, database, migration, tables
+from .db import database
+
+from . import auth, migration, tables
 from .handlers import (
     jira_,
     projects,
@@ -62,12 +64,12 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup():
     migration.migrate(config.database)
-    database.setup_engine(config.database)
+    database.setup_connection(config.database)
 
 
 @app.on_event("shutdown")
 def on_shutdown():
-    database.dispose_engine()
+    database.dispose_connection()
 
 
 def serve():

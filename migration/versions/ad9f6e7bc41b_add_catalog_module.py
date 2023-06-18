@@ -7,7 +7,6 @@ Create Date: 2022-10-07 18:52:49.753172
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlmodel.sql.sqltypes import AutoString
 
 
 # revision identifiers, used by Alembic.
@@ -24,10 +23,10 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("created", sa.DateTime(), nullable=False),
         sa.Column("updated", sa.DateTime(), nullable=False),
-        sa.Column("reference", AutoString(), nullable=True),
-        sa.Column("title", AutoString(), nullable=False),
-        sa.Column("description", AutoString(), nullable=True),
-        sa.Column("gs_reference", AutoString(), nullable=True),
+        sa.Column("reference", sa.String(), nullable=True),
+        sa.Column("title", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=True),
+        sa.Column("gs_reference", sa.String(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
 

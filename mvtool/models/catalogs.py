@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2023 Helmar Hutschenreuter
 #
@@ -15,14 +15,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from pydantic import BaseModel
 
-from sqlmodel import Relationship, SQLModel
-
-from .catalog_modules import CatalogModule
-from .common import CommonFieldsMixin, ETagMixin
+from .common import ETagMixin
 
 
-class CatalogInput(SQLModel):
+class CatalogInput(BaseModel):
     reference: str | None
     title: str
     description: str | None
@@ -32,19 +30,17 @@ class CatalogImport(ETagMixin, CatalogInput):
     id: int | None = None
 
 
-class Catalog(CatalogInput, CommonFieldsMixin, table=True):
-    __tablename__ = "catalog"
-    catalog_modules: list[CatalogModule] = Relationship(
-        back_populates="catalog",
-        sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"},
-    )
+class CatalogRepresentation(BaseModel):
+    class Config:
+        orm_mode = True
 
-
-class CatalogRepresentation(SQLModel):
     id: int
     reference: str | None
     title: str
 
 
 class CatalogOutput(CatalogInput):
+    class Config:
+        orm_mode = True
+
     id: int

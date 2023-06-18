@@ -20,16 +20,15 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import constr
-from sqlmodel import Column
+from sqlalchemy import Column
 
 from ..data.documents import Documents
 from ..models.documents import (
-    Document,
     DocumentInput,
     DocumentOutput,
     DocumentRepresentation,
 )
-from ..models.projects import Project
+from ..db.schema import Document, Project
 from ..utils.filtering import (
     filter_by_pattern_many,
     filter_by_values_many,

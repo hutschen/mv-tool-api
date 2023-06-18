@@ -18,15 +18,16 @@
 from typing import Any, Iterable, Iterator
 
 from fastapi import Depends
-from sqlmodel import Column, Session, func, select
-from sqlmodel.sql.expression import Select
+from sqlalchemy import Column, func
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import Select, select
 
-from ..database import delete_from_db, get_session, read_from_db
-from ..models.catalog_modules import CatalogModule
-from ..models.catalog_requirements import CatalogRequirement
-from ..models.catalogs import Catalog
-from ..models.projects import Project
-from ..models.requirements import Requirement, RequirementImport, RequirementInput
+from ..db.database import delete_from_db, get_session, read_from_db
+from ..db.schema import CatalogModule, Requirement
+from ..db.schema import CatalogRequirement
+from ..db.schema import Catalog
+from ..db.schema import Project
+from ..models.requirements import RequirementImport, RequirementInput
 from ..utils.errors import NotFoundError
 from ..utils.etag_map import get_from_etag_map
 from ..utils.fallback import fallback
@@ -90,7 +91,7 @@ class Requirements:
         )
 
         # execute query, set jira_project and return requirements
-        requirements = self._session.exec(query).all()
+        requirements = self._session.execute(query).scalars().all()
         if query_jira:
             for requirement in requirements:
                 self._set_jira_project(requirement)
@@ -98,7 +99,7 @@ class Requirements:
 
     def count_requirements(self, where_clauses: Any = None) -> int:
         query = self._modify_requirements_query(
-            select([func.count()]).select_from(Requirement), where_clauses
+            select(func.count()).select_from(Requirement), where_clauses
         )
         return self._session.execute(query).scalar()
 
@@ -110,18 +111,18 @@ class Requirements:
         limit: int | None = None,
     ) -> list[Any]:
         query = self._modify_requirements_query(
-            select([func.distinct(column)]).select_from(Requirement),
+            select(func.distinct(column)).select_from(Requirement),
             [filter_for_existence(column), *(where_clauses or [])],
             offset=offset,
             limit=limit,
         )
-        return self._session.exec(query).all()
+        return self._session.execute(query).scalars().all()
 
     def count_requirement_values(
         self, column: Column, where_clauses: Any = None
     ) -> int:
         query = self._modify_requirements_query(
-            select([func.count(func.distinct(column))]).select_from(Requirement),
+            select(func.count(func.distinct(column))).select_from(Requirement),
             [filter_for_existence(column), *(where_clauses or [])],
         )
         return self._session.execute(query).scalar()
@@ -135,6 +136,7 @@ class Requirements:
         requirement = Requirement(
             **creation.dict(exclude={"id", "project", "catalog_requirement"})
         )
+        self._session.add(requirement)
         requirement.project = project
 
         # check catalog_requirement_id and set catalog_requirement
@@ -145,7 +147,6 @@ class Requirements:
                 )
             )
 
-        self._session.add(requirement)
         if not skip_flush:
             self._session.flush()
         return requirement

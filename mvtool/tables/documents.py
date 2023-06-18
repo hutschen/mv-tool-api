@@ -15,18 +15,19 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
-from sqlmodel import Session
+from sqlalchemy.orm import Session
 
-from ..database import get_session
-from ..models.documents import Document, DocumentImport, DocumentOutput
-from ..utils.temp_file import get_temp_file
+from ..db.schema import Document
+
+from ..db.database import get_session
 from ..handlers.documents import Documents, get_document_filters, get_document_sort
 from ..handlers.projects import Projects
-from .common import Column, ColumnGroup
+from ..models.documents import DocumentImport, DocumentOutput
+from ..utils.temp_file import get_temp_file
+from .columns import Column, ColumnGroup
+from .dataframe import DataFrame, write_excel
 from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
 from .projects import get_project_columns
 
@@ -74,8 +75,7 @@ def download_documents_excel(
     filename="documents.xlsx",
 ) -> FileResponse:
     documents = documents_view.list_documents(where_clauses, sort_clauses)
-    df = columns.export_to_dataframe(documents)
-    df.to_excel(temp_file, sheet_name=sheet_name, index=False, engine="openpyxl")
+    write_excel(columns.export_to_dataframe(documents), temp_file, sheet_name)
     return FileResponse(temp_file.name, filename=filename)
 
 
@@ -85,7 +85,7 @@ def upload_documents_excel(
     projects_view: Projects = Depends(),
     documents_view: Documents = Depends(),
     columns: ColumnGroup = Depends(get_document_columns),
-    df: pd.DataFrame = Depends(get_uploaded_dataframe),
+    df: DataFrame = Depends(get_uploaded_dataframe),
     skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
     session: Session = Depends(get_session),
@@ -97,7 +97,7 @@ def upload_documents_excel(
     )
 
     # Import data frame into database
-    document_imports = columns.import_from_dataframe(df, skip_nan=skip_blanks)
+    document_imports = columns.import_from_dataframe(df, skip_none=skip_blanks)
     documents = list(
         documents_view.bulk_create_update_documents(
             document_imports, fallback_project, patch=True, skip_flush=dry_run

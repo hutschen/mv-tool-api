@@ -17,7 +17,7 @@
 
 
 from ..models import JiraIssue, JiraIssueImport, JiraProject, JiraProjectImport
-from .common import Column, ColumnGroup
+from .columns import Column, ColumnGroup
 
 
 def get_jira_project_columns() -> ColumnGroup[JiraProjectImport, JiraProject]:

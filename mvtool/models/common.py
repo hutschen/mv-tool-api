@@ -15,21 +15,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from datetime import datetime
 from hashlib import md5
 from typing import Any
 
 from pydantic import BaseModel, constr, validator
-from sqlmodel import Field, SQLModel
-
-
-class CommonFieldsMixin(SQLModel):
-    id: int = Field(default=None, primary_key=True)
-    created: datetime = Field(default_factory=datetime.utcnow)
-    updated: datetime = Field(
-        default_factory=datetime.utcnow,
-        sa_column_kwargs=dict(onupdate=datetime.utcnow),
-    )
 
 
 class ETagMixin(BaseModel):
@@ -42,7 +31,7 @@ class ETagMixin(BaseModel):
         return isinstance(other, self.__class__) and self.etag == other.etag
 
 
-class AbstractComplianceInput(SQLModel):
+class AbstractComplianceInput(BaseModel):
     compliance_status: constr(regex=r"^(C|PC|NC|N/A)$") | None
     compliance_comment: str | None
 

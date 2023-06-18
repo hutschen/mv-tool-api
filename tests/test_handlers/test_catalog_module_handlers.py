@@ -21,7 +21,7 @@ from unittest.mock import Mock
 
 import pytest
 from fastapi import HTTPException, UploadFile
-from sqlmodel import Session
+from sqlalchemy.orm import Session
 
 from mvtool.data.catalog_modules import CatalogModules
 from mvtool.data.catalogs import Catalogs
@@ -38,12 +38,11 @@ from mvtool.handlers.catalog_modules import (
     upload_gs_baustein,
 )
 from mvtool.models.catalog_modules import (
-    CatalogModule,
     CatalogModuleInput,
     CatalogModuleOutput,
     CatalogModuleRepresentation,
 )
-from mvtool.models.catalogs import Catalog
+from mvtool.db.schema import Catalog, CatalogModule
 from mvtool.utils.pagination import Page
 
 

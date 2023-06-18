@@ -18,16 +18,16 @@
 from typing import Any, Iterable, Iterator
 
 from fastapi import Depends
-from sqlmodel import Column, Session, func, select
-from sqlmodel.sql.expression import Select
+from sqlalchemy import Column, func
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import Select, select
 
-from ..database import delete_from_db, get_session, read_from_db
+from ..db.database import delete_from_db, get_session, read_from_db
 from ..models.catalog_modules import (
-    CatalogModule,
     CatalogModuleImport,
     CatalogModuleInput,
 )
-from ..models.catalogs import Catalog
+from ..db.schema import Catalog, CatalogModule
 from ..utils.errors import NotFoundError
 from ..utils.etag_map import get_from_etag_map
 from ..utils.fallback import fallback
@@ -79,11 +79,11 @@ class CatalogModules:
             offset,
             limit,
         )
-        return self._session.exec(query).all()
+        return self._session.execute(query).scalars().all()
 
     def count_catalog_modules(self, where_clauses: Any = None) -> int:
         query = self._modify_catalog_modules_query(
-            select([func.count()]).select_from(CatalogModule),
+            select(func.count()).select_from(CatalogModule),
             where_clauses,
         )
         return self._session.execute(query).scalar()
@@ -96,18 +96,18 @@ class CatalogModules:
         limit: int | None = None,
     ) -> list[Any]:
         query = self._modify_catalog_modules_query(
-            select([func.distinct(column)]).select_from(CatalogModule),
+            select(func.distinct(column)).select_from(CatalogModule),
             [filter_for_existence(column), *(where_clauses or [])],
             offset=offset,
             limit=limit,
         )
-        return self._session.exec(query).all()
+        return self._session.execute(query).scalars().all()
 
     def count_catalog_module_values(
         self, column: Column, where_clauses: list[Any] | None = None
     ) -> int:
         query = self._modify_catalog_modules_query(
-            select([func.count(func.distinct(column))]).select_from(CatalogModule),
+            select(func.count(func.distinct(column))).select_from(CatalogModule),
             [filter_for_existence(column), *(where_clauses or [])],
         )
         return self._session.execute(query).scalar()
@@ -119,8 +119,8 @@ class CatalogModules:
         skip_flush: bool = False,
     ) -> CatalogModule:
         catalog_module = CatalogModule(**creation.dict(exclude={"id", "catalog"}))
-        catalog_module.catalog = catalog
         self._session.add(catalog_module)
+        catalog_module.catalog = catalog
         if not skip_flush:
             self._session.flush()
         return catalog_module

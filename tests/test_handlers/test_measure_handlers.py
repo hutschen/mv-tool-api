@@ -31,17 +31,16 @@ from mvtool.handlers.measures import (
     get_measures,
     update_measure,
 )
-from mvtool.models.catalog_requirements import CatalogRequirement
-from mvtool.models.documents import Document
+from mvtool.db.schema import CatalogRequirement, Measure, Requirement
+from mvtool.db.schema import Document
 
 from mvtool.models.measures import (
-    Measure,
     MeasureInput,
     MeasureOutput,
     MeasureRepresentation,
 )
-from mvtool.models.projects import Project
-from mvtool.models.requirements import Requirement, RequirementInput
+from mvtool.db.schema import Project
+from mvtool.models.requirements import RequirementInput
 from mvtool.utils.pagination import Page
 
 

@@ -18,12 +18,15 @@
 from typing import Any, Iterable, Iterator
 
 from fastapi import Depends
-from sqlmodel import Column, Session, func, select
-from sqlmodel.sql.expression import Select
+from sqlalchemy import Column, func
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import Select, select
+
+from ..db.schema import Catalog
 
 from ..auth import get_jira
-from ..database import delete_from_db, get_session, read_from_db
-from ..models.catalogs import Catalog, CatalogImport, CatalogInput
+from ..db.database import delete_from_db, get_session, read_from_db
+from ..models.catalogs import CatalogImport, CatalogInput
 from ..utils.errors import NotFoundError
 from ..utils.filtering import filter_for_existence
 from ..utils.iteration import CachedIterable
@@ -70,11 +73,11 @@ class Catalogs:
             offset,
             limit,
         )
-        return self._session.exec(query).all()
+        return self._session.execute(query).scalars().all()
 
     def count_catalogs(self, where_clauses: list[Any] | None = None) -> int:
         query = self._modify_catalogs_query(
-            select([func.count()]).select_from(Catalog), where_clauses
+            select(func.count()).select_from(Catalog), where_clauses
         )
         return self._session.execute(query).scalar()
 
@@ -86,18 +89,18 @@ class Catalogs:
         limit: int | None = None,
     ) -> list[Any]:
         query = self._modify_catalogs_query(
-            select([func.distinct(column)]).select_from(Catalog),
+            select(func.distinct(column)).select_from(Catalog),
             [filter_for_existence(column), *(where_clauses or [])],
             offset=offset,
             limit=limit,
         )
-        return self._session.exec(query).all()
+        return self._session.execute(query).scalars().all()
 
     def count_catalog_values(
         self, column: Column, where_clauses: list[Any] | None = None
     ) -> int:
         query = self._modify_catalogs_query(
-            select([func.count(func.distinct(column))]).select_from(Catalog),
+            select(func.count(func.distinct(column))).select_from(Catalog),
             [filter_for_existence(column), *(where_clauses or [])],
         )
         return self._session.execute(query).scalar()

@@ -15,22 +15,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import (
-    Any,
-    Collection,
-    Generator,
-    Generic,
-    Iterable,
-    Iterator,
-    NamedTuple,
-    TypeVar,
-)
+from typing import Collection, Generator, Generic, Iterable, Iterator, TypeVar
 
-import pandas as pd
 from pydantic import BaseModel, ValidationError
 
 from ..utils.errors import ValueHttpError
 from ..utils.iteration import CachedIterable
+from .dataframe import Cell, DataFrame
 
 E = TypeVar("E", bound=BaseModel)  # Export model
 I = TypeVar("I", bound=BaseModel)  # Import model
@@ -78,18 +69,6 @@ class RowValidationError(ValueHttpError):
                 messages.append(message)
 
         super().__init__(messages)
-
-
-class Cell(NamedTuple):
-    """Represents a cell in a table.
-
-    Attributes:
-        label (str): The label of the cell.
-        value (Any): The value of the cell.
-    """
-
-    label: str
-    value: Any
 
 
 class Column:
@@ -269,7 +248,7 @@ class ColumnGroup(Generic[I, E]):
                 if value is not None and value != "":
                     yield Cell(f"{self.label} {column.label}", value)
 
-    def export_to_dataframe(self, objs: Iterable[E]) -> pd.DataFrame:
+    def export_to_dataframe(self, objs: Iterable[E]) -> DataFrame:
         """Export a collection of objects to a Pandas DataFrame using the export columns of the column group.
 
         Args:
@@ -278,8 +257,8 @@ class ColumnGroup(Generic[I, E]):
         Returns:
             pd.DataFrame: A Pandas DataFrame containing the exported data.
         """
-        df = pd.DataFrame(dict(self.export_to_row(o)) for o in objs)
-        ordered_labels = [l for l in self.export_labels if l in df.columns.to_list()]
+        df = DataFrame(self.export_to_row(o) for o in objs)
+        ordered_labels = [l for l in self.export_labels if l in df.column_names]
         return df[ordered_labels]
 
     def import_from_row(self, row: Iterable[Cell]) -> I | None:
@@ -348,7 +327,7 @@ class ColumnGroup(Generic[I, E]):
         except ValidationError as e:
             raise RowValidationError(self, e)
 
-    def import_from_dataframe(self, df: pd.DataFrame, skip_nan=True) -> Iterator[I]:
+    def import_from_dataframe(self, df: DataFrame, skip_none=True) -> Iterator[I]:
         """Import data from a Pandas DataFrame using the import columns of the column
         group and create instances of the import model.
 
@@ -359,12 +338,7 @@ class ColumnGroup(Generic[I, E]):
         Returns:
             Iterator[I]: An iterator of instances of the import model.
         """
-        lables = df.columns.to_list()
-        for values in df.itertuples(index=False):
-            l_v = zip(lables, values)
-            if skip_nan:
-                row = (Cell(l, v) for l, v in l_v if not pd.isna(v))
-            else:
-                row = (Cell(l, (None if pd.isna(v) else v)) for l, v in l_v)
-
+        for row in df:
+            if skip_none:
+                row = (cell for cell in row if cell.value is not None)
             yield self.import_from_row(row)

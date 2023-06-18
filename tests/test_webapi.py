@@ -16,23 +16,19 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import pytest
-from jira import JIRAError
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
+from jira import JIRAError
+
 from mvtool import app
 from mvtool.auth import get_jira
-from mvtool.database import get_session
-from mvtool.models import (
-    CatalogRequirement,
-    Document,
-    Project,
-    CatalogModule,
-    Requirement,
-)
+from mvtool.db.database import get_session
+from mvtool.db.schema import CatalogRequirement, Project, Requirement
+from mvtool.db.schema import Document
 
 
 @pytest.fixture
-def client(jira, crud):
+def client(jira, session):
     def get_jira_override():
         try:
             yield jira
@@ -44,7 +40,7 @@ def client(jira, crud):
     app.router.on_shutdown = []
 
     with TestClient(app) as client:
-        app.dependency_overrides[get_session] = lambda: crud.session
+        app.dependency_overrides[get_session] = lambda: session
         app.dependency_overrides[get_jira] = get_jira_override
         yield client
 

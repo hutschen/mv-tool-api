@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2023 Helmar Hutschenreuter
 #
@@ -18,14 +18,13 @@
 
 from typing import TYPE_CHECKING
 
-from pydantic import constr
-from sqlmodel import Field, Relationship, SQLModel
+from pydantic import BaseModel, constr
 
-from .common import CommonFieldsMixin, ETagMixin
-from .requirements import AbstractRequirementInput, Requirement
+from .common import ETagMixin
+from .requirements import AbstractRequirementInput
 
 if TYPE_CHECKING:
-    from .catalog_modules import CatalogModule, CatalogModuleImport, CatalogModuleOutput
+    from .catalog_modules import CatalogModuleImport, CatalogModuleOutput
 
 
 class CatalogRequirementInput(AbstractRequirementInput):
@@ -39,23 +38,19 @@ class CatalogRequirementImport(ETagMixin, CatalogRequirementInput):
     catalog_module: "CatalogModuleImport | None" = None
 
 
-class CatalogRequirement(CatalogRequirementInput, CommonFieldsMixin, table=True):
-    __tablename__ = "catalog_requirement"
-    catalog_module_id: int | None = Field(default=None, foreign_key="catalog_module.id")
-    catalog_module: "CatalogModule" = Relationship(
-        back_populates="catalog_requirements",
-        sa_relationship_kwargs=dict(lazy="joined"),
-    )
-    requirements: list[Requirement] = Relationship(back_populates="catalog_requirement")
+class CatalogRequirementRepresentation(BaseModel):
+    class Config:
+        orm_mode = True
 
-
-class CatalogRequirementRepresentation(SQLModel):
     id: int
     reference: str | None
     summary: str
 
 
 class CatalogRequirementOutput(CatalogRequirementInput):
+    class Config:
+        orm_mode = True
+
     id: int
     catalog_module: "CatalogModuleOutput"
 

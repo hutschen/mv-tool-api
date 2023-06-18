@@ -19,15 +19,14 @@ from typing import Any, Callable
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import constr
-from sqlmodel import Column
+from sqlalchemy import Column
 
 from ..data.requirements import Requirements
-from ..models.catalog_modules import CatalogModule
-from ..models.catalog_requirements import CatalogRequirement
-from ..models.catalogs import Catalog
-from ..models.projects import Project
+from ..db.schema import CatalogModule, Requirement
+from ..db.schema import CatalogRequirement
+from ..db.schema import Catalog
+from ..db.schema import Project
 from ..models.requirements import (
-    Requirement,
     RequirementInput,
     RequirementOutput,
     RequirementRepresentation,

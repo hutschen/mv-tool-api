@@ -8,15 +8,13 @@ fastapi = {extras = ["all"], version = "*"}
 pydantic = "*"
 jira = "*"
 pyyaml = "*"
-sqlalchemy = "*"
-sqlmodel = "*"
+sqlalchemy = "~=1.4.0"
 cachetools = "*"
 openpyxl = "*"
 python-multipart = "*"
 python-docx = "*"
 alembic = "*"
 cryptography = "*"
-pandas = "*"
 
 [dev-packages]
 pytest = "*"

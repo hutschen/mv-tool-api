@@ -21,18 +21,18 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
 from pydantic import constr
-from sqlmodel import Column, Session
+from sqlalchemy import Column
+from sqlalchemy.orm import Session
 
 from ..data.catalog_modules import CatalogModules
-from ..database import get_session
+from ..db.database import get_session
 from ..gs_parser import GSBausteinParser
 from ..models.catalog_modules import (
-    CatalogModule,
     CatalogModuleInput,
     CatalogModuleOutput,
     CatalogModuleRepresentation,
 )
-from ..models.catalogs import Catalog
+from ..db.schema import Catalog, CatalogModule
 from ..utils.errors import ValueHttpError
 from ..utils.filtering import (
     filter_by_pattern_many,
@@ -289,7 +289,7 @@ def get_catalog_module_references(
 @router.post(
     "/catalogs/{catalog_id}/catalog-modules/gs-baustein",
     status_code=201,
-    response_model=CatalogModule,
+    response_model=CatalogModuleOutput,
 )
 def upload_gs_baustein(
     catalog_id: int,
@@ -307,7 +307,7 @@ def upload_gs_baustein(
         raise ValueHttpError("Could not parse GS Baustein")
 
     # Assign catalog and save catalog module to database
-    catalog_module.catalog = catalog
     session.add(catalog_module)
+    catalog_module.catalog = catalog
     session.flush()
     return catalog_module

@@ -17,26 +17,27 @@
 
 from tempfile import NamedTemporaryFile
 
-import pandas as pd
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
-from sqlmodel import Session
+from sqlalchemy.orm import Session
 
-from ..database import get_session
-from ..models.catalog_requirements import (
-    CatalogRequirement,
-    CatalogRequirementImport,
-    CatalogRequirementOutput,
-)
-from ..utils.temp_file import get_temp_file
+from ..db.schema import CatalogRequirement
+
+from ..db.database import get_session
 from ..handlers.catalog_modules import CatalogModules
 from ..handlers.catalog_requirements import (
     CatalogRequirements,
     get_catalog_requirement_filters,
     get_catalog_requirement_sort,
 )
+from ..models.catalog_requirements import (
+    CatalogRequirementImport,
+    CatalogRequirementOutput,
+)
+from ..utils.temp_file import get_temp_file
 from .catalog_modules import get_catalog_module_columns
-from .common import Column, ColumnGroup
+from .columns import Column, ColumnGroup
+from .dataframe import DataFrame, write_excel
 from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
 
 
@@ -83,8 +84,9 @@ def download_catalog_requirements_excel(
     catalog_requirements = catalog_requirements_view.list_catalog_requirements(
         where_clauses, sort_clauses
     )
-    df = columns.export_to_dataframe(catalog_requirements)
-    df.to_excel(temp_file.file, sheet_name=sheet_name, index=False)
+    write_excel(
+        columns.export_to_dataframe(catalog_requirements), temp_file, sheet_name
+    )
     return FileResponse(temp_file.name, filename=filename)
 
 
@@ -98,7 +100,7 @@ def upload_catalog_requirements_excel(
     catalog_modules_view: CatalogModules = Depends(),
     catalog_requirements_view: CatalogRequirements = Depends(),
     columns: ColumnGroup = Depends(get_catalog_requirement_columns),
-    df: pd.DataFrame = Depends(get_uploaded_dataframe),
+    df: DataFrame = Depends(get_uploaded_dataframe),
     skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
     session: Session = Depends(get_session),
@@ -111,7 +113,7 @@ def upload_catalog_requirements_excel(
 
     # Import data frame into database
     catalog_requirement_imports = columns.import_from_dataframe(
-        df, skip_nan=skip_blanks
+        df, skip_none=skip_blanks
     )
     catalog_requirements = list(
         catalog_requirements_view.bulk_create_update_catalog_requirements(

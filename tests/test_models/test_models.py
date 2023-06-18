@@ -16,87 +16,91 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import pytest
-from mvtool.database import CRUDOperations
-from mvtool.models import (
+from sqlalchemy.orm import Session
+
+from mvtool.db.database import create_in_db, delete_from_db
+from mvtool.db.schema import (
+    CatalogModule,
     CatalogRequirement,
     Document,
-    CatalogModule,
-    Measure,
     Project,
     Requirement,
 )
+from mvtool.db.schema import (
+    Measure,
+)
 
 
-def test_delete_requirements_of_project(crud: CRUDOperations):
+def test_delete_requirements_of_project(session: Session):
     project = Project(name="test")
     project.requirements = [Requirement(summary="test")]
-    crud.create_in_db(project)
-    crud.session.commit()
+    project = create_in_db(session, project)
+    session.commit()
 
-    crud.delete_from_db(Project, project.id)
-    crud.session.commit()
+    delete_from_db(session, project)
+    session.commit()
 
-    assert crud.session.query(Project).count() == 0
-    assert crud.session.query(Requirement).count() == 0
+    assert session.query(Project).count() == 0
+    assert session.query(Requirement).count() == 0
 
 
-def test_delete_documents_of_project(crud: CRUDOperations):
+def test_delete_documents_of_project(session: Session):
     project = Project(name="test")
     project.documents = [Document(title="test")]
-    crud.create_in_db(project)
-    crud.session.commit()
+    project = create_in_db(session, project)
+    session.commit()
 
-    crud.delete_from_db(Project, project.id)
-    crud.session.commit()
+    delete_from_db(session, project)
+    session.commit()
 
-    assert crud.session.query(Project).count() == 0
-    assert crud.session.query(Document).count() == 0
+    assert session.query(Project).count() == 0
+    assert session.query(Document).count() == 0
 
 
-def test_delete_measures_of_requirement(crud: CRUDOperations):
+def test_delete_measures_of_requirement(session: Session):
     requirement = Requirement(summary="test")
     requirement.measures = [Measure(summary="test")]
-    crud.create_in_db(requirement)
-    crud.session.commit()
+    requirement = create_in_db(session, requirement)
+    session.commit()
 
-    crud.delete_from_db(Requirement, requirement.id)
-    crud.session.commit()
+    delete_from_db(session, requirement)
+    session.commit()
 
-    assert crud.session.query(Requirement).count() == 0
-    assert crud.session.query(Measure).count() == 0
+    assert session.query(Requirement).count() == 0
+    assert session.query(Measure).count() == 0
 
 
-def test_keep_document_of_when_delete_measure(crud: CRUDOperations):
+def test_keep_document_of_when_delete_measure(session: Session):
     measure = Measure(summary="test")
     measure.document = Document(title="test")
-    crud.create_in_db(measure)
-    crud.session.commit()
+    measure = create_in_db(session, measure)
+    session.commit()
 
-    crud.delete_from_db(Measure, measure.id)
-    crud.session.commit()
+    delete_from_db(session, measure)
+    session.commit()
 
-    assert crud.session.query(Measure).count() == 0
-    assert crud.session.query(Document).count() == 1
+    assert session.query(Measure).count() == 0
+    assert session.query(Document).count() == 1
 
 
-def test_delete_catalog_requirements_of_catalog_module(crud: CRUDOperations):
+def test_delete_catalog_requirements_of_catalog_module(session: Session):
     catalog_module = CatalogModule(title="test")
     catalog_module.catalog_requirements = [CatalogRequirement(summary="test")]
-    crud.create_in_db(catalog_module)
-    crud.session.commit()
+    catalog_module = create_in_db(session, catalog_module)
+    session.commit()
 
-    crud.delete_from_db(CatalogModule, catalog_module.id)
-    crud.session.commit()
+    delete_from_db(session, catalog_module)
+    session.commit()
 
-    assert crud.session.query(CatalogModule).count() == 0
-    assert crud.session.query(CatalogRequirement).count() == 0
+    assert session.query(CatalogModule).count() == 0
+    assert session.query(CatalogRequirement).count() == 0
 
 
 @pytest.mark.parametrize("compliance_status", [None, "C", "PC", "NC", "N/A"])
-def test_requirement_compliance_status_hint(crud: CRUDOperations, compliance_status):
+def test_requirement_compliance_status_hint(session: Session, compliance_status):
     requirement = Requirement(summary="test", compliance_status=compliance_status)
-    crud.create_in_db(requirement)
-    crud.session.commit()
+    requirement = create_in_db(session, requirement)
+    session.commit()
 
     assert requirement.compliance_status_hint == None
 
@@ -115,13 +119,13 @@ def test_requirement_compliance_status_hint(crud: CRUDOperations, compliance_sta
     ],
 )
 def test_requirement_compliance_status_hint_with_measures(
-    crud: CRUDOperations, compliance_states, expected_hint
+    session: Session, compliance_states, expected_hint
 ):
     requirement = Requirement(summary="test")
     requirement.measures = [
         Measure(summary="test", compliance_status=c) for c in compliance_states
     ]
-    crud.create_in_db(requirement)
-    crud.session.commit()
+    create_in_db(session, requirement)
+    session.commit()
 
     assert requirement.compliance_status_hint == expected_hint

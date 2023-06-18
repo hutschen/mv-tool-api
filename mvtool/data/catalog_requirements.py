@@ -18,17 +18,17 @@
 from typing import Any, Iterable, Iterator
 
 from fastapi import Depends
-from sqlmodel import Column, Session, func, select
-from sqlmodel.sql.expression import Select
+from sqlalchemy import Column, func
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import Select, select
 
-from ..database import delete_from_db, get_session, read_from_db
-from ..models.catalog_modules import CatalogModule
+from ..db.database import delete_from_db, get_session, read_from_db
+from ..db.schema import CatalogModule, CatalogRequirement
 from ..models.catalog_requirements import (
-    CatalogRequirement,
     CatalogRequirementImport,
     CatalogRequirementInput,
 )
-from ..models.catalogs import Catalog
+from ..db.schema import Catalog
 from ..utils.errors import NotFoundError
 from ..utils.etag_map import get_from_etag_map
 from ..utils.fallback import fallback
@@ -80,11 +80,11 @@ class CatalogRequirements:
             offset,
             limit,
         )
-        return self._session.exec(query).all()
+        return self._session.execute(query).scalars().all()
 
     def count_catalog_requirements(self, where_clauses: list[Any] | None = None) -> int:
         query = self._modify_catalog_requirements_query(
-            select([func.count()]).select_from(CatalogRequirement),
+            select(func.count()).select_from(CatalogRequirement),
             where_clauses,
         )
         return self._session.execute(query).scalar()
@@ -97,18 +97,18 @@ class CatalogRequirements:
         limit: int | None = None,
     ) -> list[Any]:
         query = self._modify_catalog_requirements_query(
-            select([func.distinct(column)]).select_from(CatalogRequirement),
+            select(func.distinct(column)).select_from(CatalogRequirement),
             [filter_for_existence(column), *(where_clauses or [])],
             offset=offset,
             limit=limit,
         )
-        return self._session.exec(query).all()
+        return self._session.execute(query).scalars().all()
 
     def count_catalog_requirement_values(
         self, column: Column, where_clauses: list[Any] | None = None
     ) -> int:
         query = self._modify_catalog_requirements_query(
-            select([func.count(func.distinct(column))]).select_from(CatalogRequirement),
+            select(func.count(func.distinct(column))).select_from(CatalogRequirement),
             [filter_for_existence(column), *(where_clauses or [])],
         )
         return self._session.execute(query).scalar()
@@ -122,8 +122,8 @@ class CatalogRequirements:
         catalog_requirement = CatalogRequirement(
             **creation.dict(exclude={"id", "catalog_module"})
         )
-        catalog_requirement.catalog_module = catalog_module
         self._session.add(catalog_requirement)
+        catalog_requirement.catalog_module = catalog_module
         if not skip_flush:
             self._session.flush()
         return catalog_requirement

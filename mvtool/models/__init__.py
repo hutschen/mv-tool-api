@@ -15,31 +15,25 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from sqlmodel import SQLModel
-
 from .catalog_modules import (
-    CatalogModule,
     CatalogModuleImport,
     CatalogModuleInput,
     CatalogModuleOutput,
     CatalogModuleRepresentation,
 )
 from .catalog_requirements import (
-    CatalogRequirement,
     CatalogRequirementImport,
     CatalogRequirementInput,
     CatalogRequirementOutput,
     CatalogRequirementRepresentation,
 )
 from .catalogs import (
-    Catalog,
     CatalogImport,
     CatalogInput,
     CatalogOutput,
     CatalogRepresentation,
 )
 from .documents import (
-    Document,
     DocumentImport,
     DocumentInput,
     DocumentOutput,
@@ -57,14 +51,12 @@ from .jira_ import (
 )
 from .measures import (
     AbstractMeasureInput,
-    Measure,
     MeasureImport,
     MeasureInput,
     MeasureOutput,
     MeasureRepresentation,
 )
 from .projects import (
-    Project,
     ProjectImport,
     ProjectInput,
     ProjectOutput,
@@ -72,7 +64,6 @@ from .projects import (
 )
 from .requirements import (
     AbstractRequirementInput,
-    Requirement,
     RequirementImport,
     RequirementInput,
     RequirementOutput,
@@ -81,33 +72,29 @@ from .requirements import (
 
 # Update forward references for catalog module models
 CatalogModuleImport.update_forward_refs(CatalogImport=CatalogImport)
-CatalogModule.update_forward_refs(Catalog=Catalog)
 CatalogModuleOutput.update_forward_refs(CatalogOutput=CatalogOutput)
 
 # Update forward references for catalog requirement models
 CatalogRequirementImport.update_forward_refs(CatalogModuleImport=CatalogModuleImport)
-CatalogRequirement.update_forward_refs(CatalogModule=CatalogModule)
 CatalogRequirementOutput.update_forward_refs(CatalogModuleOutput=CatalogModuleOutput)
 
 # Update forward references for requirement models
 RequirementImport.update_forward_refs(
     CatalogRequirementImport=CatalogRequirementImport, ProjectImport=ProjectImport
 )
-Requirement.update_forward_refs(CatalogRequirement=CatalogRequirement)
 RequirementOutput.update_forward_refs(
     ProjectOutput=ProjectOutput, CatalogRequirementOutput=CatalogRequirementOutput
 )
 
 # Update forward references for document models
 DocumentImport.update_forward_refs(ProjectImport=ProjectImport)
-Document.update_forward_refs(Project=Project)
 DocumentOutput.update_forward_refs(ProjectOutput=ProjectOutput)
 
 # Update forward references for measure models
 MeasureImport.update_forward_refs(
     RequirementImport=RequirementImport, DocumentImport=DocumentImport
 )
-Measure.update_forward_refs(Requirement=Requirement, Document=Document)
+# Measure.update_forward_refs(Requirement=Requirement, Document=Document)
 MeasureOutput.update_forward_refs(
     RequirementOutput=RequirementOutput, DocumentOutput=DocumentOutput
 )

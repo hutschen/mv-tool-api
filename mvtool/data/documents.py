@@ -19,12 +19,13 @@
 from typing import Any, Iterable, Iterator
 
 from fastapi import Depends
-from sqlmodel import Column, Session, func, select
-from sqlmodel.sql.expression import Select
+from sqlalchemy import Column, func
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import Select, select
 
-from ..database import delete_from_db, get_session, read_from_db
-from ..models.documents import Document, DocumentImport, DocumentInput
-from ..models.projects import Project
+from ..db.database import delete_from_db, get_session, read_from_db
+from ..models.documents import DocumentImport, DocumentInput
+from ..db.schema import Document, Project
 from ..utils.errors import NotFoundError
 from ..utils.etag_map import get_from_etag_map
 from ..utils.fallback import fallback
@@ -80,7 +81,7 @@ class Documents:
         )
 
         # execute documents query
-        documents = self._session.exec(query).all()
+        documents = self._session.execute(query).scalars().all()
 
         # set jira project on the project related to each document
         if query_jira:
@@ -91,7 +92,7 @@ class Documents:
 
     def count_documents(self, where_clauses: Any = None) -> int:
         query = self._modify_documents_query(
-            select([func.count()]).select_from(Document), where_clauses
+            select(func.count()).select_from(Document), where_clauses
         )
         return self._session.execute(query).scalar()
 
@@ -103,18 +104,18 @@ class Documents:
         limit: int | None = None,
     ) -> list[Any]:
         query = self._modify_documents_query(
-            select([func.distinct(column)]).select_from(Document),
+            select(func.distinct(column)).select_from(Document),
             [filter_for_existence(column), *(where_clauses or [])],
             offset=offset,
             limit=limit,
         )
-        return self._session.exec(query).all()
+        return self._session.execute(query).scalars().all()
 
     def count_document_values(
         self, column: Column, where_clauses: list[Any] = None
     ) -> int:
         query = self._modify_documents_query(
-            select([func.count(func.distinct(column))]).select_from(Document),
+            select(func.count(func.distinct(column))).select_from(Document),
             [filter_for_existence(column), *(where_clauses or [])],
         )
         return self._session.execute(query).scalar()
@@ -126,9 +127,9 @@ class Documents:
         skip_flush: bool = False,
     ) -> Document:
         document = Document(**creation.dict(exclude={"id", "project"}))
+        self._session.add(document)
         document.project = project
 
-        self._session.add(document)
         if not skip_flush:
             self._session.flush()
         return document

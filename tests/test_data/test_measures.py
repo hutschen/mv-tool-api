@@ -15,19 +15,21 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 from unittest.mock import Mock
 
 import jira
 import pytest
-from sqlmodel import Session, desc, select
+from sqlalchemy import desc
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import select
 
 from mvtool.data.measures import Measures
+from mvtool.db.schema import Document, Measure, Requirement
 from mvtool.models.catalog_requirements import CatalogRequirementImport
-from mvtool.models.documents import Document, DocumentImport
+from mvtool.models.documents import DocumentImport
 from mvtool.models.jira_ import JiraIssue, JiraIssueImport
-from mvtool.models.measures import Measure, MeasureImport, MeasureInput
-from mvtool.models.requirements import Requirement, RequirementImport
+from mvtool.models.measures import MeasureImport, MeasureInput
+from mvtool.models.requirements import RequirementImport
 from mvtool.utils.errors import NotFoundError, ValueHttpError
 
 
@@ -46,7 +48,7 @@ def test_modify_measures_query_where_clause(
     # Test filtering with a single where clause
     where_clauses = [Measure.reference == "banana"]
     query = measures._modify_measures_query(select(Measure), where_clauses)
-    results: list[Measure] = session.exec(query).all()
+    results: list[Measure] = session.execute(query).scalars().all()
     assert len(results) == 1
     assert results[0].reference == "banana"
 
@@ -68,7 +70,7 @@ def test_modify_measures_query_order_by(
     query = measures._modify_measures_query(
         select(Measure), order_by_clauses=order_by_clauses
     )
-    results = session.exec(query).all()
+    results = session.execute(query).scalars().all()
     assert [r.reference for r in results] == ["cherry", "banana", "apple"]
 
 
@@ -86,7 +88,7 @@ def test_modify_measures_query_offset(
 
     # Test offset
     query = measures._modify_measures_query(select(Measure), offset=2)
-    results = session.exec(query).all()
+    results = session.execute(query).scalars().all()
     assert len(results) == 1
 
 
@@ -104,7 +106,7 @@ def test_modify_measures_query_limit(
 
     # Test limit
     query = measures._modify_measures_query(select(Measure), limit=1)
-    results = session.exec(query).all()
+    results = session.execute(query).scalars().all()
     assert len(results) == 1
 
 

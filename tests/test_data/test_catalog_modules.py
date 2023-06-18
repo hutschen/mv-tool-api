@@ -16,16 +16,19 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from unittest.mock import Mock
+
 import pytest
-from sqlmodel import Session, desc, select
+from sqlalchemy import desc
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import select
 
 from mvtool.data.catalog_modules import CatalogModules
+from mvtool.db.schema import Catalog, CatalogModule
 from mvtool.models.catalog_modules import (
-    CatalogModule,
     CatalogModuleImport,
     CatalogModuleInput,
 )
-from mvtool.models.catalogs import Catalog, CatalogImport
+from mvtool.models.catalogs import CatalogImport
 from mvtool.utils.errors import NotFoundError, ValueHttpError
 
 
@@ -46,7 +49,7 @@ def test_modify_catalog_modules_query_where_clause(
     query = catalog_modules._modify_catalog_modules_query(
         select(CatalogModule), where_clauses
     )
-    results: list[CatalogModule] = session.exec(query).all()
+    results: list[CatalogModule] = session.execute(query).scalars().all()
     assert len(results) == 1
     assert results[0].reference == "banana"
 
@@ -68,7 +71,7 @@ def test_modify_catalog_modules_query_order_by(
     query = catalog_modules._modify_catalog_modules_query(
         select(CatalogModule), order_by_clauses=order_by_clauses
     )
-    results = session.exec(query).all()
+    results: list[CatalogModule] = session.execute(query).scalars().all()
     assert [r.reference for r in results] == ["cherry", "banana", "apple"]
 
 
@@ -88,7 +91,7 @@ def test_modify_catalog_modules_query_offset(
     query = catalog_modules._modify_catalog_modules_query(
         select(CatalogModule), offset=2
     )
-    results = session.exec(query).all()
+    results: list[CatalogModule] = session.execute(query).scalars().all()
     assert len(results) == 1
 
 
@@ -108,7 +111,7 @@ def test_modify_catalog_modules_query_limit(
     query = catalog_modules._modify_catalog_modules_query(
         select(CatalogModule), limit=1
     )
-    results = session.exec(query).all()
+    results: list[CatalogModule] = session.execute(query).scalars().all()
     assert len(results) == 1
 
 
@@ -123,7 +126,7 @@ def test_list_catalog_modules(catalog_modules: CatalogModules, catalog: Catalog)
         catalog_modules.create_catalog_module(catalog, catalog_module_input)
 
     # Test listing catalog modules without any filters
-    results = catalog_modules.list_catalog_modules()
+    results: list[CatalogModule] = catalog_modules.list_catalog_modules()
     assert len(results) == len(catalog_module_inputs)
 
 
