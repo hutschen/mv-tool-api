@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import re
 from typing import IO, Any, Iterable, NamedTuple
 
 from openpyxl import Workbook, load_workbook
@@ -112,7 +113,11 @@ def write_excel(
 
     # Add table to worksheet
     if not is_empty:
-        table = Table(displayName=worksheet.title, ref=worksheet.calculate_dimension())
+        # Create table name from sheet name
+        table_name = worksheet.title.lower()
+        table_name = re.sub(r"[^a-z0-9]", "_", table_name)
+
+        table = Table(displayName=table_name, ref=worksheet.calculate_dimension())
         worksheet.add_table(table)
 
     workbook.save(file_obj)
