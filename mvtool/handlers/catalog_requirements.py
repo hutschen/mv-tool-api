@@ -245,6 +245,20 @@ def delete_catalog_requirement(
     catalog_requirements.delete_catalog_requirement(catalog_requirement)
 
 
+@router.delete("/catalog-requirements", status_code=204)
+def delete_catalog_requirements(
+    where_clauses=Depends(get_catalog_requirement_filters),
+    catalog_requirements: CatalogRequirements = Depends(),
+) -> None:
+    catalog_requirements_ = catalog_requirements.list_catalog_requirements(
+        where_clauses
+    )
+    for catalog_requirement in catalog_requirements_:
+        catalog_requirements.delete_catalog_requirement(
+            catalog_requirement, skip_flush=True
+        )
+
+
 @router.get(
     "/catalog-requirement/representations",
     response_model=Page[CatalogRequirementRepresentation]

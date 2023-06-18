@@ -282,6 +282,16 @@ def delete_requirement(
     requirements.delete_requirement(requirements.get_requirement(requirement_id))
 
 
+@router.delete("/requirements", status_code=204)
+def delete_requirements(
+    where_clauses=Depends(get_requirement_filters),
+    requirements: Requirements = Depends(Requirements),
+) -> None:
+    requirements_ = requirements.list_requirements(where_clauses)
+    for requirement in requirements_:
+        requirements.delete_requirement(requirement, skip_flush=True)
+
+
 @router.post(
     "/projects/{project_id}/requirements/import",
     status_code=201,

@@ -311,9 +311,18 @@ def update_measure(
     return measure
 
 
-@router.delete("/measures/{measure_id}", status_code=204, response_class=Response)
+@router.delete("/measures/{measure_id}", status_code=204)
 def delete_measure(measure_id: int, measures: Measures = Depends()):
     measures.delete_measure(measures.get_measure(measure_id))
+
+
+@router.delete("/measures", status_code=204)
+def delete_measures(
+    where_clauses=Depends(get_measure_filters), measures: Measures = Depends()
+) -> None:
+    measures_ = measures.list_measures(where_clauses)
+    for measure in measures_:
+        measures.delete_measure(measure, skip_flush=True)
 
 
 @router.get(
