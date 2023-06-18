@@ -25,10 +25,12 @@ from sqlalchemy.orm import Session
 
 from mvtool.data.catalog_modules import CatalogModules
 from mvtool.data.catalogs import Catalogs
+from mvtool.db.schema import Catalog, CatalogModule
 from mvtool.gs_parser import GSBausteinParser
 from mvtool.handlers.catalog_modules import (
     create_catalog_module,
     delete_catalog_module,
+    delete_catalog_modules,
     get_catalog_module,
     get_catalog_module_field_names,
     get_catalog_module_references,
@@ -42,7 +44,6 @@ from mvtool.models.catalog_modules import (
     CatalogModuleOutput,
     CatalogModuleRepresentation,
 )
-from mvtool.db.schema import Catalog, CatalogModule
 from mvtool.utils.pagination import Page
 
 
@@ -106,6 +107,32 @@ def test_delete_catalog_module(catalog_modules, catalog_module):
         get_catalog_module(catalog_module_id, catalog_modules)
     assert excinfo.value.status_code == 404
     assert "No CatalogModule with id" in excinfo.value.detail
+
+
+def test_delete_catalog_modules(session: Session, catalog_modules: CatalogModules):
+    # Create catalog modules
+    catalog = Catalog(title="catalog")
+
+    for catalog_module in [
+        CatalogModule(title="orange"),
+        CatalogModule(title="peach"),
+        CatalogModule(title="grape"),
+    ]:
+        session.add(catalog_module)
+        catalog_module.catalog = catalog
+    session.flush()
+
+    # Delete catalog modules
+    delete_catalog_modules(
+        [CatalogModule.title.in_(["orange", "peach"])],
+        catalog_modules,
+    )
+    session.flush()
+
+    # Check if catalog modules are deleted
+    results = catalog_modules.list_catalog_modules()
+    assert len(results) == 1
+    assert results[0].title == "grape"
 
 
 def test_get_catalog_module_representation_list(catalog_modules, catalog_module):

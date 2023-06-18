@@ -17,12 +17,14 @@
 
 import pytest
 from fastapi import HTTPException
+from sqlalchemy.orm import Session
 
 from mvtool.data.catalogs import Catalogs
 from mvtool.db.schema import Catalog
 from mvtool.handlers.catalogs import (
     create_catalog,
     delete_catalog,
+    delete_catalogs,
     get_catalog,
     get_catalog_field_names,
     get_catalog_references,
@@ -30,11 +32,7 @@ from mvtool.handlers.catalogs import (
     get_catalogs,
     update_catalog,
 )
-from mvtool.models.catalogs import (
-    CatalogInput,
-    CatalogOutput,
-    CatalogRepresentation,
-)
+from mvtool.models.catalogs import CatalogInput, CatalogOutput, CatalogRepresentation
 from mvtool.utils.pagination import Page
 
 
@@ -90,6 +88,29 @@ def test_delete_catalog(catalogs: Catalogs, catalog: Catalog):
         get_catalog(catalog_id, catalogs)
     assert excinfo.value.status_code == 404
     assert "No Catalog with id" in excinfo.value.detail
+
+
+def test_delete_catalogs(session: Session, catalogs: Catalogs):
+    # Create catalogs
+    for catalog in [
+        Catalog(title="apple"),
+        Catalog(title="banana"),
+        Catalog(title="cherry"),
+    ]:
+        session.add(catalog)
+    session.flush()
+
+    # Delete catalogs
+    delete_catalogs(
+        [Catalog.title.in_(["apple", "banana"])],
+        catalogs,
+    )
+    session.flush()
+
+    # Check if catalogs are deleted
+    results = catalogs.list_catalogs()
+    assert len(results) == 1
+    assert results[0].title == "cherry"
 
 
 def test_get_catalog_representations_list(catalogs: Catalogs, catalog: Catalog):
