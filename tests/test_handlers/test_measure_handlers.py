@@ -18,12 +18,15 @@
 import jira
 import pytest
 from fastapi import HTTPException
+from sqlalchemy.orm import Session
 
 from mvtool.data.measures import Measures
 from mvtool.data.requirements import Requirements
+from mvtool.db.schema import CatalogRequirement, Document, Measure, Project, Requirement
 from mvtool.handlers.measures import (
     create_measure,
     delete_measure,
+    delete_measures,
     get_measure,
     get_measure_field_names,
     get_measure_references,
@@ -31,15 +34,7 @@ from mvtool.handlers.measures import (
     get_measures,
     update_measure,
 )
-from mvtool.db.schema import CatalogRequirement, Measure, Requirement
-from mvtool.db.schema import Document
-
-from mvtool.models.measures import (
-    MeasureInput,
-    MeasureOutput,
-    MeasureRepresentation,
-)
-from mvtool.db.schema import Project
+from mvtool.models.measures import MeasureInput, MeasureOutput, MeasureRepresentation
 from mvtool.models.requirements import RequirementInput
 from mvtool.utils.pagination import Page
 
@@ -98,6 +93,32 @@ def test_delete_measure(measures: Measures, measure: Measure):
         get_measure(measure.id, measures)
     assert excinfo.value.status_code == 404
     assert "No Measure with id" in excinfo.value.detail
+
+
+def test_delete_measures(session: Session, measures: Measures):
+    # Create measures
+    requirement = Requirement(summary="requirement", project=Project(name="project"))
+
+    for measure in [
+        Measure(summary="apple"),
+        Measure(summary="banana"),
+        Measure(summary="cherry"),
+    ]:
+        session.add(measure)
+        measure.requirement = requirement
+    session.flush()
+
+    # Delete measures
+    delete_measures(
+        [Measure.summary.in_(["apple", "banana"])],
+        measures,
+    )
+    session.flush()
+
+    # Check if measures are deleted
+    results = measures.list_measures()
+    assert len(results) == 1
+    assert results[0].summary == "cherry"
 
 
 def test_get_measure_representations_list(measures: Measures, measure: Measure):

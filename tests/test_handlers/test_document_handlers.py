@@ -18,12 +18,15 @@
 
 import pytest
 from fastapi import HTTPException
+from sqlalchemy.orm import Session
 
 from mvtool.data.documents import Documents
 from mvtool.data.projects import Projects
+from mvtool.db.schema import Document, Project
 from mvtool.handlers.documents import (
     create_document,
     delete_document,
+    delete_documents,
     get_document,
     get_document_field_names,
     get_document_references,
@@ -36,7 +39,6 @@ from mvtool.models.documents import (
     DocumentOutput,
     DocumentRepresentation,
 )
-from mvtool.db.schema import Document, Project
 from mvtool.utils.pagination import Page
 
 
@@ -90,6 +92,32 @@ def test_delete_document(documents: Documents, document: Document):
         get_document(document.id, documents)
     assert excinfo.value.status_code == 404
     assert "No Document with id" in excinfo.value.detail
+
+
+def test_delete_documents(session: Session, documents: Documents):
+    # Create documents
+    project = Project(name="project")
+
+    for document in [
+        Document(title="apple"),
+        Document(title="banana"),
+        Document(title="cherry"),
+    ]:
+        session.add(document)
+        document.project = project
+        session.flush()
+
+    # Delete documents
+    delete_documents(
+        [Document.title.in_(["apple", "banana"])],
+        documents,
+    )
+    session.flush()
+
+    # Check if documents are deleted
+    results = documents.list_documents()
+    assert len(results) == 1
+    assert results[0].title == "cherry"
 
 
 def test_get_document_representations_list(documents: Documents, document: Document):

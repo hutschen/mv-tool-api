@@ -184,10 +184,20 @@ def update_document(
     return document
 
 
-@router.delete("/documents/{document_id}", status_code=204, response_class=Response)
+@router.delete("/documents/{document_id}", status_code=204)
 def delete_document(document_id: int, documents: Documents = Depends()) -> None:
     document = documents.get_document(document_id)
     documents.delete_document(document)
+
+
+@router.delete("/documents", status_code=204)
+def delete_documents(
+    where_clauses: list[Any] = Depends(get_document_filters),
+    documents: Documents = Depends(),
+) -> None:
+    documents_ = documents.list_documents(where_clauses)
+    for document in documents_:
+        documents.delete_document(document, skip_flush=True)
 
 
 @router.get(

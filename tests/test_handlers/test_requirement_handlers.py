@@ -17,14 +17,17 @@
 
 import pytest
 from fastapi import HTTPException
+from sqlalchemy.orm import Session
 
 from mvtool.data.catalog_requirements import CatalogRequirements
 from mvtool.data.projects import Projects
 from mvtool.data.requirements import Requirements
+from mvtool.db.schema import CatalogModule, CatalogRequirement, Project, Requirement
 from mvtool.handlers.requirements import (
     _create_requirement_field_values_handler,
     create_requirement,
     delete_requirement,
+    delete_requirements,
     get_requirement,
     get_requirement_field_names,
     get_requirement_representations,
@@ -32,9 +35,6 @@ from mvtool.handlers.requirements import (
     import_requirements_from_catalog_modules,
     update_requirement,
 )
-from mvtool.db.schema import CatalogModule, Requirement
-from mvtool.db.schema import CatalogRequirement
-from mvtool.db.schema import Project
 from mvtool.models.requirements import (
     RequirementInput,
     RequirementOutput,
@@ -107,6 +107,31 @@ def test_delete_requirement(requirements: Requirements, requirement: Requirement
         get_requirement(requirement_id, requirements)
     assert excinfo.value.status_code == 404
     assert "No Requirement with id" in excinfo.value.detail
+
+
+def test_delete_requirements(session: Session, requirements: Requirements):
+    # Create requirements
+    project = Project(name="project")
+    for requirement in [
+        Requirement(summary="apple"),
+        Requirement(summary="banana"),
+        Requirement(summary="cherry"),
+    ]:
+        session.add(requirement)
+        requirement.project = project
+    session.flush()
+
+    # Delete requirements
+    delete_requirements(
+        [Requirement.summary.in_(["apple", "banana"])],
+        requirements,
+    )
+    session.flush()
+
+    # Check if requirements are deleted
+    results = requirements.list_requirements()
+    assert len(results) == 1
+    assert results[0].summary == "cherry"
 
 
 def test_import_requirements_from_catalog_modules(

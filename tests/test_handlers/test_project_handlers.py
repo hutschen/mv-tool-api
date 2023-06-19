@@ -18,23 +18,21 @@
 import jira
 import pytest
 from fastapi import HTTPException
+from sqlalchemy.orm import Session
 
 from mvtool.data.projects import Projects
 from mvtool.db.schema import Project
 from mvtool.handlers.projects import (
     create_project,
     delete_project,
+    delete_projects,
     get_project,
     get_project_field_names,
     get_project_representations,
     get_projects,
     update_project,
 )
-from mvtool.models.projects import (
-    ProjectInput,
-    ProjectOutput,
-    ProjectRepresentation,
-)
+from mvtool.models.projects import ProjectInput, ProjectOutput, ProjectRepresentation
 from mvtool.utils.pagination import Page
 
 
@@ -90,6 +88,29 @@ def test_delete_project(projects: Projects, project: Project):
         get_project(project_id, projects)
     assert excinfo.value.status_code == 404
     assert "No Project with id" in excinfo.value.detail
+
+
+def test_delete_projects(session: Session, projects: Projects):
+    # Create projects
+    for project in [
+        Project(name="apple"),
+        Project(name="banana"),
+        Project(name="cherry"),
+    ]:
+        session.add(project)
+    session.flush()
+
+    # Delete projects
+    delete_projects(
+        [Project.name.in_(["apple", "banana"])],
+        projects,
+    )
+    session.flush()
+
+    # Check if projects are deleted
+    results = projects.list_projects()
+    assert len(results) == 1
+    assert results[0].name == "cherry"
 
 
 def test_get_project_representations_list(projects: Projects, project: Project):

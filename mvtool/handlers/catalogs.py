@@ -179,6 +179,16 @@ def delete_catalog(
     catalogs.delete_catalog(catalogs.get_catalog(catalog_id))
 
 
+@router.delete("/catalogs", status_code=204)
+def delete_catalogs(
+    where_clauses=Depends(get_catalog_filters),
+    catalogs: Catalogs = Depends(),
+) -> None:
+    catalogs_ = catalogs.list_catalogs(where_clauses)
+    for catalog in catalogs_:
+        catalogs.delete_catalog(catalog, skip_flush=True)
+
+
 @router.get(
     "/catalog/representations",
     response_model=Page[CatalogRepresentation] | list[CatalogRepresentation],

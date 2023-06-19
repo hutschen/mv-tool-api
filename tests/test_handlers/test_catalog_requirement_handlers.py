@@ -18,12 +18,15 @@
 
 import pytest
 from fastapi import HTTPException
+from sqlalchemy.orm import Session
 
 from mvtool.data.catalog_modules import CatalogModules
 from mvtool.data.catalog_requirements import CatalogRequirements
+from mvtool.db.schema import Catalog, CatalogModule, CatalogRequirement
 from mvtool.handlers.catalog_requirements import (
     create_catalog_requirement,
     delete_catalog_requirement,
+    delete_catalog_requirements,
     get_catalog_requirement,
     get_catalog_requirement_field_names,
     get_catalog_requirement_references,
@@ -31,7 +34,6 @@ from mvtool.handlers.catalog_requirements import (
     get_catalog_requirements,
     update_catalog_requirement,
 )
-from mvtool.db.schema import CatalogModule, CatalogRequirement
 from mvtool.models.catalog_requirements import (
     CatalogRequirementInput,
     CatalogRequirementOutput,
@@ -126,6 +128,36 @@ def test_delete_catalog_requirement(
         get_catalog_requirement(catalog_requirement_id, catalog_requirements)
     assert excinfo.value.status_code == 404
     assert "No CatalogRequirement with id" in excinfo.value.detail
+
+
+def test_delete_catalog_requirements(
+    session: Session, catalog_requirements: CatalogRequirements
+):
+    # Create catalog requirements
+    catalog_module = CatalogModule(
+        title="catalog_module", catalog=Catalog(title="catalog")
+    )
+
+    for catalog_requirement in [
+        CatalogRequirement(summary="apple"),
+        CatalogRequirement(summary="banana"),
+        CatalogRequirement(summary="cherry"),
+    ]:
+        session.add(catalog_requirement)
+        catalog_requirement.catalog_module = catalog_module
+    session.flush()
+
+    # Delete catalog requirements
+    delete_catalog_requirements(
+        [CatalogRequirement.summary.in_(["apple", "banana"])],
+        catalog_requirements,
+    )
+    session.flush()
+
+    # Check if catalog requirements are deleted
+    results = catalog_requirements.list_catalog_requirements()
+    assert len(results) == 1
+    assert results[0].summary == "cherry"
 
 
 def test_get_catalog_requirement_representations_list(

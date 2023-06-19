@@ -210,6 +210,16 @@ def delete_catalog_module(
     catalog_modules.delete_catalog_module(catalog_module)
 
 
+@router.delete("/catalog-modules", status_code=204)
+def delete_catalog_modules(
+    where_clauses=Depends(get_catalog_module_filters),
+    catalog_modules: CatalogModules = Depends(),
+) -> None:
+    catalog_modules_ = catalog_modules.list_catalog_modules(where_clauses)
+    for catalog_module in catalog_modules_:
+        catalog_modules.delete_catalog_module(catalog_module, skip_flush=True)
+
+
 @router.get(
     "/catalog-module/representations",
     response_model=Page[CatalogModuleRepresentation]

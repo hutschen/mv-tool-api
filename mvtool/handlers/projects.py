@@ -166,6 +166,16 @@ def delete_project(project_id: int, projects: Projects = Depends()) -> None:
     projects.delete_project(project)
 
 
+@router.delete("/projects", status_code=204)
+def delete_projects(
+    where_clauses=Depends(get_project_filters),
+    projects: Projects = Depends(),
+) -> None:
+    projects_ = projects.list_projects(where_clauses)
+    for project in projects_:
+        projects.delete_project(project, skip_flush=True)
+
+
 @router.get(
     "/project/representations",
     response_model=Page[ProjectRepresentation] | list[ProjectRepresentation],
