@@ -187,6 +187,7 @@ def delete_catalogs(
     catalogs_ = catalogs.list_catalogs(where_clauses)
     for catalog in catalogs_:
         catalogs.delete_catalog(catalog, skip_flush=True)
+    catalogs._session.flush()
 
 
 @router.get(

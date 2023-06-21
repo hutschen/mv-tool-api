@@ -323,6 +323,7 @@ def delete_measures(
     measures_ = measures.list_measures(where_clauses)
     for measure in measures_:
         measures.delete_measure(measure, skip_flush=True)
+    measures.session.flush()
 
 
 @router.get(

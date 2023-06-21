@@ -174,6 +174,7 @@ def delete_projects(
     projects_ = projects.list_projects(where_clauses)
     for project in projects_:
         projects.delete_project(project, skip_flush=True)
+    projects._session.flush()
 
 
 @router.get(

@@ -198,6 +198,7 @@ def delete_documents(
     documents_ = documents.list_documents(where_clauses)
     for document in documents_:
         documents.delete_document(document, skip_flush=True)
+    documents._session.flush()
 
 
 @router.get(

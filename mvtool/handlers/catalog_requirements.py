@@ -257,6 +257,7 @@ def delete_catalog_requirements(
         catalog_requirements.delete_catalog_requirement(
             catalog_requirement, skip_flush=True
         )
+    catalog_requirements._session.flush()
 
 
 @router.get(

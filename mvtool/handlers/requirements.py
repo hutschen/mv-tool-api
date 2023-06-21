@@ -290,6 +290,7 @@ def delete_requirements(
     requirements_ = requirements.list_requirements(where_clauses)
     for requirement in requirements_:
         requirements.delete_requirement(requirement, skip_flush=True)
+    requirements._session.flush()
 
 
 @router.post(

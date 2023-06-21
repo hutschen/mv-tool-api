@@ -218,6 +218,7 @@ def delete_catalog_modules(
     catalog_modules_ = catalog_modules.list_catalog_modules(where_clauses)
     for catalog_module in catalog_modules_:
         catalog_modules.delete_catalog_module(catalog_module, skip_flush=True)
+    catalog_modules._session.flush()
 
 
 @router.get(
