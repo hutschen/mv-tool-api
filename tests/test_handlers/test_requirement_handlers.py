@@ -219,6 +219,10 @@ def test_get_requirement_field_names_full_list(
     project: Project,
     catalog_requirement: CatalogRequirement,
 ):
+    catalog_requirement.gs_absicherung = "test"
+    catalog_requirement.gs_verantwortliche = "test"
+    requirements._session.flush()
+
     # Create a requirement to get all fields
     requirement_input = RequirementInput(
         reference="reference",
@@ -249,6 +253,8 @@ def test_get_requirement_field_names_full_list(
         "catalog_requirement",
         "catalog_module",
         "catalog",
+        "gs_absicherung",
+        "gs_verantwortliche",
     }
 
 

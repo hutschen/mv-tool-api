@@ -356,14 +356,16 @@ def get_requirement_field_names(
     for field, names in [
         (Requirement.reference, ["reference"]),
         (Requirement.description, ["description"]),
-        (Requirement.target_object, ["target_object"]),
-        (Requirement.milestone, ["milestone"]),
         (Requirement.compliance_status, ["compliance_status"]),
         (Requirement.compliance_comment, ["compliance_comment"]),
+        (Requirement.target_object, ["target_object"]),
+        (Requirement.milestone, ["milestone"]),
         (
             Requirement.catalog_requirement_id,
             ["catalog_requirement", "catalog_module", "catalog"],
         ),
+        (CatalogRequirement.gs_absicherung, ["gs_absicherung"]),
+        (CatalogRequirement.gs_verantwortliche, ["gs_verantwortliche"]),
     ]:
         if requirements.count_requirements(
             [filter_for_existence(field, True), *where_clauses]
