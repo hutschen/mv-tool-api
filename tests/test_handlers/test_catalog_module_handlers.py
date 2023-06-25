@@ -36,12 +36,15 @@ from mvtool.handlers.catalog_modules import (
     get_catalog_module_references,
     get_catalog_module_representation,
     get_catalog_modules,
+    patch_catalog_module,
+    patch_catalog_modules,
     update_catalog_module,
     upload_gs_baustein,
 )
 from mvtool.models.catalog_modules import (
     CatalogModuleInput,
     CatalogModuleOutput,
+    CatalogModulePatch,
     CatalogModuleRepresentation,
 )
 from mvtool.utils.pagination import Page
@@ -97,6 +100,50 @@ def test_update_catalog_module(catalog_modules, catalog_module):
     assert isinstance(updated_catalog_module, CatalogModule)
     assert updated_catalog_module.id == catalog_module_id
     assert updated_catalog_module.title == catalog_module_input.title
+
+
+def test_patch_catalog_module(session: Session, catalog_modules: CatalogModules):
+    # Create catalog module
+    catalog_module = CatalogModule(
+        reference="reference", title="title", catalog=Catalog(title="catalog")
+    )
+    session.add(catalog_module)
+    session.commit()
+
+    # Patch catalog module
+    patch = CatalogModulePatch(reference="new reference")
+    result = patch_catalog_module(catalog_module.id, patch, catalog_modules)
+
+    # Check if catalog module is patched
+    assert isinstance(result, CatalogModule)
+    assert result.reference == "new reference"
+    assert result.title == "title"
+
+
+def test_patch_catalog_modules(session: Session, catalog_modules: CatalogModules):
+    # Create catalog modules
+    catalog = Catalog(title="catalog")
+    for catalog_module in [
+        CatalogModule(reference="orange", title="test", catalog=catalog),
+        CatalogModule(reference="peach", title="test", catalog=catalog),
+        CatalogModule(reference="grape", title="test", catalog=catalog),
+    ]:
+        session.add(catalog_module)
+    session.commit()
+
+    # Patch catalog modules
+    patch = CatalogModulePatch(reference="grape")
+    patch_catalog_modules(
+        patch, [CatalogModule.reference.in_(["orange", "peach"])], catalog_modules
+    )
+
+    # Check if catalog modules are patched
+    results = catalog_modules.list_catalog_modules()
+    assert len(results) == 3
+    for result in results:
+        assert isinstance(result, CatalogModule)
+        assert result.reference == "grape"
+        assert result.title == "test"
 
 
 def test_delete_catalog_module(catalog_modules, catalog_module):

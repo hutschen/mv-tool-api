@@ -26,13 +26,14 @@ from sqlalchemy.orm import Session
 
 from ..data.catalog_modules import CatalogModules
 from ..db.database import get_session
+from ..db.schema import Catalog, CatalogModule
 from ..gs_parser import GSBausteinParser
 from ..models.catalog_modules import (
     CatalogModuleInput,
     CatalogModuleOutput,
+    CatalogModulePatch,
     CatalogModuleRepresentation,
 )
-from ..db.schema import Catalog, CatalogModule
 from ..utils.errors import ValueHttpError
 from ..utils.filtering import (
     filter_by_pattern_many,
@@ -200,6 +201,34 @@ def update_catalog_module(
     catalog_module = catalog_modules.get_catalog_module(catalog_module_id)
     catalog_modules.update_catalog_module(catalog_module, catalog_module_input)
     return catalog_module
+
+
+@router.patch(
+    "/catalog-modules/{catalog_module_id}", response_model=CatalogModuleOutput
+)
+def patch_catalog_module(
+    catalog_module_id: int,
+    catalog_module_patch: CatalogModulePatch,
+    catalog_modules: CatalogModules = Depends(),
+) -> CatalogModule:
+    catalog_module = catalog_modules.get_catalog_module(catalog_module_id)
+    catalog_modules.patch_catalog_module(catalog_module, catalog_module_patch)
+    return catalog_module
+
+
+@router.patch("/catalog-modules", response_model=list[CatalogModuleOutput])
+def patch_catalog_modules(
+    catalog_module_patch: CatalogModulePatch,
+    where_clauses=Depends(get_catalog_module_filters),
+    catalog_modules: CatalogModules = Depends(),
+) -> list[CatalogModule]:
+    catalog_modules_ = catalog_modules.list_catalog_modules(where_clauses)
+    for catalog_module in catalog_modules_:
+        catalog_modules.patch_catalog_module(
+            catalog_module, catalog_module_patch, skip_flush=True
+        )
+    catalog_modules._session.flush()
+    return catalog_modules_
 
 
 @router.delete("/catalog-modules/{catalog_module_id}", status_code=204)
