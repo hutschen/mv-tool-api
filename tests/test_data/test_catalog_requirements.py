@@ -23,11 +23,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import select
 
 from mvtool.data.catalog_requirements import CatalogRequirements
-from mvtool.db.schema import CatalogModule, CatalogRequirement
+from mvtool.db.schema import Catalog, CatalogModule, CatalogRequirement
 from mvtool.models.catalog_modules import CatalogModuleImport
 from mvtool.models.catalog_requirements import (
     CatalogRequirementImport,
     CatalogRequirementInput,
+    CatalogRequirementPatch,
 )
 from mvtool.utils.errors import NotFoundError, ValueHttpError
 
@@ -471,6 +472,27 @@ def test_update_catalog_requirement_patch(
     # Check if the catalog requirement is updated with the correct data
     assert catalog_requirement.reference == old_catalog_requirement_input.reference
     assert catalog_requirement.summary == new_catalog_requirement_input.summary
+
+
+def test_patch_catalog_requirement(
+    session: Session, catalog_requirements: CatalogRequirements
+):
+    # Create a catalog requirement
+    catalog_requirement = CatalogRequirement(
+        reference="reference",
+        summary="summary",
+        catalog_module=CatalogModule(title="title", catalog=Catalog(title="title")),
+    )
+    session.add(catalog_requirement)
+    session.commit()
+
+    # Test patching the catalog requirement
+    patch = CatalogRequirementPatch(reference="new_reference")
+    catalog_requirements.patch_catalog_requirement(catalog_requirement, patch)
+
+    # Check if the catalog requirement is updated with the correct data
+    assert catalog_requirement.reference == "new_reference"
+    assert catalog_requirement.summary == "summary"
 
 
 def test_delete_catalog_requirement(
