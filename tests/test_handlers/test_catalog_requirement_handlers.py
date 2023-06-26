@@ -32,11 +32,14 @@ from mvtool.handlers.catalog_requirements import (
     get_catalog_requirement_references,
     get_catalog_requirement_representations,
     get_catalog_requirements,
+    patch_catalog_requirement,
+    patch_catalog_requirements,
     update_catalog_requirement,
 )
 from mvtool.models.catalog_requirements import (
     CatalogRequirementInput,
     CatalogRequirementOutput,
+    CatalogRequirementPatch,
     CatalogRequirementRepresentation,
 )
 from mvtool.utils.pagination import Page
@@ -116,6 +119,61 @@ def test_update_catalog_requirement(
     assert updated_catalog_requirement.id == catalog_requirement_id
     assert updated_catalog_requirement.reference == catalog_requirement_input.reference
     assert updated_catalog_requirement.summary == catalog_requirement_input.summary
+
+
+def test_patch_catalog_requirement(
+    session: Session, catalog_requirements: CatalogRequirements
+):
+    # Create catalog requirement
+    catalog_requirement = CatalogRequirement(
+        reference="reference",
+        summary="summary",
+        catalog_module=CatalogModule(title="title", catalog=Catalog(title="title")),
+    )
+    session.add(catalog_requirement)
+    session.commit()
+
+    # Patch catalog requirement
+    patch = CatalogRequirementPatch(reference="new_reference")
+    result = patch_catalog_requirement(
+        catalog_requirement.id, patch, catalog_requirements
+    )
+
+    # Check if catalog requirement is patched
+    assert isinstance(result, CatalogRequirement)
+    assert result.reference == "new_reference"
+    assert result.summary == "summary"
+
+
+def test_patch_catalog_requirements(
+    session: Session, catalog_requirements: CatalogRequirements
+):
+    # Create catalog requirements
+    catalog_module = CatalogModule(title="title", catalog=Catalog(title="title"))
+    for catalog_requirement in [
+        # fmt: off
+        CatalogRequirement(reference="orange", summary="test", catalog_module=catalog_module),
+        CatalogRequirement(reference="peach", summary="test", catalog_module=catalog_module),
+        CatalogRequirement(reference="grape", summary="test", catalog_module=catalog_module),
+        # fmt: on
+    ]:
+        session.add(catalog_requirement)
+    session.commit()
+
+    # Patch catalog requirements
+    patch = CatalogRequirementPatch(reference="grape")
+    patch_catalog_requirements(
+        patch,
+        [CatalogRequirement.reference.in_(["orange", "peach"])],
+        catalog_requirements,
+    )
+
+    # Check if catalog requirements are patched
+    results = session.query(CatalogRequirement).all()
+    assert len(results) == 3
+    for result in results:
+        assert result.reference == "grape"
+        assert result.summary == "test"
 
 
 def test_delete_catalog_requirement(
