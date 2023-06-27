@@ -33,11 +33,14 @@ from mvtool.handlers.requirements import (
     get_requirement_representations,
     get_requirements,
     import_requirements_from_catalog_modules,
+    patch_requirement,
+    patch_requirements,
     update_requirement,
 )
 from mvtool.models.requirements import (
     RequirementInput,
     RequirementOutput,
+    RequirementPatch,
     RequirementRepresentation,
 )
 from mvtool.utils.pagination import Page
@@ -97,6 +100,47 @@ def test_update_requirement(requirements: Requirements, requirement: Requirement
     assert isinstance(updated_requirement, Requirement)
     assert updated_requirement.id == requirement_id
     assert updated_requirement.summary == requirement_input.summary
+
+
+def test_patch_requirement(session: Session, requirements: Requirements):
+    # Create a requirement
+    requirement = Requirement(
+        reference="reference", summary="summary", project=Project(name="name")
+    )
+    session.add(requirement)
+    session.commit()
+
+    # Patch the requirement
+    patch = RequirementPatch(reference="new_reference")
+    result = patch_requirement(requirement.id, patch, requirements)
+
+    # Check if the requirement is patched
+    assert isinstance(result, Requirement)
+    assert result.reference == "new_reference"
+    assert result.summary == "summary"
+
+
+def test_patch_requirements(session: Session, requirements: Requirements):
+    # Create requirements
+    project = Project(name="project")
+    for requirement in [
+        Requirement(reference="apple", summary="summary", project=project),
+        Requirement(reference="banana", summary="summary", project=project),
+        Requirement(reference="cherry", summary="summary", project=project),
+    ]:
+        session.add(requirement)
+    session.commit()
+
+    # Patch requirements
+    patch = RequirementPatch(reference="cherry")
+    patch_requirements(
+        patch, [Requirement.reference.in_(["apple", "banana"])], requirements
+    )
+
+    # Check if requirements are patched
+    for requirement in session.query(Requirement).all():
+        assert requirement.reference == "cherry"
+        assert requirement.summary == "summary"
 
 
 def test_delete_requirement(requirements: Requirements, requirement: Requirement):

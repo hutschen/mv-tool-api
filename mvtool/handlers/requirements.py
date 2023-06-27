@@ -22,13 +22,11 @@ from pydantic import constr
 from sqlalchemy import Column
 
 from ..data.requirements import Requirements
-from ..db.schema import CatalogModule, Requirement
-from ..db.schema import CatalogRequirement
-from ..db.schema import Catalog
-from ..db.schema import Project
+from ..db.schema import Catalog, CatalogModule, CatalogRequirement, Project, Requirement
 from ..models.requirements import (
     RequirementInput,
     RequirementOutput,
+    RequirementPatch,
     RequirementRepresentation,
 )
 from ..utils import combine_flags
@@ -273,6 +271,30 @@ def update_requirement(
     requirement = requirements.get_requirement(requirement_id)
     requirements.update_requirement(requirement, requirement_input)
     return requirement
+
+
+@router.patch("/requirements/{requirement_id}", response_model=RequirementOutput)
+def patch_requirement(
+    requirement_id: int,
+    requirement_patch: RequirementPatch,
+    requirements: Requirements = Depends(Requirements),
+) -> Requirement:
+    requirement = requirements.get_requirement(requirement_id)
+    requirements.patch_requirement(requirement, requirement_patch)
+    return requirement
+
+
+@router.patch("/requirements", response_model=list[RequirementOutput])
+def patch_requirements(
+    requirement_patch: RequirementPatch,
+    where_clauses=Depends(get_requirement_filters),
+    requirements: Requirements = Depends(Requirements),
+) -> list[Requirement]:
+    requirements_ = requirements.list_requirements(where_clauses)
+    for requirement in requirements_:
+        requirements.patch_requirement(requirement, requirement_patch, skip_flush=True)
+    requirements._session.flush()
+    return requirements_
 
 
 @router.delete("/requirements/{requirement_id}", status_code=204)
