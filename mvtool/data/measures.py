@@ -24,14 +24,17 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import Select, select
 
 from ..db.database import delete_from_db, get_session, read_from_db
+from ..db.schema import (
+    Catalog,
+    CatalogModule,
+    CatalogRequirement,
+    Document,
+    Measure,
+    Requirement,
+)
 from ..handlers.documents import Documents
 from ..handlers.jira_ import JiraIssues
-from ..db.schema import CatalogModule, Measure
-from ..db.schema import CatalogRequirement
-from ..db.schema import Catalog
-from ..db.schema import Document
-from ..models.measures import MeasureImport, MeasureInput
-from ..db.schema import Requirement
+from ..models.measures import MeasureImport, MeasureInput, MeasurePatch
 from ..utils.errors import NotFoundError
 from ..utils.etag_map import get_from_etag_map
 from ..utils.fallback import fallback
@@ -196,6 +199,25 @@ class Measures:
             setattr(measure, key, value)
 
         # flush changes
+        if not skip_flush:
+            self.session.flush()
+
+        self._set_jira_issue(measure, try_to_get=try_to_get_jira_issue)
+
+    def patch_measure(
+        self, measure: Measure, patch: MeasurePatch, skip_flush: bool = False
+    ) -> None:
+        try_to_get_jira_issue = True
+        for key, value in patch.dict(exclude_unset=True).items():
+            if key == "document_id":
+                self._documents.check_document_id(value)
+            elif key == "jira_issue_id":
+                # check jira issue id and cache load jira issue
+                self._jira_issues.check_jira_issue_id(value)
+                try_to_get_jira_issue = False
+
+            setattr(measure, key, value)
+
         if not skip_flush:
             self.session.flush()
 
