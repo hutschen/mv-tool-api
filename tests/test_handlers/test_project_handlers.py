@@ -30,9 +30,16 @@ from mvtool.handlers.projects import (
     get_project_field_names,
     get_project_representations,
     get_projects,
+    patch_project,
+    patch_projects,
     update_project,
 )
-from mvtool.models.projects import ProjectInput, ProjectOutput, ProjectRepresentation
+from mvtool.models.projects import (
+    ProjectInput,
+    ProjectOutput,
+    ProjectPatch,
+    ProjectRepresentation,
+)
 from mvtool.utils.pagination import Page
 
 
@@ -78,6 +85,43 @@ def test_update_project(projects: Projects, project: Project):
     assert isinstance(updated_project, Project)
     assert updated_project.id == project_id
     assert updated_project.name == project_input.name
+
+
+def test_patch_project(session: Session, projects: Projects):
+    # Create a project
+    project = Project(name="name", description="description")
+    session.add(project)
+    session.commit()
+
+    # Patch the project
+    patch = ProjectPatch(description="new_description")
+    result = patch_project(project.id, patch, projects)
+
+    # Check if the project is patched
+    assert isinstance(result, Project)
+    assert result.name == "name"
+    assert result.description == "new_description"
+
+
+def test_patch_projects(session: Session, projects: Projects):
+    # Create projects
+    for project in [
+        Project(name="name", description="apple"),
+        Project(name="name", description="banana"),
+        Project(name="name", description="cherry"),
+    ]:
+        session.add(project)
+    session.commit()
+
+    # Patch projects
+    patch = ProjectPatch(description="cherry")
+    patch_projects(patch, [Project.description.in_(["apple", "banana"])], projects)
+
+    # Check if projects are patched
+    results: list[Project] = session.query(Project).all()
+    for result in results:
+        assert result.name == "name"
+        assert result.description == "cherry"
 
 
 def test_delete_project(projects: Projects, project: Project):
