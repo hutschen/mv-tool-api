@@ -32,9 +32,16 @@ from mvtool.handlers.measures import (
     get_measure_references,
     get_measure_representations,
     get_measures,
+    patch_measure,
+    patch_measures,
     update_measure,
 )
-from mvtool.models.measures import MeasureInput, MeasureOutput, MeasureRepresentation
+from mvtool.models.measures import (
+    MeasureInput,
+    MeasureOutput,
+    MeasurePatch,
+    MeasureRepresentation,
+)
 from mvtool.models.requirements import RequirementInput
 from mvtool.utils.pagination import Page
 
@@ -84,6 +91,47 @@ def test_update_measure(measures: Measures, measure: Measure):
     assert isinstance(updated_measure, Measure)
     assert updated_measure.id == measure.id
     assert updated_measure.summary == measure_input.summary
+
+
+def test_patch_measure(session: Session, measures: Measures):
+    # Create a measure
+    measure = Measure(
+        reference="reference",
+        summary="summary",
+        requirement=Requirement(summary="requirement", project=Project(name="project")),
+    )
+    session.add(measure)
+    session.commit()
+
+    # Patch the measure
+    patch = MeasurePatch(reference="new_reference")
+    result = patch_measure(measure.id, patch, measures)
+
+    # Check if the measure is patched
+    assert isinstance(result, Measure)
+    assert result.reference == "new_reference"
+    assert result.summary == "summary"
+
+
+def test_patch_measures(session: Session, measures: Measures):
+    # Create measures
+    requirement = Requirement(summary="requirement", project=Project(name="project"))
+    for measure in [
+        Measure(reference="apple", summary="summary", requirement=requirement),
+        Measure(reference="banana", summary="summary", requirement=requirement),
+        Measure(reference="cherry", summary="summary", requirement=requirement),
+    ]:
+        session.add(measure)
+    session.commit()
+
+    # Patch measures
+    patch = MeasurePatch(reference="cherry")
+    patch_measures(patch, [Measure.reference.in_(["apple", "banana"])], measures)
+
+    # Check if measures are patched
+    for measure in session.query(Measure).all():
+        assert measure.reference == "cherry"
+        assert measure.summary == "summary"
 
 
 def test_delete_measure(measures: Measures, measure: Measure):

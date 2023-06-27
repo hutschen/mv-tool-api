@@ -18,23 +18,27 @@
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import constr
 from sqlalchemy import Column
 
 from ..data.measures import Measures
+from ..db.schema import (
+    Catalog,
+    CatalogModule,
+    CatalogRequirement,
+    Document,
+    Measure,
+    Requirement,
+)
 from ..handlers.jira_ import JiraIssues, JiraProjects
-from ..db.schema import CatalogModule, Measure
-from ..db.schema import CatalogRequirement
-from ..db.schema import Catalog
-from ..db.schema import Document
 from ..models.jira_ import JiraIssue, JiraIssueInput
 from ..models.measures import (
     MeasureInput,
     MeasureOutput,
+    MeasurePatch,
     MeasureRepresentation,
 )
-from ..db.schema import Requirement
 from ..utils import combine_flags
 from ..utils.errors import ValueHttpError
 from ..utils.filtering import (
@@ -309,6 +313,28 @@ def update_measure(
     measure = measures.get_measure(measure_id)
     measures.update_measure(measure, measure_input)
     return measure
+
+
+@router.patch("/measures/{measure_id}", response_model=MeasureOutput)
+def patch_measure(
+    measure_id: int, measure_patch: MeasurePatch, measures: Measures = Depends()
+) -> Measure:
+    measure = measures.get_measure(measure_id)
+    measures.patch_measure(measure, measure_patch)
+    return measure
+
+
+@router.patch("/measures", response_model=list[MeasureOutput])
+def patch_measures(
+    measure_patch: MeasurePatch,
+    where_clauses=Depends(get_measure_filters),
+    measures: Measures = Depends(),
+) -> list[Measure]:
+    measures_ = measures.list_measures(where_clauses)
+    for measure in measures_:
+        measures.patch_measure(measure, measure_patch, skip_flush=True)
+    measures.session.flush()
+    return measures_
 
 
 @router.delete("/measures/{measure_id}", status_code=204)
