@@ -31,11 +31,13 @@ from mvtool.db.schema import Project
 
 
 def test_setup_engine(config):
-    engine = setup_connection(config.database)
+    engine, session_maker = setup_connection(config.database)
     assert engine is not None
+    assert session_maker is not None
 
-    engine_2 = setup_connection(config.database)
+    engine_2, session_maker_2 = setup_connection(config.database)
     assert engine is engine_2
+    assert session_maker is session_maker_2
     dispose_connection()
 
 

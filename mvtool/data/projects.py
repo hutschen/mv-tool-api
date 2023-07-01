@@ -22,10 +22,9 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import Select, select
 
-from ..db.schema import Project
-
 from ..db.database import delete_from_db, get_session, read_from_db
-from ..models.projects import ProjectImport, ProjectInput
+from ..db.schema import Project
+from ..models.projects import ProjectImport, ProjectInput, ProjectPatch
 from ..utils.errors import NotFoundError
 from ..utils.iteration import CachedIterable
 from ..utils.models import field_is_set
@@ -140,6 +139,26 @@ class Projects:
         for key, value in update.dict(
             exclude_unset=patch, exclude={"id", "jira_project"}
         ).items():
+            setattr(project, key, value)
+
+        if not skip_flush:
+            self._session.flush()
+
+        self._set_jira_project(project, try_to_get=try_to_get_jira_project)
+
+    def patch_project(
+        self,
+        project: Project,
+        patch: ProjectPatch,
+        skip_flush: bool = False,
+    ) -> None:
+        try_to_get_jira_project = True
+        for key, value in patch.dict(exclude_unset=True).items():
+            if key == "jira_project_id":
+                # check jira project id and cache load jira project
+                self._jira_projects.check_jira_project_id(value)
+                try_to_get_jira_project = False  # already loaded
+
             setattr(project, key, value)
 
         if not skip_flush:

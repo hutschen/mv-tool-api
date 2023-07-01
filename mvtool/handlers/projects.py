@@ -21,12 +21,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import constr
 from sqlalchemy import Column
 
-from ..db.schema import Project
-
 from ..data.projects import Projects
+from ..db.schema import Project
 from ..models.projects import (
     ProjectInput,
     ProjectOutput,
+    ProjectPatch,
     ProjectRepresentation,
 )
 from ..utils.filtering import (
@@ -160,10 +160,43 @@ def update_project(
     return project
 
 
+@router.patch("/projects/{project_id}", response_model=ProjectOutput)
+def patch_project(
+    project_id: int, project_patch: ProjectPatch, projects: Projects = Depends()
+) -> Project:
+    project = projects.get_project(project_id)
+    projects.patch_project(project, project_patch)
+    return project
+
+
+@router.patch("/projects", response_model=list[ProjectOutput])
+def patch_projects(
+    project_patch: ProjectPatch,
+    where_clauses=Depends(get_project_filters),
+    projects: Projects = Depends(),
+) -> list[Project]:
+    projects_ = projects.list_projects(where_clauses)
+    for project in projects_:
+        projects.patch_project(project, project_patch, skip_flush=True)
+    projects._session.flush()
+    return projects_
+
+
 @router.delete("/projects/{project_id}", status_code=204)
 def delete_project(project_id: int, projects: Projects = Depends()) -> None:
     project = projects.get_project(project_id)
     projects.delete_project(project)
+
+
+@router.delete("/projects", status_code=204)
+def delete_projects(
+    where_clauses=Depends(get_project_filters),
+    projects: Projects = Depends(),
+) -> None:
+    projects_ = projects.list_projects(where_clauses)
+    for project in projects_:
+        projects.delete_project(project, skip_flush=True)
+    projects._session.flush()
 
 
 @router.get(

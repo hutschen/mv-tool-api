@@ -62,7 +62,7 @@ def setup_connection(database_config: DatabaseConfig):
             bind=__State.engine, autocommit=False, autoflush=False
         )
 
-    return __State.engine
+    return __State.engine, __State.session_local
 
 
 def dispose_connection():

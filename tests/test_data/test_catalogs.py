@@ -24,7 +24,7 @@ from sqlalchemy.sql import select
 
 from mvtool.data.catalogs import Catalogs
 from mvtool.db.schema import Catalog
-from mvtool.models.catalogs import CatalogImport, CatalogInput
+from mvtool.models.catalogs import CatalogImport, CatalogInput, CatalogPatch
 from mvtool.utils.errors import NotFoundError
 
 
@@ -264,6 +264,22 @@ def test_update_catalog_patch(catalogs: Catalogs):
 
     assert catalog.reference == old_catalog_input.reference
     assert catalog.title == new_catalog_input.title
+
+
+def test_patch_catalog(session: Session, catalogs: Catalogs):
+    # Create a catalog
+    catalog = Catalog(reference="reference", title="title", description="description")
+    session.add(catalog)
+    session.commit()
+
+    # Test patching the catalog
+    patch = CatalogPatch(description="new_description")
+    catalogs.patch_catalog(catalog, patch)
+
+    # Check if the catalog is patched with the correct data
+    assert catalog.reference == "reference"
+    assert catalog.title == "title"
+    assert catalog.description == "new_description"
 
 
 def test_delete_catalog(catalogs: Catalogs):

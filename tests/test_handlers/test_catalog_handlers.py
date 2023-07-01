@@ -17,22 +17,27 @@
 
 import pytest
 from fastapi import HTTPException
+from sqlalchemy.orm import Session
 
 from mvtool.data.catalogs import Catalogs
 from mvtool.db.schema import Catalog
 from mvtool.handlers.catalogs import (
     create_catalog,
     delete_catalog,
+    delete_catalogs,
     get_catalog,
     get_catalog_field_names,
     get_catalog_references,
     get_catalog_representations,
     get_catalogs,
+    patch_catalog,
+    patch_catalogs,
     update_catalog,
 )
 from mvtool.models.catalogs import (
     CatalogInput,
     CatalogOutput,
+    CatalogPatch,
     CatalogRepresentation,
 )
 from mvtool.utils.pagination import Page
@@ -82,6 +87,45 @@ def test_update_catalog(catalogs: Catalogs, catalog: Catalog):
     assert updated_catalog.title == catalog_input.title
 
 
+def test_patch_catalog(session: Session, catalogs: Catalogs):
+    # Create a catalog
+    catalog = Catalog(reference="reference", title="title")
+    session.add(catalog)
+    session.commit()
+
+    # Patch the catalog
+    patch = CatalogPatch(reference="new_reference")
+    result = patch_catalog(catalog.id, patch, catalogs)
+
+    # Check if the catalog is patched
+    assert isinstance(result, Catalog)
+    assert result.reference == "new_reference"
+    assert result.title == "title"
+
+
+def test_patch_catalogs(session: Session, catalogs: Catalogs):
+    # Create catalogs
+    for catalog in [
+        Catalog(reference="apple", title="test"),
+        Catalog(reference="banana", title="test"),
+        Catalog(reference="cherry", title="test"),
+    ]:
+        session.add(catalog)
+    session.commit()
+
+    # Patch catalogs
+    patch = CatalogPatch(reference="cherry")
+    patch_catalogs(patch, [Catalog.reference.in_(["apple", "banana"])], catalogs)
+
+    # Check if catalogs are patched
+    results = catalogs.list_catalogs()
+    assert len(results) == 3
+    for result in results:
+        assert isinstance(result, Catalog)
+        assert result.reference == "cherry"
+        assert result.title == "test"
+
+
 def test_delete_catalog(catalogs: Catalogs, catalog: Catalog):
     catalog_id = catalog.id
     delete_catalog(catalog_id, catalogs)
@@ -90,6 +134,29 @@ def test_delete_catalog(catalogs: Catalogs, catalog: Catalog):
         get_catalog(catalog_id, catalogs)
     assert excinfo.value.status_code == 404
     assert "No Catalog with id" in excinfo.value.detail
+
+
+def test_delete_catalogs(session: Session, catalogs: Catalogs):
+    # Create catalogs
+    for catalog in [
+        Catalog(title="apple"),
+        Catalog(title="banana"),
+        Catalog(title="cherry"),
+    ]:
+        session.add(catalog)
+    session.flush()
+
+    # Delete catalogs
+    delete_catalogs(
+        [Catalog.title.in_(["apple", "banana"])],
+        catalogs,
+    )
+    session.flush()
+
+    # Check if catalogs are deleted
+    results = catalogs.list_catalogs()
+    assert len(results) == 1
+    assert results[0].title == "cherry"
 
 
 def test_get_catalog_representations_list(catalogs: Catalogs, catalog: Catalog):

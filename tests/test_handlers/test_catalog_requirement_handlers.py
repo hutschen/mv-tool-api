@@ -18,23 +18,28 @@
 
 import pytest
 from fastapi import HTTPException
+from sqlalchemy.orm import Session
 
 from mvtool.data.catalog_modules import CatalogModules
 from mvtool.data.catalog_requirements import CatalogRequirements
+from mvtool.db.schema import Catalog, CatalogModule, CatalogRequirement
 from mvtool.handlers.catalog_requirements import (
     create_catalog_requirement,
     delete_catalog_requirement,
+    delete_catalog_requirements,
     get_catalog_requirement,
     get_catalog_requirement_field_names,
     get_catalog_requirement_references,
     get_catalog_requirement_representations,
     get_catalog_requirements,
+    patch_catalog_requirement,
+    patch_catalog_requirements,
     update_catalog_requirement,
 )
-from mvtool.db.schema import CatalogModule, CatalogRequirement
 from mvtool.models.catalog_requirements import (
     CatalogRequirementInput,
     CatalogRequirementOutput,
+    CatalogRequirementPatch,
     CatalogRequirementRepresentation,
 )
 from mvtool.utils.pagination import Page
@@ -116,6 +121,61 @@ def test_update_catalog_requirement(
     assert updated_catalog_requirement.summary == catalog_requirement_input.summary
 
 
+def test_patch_catalog_requirement(
+    session: Session, catalog_requirements: CatalogRequirements
+):
+    # Create catalog requirement
+    catalog_requirement = CatalogRequirement(
+        reference="reference",
+        summary="summary",
+        catalog_module=CatalogModule(title="title", catalog=Catalog(title="title")),
+    )
+    session.add(catalog_requirement)
+    session.commit()
+
+    # Patch catalog requirement
+    patch = CatalogRequirementPatch(reference="new_reference")
+    result = patch_catalog_requirement(
+        catalog_requirement.id, patch, catalog_requirements
+    )
+
+    # Check if catalog requirement is patched
+    assert isinstance(result, CatalogRequirement)
+    assert result.reference == "new_reference"
+    assert result.summary == "summary"
+
+
+def test_patch_catalog_requirements(
+    session: Session, catalog_requirements: CatalogRequirements
+):
+    # Create catalog requirements
+    catalog_module = CatalogModule(title="title", catalog=Catalog(title="title"))
+    for catalog_requirement in [
+        # fmt: off
+        CatalogRequirement(reference="orange", summary="test", catalog_module=catalog_module),
+        CatalogRequirement(reference="peach", summary="test", catalog_module=catalog_module),
+        CatalogRequirement(reference="grape", summary="test", catalog_module=catalog_module),
+        # fmt: on
+    ]:
+        session.add(catalog_requirement)
+    session.commit()
+
+    # Patch catalog requirements
+    patch = CatalogRequirementPatch(reference="grape")
+    patch_catalog_requirements(
+        patch,
+        [CatalogRequirement.reference.in_(["orange", "peach"])],
+        catalog_requirements,
+    )
+
+    # Check if catalog requirements are patched
+    results = session.query(CatalogRequirement).all()
+    assert len(results) == 3
+    for result in results:
+        assert result.reference == "grape"
+        assert result.summary == "test"
+
+
 def test_delete_catalog_requirement(
     catalog_requirements: CatalogRequirements, catalog_requirement: CatalogRequirement
 ):
@@ -126,6 +186,36 @@ def test_delete_catalog_requirement(
         get_catalog_requirement(catalog_requirement_id, catalog_requirements)
     assert excinfo.value.status_code == 404
     assert "No CatalogRequirement with id" in excinfo.value.detail
+
+
+def test_delete_catalog_requirements(
+    session: Session, catalog_requirements: CatalogRequirements
+):
+    # Create catalog requirements
+    catalog_module = CatalogModule(
+        title="catalog_module", catalog=Catalog(title="catalog")
+    )
+
+    for catalog_requirement in [
+        CatalogRequirement(summary="apple"),
+        CatalogRequirement(summary="banana"),
+        CatalogRequirement(summary="cherry"),
+    ]:
+        session.add(catalog_requirement)
+        catalog_requirement.catalog_module = catalog_module
+    session.flush()
+
+    # Delete catalog requirements
+    delete_catalog_requirements(
+        [CatalogRequirement.summary.in_(["apple", "banana"])],
+        catalog_requirements,
+    )
+    session.flush()
+
+    # Check if catalog requirements are deleted
+    results = catalog_requirements.list_catalog_requirements()
+    assert len(results) == 1
+    assert results[0].summary == "cherry"
 
 
 def test_get_catalog_requirement_representations_list(

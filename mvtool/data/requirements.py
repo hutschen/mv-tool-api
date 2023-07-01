@@ -23,11 +23,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import Select, select
 
 from ..db.database import delete_from_db, get_session, read_from_db
-from ..db.schema import CatalogModule, Requirement
-from ..db.schema import CatalogRequirement
-from ..db.schema import Catalog
-from ..db.schema import Project
-from ..models.requirements import RequirementImport, RequirementInput
+from ..db.schema import Catalog, CatalogModule, CatalogRequirement, Project, Requirement
+from ..models.requirements import RequirementImport, RequirementInput, RequirementPatch
 from ..utils.errors import NotFoundError
 from ..utils.etag_map import get_from_etag_map
 from ..utils.fallback import fallback
@@ -176,6 +173,17 @@ class Requirements:
                 )
             )
 
+        if not skip_flush:
+            self._session.flush()
+
+    def patch_requirement(
+        self,
+        requirement: Requirement,
+        patch: RequirementPatch,
+        skip_flush: bool = False,
+    ) -> None:
+        for key, value in patch.dict(exclude_unset=True).items():
+            setattr(requirement, key, value)
         if not skip_flush:
             self._session.flush()
 

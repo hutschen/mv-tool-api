@@ -25,24 +25,28 @@ from sqlalchemy.orm import Session
 
 from mvtool.data.catalog_modules import CatalogModules
 from mvtool.data.catalogs import Catalogs
+from mvtool.db.schema import Catalog, CatalogModule
 from mvtool.gs_parser import GSBausteinParser
 from mvtool.handlers.catalog_modules import (
     create_catalog_module,
     delete_catalog_module,
+    delete_catalog_modules,
     get_catalog_module,
     get_catalog_module_field_names,
     get_catalog_module_references,
     get_catalog_module_representation,
     get_catalog_modules,
+    patch_catalog_module,
+    patch_catalog_modules,
     update_catalog_module,
     upload_gs_baustein,
 )
 from mvtool.models.catalog_modules import (
     CatalogModuleInput,
     CatalogModuleOutput,
+    CatalogModulePatch,
     CatalogModuleRepresentation,
 )
-from mvtool.db.schema import Catalog, CatalogModule
 from mvtool.utils.pagination import Page
 
 
@@ -98,6 +102,50 @@ def test_update_catalog_module(catalog_modules, catalog_module):
     assert updated_catalog_module.title == catalog_module_input.title
 
 
+def test_patch_catalog_module(session: Session, catalog_modules: CatalogModules):
+    # Create catalog module
+    catalog_module = CatalogModule(
+        reference="reference", title="title", catalog=Catalog(title="catalog")
+    )
+    session.add(catalog_module)
+    session.commit()
+
+    # Patch catalog module
+    patch = CatalogModulePatch(reference="new reference")
+    result = patch_catalog_module(catalog_module.id, patch, catalog_modules)
+
+    # Check if catalog module is patched
+    assert isinstance(result, CatalogModule)
+    assert result.reference == "new reference"
+    assert result.title == "title"
+
+
+def test_patch_catalog_modules(session: Session, catalog_modules: CatalogModules):
+    # Create catalog modules
+    catalog = Catalog(title="catalog")
+    for catalog_module in [
+        CatalogModule(reference="orange", title="test", catalog=catalog),
+        CatalogModule(reference="peach", title="test", catalog=catalog),
+        CatalogModule(reference="grape", title="test", catalog=catalog),
+    ]:
+        session.add(catalog_module)
+    session.commit()
+
+    # Patch catalog modules
+    patch = CatalogModulePatch(reference="grape")
+    patch_catalog_modules(
+        patch, [CatalogModule.reference.in_(["orange", "peach"])], catalog_modules
+    )
+
+    # Check if catalog modules are patched
+    results = catalog_modules.list_catalog_modules()
+    assert len(results) == 3
+    for result in results:
+        assert isinstance(result, CatalogModule)
+        assert result.reference == "grape"
+        assert result.title == "test"
+
+
 def test_delete_catalog_module(catalog_modules, catalog_module):
     catalog_module_id = catalog_module.id
     delete_catalog_module(catalog_module_id, catalog_modules)
@@ -106,6 +154,32 @@ def test_delete_catalog_module(catalog_modules, catalog_module):
         get_catalog_module(catalog_module_id, catalog_modules)
     assert excinfo.value.status_code == 404
     assert "No CatalogModule with id" in excinfo.value.detail
+
+
+def test_delete_catalog_modules(session: Session, catalog_modules: CatalogModules):
+    # Create catalog modules
+    catalog = Catalog(title="catalog")
+
+    for catalog_module in [
+        CatalogModule(title="orange"),
+        CatalogModule(title="peach"),
+        CatalogModule(title="grape"),
+    ]:
+        session.add(catalog_module)
+        catalog_module.catalog = catalog
+    session.flush()
+
+    # Delete catalog modules
+    delete_catalog_modules(
+        [CatalogModule.title.in_(["orange", "peach"])],
+        catalog_modules,
+    )
+    session.flush()
+
+    # Check if catalog modules are deleted
+    results = catalog_modules.list_catalog_modules()
+    assert len(results) == 1
+    assert results[0].title == "grape"
 
 
 def test_get_catalog_module_representation_list(catalog_modules, catalog_module):

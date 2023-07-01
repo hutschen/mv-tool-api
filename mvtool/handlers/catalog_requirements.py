@@ -22,13 +22,13 @@ from pydantic import constr
 from sqlalchemy import Column
 
 from ..data.catalog_requirements import CatalogRequirements
-from ..db.schema import CatalogModule, CatalogRequirement
+from ..db.schema import Catalog, CatalogModule, CatalogRequirement
 from ..models.catalog_requirements import (
     CatalogRequirementInput,
     CatalogRequirementOutput,
+    CatalogRequirementPatch,
     CatalogRequirementRepresentation,
 )
-from ..db.schema import Catalog
 from ..utils.filtering import (
     filter_by_pattern_many,
     filter_by_values_many,
@@ -234,6 +234,44 @@ def update_catalog_requirement(
     return catalog_requirement
 
 
+@router.patch(
+    "/catalog-requirements/{catalog_requirement_id}",
+    response_model=CatalogRequirementOutput,
+)
+def patch_catalog_requirement(
+    catalog_requirement_id: int,
+    catalog_requirement_patch: CatalogRequirementPatch,
+    catalog_requirements: CatalogRequirements = Depends(),
+) -> CatalogRequirement:
+    catalog_requirement = catalog_requirements.get_catalog_requirement(
+        catalog_requirement_id
+    )
+    catalog_requirements.patch_catalog_requirement(
+        catalog_requirement, catalog_requirement_patch
+    )
+    return catalog_requirement
+
+
+@router.patch(
+    "/catalog-requirements",
+    response_model=list[CatalogRequirementOutput],
+)
+def patch_catalog_requirements(
+    catalog_requirement_patch: CatalogRequirementPatch,
+    where_clauses=Depends(get_catalog_requirement_filters),
+    catalog_requirements: CatalogRequirements = Depends(),
+) -> list[CatalogRequirement]:
+    catalog_requirements_ = catalog_requirements.list_catalog_requirements(
+        where_clauses
+    )
+    for catalog_requirement in catalog_requirements_:
+        catalog_requirements.patch_catalog_requirement(
+            catalog_requirement, catalog_requirement_patch, skip_flush=True
+        )
+    catalog_requirements._session.flush()
+    return catalog_requirements_
+
+
 @router.delete("/catalog-requirements/{catalog_requirement_id}", status_code=204)
 def delete_catalog_requirement(
     catalog_requirement_id: int,
@@ -243,6 +281,21 @@ def delete_catalog_requirement(
         catalog_requirement_id
     )
     catalog_requirements.delete_catalog_requirement(catalog_requirement)
+
+
+@router.delete("/catalog-requirements", status_code=204)
+def delete_catalog_requirements(
+    where_clauses=Depends(get_catalog_requirement_filters),
+    catalog_requirements: CatalogRequirements = Depends(),
+) -> None:
+    catalog_requirements_ = catalog_requirements.list_catalog_requirements(
+        where_clauses
+    )
+    for catalog_requirement in catalog_requirements_:
+        catalog_requirements.delete_catalog_requirement(
+            catalog_requirement, skip_flush=True
+        )
+    catalog_requirements._session.flush()
 
 
 @router.get(

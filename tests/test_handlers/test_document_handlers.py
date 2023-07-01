@@ -18,25 +18,30 @@
 
 import pytest
 from fastapi import HTTPException
+from sqlalchemy.orm import Session
 
 from mvtool.data.documents import Documents
 from mvtool.data.projects import Projects
+from mvtool.db.schema import Document, Project
 from mvtool.handlers.documents import (
     create_document,
     delete_document,
+    delete_documents,
     get_document,
     get_document_field_names,
     get_document_references,
     get_document_representations,
     get_documents,
+    patch_document,
+    patch_documents,
     update_document,
 )
 from mvtool.models.documents import (
     DocumentInput,
     DocumentOutput,
+    DocumentPatch,
     DocumentRepresentation,
 )
-from mvtool.db.schema import Document, Project
 from mvtool.utils.pagination import Page
 
 
@@ -83,6 +88,45 @@ def test_update_document(documents: Documents, document: Document):
     assert updated_document.title == document_input.title
 
 
+def test_patch_document(session: Session, documents: Documents):
+    # Create a document
+    document = Document(
+        reference="reference", title="title", project=Project(name="name")
+    )
+    session.add(document)
+    session.commit()
+
+    # Patch the document
+    patch = DocumentPatch(reference="new_reference")
+    result = patch_document(document.id, patch, documents)
+
+    # Check if the document is patched
+    assert isinstance(result, Document)
+    assert result.reference == "new_reference"
+    assert result.title == "title"
+
+
+def test_patch_documents(session: Session, documents: Documents):
+    # Create documents
+    project = Project(name="project")
+    for document in [
+        Document(reference="apple", title="title", project=project),
+        Document(reference="banana", title="title", project=project),
+        Document(reference="cherry", title="title", project=project),
+    ]:
+        session.add(document)
+    session.commit()
+
+    # Patch documents
+    patch = DocumentPatch(reference="cherry")
+    patch_documents(patch, [Document.reference.in_(["apple", "banana"])], documents)
+
+    # Check if documents are patched
+    for document in session.query(Document).all():
+        assert document.reference == "cherry"
+        assert document.title == "title"
+
+
 def test_delete_document(documents: Documents, document: Document):
     delete_document(document.id, documents)
 
@@ -90,6 +134,32 @@ def test_delete_document(documents: Documents, document: Document):
         get_document(document.id, documents)
     assert excinfo.value.status_code == 404
     assert "No Document with id" in excinfo.value.detail
+
+
+def test_delete_documents(session: Session, documents: Documents):
+    # Create documents
+    project = Project(name="project")
+
+    for document in [
+        Document(title="apple"),
+        Document(title="banana"),
+        Document(title="cherry"),
+    ]:
+        session.add(document)
+        document.project = project
+        session.flush()
+
+    # Delete documents
+    delete_documents(
+        [Document.title.in_(["apple", "banana"])],
+        documents,
+    )
+    session.flush()
+
+    # Check if documents are deleted
+    results = documents.list_documents()
+    assert len(results) == 1
+    assert results[0].title == "cherry"
 
 
 def test_get_document_representations_list(documents: Documents, document: Document):

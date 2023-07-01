@@ -26,7 +26,7 @@ from sqlalchemy.sql import select
 from mvtool.data.projects import Projects
 from mvtool.db.schema import Project
 from mvtool.models.jira_ import JiraProjectImport
-from mvtool.models.projects import ProjectImport, ProjectInput
+from mvtool.models.projects import ProjectImport, ProjectInput, ProjectPatch
 from mvtool.utils.errors import NotFoundError
 
 
@@ -273,6 +273,38 @@ def test_update_project_patch(projects: Projects):
     projects.update_project(project, new_project_input, patch=True)
 
     assert project.name == new_project_input.name
+
+
+def test_patch_project(
+    session: Session, projects: Projects, jira_project_data: jira.Project
+):
+    # Create a project
+    project = Project(name="name", description="description")
+    session.add(project)
+    session.commit()
+
+    # Test patching the project
+    patch = ProjectPatch(
+        description="new_description", jira_project_id=jira_project_data.id
+    )
+    projects.patch_project(project, patch)
+
+    # Check if the project is patched with the correct data
+    assert project.description == "new_description"
+    assert project.jira_project_id == jira_project_data.id
+
+
+def test_patch_project_invalid_jira_project_id(session: Session, projects: Projects):
+    # Create a project
+    project = Project(name="name", description="description")
+    session.add(project)
+    session.commit()
+
+    # Test patching the project
+    patch = ProjectPatch(description="new_description", jira_project_id="invalid")
+    with pytest.raises(jira.JIRAError) as excinfo:
+        projects.patch_project(project, patch)
+    assert excinfo.value.status_code == 404
 
 
 def test_delete_project(projects: Projects):

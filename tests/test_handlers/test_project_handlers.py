@@ -18,21 +18,26 @@
 import jira
 import pytest
 from fastapi import HTTPException
+from sqlalchemy.orm import Session
 
 from mvtool.data.projects import Projects
 from mvtool.db.schema import Project
 from mvtool.handlers.projects import (
     create_project,
     delete_project,
+    delete_projects,
     get_project,
     get_project_field_names,
     get_project_representations,
     get_projects,
+    patch_project,
+    patch_projects,
     update_project,
 )
 from mvtool.models.projects import (
     ProjectInput,
     ProjectOutput,
+    ProjectPatch,
     ProjectRepresentation,
 )
 from mvtool.utils.pagination import Page
@@ -82,6 +87,43 @@ def test_update_project(projects: Projects, project: Project):
     assert updated_project.name == project_input.name
 
 
+def test_patch_project(session: Session, projects: Projects):
+    # Create a project
+    project = Project(name="name", description="description")
+    session.add(project)
+    session.commit()
+
+    # Patch the project
+    patch = ProjectPatch(description="new_description")
+    result = patch_project(project.id, patch, projects)
+
+    # Check if the project is patched
+    assert isinstance(result, Project)
+    assert result.name == "name"
+    assert result.description == "new_description"
+
+
+def test_patch_projects(session: Session, projects: Projects):
+    # Create projects
+    for project in [
+        Project(name="name", description="apple"),
+        Project(name="name", description="banana"),
+        Project(name="name", description="cherry"),
+    ]:
+        session.add(project)
+    session.commit()
+
+    # Patch projects
+    patch = ProjectPatch(description="cherry")
+    patch_projects(patch, [Project.description.in_(["apple", "banana"])], projects)
+
+    # Check if projects are patched
+    results: list[Project] = session.query(Project).all()
+    for result in results:
+        assert result.name == "name"
+        assert result.description == "cherry"
+
+
 def test_delete_project(projects: Projects, project: Project):
     project_id = project.id
     delete_project(project_id, projects)
@@ -90,6 +132,29 @@ def test_delete_project(projects: Projects, project: Project):
         get_project(project_id, projects)
     assert excinfo.value.status_code == 404
     assert "No Project with id" in excinfo.value.detail
+
+
+def test_delete_projects(session: Session, projects: Projects):
+    # Create projects
+    for project in [
+        Project(name="apple"),
+        Project(name="banana"),
+        Project(name="cherry"),
+    ]:
+        session.add(project)
+    session.flush()
+
+    # Delete projects
+    delete_projects(
+        [Project.name.in_(["apple", "banana"])],
+        projects,
+    )
+    session.flush()
+
+    # Check if projects are deleted
+    results = projects.list_projects()
+    assert len(results) == 1
+    assert results[0].name == "cherry"
 
 
 def test_get_project_representations_list(projects: Projects, project: Project):

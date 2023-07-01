@@ -22,11 +22,13 @@ from sqlalchemy.sql import select
 
 from mvtool.data.requirements import Requirements
 from mvtool.db.schema import CatalogModule, CatalogRequirement, Project, Requirement
-from mvtool.models.catalog_requirements import (
-    CatalogRequirementImport,
-)
+from mvtool.models.catalog_requirements import CatalogRequirementImport
 from mvtool.models.projects import ProjectImport
-from mvtool.models.requirements import RequirementImport, RequirementInput
+from mvtool.models.requirements import (
+    RequirementImport,
+    RequirementInput,
+    RequirementPatch,
+)
 from mvtool.utils.errors import NotFoundError, ValueHttpError
 
 
@@ -437,6 +439,23 @@ def test_update_requirement_skip_flush(
 
     # Check if the session is not flushed
     requirements._session.flush.assert_not_called()
+
+
+def test_patch_requirement(session: Session, requirements: Requirements):
+    # Create a requirement
+    requirement = Requirement(
+        reference="reference", summary="summary", project=Project(name="project_name")
+    )
+    session.add(requirement)
+    session.commit()
+
+    # Test patching the requirement
+    patch = RequirementPatch(reference="new_reference")
+    requirements.patch_requirement(requirement, patch)
+
+    # Check if the requirement is patched
+    assert requirement.reference == "new_reference"
+    assert requirement.summary == "summary"
 
 
 def test_delete_requirement(

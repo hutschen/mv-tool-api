@@ -23,12 +23,13 @@ from pydantic import constr
 from sqlalchemy import Column
 
 from ..data.documents import Documents
+from ..db.schema import Document, Project
 from ..models.documents import (
     DocumentInput,
     DocumentOutput,
+    DocumentPatch,
     DocumentRepresentation,
 )
-from ..db.schema import Document, Project
 from ..utils.filtering import (
     filter_by_pattern_many,
     filter_by_values_many,
@@ -184,10 +185,45 @@ def update_document(
     return document
 
 
-@router.delete("/documents/{document_id}", status_code=204, response_class=Response)
+@router.patch("/documents/{document_id}", response_model=DocumentOutput)
+def patch_document(
+    document_id: int,
+    document_patch: DocumentPatch,
+    documents: Documents = Depends(),
+) -> Document:
+    document = documents.get_document(document_id)
+    documents.patch_document(document, document_patch)
+    return document
+
+
+@router.patch("/documents", response_model=list[DocumentOutput])
+def patch_documents(
+    patch: DocumentPatch,
+    where_clauses: list[Any] = Depends(get_document_filters),
+    documents: Documents = Depends(),
+) -> list[Document]:
+    documents_ = documents.list_documents(where_clauses)
+    for document in documents_:
+        documents.patch_document(document, patch, skip_flush=True)
+    documents._session.flush()
+    return documents_
+
+
+@router.delete("/documents/{document_id}", status_code=204)
 def delete_document(document_id: int, documents: Documents = Depends()) -> None:
     document = documents.get_document(document_id)
     documents.delete_document(document)
+
+
+@router.delete("/documents", status_code=204)
+def delete_documents(
+    where_clauses: list[Any] = Depends(get_document_filters),
+    documents: Documents = Depends(),
+) -> None:
+    documents_ = documents.list_documents(where_clauses)
+    for document in documents_:
+        documents.delete_document(document, skip_flush=True)
+    documents._session.flush()
 
 
 @router.get(

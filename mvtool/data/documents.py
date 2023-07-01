@@ -24,8 +24,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import Select, select
 
 from ..db.database import delete_from_db, get_session, read_from_db
-from ..models.documents import DocumentImport, DocumentInput
 from ..db.schema import Document, Project
+from ..models.documents import DocumentImport, DocumentInput, DocumentPatch
 from ..utils.errors import NotFoundError
 from ..utils.etag_map import get_from_etag_map
 from ..utils.fallback import fallback
@@ -156,6 +156,14 @@ class Documents:
         ).items():
             setattr(document, key, value)
 
+        if not skip_flush:
+            self._session.flush()
+
+    def patch_document(
+        self, document: Document, patch: DocumentPatch, skip_flush: bool = False
+    ) -> None:
+        for key, value in patch.dict(exclude_unset=True).items():
+            setattr(document, key, value)
         if not skip_flush:
             self._session.flush()
 

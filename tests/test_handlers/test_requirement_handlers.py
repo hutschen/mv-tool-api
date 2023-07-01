@@ -17,27 +17,30 @@
 
 import pytest
 from fastapi import HTTPException
+from sqlalchemy.orm import Session
 
 from mvtool.data.catalog_requirements import CatalogRequirements
 from mvtool.data.projects import Projects
 from mvtool.data.requirements import Requirements
+from mvtool.db.schema import CatalogModule, CatalogRequirement, Project, Requirement
 from mvtool.handlers.requirements import (
     _create_requirement_field_values_handler,
     create_requirement,
     delete_requirement,
+    delete_requirements,
     get_requirement,
     get_requirement_field_names,
     get_requirement_representations,
     get_requirements,
     import_requirements_from_catalog_modules,
+    patch_requirement,
+    patch_requirements,
     update_requirement,
 )
-from mvtool.db.schema import CatalogModule, Requirement
-from mvtool.db.schema import CatalogRequirement
-from mvtool.db.schema import Project
 from mvtool.models.requirements import (
     RequirementInput,
     RequirementOutput,
+    RequirementPatch,
     RequirementRepresentation,
 )
 from mvtool.utils.pagination import Page
@@ -99,6 +102,47 @@ def test_update_requirement(requirements: Requirements, requirement: Requirement
     assert updated_requirement.summary == requirement_input.summary
 
 
+def test_patch_requirement(session: Session, requirements: Requirements):
+    # Create a requirement
+    requirement = Requirement(
+        reference="reference", summary="summary", project=Project(name="name")
+    )
+    session.add(requirement)
+    session.commit()
+
+    # Patch the requirement
+    patch = RequirementPatch(reference="new_reference")
+    result = patch_requirement(requirement.id, patch, requirements)
+
+    # Check if the requirement is patched
+    assert isinstance(result, Requirement)
+    assert result.reference == "new_reference"
+    assert result.summary == "summary"
+
+
+def test_patch_requirements(session: Session, requirements: Requirements):
+    # Create requirements
+    project = Project(name="project")
+    for requirement in [
+        Requirement(reference="apple", summary="summary", project=project),
+        Requirement(reference="banana", summary="summary", project=project),
+        Requirement(reference="cherry", summary="summary", project=project),
+    ]:
+        session.add(requirement)
+    session.commit()
+
+    # Patch requirements
+    patch = RequirementPatch(reference="cherry")
+    patch_requirements(
+        patch, [Requirement.reference.in_(["apple", "banana"])], requirements
+    )
+
+    # Check if requirements are patched
+    for requirement in session.query(Requirement).all():
+        assert requirement.reference == "cherry"
+        assert requirement.summary == "summary"
+
+
 def test_delete_requirement(requirements: Requirements, requirement: Requirement):
     requirement_id = requirement.id
     delete_requirement(requirement_id, requirements)
@@ -107,6 +151,31 @@ def test_delete_requirement(requirements: Requirements, requirement: Requirement
         get_requirement(requirement_id, requirements)
     assert excinfo.value.status_code == 404
     assert "No Requirement with id" in excinfo.value.detail
+
+
+def test_delete_requirements(session: Session, requirements: Requirements):
+    # Create requirements
+    project = Project(name="project")
+    for requirement in [
+        Requirement(summary="apple"),
+        Requirement(summary="banana"),
+        Requirement(summary="cherry"),
+    ]:
+        session.add(requirement)
+        requirement.project = project
+    session.flush()
+
+    # Delete requirements
+    delete_requirements(
+        [Requirement.summary.in_(["apple", "banana"])],
+        requirements,
+    )
+    session.flush()
+
+    # Check if requirements are deleted
+    results = requirements.list_requirements()
+    assert len(results) == 1
+    assert results[0].summary == "cherry"
 
 
 def test_import_requirements_from_catalog_modules(
@@ -194,6 +263,10 @@ def test_get_requirement_field_names_full_list(
     project: Project,
     catalog_requirement: CatalogRequirement,
 ):
+    catalog_requirement.gs_absicherung = "test"
+    catalog_requirement.gs_verantwortliche = "test"
+    requirements._session.flush()
+
     # Create a requirement to get all fields
     requirement_input = RequirementInput(
         reference="reference",
@@ -224,6 +297,8 @@ def test_get_requirement_field_names_full_list(
         "catalog_requirement",
         "catalog_module",
         "catalog",
+        "gs_absicherung",
+        "gs_verantwortliche",
     }
 
 
