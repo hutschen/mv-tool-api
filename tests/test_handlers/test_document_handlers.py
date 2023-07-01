@@ -32,11 +32,14 @@ from mvtool.handlers.documents import (
     get_document_references,
     get_document_representations,
     get_documents,
+    patch_document,
+    patch_documents,
     update_document,
 )
 from mvtool.models.documents import (
     DocumentInput,
     DocumentOutput,
+    DocumentPatch,
     DocumentRepresentation,
 )
 from mvtool.utils.pagination import Page
@@ -83,6 +86,45 @@ def test_update_document(documents: Documents, document: Document):
     assert isinstance(updated_document, Document)
     assert updated_document.id == document.id
     assert updated_document.title == document_input.title
+
+
+def test_patch_document(session: Session, documents: Documents):
+    # Create a document
+    document = Document(
+        reference="reference", title="title", project=Project(name="name")
+    )
+    session.add(document)
+    session.commit()
+
+    # Patch the document
+    patch = DocumentPatch(reference="new_reference")
+    result = patch_document(document.id, patch, documents)
+
+    # Check if the document is patched
+    assert isinstance(result, Document)
+    assert result.reference == "new_reference"
+    assert result.title == "title"
+
+
+def test_patch_documents(session: Session, documents: Documents):
+    # Create documents
+    project = Project(name="project")
+    for document in [
+        Document(reference="apple", title="title", project=project),
+        Document(reference="banana", title="title", project=project),
+        Document(reference="cherry", title="title", project=project),
+    ]:
+        session.add(document)
+    session.commit()
+
+    # Patch documents
+    patch = DocumentPatch(reference="cherry")
+    patch_documents(patch, [Document.reference.in_(["apple", "banana"])], documents)
+
+    # Check if documents are patched
+    for document in session.query(Document).all():
+        assert document.reference == "cherry"
+        assert document.title == "title"
 
 
 def test_delete_document(documents: Documents, document: Document):

@@ -24,11 +24,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import select
 
 from mvtool.data.measures import Measures
-from mvtool.db.schema import Document, Measure, Requirement
+from mvtool.db.schema import Document, Measure, Project, Requirement
 from mvtool.models.catalog_requirements import CatalogRequirementImport
 from mvtool.models.documents import DocumentImport
 from mvtool.models.jira_ import JiraIssue, JiraIssueImport
-from mvtool.models.measures import MeasureImport, MeasureInput
+from mvtool.models.measures import MeasureImport, MeasureInput, MeasurePatch
 from mvtool.models.requirements import RequirementImport
 from mvtool.utils.errors import NotFoundError, ValueHttpError
 
@@ -526,6 +526,68 @@ def test_update_measure_skip_flush(
 
     # Check if the session is not flushed
     measures.session.flush.assert_not_called()
+
+
+def test_patch_measure(session: Session, measures: Measures, jira_issue: JiraIssue):
+    # Create a measure and a document
+    project = Project(name="name")
+    measure = Measure(
+        reference="reference",
+        summary="summary",
+        requirement=Requirement(summary="summary", project=project),
+    )
+    document = Document(reference="reference", title="title", project=project)
+    session.add(measure)
+    session.add(document)
+    session.commit()
+
+    # Test patching a measure
+    patch = MeasurePatch(
+        reference="new_reference", document_id=document.id, jira_issue_id=jira_issue.id
+    )
+    measures.patch_measure(measure, patch)
+
+    # Check if the specified field is updated and other fields remain unchanged
+    assert measure.summary == "summary"
+    assert measure.reference == "new_reference"
+    assert measure.document_id == document.id
+    assert measure.jira_issue_id == jira_issue.id
+
+
+def test_patch_measure_with_invalid_document_id(session: Session, measures: Measures):
+    # Create a measure
+    measure = Measure(
+        reference="reference",
+        summary="summary",
+        requirement=Requirement(summary="summary", project=Project(name="name")),
+    )
+    session.add(measure)
+    session.commit()
+
+    # Test patching a measure with an invalid document id
+    patch = MeasurePatch(document_id=-1)
+    with pytest.raises(NotFoundError) as excinfo:
+        measures.patch_measure(measure, patch)
+    assert excinfo.value.status_code == 404
+    assert "No Document with id" in excinfo.value.detail
+
+
+def test_patch_measure_with_invalid_jira_issue_id(session: Session, measures: Measures):
+    # Create a measure
+    measure = Measure(
+        reference="reference",
+        summary="summary",
+        requirement=Requirement(summary="summary", project=Project(name="name")),
+    )
+    session.add(measure)
+    session.commit()
+
+    # Test patching a measure with an invalid jira issue id
+    patch = MeasurePatch(jira_issue_id=-1)
+    with pytest.raises(jira.JIRAError) as excinfo:
+        measures.patch_measure(measure, patch)
+    assert excinfo.value.status_code == 404
+    assert "Issue not found" in excinfo.value.text
 
 
 def test_delete_measure(

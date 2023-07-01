@@ -17,7 +17,7 @@
 
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, confloat
+from pydantic import BaseModel, confloat, validator
 
 from .common import AbstractComplianceInput, ETagMixin
 
@@ -40,6 +40,16 @@ class RequirementInput(AbstractRequirementInput, AbstractComplianceInput):
     catalog_requirement_id: int | None
     target_object: str | None
     milestone: str | None
+
+
+class RequirementPatch(RequirementInput):
+    summary: str | None = None
+
+    @validator("summary")
+    def summary_validator(cls, v):
+        if not v:
+            raise ValueError("summary must not be empty")
+        return v
 
 
 class RequirementImport(ETagMixin, AbstractRequirementInput, AbstractComplianceInput):

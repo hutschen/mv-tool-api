@@ -24,7 +24,7 @@ from sqlalchemy.sql import select
 
 from mvtool.data.documents import Documents
 from mvtool.db.schema import Document, Project
-from mvtool.models.documents import DocumentImport, DocumentInput
+from mvtool.models.documents import DocumentImport, DocumentInput, DocumentPatch
 from mvtool.models.projects import ProjectImport
 from mvtool.utils.errors import NotFoundError, ValueHttpError
 
@@ -363,6 +363,23 @@ def test_update_document_patch(documents: Documents, project: Project):
     # Check if the document is updated with the correct data
     assert document.reference == old_document_input.reference
     assert document.title == new_document_input.title
+
+
+def test_patch_document(session: Session, documents: Documents):
+    # Create a document
+    document = Document(
+        reference="reference", title="title", project=Project(name="name")
+    )
+    session.add(document)
+    session.commit()
+
+    # Test patching the document
+    patch = DocumentPatch(reference="new_reference")
+    documents.patch_document(document, patch)
+
+    # Check if the document is patched with the correct data
+    assert document.reference == "new_reference"
+    assert document.title == "title"
 
 
 def test_delete_document(documents: Documents, project: Project):

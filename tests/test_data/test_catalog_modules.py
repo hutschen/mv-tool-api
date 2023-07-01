@@ -27,6 +27,7 @@ from mvtool.db.schema import Catalog, CatalogModule
 from mvtool.models.catalog_modules import (
     CatalogModuleImport,
     CatalogModuleInput,
+    CatalogModulePatch,
 )
 from mvtool.models.catalogs import CatalogImport
 from mvtool.utils.errors import NotFoundError, ValueHttpError
@@ -374,6 +375,21 @@ def test_update_catalog_patch(catalog_modules: CatalogModules, catalog: Catalog)
     # Check if the catalog module is updated with the correct data
     assert catalog_module.reference == old_catalog_module_input.reference
     assert catalog_module.title == new_catalog_module_input.title
+
+
+def test_patch_catalog_module(session: Session, catalog_modules: CatalogModules):
+    # Create a catalog module
+    catalog_module = CatalogModule(reference="reference", title="title")
+    session.add(catalog_module)
+    session.commit()
+
+    # Test patching the catalog module
+    patch = CatalogModulePatch(reference="new_reference")
+    catalog_modules.patch_catalog_module(catalog_module, patch)
+
+    # Check if the catalog module is updated with the correct data
+    assert catalog_module.reference == "new_reference"
+    assert catalog_module.title == "title"
 
 
 def test_delete_catalog_module(catalog_modules: CatalogModules, catalog: Catalog):

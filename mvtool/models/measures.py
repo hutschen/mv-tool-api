@@ -65,6 +65,16 @@ class MeasureInput(AbstractMeasureInput):
     jira_issue_id: str | None
 
 
+class MeasurePatch(MeasureInput):
+    summary: str | None = None
+
+    @validator("summary")
+    def summary_validator(cls, v):
+        if not v:
+            raise ValueError("summary must not be empty")
+        return v
+
+
 class MeasureImport(ETagMixin, AbstractMeasureInput):
     id: int | None = None
     requirement: "RequirementImport | None"

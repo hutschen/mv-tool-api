@@ -23,11 +23,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import Select, select
 
 from ..db.database import delete_from_db, get_session, read_from_db
+from ..db.schema import Catalog, CatalogModule
 from ..models.catalog_modules import (
     CatalogModuleImport,
     CatalogModuleInput,
+    CatalogModulePatch,
 )
-from ..db.schema import Catalog, CatalogModule
 from ..utils.errors import NotFoundError
 from ..utils.etag_map import get_from_etag_map
 from ..utils.fallback import fallback
@@ -140,6 +141,18 @@ class CatalogModules:
         ).items():
             setattr(catalog_module, key, value)
 
+        if not skip_flush:
+            self._session.flush()
+
+    def patch_catalog_module(
+        self,
+        catalog_module: CatalogModule,
+        patch: CatalogModulePatch,
+        skip_flush: bool = False,
+    ) -> None:
+        """Patch a catalog module with the values from a given patch object."""
+        for key, value in patch.dict(exclude_unset=True).items():
+            setattr(catalog_module, key, value)
         if not skip_flush:
             self._session.flush()
 

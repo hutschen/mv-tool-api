@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 from .common import ETagMixin
 
@@ -24,6 +24,16 @@ class CatalogInput(BaseModel):
     reference: str | None
     title: str
     description: str | None
+
+
+class CatalogPatch(CatalogInput):
+    title: str | None = None
+
+    @validator("title")
+    def title_validator(cls, v):
+        if not v:
+            raise ValueError("title must not be empty")
+        return v
 
 
 class CatalogImport(ETagMixin, CatalogInput):

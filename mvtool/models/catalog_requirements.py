@@ -18,7 +18,7 @@
 
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, constr
+from pydantic import BaseModel, constr, validator
 
 from .common import ETagMixin
 from .requirements import AbstractRequirementInput
@@ -31,6 +31,16 @@ class CatalogRequirementInput(AbstractRequirementInput):
     # Special fields for IT Grundschutz Kompendium
     gs_absicherung: constr(regex=r"^(B|S|H)$") | None
     gs_verantwortliche: str | None
+
+
+class CatalogRequirementPatch(CatalogRequirementInput):
+    summary: str | None = None
+
+    @validator("summary")
+    def summary_validator(cls, v):
+        if not v:
+            raise ValueError("summary must not be empty")
+        return v
 
 
 class CatalogRequirementImport(ETagMixin, CatalogRequirementInput):

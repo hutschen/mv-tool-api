@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pydantic import BaseModel, confloat
+from pydantic import BaseModel, confloat, validator
 
 from .common import ETagMixin
 from .jira_ import JiraProject, JiraProjectImport
@@ -28,6 +28,16 @@ class AbstractProjectInput(BaseModel):
 
 class ProjectInput(AbstractProjectInput):
     jira_project_id: str | None
+
+
+class ProjectPatch(ProjectInput):
+    name: str | None = None
+
+    @validator("name")
+    def name_validator(cls, v):
+        if not v:
+            raise ValueError("name must not be empty")
+        return v
 
 
 class ProjectImport(ETagMixin, AbstractProjectInput):

@@ -22,11 +22,10 @@ from sqlalchemy import Column, func
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import Select, select
 
-from ..db.schema import Catalog
-
 from ..auth import get_jira
 from ..db.database import delete_from_db, get_session, read_from_db
-from ..models.catalogs import CatalogImport, CatalogInput
+from ..db.schema import Catalog
+from ..models.catalogs import CatalogImport, CatalogInput, CatalogPatch
 from ..utils.errors import NotFoundError
 from ..utils.filtering import filter_for_existence
 from ..utils.iteration import CachedIterable
@@ -127,6 +126,15 @@ class Catalogs:
     ) -> None:
         """Update a catalog with the values from a given update object."""
         for key, value in update.dict(exclude_unset=patch, exclude={"id"}).items():
+            setattr(catalog, key, value)
+        if not skip_flush:
+            self._session.flush()
+
+    def patch_catalog(
+        self, catalog: Catalog, patch: CatalogPatch, skip_flush: bool = False
+    ) -> None:
+        """Patch a catalog with the values from a given patch object."""
+        for key, value in patch.dict(exclude_unset=True).items():
             setattr(catalog, key, value)
         if not skip_flush:
             self._session.flush()

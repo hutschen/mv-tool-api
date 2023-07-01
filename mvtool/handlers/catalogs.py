@@ -21,12 +21,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import constr
 from sqlalchemy import Column
 
-from ..db.schema import Catalog
-
 from ..data.catalogs import Catalogs
+from ..db.schema import Catalog
 from ..models.catalogs import (
     CatalogInput,
     CatalogOutput,
+    CatalogPatch,
     CatalogRepresentation,
 )
 from ..utils.filtering import (
@@ -169,6 +169,30 @@ def update_catalog(
     catalog = catalogs.get_catalog(catalog_id)
     catalogs.update_catalog(catalog, catalog_input)
     return catalog
+
+
+@router.patch("/catalogs/{catalog_id}", response_model=CatalogOutput)
+def patch_catalog(
+    catalog_id: int,
+    catalog_patch: CatalogPatch,
+    catalogs: Catalogs = Depends(),
+) -> Catalog:
+    catalog = catalogs.get_catalog(catalog_id)
+    catalogs.patch_catalog(catalog, catalog_patch)
+    return catalog
+
+
+@router.patch("/catalogs", response_model=list[CatalogOutput])
+def patch_catalogs(
+    catalog_patch: CatalogPatch,
+    where_clauses=Depends(get_catalog_filters),
+    catalogs: Catalogs = Depends(),
+) -> list[Catalog]:
+    catalogs_ = catalogs.list_catalogs(where_clauses)
+    for catalog in catalogs_:
+        catalogs.patch_catalog(catalog, catalog_patch, skip_flush=True)
+    catalogs._session.flush()
+    return catalogs_
 
 
 @router.delete("/catalogs/{catalog_id}", status_code=204)

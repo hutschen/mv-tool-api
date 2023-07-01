@@ -17,7 +17,7 @@
 
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 from .common import ETagMixin
 
@@ -29,6 +29,16 @@ class DocumentInput(BaseModel):
     reference: str | None
     title: str
     description: str | None
+
+
+class DocumentPatch(DocumentInput):
+    title: str | None = None
+
+    @validator("title")
+    def title_validator(cls, v):
+        if not v:
+            raise ValueError("title must not be empty")
+        return v
 
 
 class DocumentImport(ETagMixin, DocumentInput):
