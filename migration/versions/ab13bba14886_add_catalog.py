@@ -34,7 +34,7 @@ def upgrade() -> None:
 
     # check if catalog modules are existing
     catalog_module_count = (
-        op.get_bind().execute("SELECT COUNT(*) FROM catalog_module").scalar()
+        op.get_bind().execute(sa.text("SELECT COUNT(*) FROM catalog_module")).scalar()
     )
     if not catalog_module_count:
         # without catalog modules no default catalog has to be created
