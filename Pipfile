@@ -5,7 +5,7 @@ name = "pypi"
 
 [packages]
 fastapi = {extras = ["all"], version = "*"}
-pydantic = "*"
+pydantic = "~=1.10.10"
 jira = "*"
 pyyaml = "*"
 sqlalchemy = "~=1.4.0"
