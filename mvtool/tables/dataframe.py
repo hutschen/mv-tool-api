@@ -36,17 +36,18 @@ class DataFrame:
         rows = rows or []
         self.data = {}
 
-        for row in rows:
+        for row_num, row in enumerate(rows):
             column_names = set(self.data.keys())
             labels = set()
 
             # Fill in values
-            for chell in row:
+            for cell in row:
                 try:
-                    self.data[chell.label].append(chell.value)
+                    self.data[cell.label].append(cell.value)
                 except KeyError:
-                    self.data[chell.label] = [chell.value]
-                labels.add(chell.label)
+                    # Fill the column up to the current row with None
+                    self.data[cell.label] = [None] * row_num + [cell.value]
+                labels.add(cell.label)
 
             # Fill in None for missing values
             for column_name in column_names - labels:
