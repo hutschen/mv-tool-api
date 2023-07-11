@@ -21,7 +21,7 @@ from openpyxl import Workbook, load_workbook
 from mvtool.tables.dataframe import Cell, DataFrame, read_excel, write_excel
 
 
-def test_dataframe_init():
+def test_dataframe_init_with_full_rows():
     df = DataFrame(
         [
             [Cell("A", 1), Cell("B", 2)],
@@ -31,6 +31,34 @@ def test_dataframe_init():
     assert df.data == {
         "A": [1, 3],
         "B": [2, 4],
+    }
+
+
+def test_data_frame_init_with_partial_rows_at_end():
+    df = DataFrame(
+        [
+            [Cell("A", 1), Cell("B", 2)],
+            [Cell("B", 4)],
+            [Cell("A", 3)],
+        ]
+    )
+    assert df.data == {
+        "A": [1, None, 3],
+        "B": [2, 4, None],
+    }
+
+
+def test_data_frame_init_with_partial_rows_at_beginning():
+    df = DataFrame(
+        [
+            [Cell("B", 1)],
+            [Cell("A", 2)],
+            [Cell("A", 3), Cell("B", 4)],
+        ]
+    )
+    assert df.data == {
+        "A": [None, 2, 3],
+        "B": [1, None, 4],
     }
 
 
