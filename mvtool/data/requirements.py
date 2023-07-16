@@ -131,7 +131,7 @@ class Requirements:
         skip_flush: bool = False,
     ) -> Requirement:
         requirement = Requirement(
-            **creation.dict(exclude={"id", "project", "catalog_requirement"})
+            **creation.model_dump(exclude={"id", "project", "catalog_requirement"})
         )
         self._session.add(requirement)
         requirement.project = project
@@ -160,7 +160,7 @@ class Requirements:
         patch: bool = False,
         skip_flush: bool = False,
     ) -> None:
-        for key, value in update.dict(
+        for key, value in update.model_dump(
             exclude_unset=patch, exclude={"id", "project", "catalog_requirement"}
         ).items():
             setattr(requirement, key, value)
@@ -182,7 +182,7 @@ class Requirements:
         patch: RequirementPatch,
         skip_flush: bool = False,
     ) -> None:
-        for key, value in patch.dict(exclude_unset=True).items():
+        for key, value in patch.model_dump(exclude_unset=True).items():
             setattr(requirement, key, value)
         if not skip_flush:
             self._session.flush()
@@ -296,7 +296,9 @@ class Requirements:
     ) -> Iterator[Requirement]:
         for catalog_requirement in catalog_requirements:
             requirement = self.create_requirement(
-                project, RequirementInput.from_orm(catalog_requirement), skip_flush=True
+                project,
+                RequirementInput.model_validate(catalog_requirement),
+                skip_flush=True,
             )
             requirement.catalog_requirement = catalog_requirement
             yield requirement

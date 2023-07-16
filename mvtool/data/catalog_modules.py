@@ -119,7 +119,7 @@ class CatalogModules:
         creation: CatalogModuleInput | CatalogModuleImport,
         skip_flush: bool = False,
     ) -> CatalogModule:
-        catalog_module = CatalogModule(**creation.dict(exclude={"id", "catalog"}))
+        catalog_module = CatalogModule(**creation.model_dump(exclude={"id", "catalog"}))
         self._session.add(catalog_module)
         catalog_module.catalog = catalog
         if not skip_flush:
@@ -136,7 +136,7 @@ class CatalogModules:
         patch: bool = False,
         skip_flush: bool = False,
     ) -> None:
-        for key, value in update.dict(
+        for key, value in update.model_dump(
             exclude_unset=patch, exclude={"id", "catalog"}
         ).items():
             setattr(catalog_module, key, value)
@@ -151,7 +151,7 @@ class CatalogModules:
         skip_flush: bool = False,
     ) -> None:
         """Patch a catalog module with the values from a given patch object."""
-        for key, value in patch.dict(exclude_unset=True).items():
+        for key, value in patch.model_dump(exclude_unset=True).items():
             setattr(catalog_module, key, value)
         if not skip_flush:
             self._session.flush()

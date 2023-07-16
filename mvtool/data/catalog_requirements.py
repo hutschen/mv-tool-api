@@ -120,7 +120,7 @@ class CatalogRequirements:
         skip_flush: bool = False,
     ) -> CatalogRequirement:
         catalog_requirement = CatalogRequirement(
-            **creation.dict(exclude={"id", "catalog_module"})
+            **creation.model_dump(exclude={"id", "catalog_module"})
         )
         self._session.add(catalog_requirement)
         catalog_requirement.catalog_module = catalog_module
@@ -146,7 +146,7 @@ class CatalogRequirements:
         patch: bool = False,
         skip_flush: bool = False,
     ) -> None:
-        for key, value in update.dict(
+        for key, value in update.model_dump(
             exclude_unset=patch, exclude={"id", "catalog_module"}
         ).items():
             setattr(catalog_requirement, key, value)
@@ -161,7 +161,7 @@ class CatalogRequirements:
         skip_flush: bool = False,
     ) -> None:
         """Patch a catalog requirement with the values from a given patch object."""
-        for key, value in patch.dict(exclude_unset=True).items():
+        for key, value in patch.model_dump(exclude_unset=True).items():
             setattr(catalog_requirement, key, value)
         if not skip_flush:
             self._session.flush()

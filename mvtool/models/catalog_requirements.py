@@ -18,7 +18,7 @@
 
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, constr, validator
+from pydantic import field_validator, ConfigDict, BaseModel, constr
 
 from .common import ETagMixin
 from .requirements import AbstractRequirementInput
@@ -29,14 +29,14 @@ if TYPE_CHECKING:
 
 class CatalogRequirementInput(AbstractRequirementInput):
     # Special fields for IT Grundschutz Kompendium
-    gs_absicherung: constr(regex=r"^(B|S|H)$") | None
-    gs_verantwortliche: str | None
+    gs_absicherung: constr(pattern=r"^(B|S|H)$") | None = None
+    gs_verantwortliche: str | None = None
 
 
 class CatalogRequirementPatch(CatalogRequirementInput):
     summary: str | None = None
 
-    @validator("summary")
+    @field_validator("summary")
     def summary_validator(cls, v):
         if not v:
             raise ValueError("summary must not be empty")
@@ -49,8 +49,7 @@ class CatalogRequirementImport(ETagMixin, CatalogRequirementInput):
 
 
 class CatalogRequirementRepresentation(BaseModel):
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     reference: str | None
@@ -58,12 +57,11 @@ class CatalogRequirementRepresentation(BaseModel):
 
 
 class CatalogRequirementOutput(CatalogRequirementInput):
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     catalog_module: "CatalogModuleOutput"
 
     # Special fields for IT Grundschutz Kompendium
-    gs_absicherung: constr(regex=r"^(B|S|H)$") | None
+    gs_absicherung: constr(pattern=r"^(B|S|H)$") | None
     gs_verantwortliche: str | None

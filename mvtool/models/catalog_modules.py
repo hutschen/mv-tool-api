@@ -18,7 +18,7 @@
 
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, validator
+from pydantic import field_validator, ConfigDict, BaseModel
 
 from .common import ETagMixin
 
@@ -27,15 +27,15 @@ if TYPE_CHECKING:
 
 
 class CatalogModuleInput(BaseModel):
-    reference: str | None
+    reference: str | None = None
     title: str
-    description: str | None
+    description: str | None = None
 
 
 class CatalogModulePatch(CatalogModuleInput):
     title: str | None = None
 
-    @validator("title")
+    @field_validator("title")
     def title_validator(cls, v):
         if not v:
             raise ValueError("title must not be empty")
@@ -48,8 +48,7 @@ class CatalogModuleImport(ETagMixin, CatalogModuleInput):
 
 
 class CatalogModuleRepresentation(BaseModel):
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     reference: str | None
@@ -57,8 +56,7 @@ class CatalogModuleRepresentation(BaseModel):
 
 
 class CatalogModuleOutput(CatalogModuleInput):
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     catalog: "CatalogOutput"

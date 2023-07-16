@@ -299,7 +299,7 @@ def test_create_measure_from_measure_input_invalid_jira_issue_id(
     measure_input = MeasureInput(
         reference="apple",
         summary="apple_summary",
-        jira_issue_id=-1,
+        jira_issue_id="invalid",
         document_id=document.id,
     )
     with pytest.raises(jira.JIRAError) as excinfo:
@@ -583,7 +583,7 @@ def test_patch_measure_with_invalid_jira_issue_id(session: Session, measures: Me
     session.commit()
 
     # Test patching a measure with an invalid jira issue id
-    patch = MeasurePatch(jira_issue_id=-1)
+    patch = MeasurePatch(jira_issue_id="invalid")
     with pytest.raises(jira.JIRAError) as excinfo:
         measures.patch_measure(measure, patch)
     assert excinfo.value.status_code == 404

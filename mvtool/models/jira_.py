@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pydantic import BaseModel
+from pydantic import ConfigDict, BaseModel
 
 
 class JiraUser(BaseModel):
@@ -35,8 +35,7 @@ class JiraProject(JiraProjectImport):
 
 
 class JiraIssueType(BaseModel):
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: str
     name: str
@@ -50,7 +49,7 @@ class JiraIssueStatus(BaseModel):
 
 class JiraIssueInput(BaseModel):
     summary: str
-    description: str | None
+    description: str | None = None
     issuetype_id: str
 
 
