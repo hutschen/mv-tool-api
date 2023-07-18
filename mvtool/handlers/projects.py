@@ -93,7 +93,8 @@ def get_project_filters(
 
 
 def get_project_sort(
-    sort_by: str | None = None, sort_order: constr(regex=r"^(asc|desc)$") | None = None
+    sort_by: str | None = None,
+    sort_order: constr(pattern=r"^(asc|desc)$") | None = None,
 ) -> list[Any]:
     if not (sort_by and sort_order):
         return []

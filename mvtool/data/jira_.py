@@ -113,7 +113,7 @@ class JiraProjects(JiraBase):
 class JiraIssueTypes(JiraBase):
     def list_jira_issue_types(self, jira_project_id: str):
         for issue_type_data in self.jira.project(jira_project_id).issueTypes:
-            yield JiraIssueType.from_orm(issue_type_data)
+            yield JiraIssueType.model_validate(issue_type_data)
 
 
 class JiraIssues(JiraBase):

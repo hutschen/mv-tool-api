@@ -18,8 +18,8 @@
 
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, constr, validator
-
+from pydantic import BaseModel, ConfigDict, constr, field_validator
+from pydantic_core.core_schema import FieldValidationInfo
 
 from .common import AbstractComplianceInput, ETagMixin
 from .jira_ import JiraIssue, JiraIssueImport
@@ -30,45 +30,45 @@ if TYPE_CHECKING:
 
 
 class AbstractMeasureInput(AbstractComplianceInput):
-    reference: str | None
+    reference: str | None = None
     summary: str
-    description: str | None
-    completion_status: constr(regex=r"^(open|in progress|completed)$") | None
-    completion_comment: str | None
-    verification_method: constr(regex=r"^(I|T|R)$") | None
+    description: str | None = None
+    completion_status: constr(pattern=r"^(open|in progress|completed)$") | None = None
+    completion_comment: str | None = None
+    verification_method: constr(pattern=r"^(I|T|R)$") | None = None
     verification_status: constr(
-        regex=r"^(verified|partially verified|not verified)$"
-    ) | None
-    verification_comment: str | None
+        pattern=r"^(verified|partially verified|not verified)$"
+    ) | None = None
+    verification_comment: str | None = None
 
-    @validator("completion_comment")
-    def completion_comment_validator(cls, v, values):
+    @field_validator("completion_comment")
+    def completion_comment_validator(cls, v, info: FieldValidationInfo):
         return cls._dependent_field_validator(
-            "completion_comment", "completion_status", v, values
+            "completion_comment", "completion_status", v, info.data
         )
 
-    @validator("verification_status")
-    def verification_status_validator(cls, v, values):
+    @field_validator("verification_status")
+    def verification_status_validator(cls, v, info: FieldValidationInfo):
         return cls._dependent_field_validator(
-            "verification_status", "verification_method", v, values
+            "verification_status", "verification_method", v, info.data
         )
 
-    @validator("verification_comment")
-    def verification_comment_validator(cls, v, values):
+    @field_validator("verification_comment")
+    def verification_comment_validator(cls, v, info: FieldValidationInfo):
         return cls._dependent_field_validator(
-            "verification_comment", "verification_method", v, values
+            "verification_comment", "verification_method", v, info.data
         )
 
 
 class MeasureInput(AbstractMeasureInput):
-    document_id: int | None
-    jira_issue_id: str | None
+    document_id: int | None = None
+    jira_issue_id: str | None = None
 
 
 class MeasurePatch(MeasureInput):
     summary: str | None = None
 
-    @validator("summary")
+    @field_validator("summary")
     def summary_validator(cls, v):
         if not v:
             raise ValueError("summary must not be empty")
@@ -77,14 +77,13 @@ class MeasurePatch(MeasureInput):
 
 class MeasureImport(ETagMixin, AbstractMeasureInput):
     id: int | None = None
-    requirement: "RequirementImport | None"
-    document: "DocumentImport | None"
-    jira_issue: JiraIssueImport | None
+    requirement: "RequirementImport | None" = None
+    document: "DocumentImport | None" = None
+    jira_issue: JiraIssueImport | None = None
 
 
 class MeasureRepresentation(BaseModel):
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     reference: str | None
@@ -92,8 +91,7 @@ class MeasureRepresentation(BaseModel):
 
 
 class MeasureOutput(MeasureRepresentation):
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
     description: str | None
     compliance_status: str | None

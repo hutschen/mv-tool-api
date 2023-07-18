@@ -26,4 +26,4 @@ def field_is_set(model: BaseModel, field_name: str):
     Returns:
         bool: True if the field was set, False otherwise.
     """
-    return field_name in model.__fields_set__
+    return field_name in model.model_fields_set

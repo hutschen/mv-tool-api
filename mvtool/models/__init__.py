@@ -71,30 +71,42 @@ from .requirements import (
 )
 
 # Update forward references for catalog module models
-CatalogModuleImport.update_forward_refs(CatalogImport=CatalogImport)
-CatalogModuleOutput.update_forward_refs(CatalogOutput=CatalogOutput)
+CatalogModuleImport.model_rebuild(_types_namespace=dict(CatalogImport=CatalogImport))
+CatalogModuleOutput.model_rebuild(_types_namespace=dict(CatalogOutput=CatalogOutput))
 
 # Update forward references for catalog requirement models
-CatalogRequirementImport.update_forward_refs(CatalogModuleImport=CatalogModuleImport)
-CatalogRequirementOutput.update_forward_refs(CatalogModuleOutput=CatalogModuleOutput)
+CatalogRequirementImport.model_rebuild(
+    _types_namespace=dict(CatalogModuleImport=CatalogModuleImport)
+)
+CatalogRequirementOutput.model_rebuild(
+    _types_namespace=dict(CatalogModuleOutput=CatalogModuleOutput)
+)
 
 # Update forward references for requirement models
-RequirementImport.update_forward_refs(
-    CatalogRequirementImport=CatalogRequirementImport, ProjectImport=ProjectImport
+RequirementImport.model_rebuild(
+    _types_namespace=dict(
+        CatalogRequirementImport=CatalogRequirementImport, ProjectImport=ProjectImport
+    )
 )
-RequirementOutput.update_forward_refs(
-    ProjectOutput=ProjectOutput, CatalogRequirementOutput=CatalogRequirementOutput
+RequirementOutput.model_rebuild(
+    _types_namespace=dict(
+        ProjectOutput=ProjectOutput, CatalogRequirementOutput=CatalogRequirementOutput
+    )
 )
 
 # Update forward references for document models
-DocumentImport.update_forward_refs(ProjectImport=ProjectImport)
-DocumentOutput.update_forward_refs(ProjectOutput=ProjectOutput)
+DocumentImport.model_rebuild(_types_namespace=dict(ProjectImport=ProjectImport))
+DocumentOutput.model_rebuild(_types_namespace=dict(ProjectOutput=ProjectOutput))
 
 # Update forward references for measure models
-MeasureImport.update_forward_refs(
-    RequirementImport=RequirementImport, DocumentImport=DocumentImport
+MeasureImport.model_rebuild(
+    _types_namespace=dict(
+        RequirementImport=RequirementImport, DocumentImport=DocumentImport
+    )
 )
 # Measure.update_forward_refs(Requirement=Requirement, Document=Document)
-MeasureOutput.update_forward_refs(
-    RequirementOutput=RequirementOutput, DocumentOutput=DocumentOutput
+MeasureOutput.model_rebuild(
+    _types_namespace=dict(
+        RequirementOutput=RequirementOutput, DocumentOutput=DocumentOutput
+    )
 )

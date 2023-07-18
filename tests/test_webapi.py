@@ -23,8 +23,9 @@ from jira import JIRAError
 from mvtool import app
 from mvtool.auth import get_jira
 from mvtool.db.database import get_session
-from mvtool.db.schema import CatalogRequirement, Project, Requirement
-from mvtool.db.schema import Document
+from mvtool.db.schema import CatalogRequirement, Document, Project, Requirement
+from mvtool.models.jira_ import JiraIssueInput
+from mvtool.models.projects import ProjectInput
 
 
 @pytest.fixture
@@ -105,16 +106,16 @@ def test_list_projects(client, jira):
     assert type(response_body) == list
 
 
-def test_create_project(client, project_input):
-    response = client.post("/api/projects", json=project_input.dict())
+def test_create_project(client, project_input: ProjectInput):
+    response = client.post("/api/projects", json=project_input.model_dump())
     assert response.status_code == 201
     response_body = response.json()
     assert type(response_body) == dict
     assert response_body["name"] == project_input.name
 
 
-def test_create_project_valid_jira_project_id(client, project_input):
-    response = client.post("/api/projects", json=project_input.dict())
+def test_create_project_valid_jira_project_id(client, project_input: ProjectInput):
+    response = client.post("/api/projects", json=project_input.model_dump())
     assert response.status_code == 201
     response_body = response.json()
     assert type(response_body) == dict
@@ -322,11 +323,13 @@ def test_delete_measure(client, create_measure):
     assert response.status_code == 404
 
 
-def test_create_and_link_jira_issue(client, create_measure, jira_issue_input):
+def test_create_and_link_jira_issue(
+    client, create_measure, jira_issue_input: JiraIssueInput
+):
     create_measure.jira_issue_id = None
     response = client.post(
         f"/api/measures/{create_measure.id}/jira-issue",
-        json=jira_issue_input.dict(),
+        json=jira_issue_input.model_dump(),
         auth=("u", "p"),
     )
     assert response.status_code == 201

@@ -15,21 +15,21 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pydantic import BaseModel, validator
+from pydantic import field_validator, ConfigDict, BaseModel
 
 from .common import ETagMixin
 
 
 class CatalogInput(BaseModel):
-    reference: str | None
+    reference: str | None = None
     title: str
-    description: str | None
+    description: str | None = None
 
 
 class CatalogPatch(CatalogInput):
     title: str | None = None
 
-    @validator("title")
+    @field_validator("title")
     def title_validator(cls, v):
         if not v:
             raise ValueError("title must not be empty")
@@ -41,8 +41,7 @@ class CatalogImport(ETagMixin, CatalogInput):
 
 
 class CatalogRepresentation(BaseModel):
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     reference: str | None
@@ -50,7 +49,6 @@ class CatalogRepresentation(BaseModel):
 
 
 class CatalogOutput(CatalogInput):
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: int

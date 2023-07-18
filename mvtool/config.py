@@ -110,4 +110,4 @@ def _to_abs_filename(filename: str) -> str:
 def load_config() -> Config:
     with open(_to_abs_filename(CONFIG_FILENAME), "r") as config_file:
         config_data = yaml.safe_load(config_file)
-    return Config.parse_obj(config_data)
+    return Config.model_validate(config_data)
