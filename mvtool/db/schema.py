@@ -253,6 +253,57 @@ class Document(CommonFieldsMixin, Base):
     project = relationship("Project", back_populates="documents", lazy="joined")
     measures = relationship("Measure", back_populates="document")
 
+    @property
+    def _compliant_count_query(self):
+        return (
+            select(func.count())
+            .select_from(Measure)
+            .where(
+                Measure.document_id == self.id,
+                or_(
+                    Measure.compliance_status.in_(("C", "PC")),
+                    Measure.compliance_status.is_(None),
+                ),
+            )
+        )
+
+    @property
+    def _completed_count_query(self):
+        return self._compliant_count_query.where(
+            Measure.completion_status == "completed"
+        )
+
+    @property
+    def compliant_count(self) -> int:
+        session = Session.object_session(self)
+        return session.execute(self._compliant_count_query).scalar()
+
+    @property
+    def completed_count(self) -> int:
+        session = Session.object_session(self)
+        return session.execute(self._completed_count_query).scalar()
+
+    @property
+    def verified_count(self) -> int:
+        session = Session.object_session(self)
+        return session.execute(
+            self._completed_count_query.where(Measure.verification_status == "verified")
+        ).scalar()
+
+    @property
+    def completion_progress(self) -> float | None:
+        return (
+            self.completed_count / self.compliant_count
+            if self.compliant_count
+            else None
+        )
+
+    @property
+    def verification_progress(self) -> float | None:
+        return (
+            self.verified_count / self.completed_count if self.completed_count else None
+        )
+
 
 class Measure(CommonFieldsMixin, Base):
     __tablename__ = "measure"
