@@ -59,3 +59,6 @@ class DocumentOutput(DocumentInput):
 
     id: int
     project: "ProjectOutput"
+    compliant_count: int
+    completed_count: int
+    verified_count: int
