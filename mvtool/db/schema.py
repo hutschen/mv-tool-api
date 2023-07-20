@@ -208,40 +208,41 @@ class Requirement(CommonFieldsMixin, Base):
         )
 
     @property
-    def completion_progress(self) -> float | None:
-        if self.compliance_status not in ("C", "PC", None):
-            return None
-
-        session = Session.object_session(self)
-
-        # get the total number of measures subordinated to this requirement
-        total = session.execute(self._compliant_count_query).scalar()
-
-        # get the number of completed measures subordinated to this requirement
-        completed_query = self._compliant_count_query.where(
+    def _completed_count_query(self):
+        return self._compliant_count_query.where(
             Measure.completion_status == "completed"
         )
-        completed = session.execute(completed_query).scalar()
 
-        return completed / total if total else 0.0
+    @property
+    def compliant_count(self) -> int:
+        session = Session.object_session(self)
+        return session.execute(self._compliant_count_query).scalar()
+
+    @property
+    def completed_count(self) -> int:
+        session = Session.object_session(self)
+        return session.execute(self._completed_count_query).scalar()
+
+    @property
+    def verified_count(self) -> int:
+        session = Session.object_session(self)
+        return session.execute(
+            self._completed_count_query.where(Measure.verification_status == "verified")
+        ).scalar()
+
+    @property
+    def completion_progress(self) -> float | None:
+        return (
+            self.completed_count / self.compliant_count
+            if self.compliant_count
+            else None
+        )
 
     @property
     def verification_progress(self) -> float | None:
-        if self.compliance_status not in ("C", "PC", None):
-            return None
-
-        session = Session.object_session(self)
-
-        # get the total number of measures subordinated to this requirement
-        total = session.execute(self._compliant_count_query).scalar()
-
-        # get the number of verified measures subordinated to this requirement
-        verified_query = self._compliant_count_query.where(
-            Measure.verification_status == "verified"
+        return (
+            self.verified_count / self.completed_count if self.completed_count else None
         )
-        verified = session.execute(verified_query).scalar()
-
-        return verified / total if total else 0.0
 
 
 class Document(CommonFieldsMixin, Base):
