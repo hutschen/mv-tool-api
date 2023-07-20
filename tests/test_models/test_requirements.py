@@ -21,8 +21,11 @@ from mvtool.db.schema import Requirement
 from mvtool.db.schema import Measure
 
 
-def test_requirement_completion_progress_incomplete(create_requirement: Requirement):
-    assert create_requirement.completion_progress == 0.0
+def test_requirement_completion_progress_no_measures(
+    create_requirement: Requirement,
+):
+    assert len(create_requirement.measures) == 0
+    assert create_requirement.completion_progress == None
 
 
 def test_requirement_completion_progress_complete(
@@ -43,13 +46,15 @@ def test_requirement_completion_progress_ignored(
     assert create_requirement.completion_progress == None
 
 
-def test_requirement_verification_progress_incomplete(create_requirement: Requirement):
-    assert create_requirement.verification_progress == 0.0
+def test_requirement_verification_progress_no_measures(create_requirement: Requirement):
+    assert len(create_requirement.measures) == 0
+    assert create_requirement.verification_progress == None
 
 
 def test_requirement_verification_progress_complete(
     session: Session, create_requirement: Requirement, create_measure: Measure
 ):
+    create_measure.completion_status = "completed"
     create_measure.verification_status = "verified"
     session.flush()
 

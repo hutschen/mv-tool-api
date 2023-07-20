@@ -110,6 +110,7 @@ def test_project_verification_progress_verified(
     create_measure: Measure,
 ):
     create_requirement.compliance_status = "C"
+    create_measure.completion_status = "completed"
     create_measure.verification_status = "verified"
     session.flush()
 
@@ -124,6 +125,7 @@ def test_project_verification_progress_unverified(
     create_measure: Measure,
 ):
     create_requirement.compliance_status = "C"
+    create_measure.completion_status = "completed"
     create_measure.verification_status = "not verified"
     session.flush()
 
