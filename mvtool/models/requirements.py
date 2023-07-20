@@ -77,5 +77,8 @@ class RequirementOutput(AbstractRequirementInput):
     compliance_status: str | None
     compliance_status_hint: str | None
     compliance_comment: str | None
+    compliant_count: int
+    completed_count: int
+    verified_count: int
     completion_progress: confloat(ge=0, le=1) | None
     verification_progress: confloat(ge=0, le=1) | None
