@@ -90,7 +90,8 @@ def test_project_verification_progress_no_requirements(create_project: Project):
 def test_project_verification_progress_no_measures(
     create_project: Project, create_requirement: Requirement
 ):
-    assert create_project.verification_progress == 0.0
+    assert len(create_requirement.measures) == 0
+    assert create_project.verification_progress == None
 
 
 def test_project_verification_progress_nothing_to_verify(
