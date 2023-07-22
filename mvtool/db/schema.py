@@ -139,20 +139,6 @@ class Project(CommonFieldsMixin, Base):
             self._completed_count_query.where(Measure.verification_status == "verified")
         ).scalar()
 
-    @property
-    def completion_progress(self) -> float | None:
-        return (
-            self.completed_count / self.compliant_count
-            if self.compliant_count
-            else None
-        )
-
-    @property
-    def verification_progress(self) -> float | None:
-        return (
-            self.verified_count / self.completed_count if self.completed_count else None
-        )
-
 
 class Requirement(CommonFieldsMixin, Base):
     __tablename__ = "requirement"
@@ -237,20 +223,6 @@ class Requirement(CommonFieldsMixin, Base):
             self._completed_count_query.where(Measure.verification_status == "verified")
         ).scalar()
 
-    @property
-    def completion_progress(self) -> float | None:
-        return (
-            self.completed_count / self.compliant_count
-            if self.compliant_count
-            else None
-        )
-
-    @property
-    def verification_progress(self) -> float | None:
-        return (
-            self.verified_count / self.completed_count if self.completed_count else None
-        )
-
 
 class Document(CommonFieldsMixin, Base):
     __tablename__ = "document"
@@ -297,20 +269,6 @@ class Document(CommonFieldsMixin, Base):
         return session.execute(
             self._completed_count_query.where(Measure.verification_status == "verified")
         ).scalar()
-
-    @property
-    def completion_progress(self) -> float | None:
-        return (
-            self.completed_count / self.compliant_count
-            if self.compliant_count
-            else None
-        )
-
-    @property
-    def verification_progress(self) -> float | None:
-        return (
-            self.verified_count / self.completed_count if self.completed_count else None
-        )
 
 
 class Measure(CommonFieldsMixin, Base):

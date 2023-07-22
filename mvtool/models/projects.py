@@ -60,5 +60,3 @@ class ProjectOutput(ProjectInput):
     compliant_count: int
     completed_count: int
     verified_count: int
-    completion_progress: confloat(ge=0, le=1) | None
-    verification_progress: confloat(ge=0, le=1) | None
