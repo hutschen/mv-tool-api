@@ -15,7 +15,17 @@
 
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, func, or_, select
+from sqlalchemy import (
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Select,
+    String,
+    func,
+    or_,
+    select,
+)
 from sqlalchemy.orm import Session, relationship
 
 from ..models.jira_ import JiraIssue
@@ -28,6 +38,37 @@ class CommonFieldsMixin:
     updated = Column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
+
+
+class ProgressCountsMixin:
+    @property
+    def _compliant_count_query(self) -> Select:
+        raise NotImplementedError(
+            "Getter compliant_count_query has not been implemented yet"
+        )
+
+    @property
+    def _completed_count_query(self):
+        return self._compliant_count_query.where(
+            Measure.completion_status == "completed"
+        )
+
+    @property
+    def compliant_count(self) -> int:
+        session = Session.object_session(self)
+        return session.execute(self._compliant_count_query).scalar()
+
+    @property
+    def completed_count(self) -> int:
+        session = Session.object_session(self)
+        return session.execute(self._completed_count_query).scalar()
+
+    @property
+    def verified_count(self) -> int:
+        session = Session.object_session(self)
+        return session.execute(
+            self._completed_count_query.where(Measure.verification_status == "verified")
+        ).scalar()
 
 
 class Catalog(CommonFieldsMixin, Base):
@@ -71,7 +112,7 @@ class CatalogRequirement(CommonFieldsMixin, Base):
     requirements = relationship("Requirement", back_populates="catalog_requirement")
 
 
-class Project(CommonFieldsMixin, Base):
+class Project(CommonFieldsMixin, ProgressCountsMixin, Base):
     __tablename__ = "project"
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
@@ -116,31 +157,8 @@ class Project(CommonFieldsMixin, Base):
             )
         )
 
-    @property
-    def _completed_count_query(self):
-        return self._compliant_count_query.where(
-            Measure.completion_status == "completed"
-        )
 
-    @property
-    def compliant_count(self) -> int:
-        session = Session.object_session(self)
-        return session.execute(self._compliant_count_query).scalar()
-
-    @property
-    def completed_count(self) -> int:
-        session = Session.object_session(self)
-        return session.execute(self._completed_count_query).scalar()
-
-    @property
-    def verified_count(self) -> int:
-        session = Session.object_session(self)
-        return session.execute(
-            self._completed_count_query.where(Measure.verification_status == "verified")
-        ).scalar()
-
-
-class Requirement(CommonFieldsMixin, Base):
+class Requirement(CommonFieldsMixin, ProgressCountsMixin, Base):
     __tablename__ = "requirement"
     reference = Column(String, nullable=True)
     summary = Column(String, nullable=False)
@@ -200,31 +218,8 @@ class Requirement(CommonFieldsMixin, Base):
             )
         )
 
-    @property
-    def _completed_count_query(self):
-        return self._compliant_count_query.where(
-            Measure.completion_status == "completed"
-        )
 
-    @property
-    def compliant_count(self) -> int:
-        session = Session.object_session(self)
-        return session.execute(self._compliant_count_query).scalar()
-
-    @property
-    def completed_count(self) -> int:
-        session = Session.object_session(self)
-        return session.execute(self._completed_count_query).scalar()
-
-    @property
-    def verified_count(self) -> int:
-        session = Session.object_session(self)
-        return session.execute(
-            self._completed_count_query.where(Measure.verification_status == "verified")
-        ).scalar()
-
-
-class Document(CommonFieldsMixin, Base):
+class Document(CommonFieldsMixin, ProgressCountsMixin, Base):
     __tablename__ = "document"
     reference = Column(String, nullable=True)
     title = Column(String, nullable=False)
@@ -246,29 +241,6 @@ class Document(CommonFieldsMixin, Base):
                 ),
             )
         )
-
-    @property
-    def _completed_count_query(self):
-        return self._compliant_count_query.where(
-            Measure.completion_status == "completed"
-        )
-
-    @property
-    def compliant_count(self) -> int:
-        session = Session.object_session(self)
-        return session.execute(self._compliant_count_query).scalar()
-
-    @property
-    def completed_count(self) -> int:
-        session = Session.object_session(self)
-        return session.execute(self._completed_count_query).scalar()
-
-    @property
-    def verified_count(self) -> int:
-        session = Session.object_session(self)
-        return session.execute(
-            self._completed_count_query.where(Measure.verification_status == "verified")
-        ).scalar()
 
 
 class Measure(CommonFieldsMixin, Base):
