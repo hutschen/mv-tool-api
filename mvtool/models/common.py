@@ -59,6 +59,7 @@ class AbstractComplianceInput(BaseModel):
 
 
 class AbstractProgressCountsOutput(BaseModel):
-    compliant_count: int
+    completion_count: int
     completed_count: int
+    verification_count: int
     verified_count: int

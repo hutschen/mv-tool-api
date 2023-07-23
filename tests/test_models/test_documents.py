@@ -27,7 +27,7 @@ from mvtool.db.schema import Document, Measure, Project, Requirement
         (["C", "NC"], 1),  # one measure compliant, one measure non-compliant
     ],
 )
-def test_compliant_count(
+def test_completion_count(
     session: Session, compliance_statuses: list[str | None], expected_count: int
 ):
     document = Document(title="test", project=Project(name="test"))
@@ -45,7 +45,7 @@ def test_compliant_count(
     session.add_all(measures)
     session.flush()
 
-    assert document.compliant_count == expected_count
+    assert document.completion_count == expected_count
 
 
 @pytest.mark.parametrize(
@@ -78,6 +78,41 @@ def test_completed_count(
 
 
 @pytest.mark.parametrize(
+    "compliance_statuses, verification_methods, expected_count",
+    [
+        ([None, None, None], ["R", "I", "T"], 3),  # all measures to be verified
+        (["C", "NC", "N/A"], [None, "R", "R"], 0),  # no measures to be verified
+        ([None, None], [None, "R"], 1),  # one measure to be verified
+    ],
+)
+def test_verification_count(
+    session: Session,
+    compliance_statuses: str | None,
+    verification_methods: str | None,
+    expected_count: int,
+):
+    document = Document(title="test", project=Project(name="test"))
+    measures = []
+
+    for compliance_status, verification_method in zip(
+        compliance_statuses, verification_methods
+    ):
+        measure = Measure(
+            summary="test",
+            document=document,
+            requirement=Requirement(summary="test", project=document.project),
+            compliance_status=compliance_status,
+            verification_method=verification_method,
+        )
+        measures.append(measure)
+
+    session.add_all(measures)
+    session.flush()
+
+    assert document.verification_count == expected_count
+
+
+@pytest.mark.parametrize(
     "verification_statuses, expected_count",
     [
         (["verified", "verified"], 2),  # all measures verified
@@ -97,6 +132,7 @@ def test_verified_count(
             document=document,
             requirement=Requirement(summary="test", project=document.project),
             completion_status="completed",
+            verification_method="R",
             verification_status=verification_status,
         )
         measures.append(measure)

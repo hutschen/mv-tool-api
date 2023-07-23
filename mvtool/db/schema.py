@@ -42,21 +42,31 @@ class CommonFieldsMixin:
 
 class ProgressCountsMixin:
     @property
-    def _compliant_count_query(self) -> Select:
+    def _completion_count_query(self) -> Select:
         raise NotImplementedError(
             "Getter compliant_count_query has not been implemented yet"
         )
 
     @property
     def _completed_count_query(self):
-        return self._compliant_count_query.where(
+        return self._completion_count_query.where(
             Measure.completion_status == "completed"
         )
 
     @property
-    def compliant_count(self) -> int:
+    def _verification_count_query(self):
+        return self._completion_count_query.where(Measure.verification_method != None)
+
+    @property
+    def _verified_count_query(self):
+        return self._verification_count_query.where(
+            Measure.verification_status == "verified"
+        )
+
+    @property
+    def completion_count(self) -> int:
         session = Session.object_session(self)
-        return session.execute(self._compliant_count_query).scalar()
+        return session.execute(self._completion_count_query).scalar()
 
     @property
     def completed_count(self) -> int:
@@ -64,11 +74,14 @@ class ProgressCountsMixin:
         return session.execute(self._completed_count_query).scalar()
 
     @property
+    def verification_count(self) -> int:
+        session = Session.object_session(self)
+        return session.execute(self._verification_count_query).scalar()
+
+    @property
     def verified_count(self) -> int:
         session = Session.object_session(self)
-        return session.execute(
-            self._completed_count_query.where(Measure.verification_status == "verified")
-        ).scalar()
+        return session.execute(self._verified_count_query).scalar()
 
 
 class Catalog(CommonFieldsMixin, Base):
@@ -139,7 +152,7 @@ class Project(CommonFieldsMixin, ProgressCountsMixin, Base):
         return getattr(self, "_get_jira_project")(self.jira_project_id)
 
     @property
-    def _compliant_count_query(self):
+    def _completion_count_query(self):
         return (
             select(func.count())
             .select_from(Requirement)
@@ -205,7 +218,7 @@ class Requirement(CommonFieldsMixin, ProgressCountsMixin, Base):
             return None
 
     @property
-    def _compliant_count_query(self):
+    def _completion_count_query(self):
         return (
             select(func.count())
             .select_from(Measure)
@@ -229,7 +242,7 @@ class Document(CommonFieldsMixin, ProgressCountsMixin, Base):
     measures = relationship("Measure", back_populates="document")
 
     @property
-    def _compliant_count_query(self):
+    def _completion_count_query(self):
         return (
             select(func.count())
             .select_from(Measure)
