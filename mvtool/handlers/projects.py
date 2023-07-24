@@ -55,8 +55,8 @@ def get_project_filters(
     # filter for existence
     has_description: bool | None = None,
     has_jira_project: bool | None = None,
-    to_complete: bool | None = None,
-    to_verify: bool | None = None,
+    has_completion_progress: bool | None = None,
+    has_verification_progress: bool | None = None,
     #
     # filter by search string
     search: str | None = None,
@@ -84,8 +84,8 @@ def get_project_filters(
         filter_for_existence_many(
             (Project.description, has_description),
             (Project.jira_project_id, has_jira_project),
-            (Project.completion_progess, to_complete),
-            (Project.verification_progress, to_verify),
+            (Project.completion_progess, has_completion_progress),
+            (Project.verification_progress, has_verification_progress),
         )
     )
 
@@ -108,8 +108,8 @@ def get_project_sort(
             "name": [Project.name],
             "description": [Project.description],
             "jira_project": [Project.jira_project_id],
-            "completion": [Project.completion_progess],
-            "verification": [Project.verification_progress],
+            "completion_progress": [Project.completion_progess],
+            "verification_progress": [Project.verification_progress],
         }[sort_by]
     except KeyError:
         raise HTTPException(
@@ -241,8 +241,8 @@ def get_project_field_names(
     for field, names in [
         (Project.description, ["description"]),
         (Project.jira_project_id, ["jira_project"]),
-        (Project.completion_progess, ["completion"]),
-        (Project.verification_progress, ["verification"]),
+        (Project.completion_progess, ["completion_progress"]),
+        (Project.verification_progress, ["verification_progress"]),
     ]:
         if projects.count_projects([filter_for_existence(field, True), *where_clauses]):
             field_names.update(names)

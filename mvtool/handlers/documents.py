@@ -63,8 +63,8 @@ def get_document_filters(
     # filter for existence
     has_reference: bool | None = None,
     has_description: bool | None = None,
-    to_complete: bool | None = None,
-    to_verify: bool | None = None,
+    has_completion_progress: bool | None = None,
+    has_verification_progress: bool | None = None,
     #
     # filter by search string
     search: str | None = None,
@@ -94,8 +94,8 @@ def get_document_filters(
         filter_for_existence_many(
             (Document.reference, has_reference),
             (Document.description, has_description),
-            (Document.completion_progess, to_complete),
-            (Document.verification_progress, to_verify),
+            (Document.completion_progess, has_completion_progress),
+            (Document.verification_progress, has_verification_progress),
         )
     )
 
@@ -123,8 +123,8 @@ def get_document_sort(
             "title": [Document.title],
             "description": [Document.description],
             "project": [Project.name],
-            "completion": [Document.completion_progess],
-            "verification": [Document.verification_progress],
+            "completion_progress": [Document.completion_progess],
+            "verification_progress": [Document.verification_progress],
         }[sort_by]
     except KeyError:
         raise HTTPException(
@@ -270,8 +270,8 @@ def get_document_field_names(
     for field, names in [
         (Document.reference, ["reference"]),
         (Document.description, ["description"]),
-        (Document.completion_progess, ["completion"]),
-        (Document.verification_progress, ["verification"]),
+        (Document.completion_progess, ["completion_progress"]),
+        (Document.verification_progress, ["verification_progress"]),
     ]:
         if documents.count_documents(
             [filter_for_existence(field, True), *where_clauses]

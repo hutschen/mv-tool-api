@@ -96,8 +96,8 @@ def get_requirement_filters(
     has_catalog_requirement: bool | None = None,
     has_gs_absicherung: bool | None = None,
     has_gs_verantwortliche: bool | None = None,
-    to_complete: bool | None = None,
-    to_verify: bool | None = None,
+    has_completion_progress: bool | None = None,
+    has_verification_progress: bool | None = None,
     #
     # filter by search string
     search: str | None = None,
@@ -152,8 +152,8 @@ def get_requirement_filters(
             ),
             (CatalogRequirement.gs_absicherung, has_gs_absicherung),
             (CatalogRequirement.gs_verantwortliche, has_gs_verantwortliche),
-            (Requirement.completion_progess, to_complete),
-            (Requirement.verification_progress, to_verify),
+            (Requirement.completion_progess, has_completion_progress),
+            (Requirement.verification_progress, has_verification_progress),
         )
     )
 
@@ -205,8 +205,8 @@ def get_requirement_sort(
             "catalog": [Catalog.reference, Catalog.title],
             "compliance_status": [Requirement.compliance_status],
             "compliance_comment": [Requirement.compliance_comment],
-            "completion": [Requirement.completion_progess],
-            "verification": [Requirement.verification_progress],
+            "completion_progress": [Requirement.completion_progess],
+            "verification_progress": [Requirement.verification_progress],
         }[sort_by]
     except KeyError:
         raise HTTPException(
@@ -393,8 +393,8 @@ def get_requirement_field_names(
             Requirement.catalog_requirement_id,
             ["catalog_requirement", "catalog_module", "catalog"],
         ),
-        (Requirement.completion_progess, ["completion"]),
-        (Requirement.verification_progress, ["verification"]),
+        (Requirement.completion_progess, ["completion_progress"]),
+        (Requirement.verification_progress, ["verification_progress"]),
         (CatalogRequirement.gs_absicherung, ["gs_absicherung"]),
         (CatalogRequirement.gs_verantwortliche, ["gs_verantwortliche"]),
     ]:
