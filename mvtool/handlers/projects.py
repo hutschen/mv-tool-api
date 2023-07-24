@@ -104,6 +104,8 @@ def get_project_sort(
             "name": [Project.name],
             "description": [Project.description],
             "jira_project": [Project.jira_project_id],
+            "completion": [Project.completion_progess],
+            "verification": [Project.verification_progress],
         }[sort_by]
     except KeyError:
         raise HTTPException(

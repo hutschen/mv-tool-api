@@ -201,6 +201,8 @@ def get_requirement_sort(
             "catalog": [Catalog.reference, Catalog.title],
             "compliance_status": [Requirement.compliance_status],
             "compliance_comment": [Requirement.compliance_comment],
+            "completion": [Requirement.completion_progess],
+            "verification": [Requirement.verification_progress],
         }[sort_by]
     except KeyError:
         raise HTTPException(

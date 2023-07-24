@@ -119,6 +119,8 @@ def get_document_sort(
             "title": [Document.title],
             "description": [Document.description],
             "project": [Project.name],
+            "completion": [Document.completion_progess],
+            "verification": [Document.verification_progress],
         }[sort_by]
     except KeyError:
         raise HTTPException(
