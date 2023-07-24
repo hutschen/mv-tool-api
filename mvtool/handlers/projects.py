@@ -235,6 +235,8 @@ def get_project_field_names(
     for field, names in [
         (Project.description, ["description"]),
         (Project.jira_project_id, ["jira_project"]),
+        (Project.completion_progess, ["completion"]),
+        (Project.verification_progress, ["verification"]),
     ]:
         if projects.count_projects([filter_for_existence(field, True), *where_clauses]):
             field_names.update(names)

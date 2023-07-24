@@ -264,6 +264,8 @@ def get_document_field_names(
     for field, names in [
         (Document.reference, ["reference"]),
         (Document.description, ["description"]),
+        (Document.completion_progess, ["completion"]),
+        (Document.verification_progress, ["verification"]),
     ]:
         if documents.count_documents(
             [filter_for_existence(field, True), *where_clauses]

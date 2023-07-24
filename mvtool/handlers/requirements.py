@@ -387,6 +387,8 @@ def get_requirement_field_names(
             Requirement.catalog_requirement_id,
             ["catalog_requirement", "catalog_module", "catalog"],
         ),
+        (Requirement.completion_progess, ["completion"]),
+        (Requirement.verification_progress, ["verification"]),
         (CatalogRequirement.gs_absicherung, ["gs_absicherung"]),
         (CatalogRequirement.gs_verantwortliche, ["gs_verantwortliche"]),
     ]:
