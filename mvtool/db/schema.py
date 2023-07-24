@@ -26,6 +26,7 @@ from sqlalchemy import (
     or_,
     select,
 )
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Session, relationship
 
 from ..models.jira_ import JiraIssue
@@ -41,47 +42,69 @@ class CommonFieldsMixin:
 
 
 class ProgressCountsMixin:
-    @property
-    def _completion_count_query(self) -> Select:
+    @staticmethod
+    def _get_completion_count_query(id: int | Column) -> Select:
         raise NotImplementedError(
-            "Getter compliant_count_query has not been implemented yet"
+            "_get_completion_count_query must be implemented by subclasses"
         )
 
-    @property
-    def _completed_count_query(self):
-        return self._completion_count_query.where(
+    @classmethod
+    def _get_completed_count_query(cls, id: int | Column) -> Select:
+        return cls._get_completion_count_query(id).where(
             Measure.completion_status == "completed"
         )
 
-    @property
-    def _verification_count_query(self):
-        return self._completion_count_query.where(Measure.verification_method != None)
+    @classmethod
+    def _get_verification_count_query(cls, id: int | Column) -> Select:
+        return cls._get_completion_count_query(id).where(
+            Measure.verification_method.is_not(None)
+        )
 
-    @property
-    def _verified_count_query(self):
-        return self._verification_count_query.where(
+    @classmethod
+    def _get_verified_count_query(cls, id: int | Column) -> Select:
+        return cls._get_verification_count_query(id).where(
             Measure.verification_status == "verified"
         )
 
-    @property
+    @hybrid_property
     def completion_count(self) -> int:
         session = Session.object_session(self)
-        return session.execute(self._completion_count_query).scalar()
+        return session.execute(self._get_completion_count_query(self.id)).scalar()
 
-    @property
+    @completion_count.inplace.expression
+    @classmethod
+    def _completion_count_expression(cls):
+        return cls._get_completion_count_query(cls.id).as_scalar()
+
+    @hybrid_property
     def completed_count(self) -> int:
         session = Session.object_session(self)
-        return session.execute(self._completed_count_query).scalar()
+        return session.execute(self._get_completed_count_query(self.id)).scalar()
 
-    @property
+    @completed_count.inplace.expression
+    @classmethod
+    def _completed_count_expression(cls):
+        return cls._get_completed_count_query(cls.id).as_scalar()
+
+    @hybrid_property
     def verification_count(self) -> int:
         session = Session.object_session(self)
-        return session.execute(self._verification_count_query).scalar()
+        return session.execute(self._get_verification_count_query(self.id)).scalar()
 
-    @property
+    @verification_count.inplace.expression
+    @classmethod
+    def _verification_count_expression(cls):
+        return cls._get_verification_count_query(cls.id).as_scalar()
+
+    @hybrid_property
     def verified_count(self) -> int:
         session = Session.object_session(self)
-        return session.execute(self._verified_count_query).scalar()
+        return session.execute(self._get_verified_count_query(self.id)).scalar()
+
+    @verified_count.inplace.expression
+    @classmethod
+    def _verified_count_expression(cls):
+        return cls._get_verified_count_query(cls.id).as_scalar()
 
 
 class Catalog(CommonFieldsMixin, Base):
@@ -151,14 +174,14 @@ class Project(CommonFieldsMixin, ProgressCountsMixin, Base):
             return None
         return getattr(self, "_get_jira_project")(self.jira_project_id)
 
-    @property
-    def _completion_count_query(self):
+    @staticmethod
+    def _get_completion_count_query(id: int | Column) -> Select:
         return (
             select(func.count())
             .select_from(Requirement)
             .outerjoin(Measure)
             .where(
-                Requirement.project_id == self.id,
+                Requirement.project_id == id,
                 or_(
                     Requirement.compliance_status.in_(("C", "PC")),
                     Requirement.compliance_status.is_(None),
@@ -217,13 +240,13 @@ class Requirement(CommonFieldsMixin, ProgressCountsMixin, Base):
         else:
             return None
 
-    @property
-    def _completion_count_query(self):
+    @staticmethod
+    def _get_completion_count_query(id: int | Column) -> Select:
         return (
             select(func.count())
             .select_from(Measure)
             .where(
-                Measure.requirement_id == self.id,
+                Measure.requirement_id == id,
                 or_(
                     Measure.compliance_status.in_(("C", "PC")),
                     Measure.compliance_status.is_(None),
@@ -241,13 +264,13 @@ class Document(CommonFieldsMixin, ProgressCountsMixin, Base):
     project = relationship("Project", back_populates="documents", lazy="joined")
     measures = relationship("Measure", back_populates="document")
 
-    @property
-    def _completion_count_query(self):
+    @staticmethod
+    def _get_completion_count_query(id: int | Column) -> Select:
         return (
             select(func.count())
             .select_from(Measure)
             .where(
-                Measure.document_id == self.id,
+                Measure.document_id == id,
                 or_(
                     Measure.compliance_status.in_(("C", "PC")),
                     Measure.compliance_status.is_(None),
