@@ -22,6 +22,7 @@ from sqlalchemy import (
     Integer,
     Select,
     String,
+    case,
     func,
     or_,
     select,
@@ -105,6 +106,34 @@ class ProgressCountsMixin:
     @classmethod
     def _verified_count_expression(cls):
         return cls._get_verified_count_query(cls.id).as_scalar()
+
+    @hybrid_property
+    def completion_progess(self) -> float | None:
+        if self.completion_count == 0:
+            return None
+        return self.completed_count / self.completion_count
+
+    @completion_progess.inplace.expression
+    @classmethod
+    def _completion_progess_expression(cls):
+        return case(
+            (cls.completion_count != 0, cls.completed_count / cls.completion_count),
+            else_=None,
+        )
+
+    @hybrid_property
+    def verification_progress(self) -> float | None:
+        if self.verification_count == 0:
+            return None
+        return self.verified_count / self.verification_count
+
+    @verification_progress.inplace.expression
+    @classmethod
+    def _verification_progress_expression(cls):
+        return case(
+            (cls.verification_count != 0, cls.verified_count / cls.verification_count),
+            else_=None,
+        )
 
 
 class Catalog(CommonFieldsMixin, Base):
