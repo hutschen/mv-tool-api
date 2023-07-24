@@ -75,7 +75,7 @@ class ProgressCountsMixin:
     @completion_count.inplace.expression
     @classmethod
     def _completion_count_expression(cls):
-        return cls._get_completion_count_query(cls.id).as_scalar()
+        return cls._get_completion_count_query(cls.id).scalar_subquery()
 
     @hybrid_property
     def completed_count(self) -> int:
@@ -85,7 +85,7 @@ class ProgressCountsMixin:
     @completed_count.inplace.expression
     @classmethod
     def _completed_count_expression(cls):
-        return cls._get_completed_count_query(cls.id).as_scalar()
+        return cls._get_completed_count_query(cls.id).scalar_subquery()
 
     @hybrid_property
     def verification_count(self) -> int:
@@ -95,7 +95,7 @@ class ProgressCountsMixin:
     @verification_count.inplace.expression
     @classmethod
     def _verification_count_expression(cls):
-        return cls._get_verification_count_query(cls.id).as_scalar()
+        return cls._get_verification_count_query(cls.id).scalar_subquery()
 
     @hybrid_property
     def verified_count(self) -> int:
@@ -105,7 +105,7 @@ class ProgressCountsMixin:
     @verified_count.inplace.expression
     @classmethod
     def _verified_count_expression(cls):
-        return cls._get_verified_count_query(cls.id).as_scalar()
+        return cls._get_verified_count_query(cls.id).scalar_subquery()
 
     @hybrid_property
     def completion_progess(self) -> float | None:
