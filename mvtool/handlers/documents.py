@@ -63,6 +63,8 @@ def get_document_filters(
     # filter for existence
     has_reference: bool | None = None,
     has_description: bool | None = None,
+    to_complete: bool | None = None,
+    to_verify: bool | None = None,
     #
     # filter by search string
     search: str | None = None,
@@ -92,6 +94,8 @@ def get_document_filters(
         filter_for_existence_many(
             (Document.reference, has_reference),
             (Document.description, has_description),
+            (Document.completion_progess, to_complete),
+            (Document.verification_progress, to_verify),
         )
     )
 

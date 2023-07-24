@@ -96,6 +96,8 @@ def get_requirement_filters(
     has_catalog_requirement: bool | None = None,
     has_gs_absicherung: bool | None = None,
     has_gs_verantwortliche: bool | None = None,
+    to_complete: bool | None = None,
+    to_verify: bool | None = None,
     #
     # filter by search string
     search: str | None = None,
@@ -150,6 +152,8 @@ def get_requirement_filters(
             ),
             (CatalogRequirement.gs_absicherung, has_gs_absicherung),
             (CatalogRequirement.gs_verantwortliche, has_gs_verantwortliche),
+            (Requirement.completion_progess, to_complete),
+            (Requirement.verification_progress, to_verify),
         )
     )
 
