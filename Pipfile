@@ -24,4 +24,4 @@ pip-licenses = "*"
 pytest-alembic = "*"
 
 [requires]
-python_version = "3.10"
+python_version = "3.11"
