@@ -152,7 +152,7 @@ def get_requirement_filters(
             ),
             (CatalogRequirement.gs_absicherung, has_gs_absicherung),
             (CatalogRequirement.gs_verantwortliche, has_gs_verantwortliche),
-            (Requirement.completion_progess, has_completion_progress),
+            (Requirement.completion_progress, has_completion_progress),
             (Requirement.verification_progress, has_verification_progress),
         )
     )
@@ -205,7 +205,7 @@ def get_requirement_sort(
             "catalog": [Catalog.reference, Catalog.title],
             "compliance_status": [Requirement.compliance_status],
             "compliance_comment": [Requirement.compliance_comment],
-            "completion_progress": [Requirement.completion_progess],
+            "completion_progress": [Requirement.completion_progress],
             "verification_progress": [Requirement.verification_progress],
         }[sort_by]
     except KeyError:
@@ -393,7 +393,7 @@ def get_requirement_field_names(
             Requirement.catalog_requirement_id,
             ["catalog_requirement", "catalog_module", "catalog"],
         ),
-        (Requirement.completion_progess, ["completion_progress"]),
+        (Requirement.completion_progress, ["completion_progress"]),
         (Requirement.verification_progress, ["verification_progress"]),
         (CatalogRequirement.gs_absicherung, ["gs_absicherung"]),
         (CatalogRequirement.gs_verantwortliche, ["gs_verantwortliche"]),

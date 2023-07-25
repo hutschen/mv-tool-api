@@ -108,12 +108,12 @@ class ProgressCountsMixin:
         return cls._get_verified_count_query(cls.id).scalar_subquery()
 
     @hybrid_property
-    def completion_progess(self) -> float | None:
+    def completion_progress(self) -> float | None:
         if self.completion_count == 0:
             return None
         return self.completed_count / self.completion_count
 
-    @completion_progess.inplace.expression
+    @completion_progress.inplace.expression
     @classmethod
     def _completion_progess_expression(cls):
         return case(
