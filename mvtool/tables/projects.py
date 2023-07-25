@@ -42,6 +42,16 @@ def get_project_columns(
             Column("Name", "name", required=True),
             Column("Description", "description"),
             jira_project_columns,
+            Column(
+                "Completion Progress",
+                "completion_progress",
+                Column.EXPORT_ONLY,
+            ),
+            Column(
+                "Verification Progress",
+                "verification_progress",
+                Column.EXPORT_ONLY,
+            ),
         ],
     )
 
