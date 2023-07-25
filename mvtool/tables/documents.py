@@ -41,6 +41,16 @@ def get_document_only_columns() -> ColumnGroup[DocumentImport, Document]:
             Column("Reference", "reference"),
             Column("Title", "title", required=True),
             Column("Description", "description"),
+            Column(
+                "Completion Progress",
+                "completion_progress",
+                Column.EXPORT_ONLY,
+            ),
+            Column(
+                "Verification Progress",
+                "verification_progress",
+                Column.EXPORT_ONLY,
+            ),
         ],
     )
 

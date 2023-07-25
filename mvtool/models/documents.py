@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import field_validator, ConfigDict, BaseModel
 
-from .common import ETagMixin
+from .common import AbstractProgressCountsOutput, ETagMixin
 
 if TYPE_CHECKING:
     from .projects import ProjectImport, ProjectOutput
@@ -54,7 +54,7 @@ class DocumentRepresentation(BaseModel):
     title: str
 
 
-class DocumentOutput(DocumentInput):
+class DocumentOutput(AbstractProgressCountsOutput, DocumentInput):
     model_config = ConfigDict(from_attributes=True)
 
     id: int

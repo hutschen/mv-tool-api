@@ -15,7 +15,19 @@
 
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, func, or_, select
+from sqlalchemy import (
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Select,
+    String,
+    case,
+    func,
+    or_,
+    select,
+)
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Session, relationship
 
 from ..models.jira_ import JiraIssue
@@ -28,6 +40,100 @@ class CommonFieldsMixin:
     updated = Column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
+
+
+class ProgressCountsMixin:
+    @staticmethod
+    def _get_completion_count_query(id: int | Column) -> Select:
+        raise NotImplementedError(
+            "_get_completion_count_query must be implemented by subclasses"
+        )
+
+    @classmethod
+    def _get_completed_count_query(cls, id: int | Column) -> Select:
+        return cls._get_completion_count_query(id).where(
+            Measure.completion_status == "completed"
+        )
+
+    @classmethod
+    def _get_verification_count_query(cls, id: int | Column) -> Select:
+        return cls._get_completion_count_query(id).where(
+            Measure.verification_method.is_not(None)
+        )
+
+    @classmethod
+    def _get_verified_count_query(cls, id: int | Column) -> Select:
+        return cls._get_verification_count_query(id).where(
+            Measure.verification_status == "verified"
+        )
+
+    @hybrid_property
+    def completion_count(self) -> int:
+        session = Session.object_session(self)
+        return session.execute(self._get_completion_count_query(self.id)).scalar()
+
+    @completion_count.inplace.expression
+    @classmethod
+    def _completion_count_expression(cls):
+        return cls._get_completion_count_query(cls.id).scalar_subquery()
+
+    @hybrid_property
+    def completed_count(self) -> int:
+        session = Session.object_session(self)
+        return session.execute(self._get_completed_count_query(self.id)).scalar()
+
+    @completed_count.inplace.expression
+    @classmethod
+    def _completed_count_expression(cls):
+        return cls._get_completed_count_query(cls.id).scalar_subquery()
+
+    @hybrid_property
+    def verification_count(self) -> int:
+        session = Session.object_session(self)
+        return session.execute(self._get_verification_count_query(self.id)).scalar()
+
+    @verification_count.inplace.expression
+    @classmethod
+    def _verification_count_expression(cls):
+        return cls._get_verification_count_query(cls.id).scalar_subquery()
+
+    @hybrid_property
+    def verified_count(self) -> int:
+        session = Session.object_session(self)
+        return session.execute(self._get_verified_count_query(self.id)).scalar()
+
+    @verified_count.inplace.expression
+    @classmethod
+    def _verified_count_expression(cls):
+        return cls._get_verified_count_query(cls.id).scalar_subquery()
+
+    @hybrid_property
+    def completion_progress(self) -> float | None:
+        if self.completion_count == 0:
+            return None
+        return self.completed_count / self.completion_count
+
+    @completion_progress.inplace.expression
+    @classmethod
+    def _completion_progess_expression(cls):
+        return case(
+            (cls.completion_count != 0, cls.completed_count / cls.completion_count),
+            else_=None,
+        )
+
+    @hybrid_property
+    def verification_progress(self) -> float | None:
+        if self.verification_count == 0:
+            return None
+        return self.verified_count / self.verification_count
+
+    @verification_progress.inplace.expression
+    @classmethod
+    def _verification_progress_expression(cls):
+        return case(
+            (cls.verification_count != 0, cls.verified_count / cls.verification_count),
+            else_=None,
+        )
 
 
 class Catalog(CommonFieldsMixin, Base):
@@ -71,7 +177,7 @@ class CatalogRequirement(CommonFieldsMixin, Base):
     requirements = relationship("Requirement", back_populates="catalog_requirement")
 
 
-class Project(CommonFieldsMixin, Base):
+class Project(CommonFieldsMixin, ProgressCountsMixin, Base):
     __tablename__ = "project"
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
@@ -97,14 +203,14 @@ class Project(CommonFieldsMixin, Base):
             return None
         return getattr(self, "_get_jira_project")(self.jira_project_id)
 
-    @property
-    def _compliant_count_query(self):
+    @staticmethod
+    def _get_completion_count_query(id: int | Column) -> Select:
         return (
             select(func.count())
             .select_from(Requirement)
             .outerjoin(Measure)
             .where(
-                Requirement.project_id == self.id,
+                Requirement.project_id == id,
                 or_(
                     Requirement.compliance_status.in_(("C", "PC")),
                     Requirement.compliance_status.is_(None),
@@ -116,38 +222,8 @@ class Project(CommonFieldsMixin, Base):
             )
         )
 
-    @property
-    def completion_progress(self):
-        session = Session.object_session(self)
 
-        # get the total number of measures in project
-        total = session.execute(self._compliant_count_query).scalar()
-
-        # get the number of completed measures in project
-        completed_query = self._compliant_count_query.where(
-            Measure.completion_status == "completed"
-        )
-        completed = session.execute(completed_query).scalar()
-
-        return completed / total if total else None
-
-    @property
-    def verification_progress(self):
-        session = Session.object_session(self)
-
-        # get the total number of measures in project
-        total = session.execute(self._compliant_count_query).scalar()
-
-        # get the number of verified measures in project
-        verified_query = self._compliant_count_query.where(
-            Measure.verification_status == "verified"
-        )
-        verified = session.execute(verified_query).scalar()
-
-        return verified / total if total else None
-
-
-class Requirement(CommonFieldsMixin, Base):
+class Requirement(CommonFieldsMixin, ProgressCountsMixin, Base):
     __tablename__ = "requirement"
     reference = Column(String, nullable=True)
     summary = Column(String, nullable=False)
@@ -193,13 +269,13 @@ class Requirement(CommonFieldsMixin, Base):
         else:
             return None
 
-    @property
-    def _compliant_count_query(self):
+    @staticmethod
+    def _get_completion_count_query(id: int | Column) -> Select:
         return (
             select(func.count())
             .select_from(Measure)
             .where(
-                Measure.requirement_id == self.id,
+                Measure.requirement_id == id,
                 or_(
                     Measure.compliance_status.in_(("C", "PC")),
                     Measure.compliance_status.is_(None),
@@ -207,44 +283,8 @@ class Requirement(CommonFieldsMixin, Base):
             )
         )
 
-    @property
-    def completion_progress(self) -> float | None:
-        if self.compliance_status not in ("C", "PC", None):
-            return None
 
-        session = Session.object_session(self)
-
-        # get the total number of measures subordinated to this requirement
-        total = session.execute(self._compliant_count_query).scalar()
-
-        # get the number of completed measures subordinated to this requirement
-        completed_query = self._compliant_count_query.where(
-            Measure.completion_status == "completed"
-        )
-        completed = session.execute(completed_query).scalar()
-
-        return completed / total if total else 0.0
-
-    @property
-    def verification_progress(self) -> float | None:
-        if self.compliance_status not in ("C", "PC", None):
-            return None
-
-        session = Session.object_session(self)
-
-        # get the total number of measures subordinated to this requirement
-        total = session.execute(self._compliant_count_query).scalar()
-
-        # get the number of verified measures subordinated to this requirement
-        verified_query = self._compliant_count_query.where(
-            Measure.verification_status == "verified"
-        )
-        verified = session.execute(verified_query).scalar()
-
-        return verified / total if total else 0.0
-
-
-class Document(CommonFieldsMixin, Base):
+class Document(CommonFieldsMixin, ProgressCountsMixin, Base):
     __tablename__ = "document"
     reference = Column(String, nullable=True)
     title = Column(String, nullable=False)
@@ -252,6 +292,20 @@ class Document(CommonFieldsMixin, Base):
     project_id = Column(Integer, ForeignKey("project.id"), nullable=True)
     project = relationship("Project", back_populates="documents", lazy="joined")
     measures = relationship("Measure", back_populates="document")
+
+    @staticmethod
+    def _get_completion_count_query(id: int | Column) -> Select:
+        return (
+            select(func.count())
+            .select_from(Measure)
+            .where(
+                Measure.document_id == id,
+                or_(
+                    Measure.compliance_status.in_(("C", "PC")),
+                    Measure.compliance_status.is_(None),
+                ),
+            )
+        )
 
 
 class Measure(CommonFieldsMixin, Base):

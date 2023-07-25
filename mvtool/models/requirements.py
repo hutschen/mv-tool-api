@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import field_validator, ConfigDict, BaseModel, confloat
 
-from .common import AbstractComplianceInput, ETagMixin
+from .common import AbstractComplianceInput, AbstractProgressCountsOutput, ETagMixin
 
 if TYPE_CHECKING:
     from .catalog_requirements import CatalogRequirementImport, CatalogRequirementOutput
@@ -66,7 +66,7 @@ class RequirementRepresentation(BaseModel):
     summary: str
 
 
-class RequirementOutput(AbstractRequirementInput):
+class RequirementOutput(AbstractProgressCountsOutput, AbstractRequirementInput):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -77,5 +77,3 @@ class RequirementOutput(AbstractRequirementInput):
     compliance_status: str | None
     compliance_status_hint: str | None
     compliance_comment: str | None
-    completion_progress: confloat(ge=0, le=1) | None
-    verification_progress: confloat(ge=0, le=1) | None

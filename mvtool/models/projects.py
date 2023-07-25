@@ -17,7 +17,7 @@
 
 from pydantic import field_validator, ConfigDict, BaseModel, confloat
 
-from .common import ETagMixin
+from .common import AbstractProgressCountsOutput, ETagMixin
 from .jira_ import JiraProject, JiraProjectImport
 
 
@@ -52,10 +52,8 @@ class ProjectRepresentation(BaseModel):
     name: str
 
 
-class ProjectOutput(ProjectInput):
+class ProjectOutput(AbstractProgressCountsOutput, ProjectInput):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     jira_project: JiraProject | None
-    completion_progress: confloat(ge=0, le=1) | None
-    verification_progress: confloat(ge=0, le=1) | None

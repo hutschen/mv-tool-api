@@ -56,3 +56,10 @@ class AbstractComplianceInput(BaseModel):
         return cls._dependent_field_validator(
             "compliance_comment", "compliance_status", v, info.data
         )
+
+
+class AbstractProgressCountsOutput(BaseModel):
+    completion_count: int
+    completed_count: int
+    verification_count: int
+    verified_count: int
