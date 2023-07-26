@@ -273,9 +273,7 @@ def get_document_field_names(
         (Document.completion_progress, ["completion_progress"]),
         (Document.verification_progress, ["verification_progress"]),
     ]:
-        if documents.count_documents(
-            [filter_for_existence(field, True), *where_clauses]
-        ):
+        if documents.has_document([filter_for_existence(field, True), *where_clauses]):
             field_names.update(names)
     return field_names
 

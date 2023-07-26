@@ -253,7 +253,7 @@ def get_catalog_field_names(
         (Catalog.reference, ["reference"]),
         (Catalog.description, ["description"]),
     ]:
-        if catalogs.count_catalogs([filter_for_existence(field, True), *where_clauses]):
+        if catalogs.has_catalog([filter_for_existence(field, True), *where_clauses]):
             field_names.update(names)
     return field_names
 
