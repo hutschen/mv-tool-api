@@ -174,6 +174,30 @@ def test_count_catalog_requirements(
     assert results == len(catalog_requirement_inputs)
 
 
+def test_has_catalog_requirement(
+    session: Session, catalog_requirements: CatalogRequirements
+):
+    catalog_module = CatalogModule(title="title", catalog=Catalog(title="title"))
+    for catalog_requirement in [
+        CatalogRequirement(
+            reference="apple", summary="summary", catalog_module=catalog_module
+        ),
+        CatalogRequirement(
+            reference="banana", summary="summary", catalog_module=catalog_module
+        ),
+    ]:
+        session.add(catalog_requirement)
+    session.flush()
+
+    # Test checking if a catalog requirement exists
+    assert catalog_requirements.has_catalog_requirement(
+        [CatalogRequirement.reference == "apple"]
+    )
+    assert not catalog_requirements.has_catalog_requirement(
+        [CatalogRequirement.reference == "cherry"]
+    )
+
+
 def test_list_catalog_requirement_values(
     catalog_requirements: CatalogRequirements, catalog_module: CatalogModule
 ):

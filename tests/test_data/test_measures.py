@@ -155,6 +155,20 @@ def test_count_measures(measures: Measures, requirement: Requirement):
     assert results == len(measure_inputs)
 
 
+def test_has_measure(session: Session, measures: Measures):
+    requirement = Requirement(summary="summary", project=Project(name="name"))
+    for measure in [
+        Measure(reference="apple", summary="summary", requirement=requirement),
+        Measure(reference="banana", summary="summary", requirement=requirement),
+    ]:
+        session.add(measure)
+    session.flush()
+
+    # Test has_measure with an existing measure
+    assert measures.has_measure([Measure.reference == "apple"])
+    assert not measures.has_measure([Measure.reference == "cherry"])
+
+
 def test_list_measure_values(measures: Measures, requirement: Requirement):
     # Create some test data
     measure_inputs = [

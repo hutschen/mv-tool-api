@@ -98,6 +98,10 @@ class Projects:
         )
         return self._session.execute(query).scalar()
 
+    def has_project(self, where_clauses: list[Any] | None = None) -> bool:
+        query = self._modify_projects_query(select(Project), where_clauses).exists()
+        return self._session.query(query).scalar()
+
     def create_project(
         self, creation: ProjectInput | ProjectImport, skip_flush: bool = False
     ) -> Project:

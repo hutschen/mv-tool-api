@@ -89,6 +89,12 @@ class CatalogRequirements:
         )
         return self._session.execute(query).scalar()
 
+    def has_catalog_requirement(self, where_clauses: list[Any] | None = None) -> bool:
+        query = self._modify_catalog_requirements_query(
+            select(CatalogRequirement), where_clauses
+        ).exists()
+        return self._session.query(query).scalar()
+
     def list_catalog_requirement_values(
         self,
         column: Column,
