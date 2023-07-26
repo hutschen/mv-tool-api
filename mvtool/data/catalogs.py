@@ -108,7 +108,7 @@ class Catalogs:
         self, creation: CatalogImport | CatalogInput, skip_flush: bool = False
     ) -> Catalog:
         """Create a catalog from a given creation object."""
-        catalog = Catalog(**creation.dict(exclude={"id"}))
+        catalog = Catalog(**creation.model_dump(exclude={"id"}))
         self._session.add(catalog)
         if not skip_flush:
             self._session.flush()
@@ -125,7 +125,9 @@ class Catalogs:
         skip_flush: bool = False,
     ) -> None:
         """Update a catalog with the values from a given update object."""
-        for key, value in update.dict(exclude_unset=patch, exclude={"id"}).items():
+        for key, value in update.model_dump(
+            exclude_unset=patch, exclude={"id"}
+        ).items():
             setattr(catalog, key, value)
         if not skip_flush:
             self._session.flush()
@@ -134,7 +136,7 @@ class Catalogs:
         self, catalog: Catalog, patch: CatalogPatch, skip_flush: bool = False
     ) -> None:
         """Patch a catalog with the values from a given patch object."""
-        for key, value in patch.dict(exclude_unset=True).items():
+        for key, value in patch.model_dump(exclude_unset=True).items():
             setattr(catalog, key, value)
         if not skip_flush:
             self._session.flush()

@@ -15,16 +15,22 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import json
 from hashlib import md5
 from typing import Any
 
-from pydantic import BaseModel, constr, validator
+from pydantic import BaseModel, constr, field_validator
+from pydantic_core.core_schema import FieldValidationInfo
 
 
 class ETagMixin(BaseModel):
     @property
     def etag(self) -> str:
-        model_json = self.json(sort_keys=True, ensure_ascii=False).encode("utf-8")
+        model_json = json.dumps(
+            self.model_dump(),
+            sort_keys=True,
+            ensure_ascii=False,
+        ).encode("utf-8")
         return md5(model_json).hexdigest()
 
     def __eq__(self, other: Any):
@@ -32,8 +38,8 @@ class ETagMixin(BaseModel):
 
 
 class AbstractComplianceInput(BaseModel):
-    compliance_status: constr(regex=r"^(C|PC|NC|N/A)$") | None
-    compliance_comment: str | None
+    compliance_status: constr(pattern=r"^(C|PC|NC|N/A)$") | None = None
+    compliance_comment: str | None = None
 
     @classmethod
     def _dependent_field_validator(
@@ -45,8 +51,15 @@ class AbstractComplianceInput(BaseModel):
             )
         return dependent_value
 
-    @validator("compliance_comment")
-    def compliance_comment_validator(cls, v, values):
+    @field_validator("compliance_comment")
+    def compliance_comment_validator(cls, v, info: FieldValidationInfo):
         return cls._dependent_field_validator(
-            "compliance_comment", "compliance_status", v, values
+            "compliance_comment", "compliance_status", v, info.data
         )
+
+
+class AbstractProgressCountsOutput(BaseModel):
+    completion_count: int
+    completed_count: int
+    verification_count: int
+    verified_count: int

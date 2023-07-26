@@ -36,8 +36,8 @@ def test_migrate_from_before_version_0_5_0(
     config: Config, alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
 ):
     alembic_runner.migrate_up_to("aaf70fa9151e")
-    with alembic_engine.connect() as conn:
-        conn.execute("DROP TABLE alembic_version")
+    with alembic_engine.begin() as conn:
+        conn.execute(sa.text("DROP TABLE alembic_version"))
     migrate(config.database)
 
 
@@ -109,7 +109,11 @@ def test_migrate_52864629f869_add_common_fields(
     # check project has a timestamp
     with alembic_engine.connect() as conn:
         for table_name in ("project", "requirement", "measure", "document"):
-            row = conn.execute(f"SELECT * FROM {table_name}").fetchone()
+            row = (
+                conn.execute(sa.text(f"SELECT * FROM {table_name}"))
+                .mappings()
+                .fetchone()
+            )
             assert row["created"] is not None
             assert row["updated"] is not None
 
@@ -155,14 +159,18 @@ def test_migrate_ad9f6e7bc41b_add_catalog_module(
     timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S.%f")
     with alembic_engine.connect() as conn:
         # check if catalog_module exists
-        catalog_module = conn.execute("SELECT * FROM catalog_module").fetchone()
+        catalog_module = (
+            conn.execute(sa.text("SELECT * FROM catalog_module")).mappings().fetchone()
+        )
         assert catalog_module["created"] == timestamp_str
         assert catalog_module["updated"] == timestamp_str
         assert catalog_module["title"] == "test_title"
         assert catalog_module["gs_reference"] == "test_referece"
 
         # check if requirement references catalog_module
-        requirement = conn.execute("SELECT * FROM requirement").fetchone()
+        requirement = (
+            conn.execute(sa.text("SELECT * FROM requirement")).mappings().fetchone()
+        )
         assert requirement["catalog_module_id"] == gs_baustein_id
         with pytest.raises(sa.exc.NoSuchColumnError):
             requirement["gs_baustein_id"]
@@ -188,7 +196,7 @@ def test_migration_ab13bba14886_add_catalog(
 
     # check if default catalog exists
     with alembic_engine.connect() as conn:
-        catalog = conn.execute("SELECT * FROM catalog").fetchone()
+        catalog = conn.execute(sa.text("SELECT * FROM catalog")).mappings().fetchone()
         catalog_id = catalog["id"]
         assert isinstance(catalog_id, int)
         assert isinstance(catalog["created"], str)
@@ -197,7 +205,10 @@ def test_migration_ab13bba14886_add_catalog(
 
         # check if catalog links catalog_module
         assert conn.execute(
-            "SELECT COUNT(*) FROM catalog_module WHERE catalog_id IS %d" % catalog_id
+            sa.text(
+                "SELECT COUNT(*) FROM catalog_module WHERE catalog_id IS %d"
+                % catalog_id
+            )
         ).scalar() == len(catalog_module_ids)
 
 
@@ -249,18 +260,26 @@ def test_migration_4cd3702a9e46_add_catalog_requirement(
 
     with alembic_engine.connect() as conn:
         # check if catalog requirements are created from requirements
-        catalog_requirements = conn.execute(
-            "SELECT * FROM catalog_requirement"
-        ).fetchall()
+        catalog_requirements = (
+            conn.execute(sa.text("SELECT * FROM catalog_requirement"))
+            .mappings()
+            .fetchall()
+        )
         assert len(catalog_requirements) == len(catalog_requirement_ids)
         for catalog_requirement in catalog_requirements:
             assert catalog_requirement["catalog_module_id"] == catalog_module_id
         assert {cr["id"] for cr in catalog_requirements} == catalog_requirement_ids
 
         # check if catalog requirements are linked to requirements
-        requirements = conn.execute(
-            "SELECT * FROM requirement WHERE catalog_requirement_id IS NOT NULL"
-        ).fetchall()
+        requirements = (
+            conn.execute(
+                sa.text(
+                    "SELECT * FROM requirement WHERE catalog_requirement_id IS NOT NULL"
+                )
+            )
+            .mappings()
+            .fetchall()
+        )
         assert len(requirements) == len(catalog_requirement_ids)
         for requirement in requirements:
             assert requirement["catalog_requirement_id"] == requirement["id"]
@@ -285,9 +304,11 @@ def test_migration_f94ba991ae4e_rename_field_completed_to_verified(
     alembic_runner.migrate_up_one()
 
     with alembic_engine.connect() as conn:
-        measure = conn.execute(
-            "SELECT * FROM measure WHERE id=%d" % measure_id
-        ).fetchone()
+        measure = (
+            conn.execute(sa.text("SELECT * FROM measure WHERE id=%d" % measure_id))
+            .mappings()
+            .fetchone()
+        )
         assert "completed" not in measure.keys()
         assert bool(measure["verified"]) is True
 
@@ -311,9 +332,11 @@ def test_migration_ba56d996e585_add_verification_fields(
     alembic_runner.migrate_up_one()
 
     with alembic_engine.connect() as conn:
-        measure = conn.execute(
-            "SELECT * FROM measure WHERE id=%d" % measure_id
-        ).fetchone()
+        measure = (
+            conn.execute(sa.text("SELECT * FROM measure WHERE id=%d" % measure_id))
+            .mappings()
+            .fetchone()
+        )
         assert measure["verification_method"] is None
         assert measure["verification_comment"] is None
 
@@ -336,9 +359,13 @@ def test_migration_676ab3fb1339_add_milestone_field(
     alembic_runner.migrate_up_one()
 
     with alembic_engine.connect() as conn:
-        requirement = conn.execute(
-            "SELECT * FROM requirement WHERE id=%d" % requirement_id
-        ).fetchone()
+        requirement = (
+            conn.execute(
+                sa.text("SELECT * FROM requirement WHERE id=%d" % requirement_id)
+            )
+            .mappings()
+            .fetchone()
+        )
         assert requirement["milestone"] is None
 
 
@@ -361,9 +388,11 @@ def test_migration_dea7e0cd1bf9_add_reference_field_to_measure(
     alembic_runner.migrate_up_one()
 
     with alembic_engine.connect() as conn:
-        measure = conn.execute(
-            "SELECT * FROM measure WHERE id=%d" % measure_id
-        ).fetchone()
+        measure = (
+            conn.execute(sa.text("SELECT * FROM measure WHERE id=%d" % measure_id))
+            .mappings()
+            .fetchone()
+        )
         assert measure["reference"] is None
 
 
@@ -386,9 +415,11 @@ def test_migration_71cd375292ec_add_compliance_fields_to_measure(
     alembic_runner.migrate_up_one()
 
     with alembic_engine.connect() as conn:
-        measure = conn.execute(
-            "SELECT * FROM measure WHERE id=%d" % measure_id
-        ).fetchone()
+        measure = (
+            conn.execute(sa.text("SELECT * FROM measure WHERE id=%d" % measure_id))
+            .mappings()
+            .fetchone()
+        )
         assert measure["compliance_status"] is None
         assert measure["compliance_comment"] is None
 
@@ -412,9 +443,11 @@ def test_migration_e47b89bcaa77_add_completion_fields(
     alembic_runner.migrate_up_one()
 
     with alembic_engine.connect() as conn:
-        requirement = conn.execute(
-            "SELECT * FROM measure WHERE id=%d" % measure_id
-        ).fetchone()
+        requirement = (
+            conn.execute(sa.text("SELECT * FROM measure WHERE id=%d" % measure_id))
+            .mappings()
+            .fetchone()
+        )
         assert requirement["completion_status"] is None
         assert requirement["completion_comment"] is None
 
@@ -451,12 +484,22 @@ def test_migration_13be50ec3471_remove_gs_anforderung_reference_field(
     alembic_runner.migrate_up_one()
 
     with alembic_engine.connect() as conn:
-        with_reference = conn.execute(
-            "SELECT * FROM catalog_requirement WHERE id=%d" % with_ref_id
-        ).fetchone()
-        without_reference = conn.execute(
-            "SELECT * FROM catalog_requirement WHERE id=%d" % without_ref_id
-        ).fetchone()
+        with_reference = (
+            conn.execute(
+                sa.text("SELECT * FROM catalog_requirement WHERE id=%d" % with_ref_id)
+            )
+            .mappings()
+            .fetchone()
+        )
+        without_reference = (
+            conn.execute(
+                sa.text(
+                    "SELECT * FROM catalog_requirement WHERE id=%d" % without_ref_id
+                )
+            )
+            .mappings()
+            .fetchone()
+        )
 
         # check if existing reference is not overwritten
         assert with_reference["reference"] == "reference %d" % with_ref_id
@@ -499,12 +542,20 @@ def test_migration_bef7008ddd94_remove_gs_reference_field(
     alembic_runner.migrate_up_one()
 
     with alembic_engine.connect() as conn:
-        with_reference = conn.execute(
-            "SELECT * FROM catalog_module WHERE id=%d" % with_ref_id
-        ).fetchone()
-        without_reference = conn.execute(
-            "SELECT * FROM catalog_module WHERE id=%d" % without_ref_id
-        ).fetchone()
+        with_reference = (
+            conn.execute(
+                sa.text("SELECT * FROM catalog_module WHERE id=%d" % with_ref_id)
+            )
+            .mappings()
+            .fetchone()
+        )
+        without_reference = (
+            conn.execute(
+                sa.text("SELECT * FROM catalog_module WHERE id=%d" % without_ref_id)
+            )
+            .mappings()
+            .fetchone()
+        )
 
         # check if existing reference is not overwritten
         assert with_reference["reference"] == "reference %d" % with_ref_id
@@ -563,18 +614,26 @@ def test_migration_c083b27f9c47_verification_validators(
     alembic_runner.migrate_up_one()
 
     with alembic_engine.connect() as conn:
-        unverified_measure = conn.execute(
-            "SELECT * FROM measure WHERE id=%d" % unverified_measure_id
-        ).fetchone()
+        unverified_measure = (
+            conn.execute(
+                sa.text("SELECT * FROM measure WHERE id=%d" % unverified_measure_id)
+            )
+            .mappings()
+            .fetchone()
+        )
 
         # check if verification fields of unverified measure are unchanged
         assert unverified_measure["verification_method"] is None
         assert unverified_measure["verification_comment"] is None
         assert bool(unverified_measure["verified"]) is False
 
-        invalid_measure = conn.execute(
-            "SELECT * FROM measure WHERE id=%d" % invalid_measure_id
-        ).fetchone()
+        invalid_measure = (
+            conn.execute(
+                sa.text("SELECT * FROM measure WHERE id=%d" % invalid_measure_id)
+            )
+            .mappings()
+            .fetchone()
+        )
 
         # check if verification method of invalid measure is set to "R"
         assert invalid_measure["verification_method"] == "R"
@@ -583,9 +642,13 @@ def test_migration_c083b27f9c47_verification_validators(
         assert invalid_measure["verification_comment"] == "comment"
         assert bool(invalid_measure["verified"]) is True
 
-        valid_measure = conn.execute(
-            "SELECT * FROM measure WHERE id=%d" % valid_measure_id
-        ).fetchone()
+        valid_measure = (
+            conn.execute(
+                sa.text("SELECT * FROM measure WHERE id=%d" % valid_measure_id)
+            )
+            .mappings()
+            .fetchone()
+        )
 
         # check if verification fields of valid measure are unchanged
         assert valid_measure["verification_method"] == "R"
@@ -624,18 +687,26 @@ def test_migration_35374d36bf2f_add_verification_status_field(
     alembic_runner.migrate_up_one()
 
     with alembic_engine.connect() as conn:
-        verified_measure = conn.execute(
-            "SELECT * FROM measure WHERE id=%d" % verified_measure_id
-        ).fetchone()
+        verified_measure = (
+            conn.execute(
+                sa.text("SELECT * FROM measure WHERE id=%d" % verified_measure_id)
+            )
+            .mappings()
+            .fetchone()
+        )
 
         # check if verification status of verified measure is set to "verified"
         # and verified field is removed
         assert verified_measure["verification_status"] == "verified"
         assert "verified" not in verified_measure
 
-        unverified_measure = conn.execute(
-            "SELECT * FROM measure WHERE id=%d" % unverified_measure_id
-        ).fetchone()
+        unverified_measure = (
+            conn.execute(
+                sa.text("SELECT * FROM measure WHERE id=%d" % unverified_measure_id)
+            )
+            .mappings()
+            .fetchone()
+        )
 
         # check if verification status of unverified measure is set to None
         assert unverified_measure["verification_status"] is None

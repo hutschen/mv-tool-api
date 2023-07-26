@@ -126,7 +126,7 @@ class Documents:
         creation: DocumentInput | DocumentImport,
         skip_flush: bool = False,
     ) -> Document:
-        document = Document(**creation.dict(exclude={"id", "project"}))
+        document = Document(**creation.model_dump(exclude={"id", "project"}))
         self._session.add(document)
         document.project = project
 
@@ -151,7 +151,7 @@ class Documents:
         patch: bool = False,
         skip_flush: bool = False,
     ) -> None:
-        for key, value in update.dict(
+        for key, value in update.model_dump(
             exclude_unset=patch, exclude={"id", "project"}
         ).items():
             setattr(document, key, value)
@@ -162,7 +162,7 @@ class Documents:
     def patch_document(
         self, document: Document, patch: DocumentPatch, skip_flush: bool = False
     ) -> None:
-        for key, value in patch.dict(exclude_unset=True).items():
+        for key, value in patch.model_dump(exclude_unset=True).items():
             setattr(document, key, value)
         if not skip_flush:
             self._session.flush()

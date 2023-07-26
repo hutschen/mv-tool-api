@@ -8,7 +8,7 @@ fastapi = {extras = ["all"], version = "*"}
 pydantic = "*"
 jira = "*"
 pyyaml = "*"
-sqlalchemy = "~=1.4.0"
+sqlalchemy = "*"
 cachetools = "*"
 openpyxl = "*"
 python-multipart = "*"
@@ -24,4 +24,4 @@ pip-licenses = "*"
 pytest-alembic = "*"
 
 [requires]
-python_version = "3.10"
+python_version = "3.11"

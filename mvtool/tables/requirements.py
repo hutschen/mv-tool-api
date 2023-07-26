@@ -63,6 +63,16 @@ def get_requirement_columns(
             Column("Compliance Comment", "compliance_comment"),
             Column("Target Object", "target_object"),
             Column("Milestone", "milestone"),
+            Column(
+                "Completion Progress",
+                "completion_progress",
+                Column.EXPORT_ONLY,
+            ),
+            Column(
+                "Verification Progress",
+                "verification_progress",
+                Column.EXPORT_ONLY,
+            ),
         ],
     )
 

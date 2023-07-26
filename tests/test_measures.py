@@ -71,7 +71,7 @@ def test_link_jira_issue(
     measure_input.jira_issue_id = None
     create_measure.jira_issue_id = None
 
-    measure_input_update = MeasureInput(**measure_input.dict())
+    measure_input_update = MeasureInput(**measure_input.model_dump())
     measure_input_update.jira_issue_id = jira_issue.id
 
     measures_view.update_measure(create_measure, measure_input_update)

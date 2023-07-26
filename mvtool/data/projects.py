@@ -101,7 +101,7 @@ class Projects:
     def create_project(
         self, creation: ProjectInput | ProjectImport, skip_flush: bool = False
     ) -> Project:
-        project = Project(**creation.dict(exclude={"id", "jira_project"}))
+        project = Project(**creation.model_dump(exclude={"id", "jira_project"}))
 
         try_to_get_jira_project = True
         if isinstance(creation, ProjectInput):
@@ -136,7 +136,7 @@ class Projects:
                 try_to_get_jira_project = False  # already loaded
 
         # update project
-        for key, value in update.dict(
+        for key, value in update.model_dump(
             exclude_unset=patch, exclude={"id", "jira_project"}
         ).items():
             setattr(project, key, value)
@@ -153,7 +153,7 @@ class Projects:
         skip_flush: bool = False,
     ) -> None:
         try_to_get_jira_project = True
-        for key, value in patch.dict(exclude_unset=True).items():
+        for key, value in patch.model_dump(exclude_unset=True).items():
             if key == "jira_project_id":
                 # check jira project id and cache load jira project
                 self._jira_projects.check_jira_project_id(value)

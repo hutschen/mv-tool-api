@@ -153,7 +153,9 @@ class Measures:
         skip_flush: bool = False,
     ) -> Measure:
         measure = Measure(
-            **creation.dict(exclude={"id", "requirement", "jira_issue", "document"})
+            **creation.model_dump(
+                exclude={"id", "requirement", "jira_issue", "document"}
+            )
         )
         self.session.add(measure)
         measure.requirement = requirement
@@ -193,7 +195,7 @@ class Measures:
                 try_to_get_jira_issue = False
 
         # update measure
-        for key, value in update.dict(
+        for key, value in update.model_dump(
             exclude_unset=patch, exclude={"id", "requirement", "jira_issue", "document"}
         ).items():
             setattr(measure, key, value)
@@ -208,7 +210,7 @@ class Measures:
         self, measure: Measure, patch: MeasurePatch, skip_flush: bool = False
     ) -> None:
         try_to_get_jira_issue = True
-        for key, value in patch.dict(exclude_unset=True).items():
+        for key, value in patch.model_dump(exclude_unset=True).items():
             if key == "document_id":
                 self._documents.check_document_id(value)
             elif key == "jira_issue_id":

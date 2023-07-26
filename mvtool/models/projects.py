@@ -15,25 +15,25 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pydantic import BaseModel, confloat, validator
+from pydantic import field_validator, ConfigDict, BaseModel, confloat
 
-from .common import ETagMixin
+from .common import AbstractProgressCountsOutput, ETagMixin
 from .jira_ import JiraProject, JiraProjectImport
 
 
 class AbstractProjectInput(BaseModel):
     name: str
-    description: str | None
+    description: str | None = None
 
 
 class ProjectInput(AbstractProjectInput):
-    jira_project_id: str | None
+    jira_project_id: str | None = None
 
 
 class ProjectPatch(ProjectInput):
     name: str | None = None
 
-    @validator("name")
+    @field_validator("name")
     def name_validator(cls, v):
         if not v:
             raise ValueError("name must not be empty")
@@ -46,18 +46,14 @@ class ProjectImport(ETagMixin, AbstractProjectInput):
 
 
 class ProjectRepresentation(BaseModel):
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     name: str
 
 
-class ProjectOutput(ProjectInput):
-    class Config:
-        orm_mode = True
+class ProjectOutput(AbstractProgressCountsOutput, ProjectInput):
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     jira_project: JiraProject | None
-    completion_progress: confloat(ge=0, le=1) | None
-    verification_progress: confloat(ge=0, le=1) | None

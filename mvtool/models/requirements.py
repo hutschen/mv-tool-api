@@ -17,9 +17,9 @@
 
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, confloat, validator
+from pydantic import field_validator, ConfigDict, BaseModel, confloat
 
-from .common import AbstractComplianceInput, ETagMixin
+from .common import AbstractComplianceInput, AbstractProgressCountsOutput, ETagMixin
 
 if TYPE_CHECKING:
     from .catalog_requirements import CatalogRequirementImport, CatalogRequirementOutput
@@ -27,25 +27,23 @@ if TYPE_CHECKING:
 
 
 class AbstractRequirementInput(BaseModel):
-    reference: str | None
+    reference: str | None = None
     summary: str
-    description: str | None
+    description: str | None = None
 
 
 class RequirementInput(AbstractRequirementInput, AbstractComplianceInput):
-    # Enable ORM mode to create requirement inputs from catalog requirements
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
-    catalog_requirement_id: int | None
-    target_object: str | None
-    milestone: str | None
+    catalog_requirement_id: int | None = None
+    target_object: str | None = None
+    milestone: str | None = None
 
 
 class RequirementPatch(RequirementInput):
     summary: str | None = None
 
-    @validator("summary")
+    @field_validator("summary")
     def summary_validator(cls, v):
         if not v:
             raise ValueError("summary must not be empty")
@@ -54,24 +52,22 @@ class RequirementPatch(RequirementInput):
 
 class RequirementImport(ETagMixin, AbstractRequirementInput, AbstractComplianceInput):
     id: int | None = None
-    catalog_requirement: "CatalogRequirementImport | None"
-    project: "ProjectImport | None"
-    target_object: str | None
-    milestone: str | None
+    catalog_requirement: "CatalogRequirementImport | None" = None
+    project: "ProjectImport | None" = None
+    target_object: str | None = None
+    milestone: str | None = None
 
 
 class RequirementRepresentation(BaseModel):
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     reference: str | None
     summary: str
 
 
-class RequirementOutput(AbstractRequirementInput):
-    class Config:
-        orm_mode = True
+class RequirementOutput(AbstractProgressCountsOutput, AbstractRequirementInput):
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     project: "ProjectOutput"
@@ -81,5 +77,3 @@ class RequirementOutput(AbstractRequirementInput):
     compliance_status: str | None
     compliance_status_hint: str | None
     compliance_comment: str | None
-    completion_progress: confloat(ge=0, le=1) | None
-    verification_progress: confloat(ge=0, le=1) | None

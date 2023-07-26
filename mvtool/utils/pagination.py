@@ -15,10 +15,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 from typing import Generic, TypeVar
-from pydantic.generics import GenericModel
-from pydantic import conint
+
+from pydantic import BaseModel, conint
 
 
 def page_params(
@@ -35,6 +34,6 @@ def page_params(
 T = TypeVar("T")
 
 
-class Page(GenericModel, Generic[T]):
+class Page(BaseModel, Generic[T]):
     items: list[T]
     total_count: conint(ge=0)
