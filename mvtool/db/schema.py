@@ -301,6 +301,33 @@ class Requirement(CommonFieldsMixin, ProgressCountsMixin, Base):
             else_=None,
         )
 
+    @hybrid_property
+    def compliance_status_alert(self):
+        if self.compliance_status is not None:
+            # pre-compute the compliance status hint, as this requires a database query
+            compliance_status_hint = self.compliance_status_hint
+            if (
+                compliance_status_hint is not None
+                and compliance_status_hint != self.compliance_status
+            ):
+                return self.compliance_status_hint
+        return None
+
+    @compliance_status_alert.inplace.expression
+    @classmethod
+    def _compliance_status_alert_expression(cls):
+        return case(
+            (
+                and_(
+                    cls.compliance_status.isnot(None),
+                    cls.compliance_status_hint.isnot(None),
+                    cls.compliance_status_hint != cls.compliance_status,
+                ),
+                cls.compliance_status_hint,
+            ),
+            else_=None,
+        )
+
     @staticmethod
     def _get_completion_count_query(id: int | Column) -> Select:
         return (
