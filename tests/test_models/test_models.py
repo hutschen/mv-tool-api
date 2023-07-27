@@ -96,19 +96,11 @@ def test_delete_catalog_requirements_of_catalog_module(session: Session):
     assert session.query(CatalogRequirement).count() == 0
 
 
-@pytest.mark.parametrize("compliance_status", [None, "C", "PC", "NC", "N/A"])
-def test_requirement_compliance_status_hint(session: Session, compliance_status):
-    requirement = Requirement(summary="test", compliance_status=compliance_status)
-    requirement = create_in_db(session, requirement)
-    session.commit()
-
-    assert requirement.compliance_status_hint == None
-
-
 @pytest.mark.parametrize(
     "compliance_states, expected_hint",
     [
         ([], None),
+        ([None], None),
         (["C"], "C"),
         (["C", "N/A"], "C"),
         (["C", "NC"], "PC"),
@@ -120,14 +112,26 @@ def test_requirement_compliance_status_hint(session: Session, compliance_status)
         (["N/A"], "N/A"),
     ],
 )
-def test_requirement_compliance_status_hint_with_measures(
-    session: Session, compliance_states, expected_hint
+def test_requirement_compliance_status_hint_expression(
+    session: Session,
+    compliance_states,
+    expected_hint,
 ):
-    requirement = Requirement(summary="test")
+    # Create test data
+    requirement = Requirement(summary="test", project=Project(name="test"))
     requirement.measures = [
         Measure(summary="test", compliance_status=c) for c in compliance_states
     ]
-    create_in_db(session, requirement)
-    session.commit()
+    session.add(requirement)
+    session.flush()
 
+    # Test the class part of the hybrid property
+    queried_hint = (
+        session.query(Requirement.compliance_status_hint)
+        .filter(Requirement.id == requirement.id)
+        .scalar()
+    )
+    assert queried_hint == expected_hint
+
+    # Test the instance part of the hybrid property
     assert requirement.compliance_status_hint == expected_hint
