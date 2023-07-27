@@ -149,6 +149,20 @@ def test_count_documents(documents: Documents, project: Project):
     assert results == len(document_inputs)
 
 
+def test_has_document(session: Session, documents: Documents):
+    project = Project(name="name")
+    for document in [
+        Document(reference="apple", title="summary", project=project),
+        Document(reference="banana", title="summary", project=project),
+    ]:
+        session.add(document)
+    session.flush()
+
+    # Test checking if a document exists
+    assert documents.has_document([Document.reference == "apple"])
+    assert not documents.has_document([Document.reference == "cherry"])
+
+
 def test_list_document_values(documents: Documents, project: Project):
     # Create some test data
     document_inputs = [

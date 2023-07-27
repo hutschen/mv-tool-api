@@ -80,6 +80,10 @@ class Catalogs:
         )
         return self._session.execute(query).scalar()
 
+    def has_catalog(self, where_clauses: list[Any] | None = None) -> bool:
+        query = self._modify_catalogs_query(select(Catalog), where_clauses).exists()
+        return self._session.query(query).scalar()
+
     def list_catalog_values(
         self,
         column: Column,

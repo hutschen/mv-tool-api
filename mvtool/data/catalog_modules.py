@@ -89,6 +89,12 @@ class CatalogModules:
         )
         return self._session.execute(query).scalar()
 
+    def has_catalog_module(self, where_clauses: Any = None) -> bool:
+        query = self._modify_catalog_modules_query(
+            select(CatalogModule), where_clauses
+        ).exists()
+        return self._session.query(query).scalar()
+
     def list_catalog_module_values(
         self,
         column: Column,

@@ -293,7 +293,7 @@ def get_catalog_module_field_names(
         (CatalogModule.reference, ["reference"]),
         (CatalogModule.description, ["description"]),
     ]:
-        if catalog_modules.count_catalog_modules(
+        if catalog_modules.has_catalog_module(
             [filter_for_existence(field, True), *where_clauses]
         ):
             field_names.update(names)

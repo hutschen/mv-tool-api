@@ -100,6 +100,12 @@ class Requirements:
         )
         return self._session.execute(query).scalar()
 
+    def has_requirement(self, where_clauses: Any = None) -> bool:
+        query = self._modify_requirements_query(
+            select(Requirement), where_clauses
+        ).exists()
+        return self._session.query(query).scalar()
+
     def list_requirement_values(
         self,
         column: Column,

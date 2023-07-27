@@ -405,7 +405,7 @@ def get_measure_field_names(
         (Requirement.milestone, ["milestone"]),
         (Requirement.target_object, ["target_object"]),
     ]:
-        if measures.count_measures([filter_for_existence(field, True), *where_clauses]):
+        if measures.has_measure([filter_for_existence(field, True), *where_clauses]):
             field_names.update(names)
     return field_names
 

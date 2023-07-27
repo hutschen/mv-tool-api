@@ -128,6 +128,19 @@ def test_count_projects(projects: Projects):
     assert count == 3
 
 
+def test_has_project(session: Session, projects: Projects):
+    for project in [
+        Project(name="apple"),
+        Project(name="banana"),
+    ]:
+        session.add(project)
+    session.flush()
+
+    # Test checking if a project exists
+    assert projects.has_project([Project.name == "apple"])
+    assert not projects.has_project([Project.name == "cherry"])
+
+
 def test_create_project_from_project_input(projects: Projects):
     # Test creating a project from a ProjectInput
     project_input = ProjectInput(name="apple")

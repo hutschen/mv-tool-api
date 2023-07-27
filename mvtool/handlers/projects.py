@@ -244,6 +244,6 @@ def get_project_field_names(
         (Project.completion_progress, ["completion_progress"]),
         (Project.verification_progress, ["verification_progress"]),
     ]:
-        if projects.count_projects([filter_for_existence(field, True), *where_clauses]):
+        if projects.has_project([filter_for_existence(field, True), *where_clauses]):
             field_names.update(names)
     return field_names
