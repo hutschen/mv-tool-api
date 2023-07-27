@@ -249,14 +249,19 @@ class Requirement(CommonFieldsMixin, ProgressCountsMixin, Base):
         session = Session.object_session(self)
 
         # get the compliance states of all measures subordinated to this requirement
-        compliance_query = select(Measure.compliance_status).where(
-            Measure.requirement_id == self.id, Measure.compliance_status != None
+        compliance_query = (
+            select(Measure.compliance_status)
+            .where(
+                Measure.requirement_id == self.id,
+                Measure.compliance_status.is_not(None),
+            )
+            .distinct()
         )
         compliance_states = session.execute(compliance_query).scalars().all()
 
         # compute the compliance status hint
-        exists = lambda x: any(x == c in compliance_states for c in compliance_states)
-        every = lambda x: all(x == c for c in compliance_states)
+        exists = lambda x: x in compliance_states
+        every = lambda x: [x] == compliance_states
 
         if exists("C") and not (exists("PC") or exists("NC")):
             return "C"
@@ -264,7 +269,7 @@ class Requirement(CommonFieldsMixin, ProgressCountsMixin, Base):
             return "PC"
         elif exists("NC") and not (exists("C") or exists("PC")):
             return "NC"
-        elif every("N/A") and len(compliance_states) > 0:
+        elif every("N/A"):
             return "N/A"
         else:
             return None

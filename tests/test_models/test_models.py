@@ -108,11 +108,13 @@ def test_requirement_compliance_status_hint(session: Session, compliance_status)
 @pytest.mark.parametrize(
     "compliance_states, expected_hint",
     [
+        ([], None),
         (["C"], "C"),
         (["C", "N/A"], "C"),
         (["C", "NC"], "PC"),
         (["C", "PC"], "PC"),
         (["PC"], "PC"),
+        (["PC", "N/A"], "PC"),
         (["NC"], "NC"),
         (["NC", "N/A"], "NC"),
         (["N/A"], "N/A"),
