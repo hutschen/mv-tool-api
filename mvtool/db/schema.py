@@ -22,7 +22,9 @@ from sqlalchemy import (
     Integer,
     Select,
     String,
+    and_,
     case,
+    exists,
     func,
     or_,
     select,
@@ -244,7 +246,7 @@ class Requirement(CommonFieldsMixin, ProgressCountsMixin, Base):
         "Measure", back_populates="requirement", cascade="all,delete,delete-orphan"
     )
 
-    @property
+    @hybrid_property
     def compliance_status_hint(self):
         session = Session.object_session(self)
 
@@ -273,6 +275,33 @@ class Requirement(CommonFieldsMixin, ProgressCountsMixin, Base):
             return "N/A"
         else:
             return None
+
+    @compliance_status_hint.inplace.expression
+    @classmethod
+    def _compliance_status_hint_expression(cls):
+        c_exists = exists().where(Measure.compliance_status == "C")
+        pc_exists = exists().where(Measure.compliance_status == "PC")
+        nc_exists = exists().where(Measure.compliance_status == "NC")
+        all_na = ~exists().where(Measure.compliance_status != "N/A")
+
+        compliance_case = case(
+            [
+                (and_(c_exists, ~pc_exists, ~nc_exists), "C"),
+                (or_(pc_exists, and_(c_exists, nc_exists)), "PC"),
+                (and_(nc_exists, ~c_exists, ~pc_exists), "NC"),
+                (all_na, "N/A"),
+            ],
+            else_=None,
+        )
+
+        return (
+            select(compliance_case)
+            .where(
+                Measure.requirement_id == cls.id,
+                Measure.completion_status.is_not(None),
+            )
+            .as_scalar()
+        )
 
     @staticmethod
     def _get_completion_count_query(id: int | Column) -> Select:
