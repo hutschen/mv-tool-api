@@ -103,6 +103,19 @@ def test_count_catalogs(catalogs: Catalogs):
     assert count == 3
 
 
+def test_has_catalog(session: Session, catalogs: Catalogs):
+    for catalog in [
+        Catalog(reference="apple", title="apple_title"),
+        Catalog(reference="banana", title="banana_title"),
+    ]:
+        session.add(catalog)
+    session.flush()
+
+    # Test has_catalog with a where clause
+    assert catalogs.has_catalog([Catalog.reference == "apple"])
+    assert not catalogs.has_catalog([Catalog.reference == "cherry"])
+
+
 def test_list_catalog_values(catalogs: Catalogs):
     # Create some test data
     catalogs.create_catalog(CatalogInput(reference="apple", title="apple_title"))

@@ -122,6 +122,10 @@ class Measures:
         )
         return self.session.execute(query).scalar()
 
+    def has_measure(self, where_clauses: Any = None) -> bool:
+        query = self._modify_measures_query(select(Measure), where_clauses).exists()
+        return self.session.query(query).scalar()
+
     def list_measure_values(
         self,
         column: Column,

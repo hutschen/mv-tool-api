@@ -152,6 +152,20 @@ def test_count_requirements(requirements: Requirements, project: Project):
     assert results == len(requirement_inputs)
 
 
+def test_has_requirement(session: Session, requirements: Requirements):
+    project = Project(name="name")
+    for requirement in [
+        Requirement(reference="apple", summary="summary", project=project),
+        Requirement(reference="banana", summary="summary", project=project),
+    ]:
+        session.add(requirement)
+    session.flush()
+
+    # Test checking if a requirement exists
+    assert requirements.has_requirement([Requirement.reference == "apple"])
+    assert not requirements.has_requirement([Requirement.reference == "cherry"])
+
+
 def test_list_requirement_values(requirements: Requirements, project: Project):
     # Create some test data
     requirement_inputs = [

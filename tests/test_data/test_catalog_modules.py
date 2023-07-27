@@ -146,6 +146,20 @@ def test_count_catalog_modules(catalog_modules: CatalogModules, catalog: Catalog
     assert results == len(catalog_module_inputs)
 
 
+def test_has_catalog_module(session: Session, catalog_modules: CatalogModules):
+    catalog = Catalog(title="title")
+    for catalog_module in [
+        CatalogModule(reference="apple", title="title", catalog=catalog),
+        CatalogModule(reference="banana", title="title", catalog=catalog),
+    ]:
+        session.add(catalog_module)
+    session.flush()
+
+    # Test checking if a catalog module exists
+    assert catalog_modules.has_catalog_module([CatalogModule.reference == "apple"])
+    assert not catalog_modules.has_catalog_module([CatalogModule.reference == "cherry"])
+
+
 def test_list_catalog_module_values(catalog_modules: CatalogModules, catalog: Catalog):
     # Create some test data
     catalog_module_inputs = [

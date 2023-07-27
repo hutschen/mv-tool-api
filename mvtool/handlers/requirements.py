@@ -398,7 +398,7 @@ def get_requirement_field_names(
         (CatalogRequirement.gs_absicherung, ["gs_absicherung"]),
         (CatalogRequirement.gs_verantwortliche, ["gs_verantwortliche"]),
     ]:
-        if requirements.count_requirements(
+        if requirements.has_requirement(
             [filter_for_existence(field, True), *where_clauses]
         ):
             field_names.update(names)
