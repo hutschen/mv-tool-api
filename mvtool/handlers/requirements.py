@@ -98,6 +98,7 @@ def get_requirement_filters(
     has_gs_verantwortliche: bool | None = None,
     has_completion_progress: bool | None = None,
     has_verification_progress: bool | None = None,
+    has_alert: bool | None = None,
     #
     # filter by search string
     search: str | None = None,
@@ -154,6 +155,7 @@ def get_requirement_filters(
             (CatalogRequirement.gs_verantwortliche, has_gs_verantwortliche),
             (Requirement.completion_progress, has_completion_progress),
             (Requirement.verification_progress, has_verification_progress),
+            (Requirement.compliance_status_alert, has_alert),
         )
     )
 
@@ -207,6 +209,7 @@ def get_requirement_sort(
             "compliance_comment": [Requirement.compliance_comment],
             "completion_progress": [Requirement.completion_progress],
             "verification_progress": [Requirement.verification_progress],
+            "alert": [Requirement.compliance_status_alert],
         }[sort_by]
     except KeyError:
         raise HTTPException(
@@ -395,6 +398,7 @@ def get_requirement_field_names(
         ),
         (Requirement.completion_progress, ["completion_progress"]),
         (Requirement.verification_progress, ["verification_progress"]),
+        (Requirement.compliance_status_alert, ["alert"]),
         (CatalogRequirement.gs_absicherung, ["gs_absicherung"]),
         (CatalogRequirement.gs_verantwortliche, ["gs_verantwortliche"]),
     ]:

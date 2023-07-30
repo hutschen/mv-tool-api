@@ -22,8 +22,11 @@ from sqlalchemy import (
     Integer,
     Select,
     String,
+    and_,
     case,
+    exists,
     func,
+    not_,
     or_,
     select,
 )
@@ -244,30 +247,86 @@ class Requirement(CommonFieldsMixin, ProgressCountsMixin, Base):
         "Measure", back_populates="requirement", cascade="all,delete,delete-orphan"
     )
 
-    @property
+    @hybrid_property
     def compliance_status_hint(self):
         session = Session.object_session(self)
 
         # get the compliance states of all measures subordinated to this requirement
-        compliance_query = select(Measure.compliance_status).where(
-            Measure.requirement_id == self.id, Measure.compliance_status != None
+        compliance_query = (
+            select(Measure.compliance_status)
+            .where(
+                Measure.requirement_id == self.id,
+                Measure.compliance_status.is_not(None),
+            )
+            .distinct()
         )
         compliance_states = session.execute(compliance_query).scalars().all()
 
         # compute the compliance status hint
-        exists = lambda x: any(x == c in compliance_states for c in compliance_states)
-        every = lambda x: all(x == c for c in compliance_states)
+        any_c = "C" in compliance_states
+        any_pc = "PC" in compliance_states
+        any_nc = "NC" in compliance_states
+        all_na = ["N/A"] == compliance_states
 
-        if exists("C") and not (exists("PC") or exists("NC")):
+        if any_c and not (any_pc or any_nc):
             return "C"
-        elif exists("PC") or (exists("C") and exists("NC")):
+        elif any_pc or (any_c and any_nc):
             return "PC"
-        elif exists("NC") and not (exists("C") or exists("PC")):
+        elif any_nc and not (any_c or any_pc):
             return "NC"
-        elif every("N/A") and len(compliance_states) > 0:
+        elif all_na:
             return "N/A"
         else:
             return None
+
+    @compliance_status_hint.inplace.expression
+    @classmethod
+    def _compliance_status_hint_expression(cls):
+        scope = (
+            Measure.requirement_id == cls.id,
+            Measure.compliance_status.is_not(None),
+        )
+        any_c = exists().where(Measure.compliance_status == "C", *scope)
+        any_pc = exists().where(Measure.compliance_status == "PC", *scope)
+        any_nc = exists().where(Measure.compliance_status == "NC", *scope)
+        all_na = exists().where(
+            Measure.compliance_status.not_in(("C", "PC", "NC")), *scope
+        )
+
+        return case(
+            (and_(any_c, not_(any_pc), not_(any_nc)), "C"),
+            (or_(any_pc, and_(any_c, any_nc)), "PC"),
+            (and_(any_nc, not_(any_c), not_(any_pc)), "NC"),
+            (all_na, "N/A"),
+            else_=None,
+        )
+
+    @hybrid_property
+    def compliance_status_alert(self):
+        if self.compliance_status is not None:
+            # pre-compute the compliance status hint, as this requires a database query
+            compliance_status_hint = self.compliance_status_hint
+            if (
+                compliance_status_hint is not None
+                and compliance_status_hint != self.compliance_status
+            ):
+                return self.compliance_status_hint
+        return None
+
+    @compliance_status_alert.inplace.expression
+    @classmethod
+    def _compliance_status_alert_expression(cls):
+        return case(
+            (
+                and_(
+                    cls.compliance_status.isnot(None),
+                    cls.compliance_status_hint.isnot(None),
+                    cls.compliance_status_hint != cls.compliance_status,
+                ),
+                cls.compliance_status_hint,
+            ),
+            else_=None,
+        )
 
     @staticmethod
     def _get_completion_count_query(id: int | Column) -> Select:
