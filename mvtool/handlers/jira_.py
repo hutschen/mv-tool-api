@@ -63,6 +63,27 @@ def get_jira_issue_types(
 _kwargs_jira_issues = dict(tags=["jira-issue"])
 
 
+def get_jira_issue_filters(
+    # Filter by value
+    key: str | None = None,
+    jira_project_id: str | None = None,
+    #
+    # Filter by search string
+    search: str | None = None,
+):
+    return " AND ".join(
+        [
+            jql_str.format(value=value)
+            for value, jql_str in (
+                (key, "key = {value}"),
+                (jira_project_id, "project = {value}"),
+                (search, 'text ~ "{value}"'),
+            )
+            if value
+        ]
+    )
+
+
 @router.get(
     "/jira-projects/{jira_project_id}/jira-issues",
     response_model=Page[JiraIssue] | list[JiraIssue],
