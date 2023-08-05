@@ -16,18 +16,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from typing import Iterator
-
 from fastapi import APIRouter, Depends, Response
-from pydantic import conint
 
-from ..data.jira_ import (
-    JiraIssues,
-    JiraIssueTypes,
-    JiraProjects,
-    JiraUsers,
-)
+from ..data.jira_ import JiraIssues, JiraIssueTypes, JiraProjects, JiraUsers
 from ..models import JiraIssue, JiraIssueInput, JiraIssueType, JiraProject, JiraUser
+from ..utils.pagination import Page, page_params
 
 router = APIRouter()
 
@@ -72,16 +65,25 @@ _kwargs_jira_issues = dict(tags=["jira-issue"])
 
 @router.get(
     "/jira-projects/{jira_project_id}/jira-issues",
-    response_model=list[JiraIssue],
+    response_model=Page[JiraIssue] | list[JiraIssue],
     **_kwargs_jira_issues,
 )
 def get_jira_issues(
     jira_project_id: str,
-    offset: conint(ge=0) = 0,
-    limit: conint(ge=0) | None = None,
+    page_params=Depends(page_params),
     jira_issues_view: JiraIssues = Depends(),
-) -> Iterator[JiraIssue]:
-    return jira_issues_view.list_jira_issues(jira_project_id, offset, limit)
+):
+    # Convert iterator to a list to force running the JIRA query in list_jira_issues()
+    jira_issues = list(
+        jira_issues_view.list_jira_issues(jira_project_id, **page_params)
+    )
+    if page_params:
+        return Page[JiraIssue](
+            items=jira_issues,
+            total_count=jira_issues_view.count_jira_issues(jira_project_id),
+        )
+    else:
+        return jira_issues
 
 
 @router.post(
