@@ -179,9 +179,12 @@ class JiraIssues(JiraBase):
             self._cache_jira_issue(jira_issue)
             yield jira_issue
 
-    def count_jira_issues(self, jira_project_id: str) -> int:
-        jira_query = f"project = {jira_project_id}"
-        return self.jira.search_issues(jira_query, maxResults=0).total
+    def count_jira_issues(self, jql_str: str | None = None) -> int:
+        return self.jira.search_issues(
+            jql_str or "",
+            maxResults=1,  # Query only one issue to get the total count, 0 queries all
+            validate_query=False,
+        ).total
 
     def create_jira_issue(
         self, jira_project_id: str, jira_issue_input: JiraIssueInput

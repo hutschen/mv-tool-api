@@ -104,15 +104,17 @@ def get_jira_issues(
     page_params=Depends(page_params),
     jira_issues_view: JiraIssues = Depends(),
 ):
-    # Convert iterator to a list to force running the JIRA query in list_jira_issues()
     jql_str = get_jira_issue_filters(
         ids=None, keys=None, jira_project_ids=[jira_project_id]
     )
+
+    # Convert iterator to a list to force running the JIRA query in list_jira_issues()
     jira_issues = list(jira_issues_view.list_jira_issues(jql_str, **page_params))
+
     if page_params:
         return Page[JiraIssue](
             items=jira_issues,
-            total_count=jira_issues_view.count_jira_issues(jira_project_id),
+            total_count=jira_issues_view.count_jira_issues(jql_str),
         )
     else:
         return jira_issues
