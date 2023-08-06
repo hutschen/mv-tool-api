@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Query, Response
 
 from ..data.jira_ import JiraIssues, JiraIssueTypes, JiraProjects, JiraUsers
 from ..models import JiraIssue, JiraIssueInput, JiraIssueType, JiraProject, JiraUser
@@ -64,24 +64,34 @@ _kwargs_jira_issues = dict(tags=["jira-issue"])
 
 
 def get_jira_issue_filters(
-    # Filter by value
-    key: str | None = None,
-    jira_project_id: str | None = None,
+    # Filter by values
+    ids: list[str] | None = Query(None),
+    keys: list[str] | None = Query(None),
+    jira_project_ids: list[str] | None = None,
     #
     # Filter by search string
     search: str | None = None,
 ):
-    return " AND ".join(
-        [
-            jql_str.format(value=value)
-            for value, jql_str in (
-                (key, "key = {value}"),
-                (jira_project_id, "project = {value}"),
-                (search, 'text ~ "{value}"'),
-            )
-            if value
-        ]
-    )
+    clauses = []
+
+    # Filter by values
+    for name, values in (
+        ("id", ids),
+        ("key", keys),
+        ("project", jira_project_ids),
+    ):
+        if not values:
+            continue
+        elif len(values) == 1:
+            clauses.append(f"{name} = {values[0]}")
+        else:
+            clauses.append(f"{name} IN ({', '.join(values)})")
+
+    # Filter by search string
+    if search:
+        clauses.append(f'text ~ "{search}"')
+
+    return " AND ".join(clauses)
 
 
 @router.get(
@@ -95,7 +105,9 @@ def get_jira_issues(
     jira_issues_view: JiraIssues = Depends(),
 ):
     # Convert iterator to a list to force running the JIRA query in list_jira_issues()
-    jql_str = get_jira_issue_filters(jira_project_id=jira_project_id)
+    jql_str = get_jira_issue_filters(
+        ids=None, keys=None, jira_project_ids=[jira_project_id]
+    )
     jira_issues = list(jira_issues_view.list_jira_issues(jql_str, **page_params))
     if page_params:
         return Page[JiraIssue](
