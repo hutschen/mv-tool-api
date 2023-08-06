@@ -42,9 +42,9 @@ class JiraIssueFilterParams:
         (JiraIssueFilterParams(keys=["ABC", "DEF"]), "key IN (ABC, DEF)"),
         (JiraIssueFilterParams(jira_project_ids=["1"]), "project = 1"),
         (JiraIssueFilterParams(jira_project_ids=["1", "2"]), "project IN (1, 2)"),
-        (JiraIssueFilterParams(search="ABC"), 'text ~ "ABC"'),
+        (JiraIssueFilterParams(search="ABC"), '(text ~ "ABC*" OR key = "ABC")'),
         (JiraIssueFilterParams(ids=["1"], keys=["ABC"]), "id = 1 AND key = ABC"),
-        (JiraIssueFilterParams(ids=["1"], search="ABC"), 'id = 1 AND text ~ "ABC"'),
+        (JiraIssueFilterParams(ids=["1"], search="ABC"), 'id = 1 AND (text ~ "ABC*" OR key = "ABC")'),
         # fmt: on
     ],
 )

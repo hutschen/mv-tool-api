@@ -89,7 +89,7 @@ def get_jira_issue_filters(
 
     # Filter by search string
     if search:
-        clauses.append(f'text ~ "{search}"')
+        clauses.append(f'(text ~ "{search}*" OR key = "{search}")')
 
     return " AND ".join(clauses)
 
