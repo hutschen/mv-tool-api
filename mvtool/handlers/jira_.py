@@ -95,9 +95,8 @@ def get_jira_issues(
     jira_issues_view: JiraIssues = Depends(),
 ):
     # Convert iterator to a list to force running the JIRA query in list_jira_issues()
-    jira_issues = list(
-        jira_issues_view.list_jira_issues(jira_project_id, **page_params)
-    )
+    jql_str = get_jira_issue_filters(jira_project_id=jira_project_id)
+    jira_issues = list(jira_issues_view.list_jira_issues(jql_str, **page_params))
     if page_params:
         return Page[JiraIssue](
             items=jira_issues,

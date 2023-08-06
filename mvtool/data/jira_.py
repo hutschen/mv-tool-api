@@ -163,13 +163,12 @@ class JiraIssues(JiraBase):
 
     def list_jira_issues(
         self,
-        jira_project_id: str,
+        jql_str: str | None = None,
         offset: conint(ge=0) = 0,
         limit: conint(ge=0) | None = None,
     ) -> Iterator[JiraIssue]:
-        jira_query = f"project = {jira_project_id}"
         jira_issues_data = self.jira.search_issues(
-            jira_query, startAt=offset, maxResults=limit
+            jql_str or "", startAt=offset, maxResults=limit
         )
 
         for jira_issue_data in jira_issues_data:
