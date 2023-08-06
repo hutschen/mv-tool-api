@@ -67,7 +67,7 @@ def get_jira_issue_filters(
     # Filter by values
     ids: list[str] | None = Query(None),
     keys: list[str] | None = Query(None),
-    jira_project_ids: list[str] | None = None,
+    jira_project_ids: list[str] | None = Query(None),
     #
     # Filter by search string
     search: str | None = None,
@@ -99,7 +99,7 @@ def get_jira_issue_filters(
     response_model=Page[JiraIssue] | list[JiraIssue],
     **_kwargs_jira_issues,
 )
-def get_jira_issues(
+def get_jira_issues_for_jira_project(
     jira_project_id: str,
     page_params=Depends(page_params),
     jira_issues_view: JiraIssues = Depends(),
@@ -118,6 +118,27 @@ def get_jira_issues(
         )
     else:
         return jira_issues
+
+
+@router.get(
+    "/jira-issues",
+    response_model=Page[JiraIssue] | list[JiraIssue],
+    **_kwargs_jira_issues,
+)
+def get_jira_issues(
+    jql_str=Depends(get_jira_issue_filters),
+    page_params=Depends(page_params),
+    jira_issues: JiraIssues = Depends(),
+):
+    # Convert iterator to a list to force running the JIRA query in list_jira_issues()
+    jira_issue_list = list(jira_issues.list_jira_issues(jql_str, **page_params))
+
+    if page_params:
+        return Page[JiraIssue](
+            items=jira_issue_list, total_count=jira_issues.count_jira_issues(jql_str)
+        )
+    else:
+        return jira_issue_list
 
 
 @router.post(
