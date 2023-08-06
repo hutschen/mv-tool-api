@@ -141,20 +141,6 @@ def get_jira_issues(
         return jira_issue_list
 
 
-@router.post(
-    "/jira-projects/{jira_project_id}/jira-issues",
-    status_code=201,
-    response_model=JiraIssue,
-    **_kwargs_jira_issues,
-)
-def create_jira_issue(
-    jira_project_id: str,
-    jira_issue_input: JiraIssueInput,
-    jira_issues_view: JiraIssues = Depends(),
-) -> JiraIssue:
-    return jira_issues_view.create_jira_issue(jira_project_id, jira_issue_input)
-
-
 @router.get(
     "/jira-issues/{jira_issue_id}", response_model=JiraIssue, **_kwargs_jira_issues
 )
