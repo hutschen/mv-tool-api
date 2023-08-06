@@ -198,7 +198,7 @@ def test_get_jira_issues_single_issue(jira, jira_issue_data):
     assert isinstance(results[0], JiraIssue)
     assert results[0].id == jira_issue_data.id
     jira.search_issues.assert_called_once_with(
-        "id = 1", validate_query=False, startAt=0, maxResults=None
+        "id = 1", validate_query=False, startAt=0, maxResults=0
     )
 
 
@@ -207,7 +207,7 @@ def test_get_jira_issues_multiple_issues(jira):
     result = list(JiraIssues(jira).get_jira_issues(("1", "2")))
     assert result == []
     jira.search_issues.assert_called_once_with(
-        "id = 1 OR id = 2", validate_query=False, startAt=0, maxResults=None
+        "id = 1 OR id = 2", validate_query=False, startAt=0, maxResults=0
     )
 
 
