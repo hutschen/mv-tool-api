@@ -164,11 +164,14 @@ class JiraIssues(JiraBase):
     def list_jira_issues(
         self,
         jql_str: str | None = None,
-        offset: conint(ge=0) = 0,
-        limit: conint(ge=0) | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
     ) -> Iterator[JiraIssue]:
         jira_issues_data = self.jira.search_issues(
-            jql_str or "", startAt=offset, maxResults=limit
+            jql_str or "",
+            startAt=offset or 0,
+            maxResults=limit or 0,
+            validate_query=False,  # Turn off validation of JQL queries
         )
 
         for jira_issue_data in jira_issues_data:
