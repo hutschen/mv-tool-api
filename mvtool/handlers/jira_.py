@@ -16,18 +16,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from typing import Iterator
+from fastapi import APIRouter, Depends, Query, Response
 
-from fastapi import APIRouter, Depends, Response
-from pydantic import conint
-
-from ..data.jira_ import (
-    JiraIssues,
-    JiraIssueTypes,
-    JiraProjects,
-    JiraUsers,
-)
+from ..data.jira_ import JiraIssues, JiraIssueTypes, JiraProjects, JiraUsers
 from ..models import JiraIssue, JiraIssueInput, JiraIssueType, JiraProject, JiraUser
+from ..utils.pagination import Page, page_params
 
 router = APIRouter()
 
@@ -70,32 +63,82 @@ def get_jira_issue_types(
 _kwargs_jira_issues = dict(tags=["jira-issue"])
 
 
+def get_jira_issue_filters(
+    # Filter by values
+    ids: list[str] | None = Query(None),
+    keys: list[str] | None = Query(None),
+    jira_project_ids: list[str] | None = Query(None),
+    #
+    # Filter by search string
+    search: str | None = None,
+):
+    clauses = []
+
+    # Filter by values
+    for name, values in (
+        ("id", ids),
+        ("key", keys),
+        ("project", jira_project_ids),
+    ):
+        if not values:
+            continue
+        elif len(values) == 1:
+            clauses.append(f"{name} = {values[0]}")
+        else:
+            clauses.append(f"{name} IN ({', '.join(values)})")
+
+    # Filter by search string
+    if search:
+        clauses.append(f'(text ~ "{search}*" OR key = "{search}")')
+
+    return " AND ".join(clauses)
+
+
 @router.get(
     "/jira-projects/{jira_project_id}/jira-issues",
-    response_model=list[JiraIssue],
+    response_model=Page[JiraIssue] | list[JiraIssue],
+    **_kwargs_jira_issues,
+)
+def get_jira_issues_for_jira_project(
+    jira_project_id: str,
+    page_params=Depends(page_params),
+    jira_issues_view: JiraIssues = Depends(),
+):
+    jql_str = get_jira_issue_filters(
+        ids=None, keys=None, jira_project_ids=[jira_project_id]
+    )
+
+    # Convert iterator to a list to force running the JIRA query in list_jira_issues()
+    jira_issues = list(jira_issues_view.list_jira_issues(jql_str, **page_params))
+
+    if page_params:
+        return Page[JiraIssue](
+            items=jira_issues,
+            total_count=jira_issues_view.count_jira_issues(jql_str),
+        )
+    else:
+        return jira_issues
+
+
+@router.get(
+    "/jira-issues",
+    response_model=Page[JiraIssue] | list[JiraIssue],
     **_kwargs_jira_issues,
 )
 def get_jira_issues(
-    jira_project_id: str,
-    offset: conint(ge=0) = 0,
-    limit: conint(ge=0) | None = None,
-    jira_issues_view: JiraIssues = Depends(),
-) -> Iterator[JiraIssue]:
-    return jira_issues_view.list_jira_issues(jira_project_id, offset, limit)
+    jql_str=Depends(get_jira_issue_filters),
+    page_params=Depends(page_params),
+    jira_issues: JiraIssues = Depends(),
+):
+    # Convert iterator to a list to force running the JIRA query in list_jira_issues()
+    jira_issue_list = list(jira_issues.list_jira_issues(jql_str, **page_params))
 
-
-@router.post(
-    "/jira-projects/{jira_project_id}/jira-issues",
-    status_code=201,
-    response_model=JiraIssue,
-    **_kwargs_jira_issues,
-)
-def create_jira_issue(
-    jira_project_id: str,
-    jira_issue_input: JiraIssueInput,
-    jira_issues_view: JiraIssues = Depends(),
-) -> JiraIssue:
-    return jira_issues_view.create_jira_issue(jira_project_id, jira_issue_input)
+    if page_params:
+        return Page[JiraIssue](
+            items=jira_issue_list, total_count=jira_issues.count_jira_issues(jql_str)
+        )
+    else:
+        return jira_issue_list
 
 
 @router.get(
