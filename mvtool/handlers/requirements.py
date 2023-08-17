@@ -18,7 +18,7 @@
 from typing import Any, Callable
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import constr
+from pydantic import conint, constr
 from sqlalchemy import Column
 
 from ..data.requirements import Requirements
