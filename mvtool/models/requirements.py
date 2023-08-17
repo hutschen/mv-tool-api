@@ -17,9 +17,14 @@
 
 from typing import TYPE_CHECKING
 
-from pydantic import field_validator, ConfigDict, BaseModel, confloat
+from pydantic import BaseModel, ConfigDict, field_validator
 
-from .common import AbstractComplianceInput, AbstractProgressCountsOutput, ETagMixin
+from .common import (
+    AbstractComplianceInput,
+    AbstractProgressCountsOutput,
+    ETagMixin,
+    NumberedStr,
+)
 
 if TYPE_CHECKING:
     from .catalog_requirements import CatalogRequirementImport, CatalogRequirementOutput
@@ -48,6 +53,10 @@ class RequirementPatch(RequirementInput):
         if not v:
             raise ValueError("summary must not be empty")
         return v
+
+
+class RequirementPatchMany(RequirementPatch):
+    reference: str | NumberedStr | None = None
 
 
 class RequirementImport(ETagMixin, AbstractRequirementInput, AbstractComplianceInput):
