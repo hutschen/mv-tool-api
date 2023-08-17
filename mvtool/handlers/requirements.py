@@ -27,6 +27,7 @@ from ..models.requirements import (
     RequirementInput,
     RequirementOutput,
     RequirementPatch,
+    RequirementPatchMany,
     RequirementRepresentation,
 )
 from ..utils import combine_flags
@@ -296,13 +297,18 @@ def patch_requirement(
 
 @router.patch("/requirements", response_model=list[RequirementOutput])
 def patch_requirements(
-    requirement_patch: RequirementPatch,
+    requirement_patch: RequirementPatchMany,
     where_clauses=Depends(get_requirement_filters),
+    order_by_clauses=Depends(get_requirement_sort),
     requirements: Requirements = Depends(Requirements),
 ) -> list[Requirement]:
-    requirements_ = requirements.list_requirements(where_clauses)
-    for requirement in requirements_:
-        requirements.patch_requirement(requirement, requirement_patch, skip_flush=True)
+    requirements_ = requirements.list_requirements(where_clauses, order_by_clauses)
+    for counter, requirement in enumerate(requirements_):
+        requirements.patch_requirement(
+            requirement,
+            requirement_patch.to_patch(counter),
+            skip_flush=True,
+        )
     requirements._session.flush()
     return requirements_
 
