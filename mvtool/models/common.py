@@ -44,6 +44,9 @@ class NumberedStr(BaseModel):
     prefix: str = ""
     suffix: str = ""
 
+    def to_value(self, counter: int) -> str:
+        return f"{self.prefix}{counter * self.step + self.start}{self.suffix}"
+
 
 class AbstractComplianceInput(BaseModel):
     compliance_status: constr(pattern=r"^(C|PC|NC|N/A)$") | None = None

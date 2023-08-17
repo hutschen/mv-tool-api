@@ -58,6 +58,12 @@ class RequirementPatch(RequirementInput):
 class RequirementPatchMany(RequirementPatch):
     reference: str | NumberedStr | None = None
 
+    def to_patch(self, counter: int) -> RequirementPatch:
+        items = self.model_dump(exclude_unset=True)
+        if isinstance(self.reference, NumberedStr):
+            items["reference"] = self.reference.to_value(counter)
+        return RequirementPatch(**items)
+
 
 class RequirementImport(ETagMixin, AbstractRequirementInput, AbstractComplianceInput):
     id: int | None = None
