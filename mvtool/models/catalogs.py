@@ -15,9 +15,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pydantic import field_validator, ConfigDict, BaseModel
+from pydantic import BaseModel, ConfigDict, field_validator
 
-from .common import ETagMixin
+from .common import ETagMixin, NumberedStr
 
 
 class CatalogInput(BaseModel):
@@ -34,6 +34,16 @@ class CatalogPatch(CatalogInput):
         if not v:
             raise ValueError("title must not be empty")
         return v
+
+
+class CatalogPatchMany(CatalogPatch):
+    reference: str | NumberedStr | None = None
+
+    def to_patch(self, count: int) -> CatalogPatch:
+        items = self.model_dump(exclude_unset=True)
+        if isinstance(self.reference, NumberedStr):
+            items["reference"] = self.reference.to_value(count)
+        return CatalogPatch(**items)
 
 
 class CatalogImport(ETagMixin, CatalogInput):
