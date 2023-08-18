@@ -40,6 +40,7 @@ from mvtool.models.measures import (
     MeasureInput,
     MeasureOutput,
     MeasurePatch,
+    MeasurePatchMany,
     MeasureRepresentation,
 )
 from mvtool.models.requirements import RequirementInput
@@ -125,8 +126,8 @@ def test_patch_measures(session: Session, measures: Measures):
     session.commit()
 
     # Patch measures
-    patch = MeasurePatch(reference="cherry")
-    patch_measures(patch, [Measure.reference.in_(["apple", "banana"])], measures)
+    patch = MeasurePatchMany(reference="cherry")
+    patch_measures(patch, [Measure.reference.in_(["apple", "banana"])], [], measures)
 
     # Check if measures are patched
     for measure in session.query(Measure).all():
