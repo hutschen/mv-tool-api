@@ -40,6 +40,7 @@ from mvtool.models.documents import (
     DocumentInput,
     DocumentOutput,
     DocumentPatch,
+    DocumentPatchMany,
     DocumentRepresentation,
 )
 from mvtool.utils.pagination import Page
@@ -118,8 +119,8 @@ def test_patch_documents(session: Session, documents: Documents):
     session.commit()
 
     # Patch documents
-    patch = DocumentPatch(reference="cherry")
-    patch_documents(patch, [Document.reference.in_(["apple", "banana"])], documents)
+    patch = DocumentPatchMany(reference="cherry")
+    patch_documents(patch, [Document.reference.in_(["apple", "banana"])], [], documents)
 
     # Check if documents are patched
     for document in session.query(Document).all():
