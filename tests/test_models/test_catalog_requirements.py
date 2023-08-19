@@ -16,7 +16,7 @@
 import pytest
 
 from mvtool.models.catalog_requirements import CatalogRequirementPatchMany
-from mvtool.models.common import NumberedStr
+from mvtool.models.common import AutoNumber
 
 
 @pytest.mark.parametrize(
@@ -32,8 +32,8 @@ from mvtool.models.common import NumberedStr
         ),
         (
             # fmt: off
-            CatalogRequirementPatchMany(reference=NumberedStr(action="number"), summary="test"),
-            {"reference": NumberedStr(action="number").to_value(0), "summary": "test"},
+            CatalogRequirementPatchMany(reference=AutoNumber(kind="number"), summary="test"),
+            {"reference": AutoNumber(kind="number").to_value(0), "summary": "test"},
             # fmt: on
         ),
     ],

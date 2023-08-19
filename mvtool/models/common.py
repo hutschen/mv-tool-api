@@ -37,15 +37,17 @@ class ETagMixin(BaseModel):
         return isinstance(other, self.__class__) and self.etag == other.etag
 
 
-class NumberedStr(BaseModel):
-    action: constr(pattern=r"^(number)$")
+class AutoNumber(BaseModel):
+    kind: constr(pattern=r"^(number)$")
     start: conint(ge=1) = 1
     step: conint(ge=1) = 1
-    prefix: str = ""
-    suffix: str = ""
+    prefix: str | None = None
+    suffix: str | None = None
 
     def to_value(self, counter: int) -> str:
-        return f"{self.prefix}{counter * self.step + self.start}{self.suffix}"
+        prefix = self.prefix or ""
+        suffix = self.suffix or ""
+        return f"{prefix}{counter * self.step + self.start}{suffix}"
 
 
 class AbstractComplianceInput(BaseModel):

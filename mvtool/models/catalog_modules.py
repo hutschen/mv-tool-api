@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
-from .common import ETagMixin, NumberedStr
+from .common import ETagMixin, AutoNumber
 
 if TYPE_CHECKING:
     from . import CatalogImport, CatalogOutput
@@ -43,11 +43,11 @@ class CatalogModulePatch(CatalogModuleInput):
 
 
 class CatalogModulePatchMany(CatalogModulePatch):
-    reference: str | NumberedStr | None = None
+    reference: str | AutoNumber | None = None
 
     def to_patch(self, counter: int) -> CatalogModulePatch:
         items = self.model_dump(exclude_unset=True)
-        if isinstance(self.reference, NumberedStr):
+        if isinstance(self.reference, AutoNumber):
             items["reference"] = self.reference.to_value(counter)
         return CatalogModulePatch(**items)
 

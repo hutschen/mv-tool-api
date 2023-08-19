@@ -17,7 +17,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from mvtool.db.schema import Document, Measure, Project, Requirement
-from mvtool.models.common import NumberedStr
+from mvtool.models.common import AutoNumber
 from mvtool.models.documents import DocumentPatchMany
 
 
@@ -157,8 +157,8 @@ def test_verified_count(
             {"reference": "Ref", "title": "Test", "description": "Desc"},
         ),
         (
-            DocumentPatchMany(reference=NumberedStr(action="number"), title="Test"),
-            {"reference": NumberedStr(action="number").to_value(0), "title": "Test"},
+            DocumentPatchMany(reference=AutoNumber(kind="number"), title="Test"),
+            {"reference": AutoNumber(kind="number").to_value(0), "title": "Test"},
         ),
     ],
 )

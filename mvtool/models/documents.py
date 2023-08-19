@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
-from .common import AbstractProgressCountsOutput, ETagMixin, NumberedStr
+from .common import AbstractProgressCountsOutput, ETagMixin, AutoNumber
 
 if TYPE_CHECKING:
     from .projects import ProjectImport, ProjectOutput
@@ -42,11 +42,11 @@ class DocumentPatch(DocumentInput):
 
 
 class DocumentPatchMany(DocumentPatch):
-    reference: str | NumberedStr | None = None
+    reference: str | AutoNumber | None = None
 
     def to_patch(self, counter: int) -> DocumentPatch:
         items = self.model_dump(exclude_unset=True)
-        if isinstance(self.reference, NumberedStr):
+        if isinstance(self.reference, AutoNumber):
             items["reference"] = self.reference.to_value(counter)
         return DocumentPatch(**items)
 

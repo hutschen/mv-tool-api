@@ -15,7 +15,7 @@
 
 import pytest
 
-from mvtool.models.common import NumberedStr
+from mvtool.models.common import AutoNumber
 from mvtool.models.requirements import RequirementPatchMany
 
 
@@ -32,8 +32,8 @@ from mvtool.models.requirements import RequirementPatchMany
         ),
         (
             # fmt: off
-            RequirementPatchMany(reference=NumberedStr(action="number"), summary="Test"), 
-            {"reference": NumberedStr(action="number").to_value(0), "summary": "Test"},
+            RequirementPatchMany(reference=AutoNumber(kind="number"), summary="Test"), 
+            {"reference": AutoNumber(kind="number").to_value(0), "summary": "Test"},
             # fmt: on
         ),
     ],

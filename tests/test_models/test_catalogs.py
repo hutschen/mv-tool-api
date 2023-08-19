@@ -17,7 +17,7 @@
 import pytest
 
 from mvtool.models.catalogs import CatalogPatchMany
-from mvtool.models.common import NumberedStr
+from mvtool.models.common import AutoNumber
 
 
 @pytest.mark.parametrize(
@@ -32,8 +32,8 @@ from mvtool.models.common import NumberedStr
             {"title": "test", "reference": "test", "description": "test"},
         ),
         (
-            CatalogPatchMany(reference=NumberedStr(action="number"), title="test"),
-            {"reference": NumberedStr(action="number").to_value(0), "title": "test"},
+            CatalogPatchMany(reference=AutoNumber(kind="number"), title="test"),
+            {"reference": AutoNumber(kind="number").to_value(0), "title": "test"},
         ),
     ],
 )

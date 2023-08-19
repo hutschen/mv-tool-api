@@ -17,7 +17,7 @@
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
-from .common import ETagMixin, NumberedStr
+from .common import ETagMixin, AutoNumber
 
 
 class CatalogInput(BaseModel):
@@ -37,11 +37,11 @@ class CatalogPatch(CatalogInput):
 
 
 class CatalogPatchMany(CatalogPatch):
-    reference: str | NumberedStr | None = None
+    reference: str | AutoNumber | None = None
 
     def to_patch(self, count: int) -> CatalogPatch:
         items = self.model_dump(exclude_unset=True)
-        if isinstance(self.reference, NumberedStr):
+        if isinstance(self.reference, AutoNumber):
             items["reference"] = self.reference.to_value(count)
         return CatalogPatch(**items)
 

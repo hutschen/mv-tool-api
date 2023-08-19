@@ -19,7 +19,7 @@
 import pytest
 
 from mvtool.db.schema import Measure
-from mvtool.models.common import NumberedStr
+from mvtool.models.common import AutoNumber
 from mvtool.models.measures import MeasurePatchMany
 
 
@@ -78,8 +78,8 @@ def test_measure_completion_status_hint_non_compliant(
             {"reference": "Ref", "summary": "Test", "description": "Desc"},
         ),
         (
-            MeasurePatchMany(reference=NumberedStr(action="number"), summary="Test"),
-            {"reference": NumberedStr(action="number").to_value(0), "summary": "Test"},
+            MeasurePatchMany(reference=AutoNumber(kind="number"), summary="Test"),
+            {"reference": AutoNumber(kind="number").to_value(0), "summary": "Test"},
         ),
     ],
 )

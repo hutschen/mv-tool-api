@@ -23,7 +23,7 @@ from .common import (
     AbstractComplianceInput,
     AbstractProgressCountsOutput,
     ETagMixin,
-    NumberedStr,
+    AutoNumber,
 )
 
 if TYPE_CHECKING:
@@ -56,11 +56,11 @@ class RequirementPatch(RequirementInput):
 
 
 class RequirementPatchMany(RequirementPatch):
-    reference: str | NumberedStr | None = None
+    reference: str | AutoNumber | None = None
 
     def to_patch(self, counter: int) -> RequirementPatch:
         items = self.model_dump(exclude_unset=True)
-        if isinstance(self.reference, NumberedStr):
+        if isinstance(self.reference, AutoNumber):
             items["reference"] = self.reference.to_value(counter)
         return RequirementPatch(**items)
 
