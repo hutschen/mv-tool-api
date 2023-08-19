@@ -18,9 +18,9 @@
 
 from typing import TYPE_CHECKING
 
-from pydantic import field_validator, ConfigDict, BaseModel, constr
+from pydantic import BaseModel, ConfigDict, constr, field_validator
 
-from .common import ETagMixin
+from .common import ETagMixin, NumberedStr
 from .requirements import AbstractRequirementInput
 
 if TYPE_CHECKING:
@@ -41,6 +41,16 @@ class CatalogRequirementPatch(CatalogRequirementInput):
         if not v:
             raise ValueError("summary must not be empty")
         return v
+
+
+class CatalogRequirementPatchMany(CatalogRequirementPatch):
+    reference: str | NumberedStr | None = None
+
+    def to_patch(self, counter: int) -> CatalogRequirementPatch:
+        items = self.model_dump(exclude_unset=True)
+        if isinstance(self.reference, NumberedStr):
+            items["reference"] = self.reference.to_value(counter)
+        return CatalogRequirementPatch(**items)
 
 
 class CatalogRequirementImport(ETagMixin, CatalogRequirementInput):
