@@ -27,6 +27,7 @@ from ..models.catalog_requirements import (
     CatalogRequirementInput,
     CatalogRequirementOutput,
     CatalogRequirementPatch,
+    CatalogRequirementPatchMany,
     CatalogRequirementRepresentation,
 )
 from ..utils.filtering import (
@@ -258,16 +259,19 @@ def patch_catalog_requirement(
     response_model=list[CatalogRequirementOutput],
 )
 def patch_catalog_requirements(
-    catalog_requirement_patch: CatalogRequirementPatch,
+    catalog_requirement_patch: CatalogRequirementPatchMany,
     where_clauses=Depends(get_catalog_requirement_filters),
+    order_by_clauses=Depends(get_catalog_requirement_sort),
     catalog_requirements: CatalogRequirements = Depends(),
 ) -> list[CatalogRequirement]:
     catalog_requirements_ = catalog_requirements.list_catalog_requirements(
-        where_clauses
+        where_clauses, order_by_clauses
     )
-    for catalog_requirement in catalog_requirements_:
+    for counter, catalog_requirement in enumerate(catalog_requirements_):
         catalog_requirements.patch_catalog_requirement(
-            catalog_requirement, catalog_requirement_patch, skip_flush=True
+            catalog_requirement,
+            catalog_requirement_patch.to_patch(counter),
+            skip_flush=True,
         )
     catalog_requirements._session.flush()
     return catalog_requirements_
