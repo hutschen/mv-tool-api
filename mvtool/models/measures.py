@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, ConfigDict, constr, field_validator
 from pydantic_core.core_schema import FieldValidationInfo
 
-from .common import AbstractComplianceInput, ETagMixin
+from .common import AbstractComplianceInput, ETagMixin, AutoNumber
 from .jira_ import JiraIssue, JiraIssueImport
 
 if TYPE_CHECKING:
@@ -73,6 +73,16 @@ class MeasurePatch(MeasureInput):
         if not v:
             raise ValueError("summary must not be empty")
         return v
+
+
+class MeasurePatchMany(MeasurePatch):
+    reference: str | AutoNumber | None = None
+
+    def to_patch(self, counter: int) -> MeasurePatch:
+        items = self.model_dump(exclude_unset=True)
+        if isinstance(self.reference, AutoNumber):
+            items["reference"] = self.reference.to_value(counter)
+        return MeasurePatch(**items)
 
 
 class MeasureImport(ETagMixin, AbstractMeasureInput):

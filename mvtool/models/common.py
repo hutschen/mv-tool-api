@@ -19,7 +19,7 @@ import json
 from hashlib import md5
 from typing import Any
 
-from pydantic import BaseModel, constr, field_validator
+from pydantic import BaseModel, conint, constr, field_validator
 from pydantic_core.core_schema import FieldValidationInfo
 
 
@@ -35,6 +35,19 @@ class ETagMixin(BaseModel):
 
     def __eq__(self, other: Any):
         return isinstance(other, self.__class__) and self.etag == other.etag
+
+
+class AutoNumber(BaseModel):
+    kind: constr(pattern=r"^(number)$")
+    start: conint(ge=1) = 1
+    step: conint(ge=1) = 1
+    prefix: str | None = None
+    suffix: str | None = None
+
+    def to_value(self, counter: int) -> str:
+        prefix = self.prefix or ""
+        suffix = self.suffix or ""
+        return f"{prefix}{counter * self.step + self.start}{suffix}"
 
 
 class AbstractComplianceInput(BaseModel):

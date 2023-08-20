@@ -48,6 +48,7 @@ from mvtool.models.requirements import (
     RequirementInput,
     RequirementOutput,
     RequirementPatch,
+    RequirementPatchMany,
     RequirementRepresentation,
 )
 from mvtool.utils.pagination import Page
@@ -139,9 +140,9 @@ def test_patch_requirements(session: Session, requirements: Requirements):
     session.commit()
 
     # Patch requirements
-    patch = RequirementPatch(reference="cherry")
+    patch = RequirementPatchMany(reference="cherry")
     patch_requirements(
-        patch, [Requirement.reference.in_(["apple", "banana"])], requirements
+        patch, [Requirement.reference.in_(["apple", "banana"])], [], requirements
     )
 
     # Check if requirements are patched

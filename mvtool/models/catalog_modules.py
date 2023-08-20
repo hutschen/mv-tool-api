@@ -18,9 +18,9 @@
 
 from typing import TYPE_CHECKING
 
-from pydantic import field_validator, ConfigDict, BaseModel
+from pydantic import BaseModel, ConfigDict, field_validator
 
-from .common import ETagMixin
+from .common import ETagMixin, AutoNumber
 
 if TYPE_CHECKING:
     from . import CatalogImport, CatalogOutput
@@ -40,6 +40,16 @@ class CatalogModulePatch(CatalogModuleInput):
         if not v:
             raise ValueError("title must not be empty")
         return v
+
+
+class CatalogModulePatchMany(CatalogModulePatch):
+    reference: str | AutoNumber | None = None
+
+    def to_patch(self, counter: int) -> CatalogModulePatch:
+        items = self.model_dump(exclude_unset=True)
+        if isinstance(self.reference, AutoNumber):
+            items["reference"] = self.reference.to_value(counter)
+        return CatalogModulePatch(**items)
 
 
 class CatalogModuleImport(ETagMixin, CatalogModuleInput):

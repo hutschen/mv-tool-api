@@ -37,6 +37,7 @@ from ..models.measures import (
     MeasureInput,
     MeasureOutput,
     MeasurePatch,
+    MeasurePatchMany,
     MeasureRepresentation,
 )
 from ..utils import combine_flags
@@ -327,13 +328,18 @@ def patch_measure(
 
 @router.patch("/measures", response_model=list[MeasureOutput])
 def patch_measures(
-    measure_patch: MeasurePatch,
+    measure_patch: MeasurePatchMany,
     where_clauses=Depends(get_measure_filters),
+    order_by_clauses=Depends(get_measure_sort),
     measures: Measures = Depends(),
 ) -> list[Measure]:
-    measures_ = measures.list_measures(where_clauses)
-    for measure in measures_:
-        measures.patch_measure(measure, measure_patch, skip_flush=True)
+    measures_ = measures.list_measures(where_clauses, order_by_clauses)
+    for counter, measure in enumerate(measures_):
+        measures.patch_measure(
+            measure,
+            measure_patch.to_patch(counter),
+            skip_flush=True,
+        )
     measures.session.flush()
     return measures_
 

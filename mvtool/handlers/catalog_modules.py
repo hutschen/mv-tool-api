@@ -32,6 +32,7 @@ from ..models.catalog_modules import (
     CatalogModuleInput,
     CatalogModuleOutput,
     CatalogModulePatch,
+    CatalogModulePatchMany,
     CatalogModuleRepresentation,
 )
 from ..utils.errors import ValueHttpError
@@ -219,14 +220,19 @@ def patch_catalog_module(
 
 @router.patch("/catalog-modules", response_model=list[CatalogModuleOutput])
 def patch_catalog_modules(
-    catalog_module_patch: CatalogModulePatch,
+    catalog_module_patch: CatalogModulePatchMany,
     where_clauses=Depends(get_catalog_module_filters),
+    order_by_clauses=Depends(get_catalog_module_sort),
     catalog_modules: CatalogModules = Depends(),
 ) -> list[CatalogModule]:
-    catalog_modules_ = catalog_modules.list_catalog_modules(where_clauses)
-    for catalog_module in catalog_modules_:
+    catalog_modules_ = catalog_modules.list_catalog_modules(
+        where_clauses, order_by_clauses
+    )
+    for counter, catalog_module in enumerate(catalog_modules_):
         catalog_modules.patch_catalog_module(
-            catalog_module, catalog_module_patch, skip_flush=True
+            catalog_module,
+            catalog_module_patch.to_patch(counter),
+            skip_flush=True,
         )
     catalog_modules._session.flush()
     return catalog_modules_

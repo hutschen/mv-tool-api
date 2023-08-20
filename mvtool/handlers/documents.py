@@ -18,7 +18,7 @@
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import constr
 from sqlalchemy import Column
 
@@ -28,6 +28,7 @@ from ..models.documents import (
     DocumentInput,
     DocumentOutput,
     DocumentPatch,
+    DocumentPatchMany,
     DocumentRepresentation,
 )
 from ..utils.filtering import (
@@ -205,13 +206,18 @@ def patch_document(
 
 @router.patch("/documents", response_model=list[DocumentOutput])
 def patch_documents(
-    patch: DocumentPatch,
+    patch: DocumentPatchMany,
     where_clauses: list[Any] = Depends(get_document_filters),
+    order_by_clauses=Depends(get_document_sort),
     documents: Documents = Depends(),
 ) -> list[Document]:
-    documents_ = documents.list_documents(where_clauses)
-    for document in documents_:
-        documents.patch_document(document, patch, skip_flush=True)
+    documents_ = documents.list_documents(where_clauses, order_by_clauses)
+    for counter, document in enumerate(documents_):
+        documents.patch_document(
+            document,
+            patch.to_patch(counter),
+            skip_flush=True,
+        )
     documents._session.flush()
     return documents_
 
