@@ -12,37 +12,93 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+import csv
 import io
 
 import pytest
 
-from mvtool.tables.rw_csv import read_csv
+from mvtool.tables.rw_csv import CSVDialect, read_csv
 from mvtool.utils.errors import ValueHttpError
 
 
 @pytest.mark.parametrize(
-    "csv_content, dialect_options, expected_data",
+    "csv_content, dialect, expected_data",
     [
         (
             "a,b,c\n1,2,3\n4,5,6\n",
-            {},
+            CSVDialect(),
             {"a": ["1", "4"], "b": ["2", "5"], "c": ["3", "6"]},
         ),
+        # Test delimiter option
         (
             "a;b;c\n1;2;3\n4;5;6\n",
-            {"delimiter": ";"},
+            CSVDialect(delimiter=";"),
+            {"a": ["1", "4"], "b": ["2", "5"], "c": ["3", "6"]},
+        ),
+        # Test doublequote option
+        (
+            'a,"b""b",c\n1,2,3\n4,5,6\n',
+            CSVDialect(doublequote=True),
+            {"a": ["1", "4"], 'b"b': ["2", "5"], "c": ["3", "6"]},
+        ),
+        # Test escapechar option
+        (
+            "a,b\\,b,c\n1,2,3\n4,5,6\n",
+            CSVDialect(escapechar="\\"),
+            {"a": ["1", "4"], "b,b": ["2", "5"], "c": ["3", "6"]},
+        ),
+        # Test lineterminator option
+        (
+            "a,b,c\n1,2,3\n4,5,6\n",
+            CSVDialect(lineterminator="\n"),
+            {"a": ["1", "4"], "b": ["2", "5"], "c": ["3", "6"]},
+        ),
+        # Test quotechar option
+        (
+            "a;'b;b';c\n1;2;3\n4;5;6\n",
+            CSVDialect(quotechar="'", delimiter=";"),
+            {"a": ["1", "4"], "b;b": ["2", "5"], "c": ["3", "6"]},
+        ),
+        # Test quoting option (QUOTE_ALL)
+        (
+            '"a","b","c"\n"1","2","3"\n"4","5","6"\n',
+            CSVDialect(quoting=csv.QUOTE_ALL, quotechar='"'),
+            {"a": ["1", "4"], "b": ["2", "5"], "c": ["3", "6"]},
+        ),
+        # Test quoting option (QUOTE_MINIMAL)
+        (
+            'a,"b,c",d\n1,"2,3",4\n5,"6,7",8\n',
+            CSVDialect(quoting=csv.QUOTE_MINIMAL, quotechar='"'),
+            {"a": ["1", "5"], "b,c": ["2,3", "6,7"], "d": ["4", "8"]},
+        ),
+        # Test quoting option (QUOTE_NONNUMERIC)
+        (
+            '"a","b","c"\n1.0,2,"3"\n4.0,5,"6"\n',
+            CSVDialect(quoting=csv.QUOTE_NONNUMERIC),
+            {"a": [1.0, 4.0], "b": [2, 5], "c": ["3", "6"]},
+        ),
+        # Test quoting option (QUOTE_NONE)
+        (
+            'a,"b",c\n1,"2",3\n4,"5",6\n',
+            CSVDialect(quoting=csv.QUOTE_NONE),
+            {"a": ["1", "4"], '"b"': ['"2"', '"5"'], "c": ["3", "6"]},
+        ),
+        # Test skipinitialspace option
+        (
+            "a, b, c\n1, 2, 3\n4, 5, 6\n",
+            CSVDialect(skipinitialspace=True),
             {"a": ["1", "4"], "b": ["2", "5"], "c": ["3", "6"]},
         ),
     ],
 )
 def test_read_csv_dialect_options(
     csv_content: str,
-    dialect_options: dict,
+    dialect: dict,
     expected_data: dict,
 ):
     file_obj = io.BytesIO(csv_content.encode("utf-8"))
 
-    result = read_csv(file_obj, encoding="utf-8", **dialect_options)
+    result = read_csv(file_obj, encoding="utf-8", dialect=dialect)
     assert result.data == expected_data
 
 

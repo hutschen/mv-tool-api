@@ -16,19 +16,48 @@ import codecs
 import csv
 from typing import IO
 
+from pydantic import BaseModel, constr, field_validator
+
 from ..utils.errors import ValueHttpError
 from .dataframe import DataFrame
+
+
+class CSVDialect(BaseModel):
+    delimiter: constr(min_length=1, max_length=1) = ","
+    doublequote: bool = True
+    escapechar: constr(min_length=1, max_length=1) | None = None
+    lineterminator: constr(pattern="^(\n|\r\n)$") = "\r\n"
+    quotechar: constr(min_length=1, max_length=1) = '"'
+    quoting: int = csv.QUOTE_MINIMAL
+    skipinitialspace: bool = False
+
+    @field_validator("quoting")
+    def quoting_validator(cls, value):
+        valid_values = [
+            csv.QUOTE_ALL,
+            csv.QUOTE_MINIMAL,
+            csv.QUOTE_NONNUMERIC,
+            csv.QUOTE_NONE,
+        ]
+        if value not in valid_values:
+            raise ValueError(f"Invalid quoting value, must be one of {valid_values}")
+        return value
 
 
 def read_csv(
     file_obj: IO[bytes],
     encoding: str = "utf-8-sig",  # Use UTF-8 with BOM by default
-    **dialect_options,
+    dialect: CSVDialect | None = None,
 ) -> DataFrame:
+    """Read a CSV file and return a DataFrame."""
     csv_file_obj = codecs.getreader(encoding)(file_obj)
 
     try:
-        csv_reader = csv.DictReader(csv_file_obj, **dialect_options)
+        csv_reader = csv.DictReader(
+            csv_file_obj,
+            **(dialect.model_dump(exclude_unset=True) if dialect else {}),
+            strict=True,
+        )
 
         # Construct a dictionary with lists of values for each column
         data_dict = {key: [] for key in csv_reader.fieldnames}
