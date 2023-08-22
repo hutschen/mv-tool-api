@@ -12,13 +12,46 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+import codecs
 import csv
 import io
+from unittest.mock import patch
 
 import pytest
 
-from mvtool.tables.rw_csv import CSVDialect, read_csv
+from mvtool.tables.rw_csv import (
+    CSVDialect,
+    get_encoding_options,
+    lookup_encoding,
+    read_csv,
+)
 from mvtool.utils.errors import ValueHttpError
+
+
+def test_lookup_encoding_with_existing_encoding():
+    with patch.object(codecs, "lookup") as mock_lookup:
+        mock_lookup.return_value = "dummy_value"
+        result = lookup_encoding("utf-8")
+        assert result == True
+
+
+def test_lookup_encoding_with_nonexistent_encoding():
+    with patch.object(codecs, "lookup") as mock_lookup:
+        mock_lookup.side_effect = LookupError
+        result = lookup_encoding("non_existent_encoding")
+        assert result == False
+
+
+def test_get_encoding_options():
+    # Mock for lookup_encoding that returns True for some encodings and False for others
+    def mock_lookup_encoding(encoding):
+        return encoding in ["utf-8", "ascii"]
+
+    with patch("mvtool.tables.rw_csv.lookup_encoding", mock_lookup_encoding):
+        encoding_options = get_encoding_options()
+
+        # Check if only the encodings where mock_lookup_encoding returns True are included in the result
+        assert {"utf-8", "ascii"} == {option.encoding for option in encoding_options}
 
 
 @pytest.mark.parametrize(
