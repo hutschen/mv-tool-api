@@ -17,12 +17,13 @@
 
 from typing import Callable
 
-from fastapi import Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query, Response
 
 from ..auth import get_jira
 from ..utils.temp_file import copy_upload_to_temp_file
 from .columns import ColumnGroup
 from .dataframe import DataFrame, read_excel
+from .rw_csv import EncodingOption, get_encoding_options
 
 
 def hide_columns(get_columns: Callable) -> Callable:
@@ -49,3 +50,12 @@ def get_export_labels_handler(get_columns: Callable) -> Callable:
 def get_uploaded_dataframe(temp_file=Depends(copy_upload_to_temp_file)) -> DataFrame:
     # TODO: Any other data formats can also be converted into a data frame here.
     return read_excel(temp_file)
+
+
+router = APIRouter(tags=["common"])
+
+
+@router.get("/common/encodings", response_model=list[EncodingOption])
+def get_supported_encodings(response: Response):
+    response.headers["Cache-Control"] = f"public, max-age={60 * 60 * 24 * 7}"  # 7 days
+    return get_encoding_options()
