@@ -22,8 +22,9 @@ from fastapi import APIRouter, Depends, Query, Response
 from ..auth import get_jira
 from ..utils.temp_file import copy_upload_to_temp_file
 from .columns import ColumnGroup
-from .dataframe import DataFrame, read_excel
+from .dataframe import DataFrame
 from .rw_csv import EncodingOption, get_encoding_options
+from .rw_excel import read_excel
 
 
 def hide_columns(get_columns: Callable) -> Callable:

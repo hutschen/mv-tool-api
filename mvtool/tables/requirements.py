@@ -22,9 +22,8 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from ..db.schema import Requirement
-
 from ..db.database import get_session
+from ..db.schema import Requirement
 from ..handlers.catalog_modules import CatalogModules
 from ..handlers.projects import Projects
 from ..handlers.requirements import (
@@ -37,9 +36,10 @@ from ..models.requirements import RequirementImport
 from ..utils.temp_file import get_temp_file
 from .catalog_requirements import get_catalog_requirement_columns
 from .columns import Column, ColumnGroup
-from .dataframe import DataFrame, write_excel
+from .dataframe import DataFrame
 from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
 from .projects import get_project_columns
+from .rw_excel import write_excel
 
 
 def get_requirement_columns(

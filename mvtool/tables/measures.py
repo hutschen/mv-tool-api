@@ -19,20 +19,20 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from ..db.schema import Measure
-
 from ..db.database import get_session
+from ..db.schema import Measure
 from ..handlers.catalog_modules import CatalogModules
 from ..handlers.measures import Measures, get_measure_filters, get_measure_sort
 from ..handlers.requirements import Requirements
 from ..models import MeasureImport, MeasureOutput
 from ..utils.temp_file import get_temp_file
 from .columns import Column, ColumnGroup
-from .dataframe import DataFrame, write_excel
+from .dataframe import DataFrame
 from .documents import get_document_only_columns
 from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
 from .jira_ import get_jira_issue_columns
 from .requirements import get_requirement_columns
+from .rw_excel import write_excel
 
 
 def get_measure_columns(

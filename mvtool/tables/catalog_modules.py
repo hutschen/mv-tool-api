@@ -20,9 +20,8 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from ..db.schema import CatalogModule
-
 from ..db.database import get_session
+from ..db.schema import CatalogModule
 from ..handlers.catalog_modules import (
     CatalogModules,
     get_catalog_module_filters,
@@ -33,8 +32,9 @@ from ..models import CatalogModuleImport, CatalogModuleOutput
 from ..utils.temp_file import get_temp_file
 from .catalogs import get_catalog_columns
 from .columns import Column, ColumnGroup
-from .dataframe import DataFrame, write_excel
+from .dataframe import DataFrame
 from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
+from .rw_excel import write_excel
 
 
 def get_catalog_module_columns(
