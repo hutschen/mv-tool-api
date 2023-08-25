@@ -97,10 +97,16 @@ class CSVDialect(BaseModel):
     delimiter: constr(min_length=1, max_length=1) = ","
     doublequote: bool = True
     escapechar: constr(min_length=1, max_length=1) | None = None
-    lineterminator: constr(pattern="^(\n|\r\n)$") = "\r\n"
+    lineterminator: constr(pattern="^(lf|crlf)$") = "crlf"
     quotechar: constr(min_length=1, max_length=1) = '"'
     quoting: constr(pattern="^(all|minimal|nonnumeric|none)$") = "minimal"
     skipinitialspace: bool = False
+
+    def _convert_lineterminator(self, value: str) -> str:
+        return {
+            "lf": "\n",
+            "crlf": "\r\n",
+        }[value]
 
     def _convert_quoting(self, value: str) -> int:
         return {
@@ -112,10 +118,12 @@ class CSVDialect(BaseModel):
 
     def to_dialect_kwargs(self):
         kwargs = self.model_dump(exclude_unset=True)
-        try:
+        if "lineterminator" in kwargs:
+            kwargs["lineterminator"] = self._convert_lineterminator(
+                kwargs["lineterminator"]
+            )
+        if "quoting" in kwargs:
             kwargs["quoting"] = self._convert_quoting(kwargs["quoting"])
-        except KeyError:
-            pass
         return kwargs
 
 

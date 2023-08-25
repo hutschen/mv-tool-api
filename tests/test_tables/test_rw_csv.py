@@ -84,7 +84,7 @@ def test_get_encoding_options():
         # Test lineterminator option
         (
             "a,b,c\n1,2,3\n4,5,6\n",
-            CSVDialect(lineterminator="\n"),
+            CSVDialect(lineterminator="lf"),
             {"a": ["1", "4"], "b": ["2", "5"], "c": ["3", "6"]},
         ),
         # Test quotechar option
@@ -211,7 +211,7 @@ def test_read_csv_invalid_columns():
         # Test lineterminator option
         (
             {"a": [1, 4], "b": [2, 5], "c": [3, 6]},
-            CSVDialect(lineterminator="\n"),
+            CSVDialect(lineterminator="lf"),
             "a,b,c\n1,2,3\n4,5,6\n",
         ),
         # Test quotechar option
