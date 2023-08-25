@@ -149,7 +149,12 @@ def read_csv(
         data_dict = {key: [] for key in csv_reader.fieldnames}
         for row in csv_reader:
             for key, value in row.items():
-                data_dict[key].append(value)
+                data_dict[key].append(
+                    # represent empty strings as None
+                    None
+                    if isinstance(value, str) and value.strip() == ""
+                    else value
+                )
     except UnicodeDecodeError as e:
         raise ValueHttpError(
             f"Error decoding the CSV file using the '{encoding}' encoding: {str(e)}"
