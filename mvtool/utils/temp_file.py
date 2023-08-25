@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import shutil
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile, _TemporaryFileWrapper
 from typing import Callable
 
 from fastapi import Depends, UploadFile
@@ -42,8 +42,8 @@ def get_temp_file(suffix: str | None = None) -> Callable:
 
 
 def copy_upload_to_temp_file(
-    upload_file: UploadFile, temp_file: NamedTemporaryFile = Depends(get_temp_file())
-) -> NamedTemporaryFile:
+    upload_file: UploadFile, temp_file: _TemporaryFileWrapper = Depends(get_temp_file())
+) -> _TemporaryFileWrapper:
     """Copies the contents of an upload file to a temporary file.
 
     Args:
@@ -53,5 +53,6 @@ def copy_upload_to_temp_file(
     Returns:
         NamedTemporaryFile: The temporary file.
     """
-    shutil.copyfileobj(upload_file.file, temp_file)
+    shutil.copyfileobj(upload_file.file, temp_file.file)
+    temp_file.file.seek(0)  # Reset cursor after copying
     return temp_file
