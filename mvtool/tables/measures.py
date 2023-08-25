@@ -29,7 +29,11 @@ from ..utils.temp_file import get_temp_file
 from .columns import Column, ColumnGroup
 from .dataframe import DataFrame
 from .documents import get_document_only_columns
-from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
+from .handlers import (
+    get_export_labels_handler,
+    get_uploaded_dataframe_handler,
+    hide_columns,
+)
 from .jira_ import get_jira_issue_columns
 from .requirements import get_requirement_columns
 from .rw_excel import write_excel
@@ -99,7 +103,7 @@ def upload_measures_excel(
     requirements_view: Requirements = Depends(),
     catalog_modules_view: CatalogModules = Depends(),
     columns: ColumnGroup = Depends(get_measure_columns),
-    df: DataFrame = Depends(get_uploaded_dataframe),
+    df: DataFrame = Depends(get_uploaded_dataframe_handler("excel")),
     skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
     session: Session = Depends(get_session),

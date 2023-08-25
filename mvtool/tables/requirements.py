@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 from tempfile import NamedTemporaryFile
 
 from fastapi import APIRouter, Depends
@@ -37,7 +36,11 @@ from ..utils.temp_file import get_temp_file
 from .catalog_requirements import get_catalog_requirement_columns
 from .columns import Column, ColumnGroup
 from .dataframe import DataFrame
-from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
+from .handlers import (
+    get_export_labels_handler,
+    get_uploaded_dataframe_handler,
+    hide_columns,
+)
 from .projects import get_project_columns
 from .rw_excel import write_excel
 
@@ -112,7 +115,7 @@ def upload_requirements_excel(
     catalog_modules_view: CatalogModules = Depends(),
     requirements_view: Requirements = Depends(),
     columns: ColumnGroup = Depends(get_requirement_columns),
-    df: DataFrame = Depends(get_uploaded_dataframe),
+    df: DataFrame = Depends(get_uploaded_dataframe_handler("excel")),
     skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
     session: Session = Depends(get_session),

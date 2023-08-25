@@ -48,16 +48,27 @@ def get_export_labels_handler(get_columns: Callable) -> Callable:
     return handler
 
 
-def get_uploaded_dataframe(temp_file=Depends(copy_upload_to_temp_file)) -> DataFrame:
+def _get_dataframe_from_uploaded_excel(
+    temp_file=Depends(copy_upload_to_temp_file),
+) -> DataFrame:
     return read_excel(temp_file)
 
 
-def get_dataframe_from_uploaded_csv(
+def _get_dataframe_from_uploaded_csv(
     temp_file=Depends(copy_upload_to_temp_file),
     encoding: str = "utf-8-sig",
     dialect=Depends(CSVDialect),
 ) -> DataFrame:
     return read_csv(temp_file, encoding, dialect)
+
+
+def get_uploaded_dataframe_handler(format: str) -> Callable:
+    if format == "excel":
+        return _get_dataframe_from_uploaded_excel
+    elif format == "csv":
+        return _get_dataframe_from_uploaded_csv
+    else:
+        raise ValueError(f"Unknown format: {format}")
 
 
 router = APIRouter(tags=["common"])

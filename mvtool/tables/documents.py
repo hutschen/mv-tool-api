@@ -27,7 +27,11 @@ from ..models.documents import DocumentImport, DocumentOutput
 from ..utils.temp_file import get_temp_file
 from .columns import Column, ColumnGroup
 from .dataframe import DataFrame
-from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
+from .handlers import (
+    get_export_labels_handler,
+    get_uploaded_dataframe_handler,
+    hide_columns,
+)
 from .projects import get_project_columns
 from .rw_excel import write_excel
 
@@ -95,7 +99,7 @@ def upload_documents_excel(
     projects_view: Projects = Depends(),
     documents_view: Documents = Depends(),
     columns: ColumnGroup = Depends(get_document_columns),
-    df: DataFrame = Depends(get_uploaded_dataframe),
+    df: DataFrame = Depends(get_uploaded_dataframe_handler("excel")),
     skip_blanks: bool = False,  # skip blank cells
     dry_run: bool = False,  # don't save to database
     session: Session = Depends(get_session),
