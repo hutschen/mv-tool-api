@@ -18,12 +18,14 @@ import io
 from unittest.mock import patch
 
 import pytest
+from mvtool.tables.dataframe import DataFrame
 
 from mvtool.tables.rw_csv import (
     CSVDialect,
     get_encoding_options,
     lookup_encoding,
     read_csv,
+    write_csv,
 )
 from mvtool.utils.errors import ValueHttpError
 
@@ -169,3 +171,93 @@ def test_read_csv_invalid_columns():
         read_csv(file_obj)
 
     assert "Error reading CSV due to" in str(e_info.value)
+
+
+@pytest.mark.parametrize(
+    "data, dialect, expected_csv",
+    [
+        (
+            {"a": [1, 4], "b": [2, 5], "c": [3, 6]},
+            CSVDialect(),
+            "a,b,c\r\n1,2,3\r\n4,5,6\r\n",
+        ),
+        # Test delimiter option
+        (
+            {"a": [1, 4], "b": [2, 5], "c": [3, 6]},
+            CSVDialect(delimiter=";"),
+            "a;b;c\r\n1;2;3\r\n4;5;6\r\n",
+        ),
+        # Test doublequote option
+        (
+            {"a": [1, 4], 'b"b': [2, 5], "c": [3, 6]},
+            CSVDialect(doublequote=True),
+            'a,"b""b",c\r\n1,2,3\r\n4,5,6\r\n',
+        ),
+        # Test escapechar option
+        (
+            {"a": [1, 4], "b,b": [2, 5], "c": [3, 6]},
+            CSVDialect(escapechar="\\", quoting=csv.QUOTE_NONE),
+            "a,b\\,b,c\r\n1,2,3\r\n4,5,6\r\n",
+        ),
+        # Test lineterminator option
+        (
+            {"a": [1, 4], "b": [2, 5], "c": [3, 6]},
+            CSVDialect(lineterminator="\n"),
+            "a,b,c\n1,2,3\n4,5,6\n",
+        ),
+        # Test quotechar option
+        (
+            {"a": [1, 4], "b;b": [2, 5], "c": [3, 6]},
+            CSVDialect(quotechar="'", delimiter=";"),
+            "a;'b;b';c\r\n1;2;3\r\n4;5;6\r\n",
+        ),
+        # Test quoting option (QUOTE_ALL)
+        (
+            {"a": [1, 4], "b": [2, 5], "c": [3, 6]},
+            CSVDialect(quoting=csv.QUOTE_ALL, quotechar='"'),
+            '"a","b","c"\r\n"1","2","3"\r\n"4","5","6"\r\n',
+        ),
+        # Test quoting option (QUOTE_MINIMAL)
+        (
+            {"a": [1, 5], "b,c": ["2,3", "6,7"], "d": [4, 8]},
+            CSVDialect(quoting=csv.QUOTE_MINIMAL, quotechar='"'),
+            'a,"b,c",d\r\n1,"2,3",4\r\n5,"6,7",8\r\n',
+        ),
+        # Test quoting option (QUOTE_NONNUMERIC)
+        (
+            {"a": [1.0, 4.0], "b": [2, 5], "c": ["3", "6"]},
+            CSVDialect(quoting=csv.QUOTE_NONNUMERIC),
+            '"a","b","c"\r\n1.0,2,"3"\r\n4.0,5,"6"\r\n',
+        ),
+    ],
+)
+def test_write_csv_dialect_options(data: dict, expected_csv: str, dialect: CSVDialect):
+    buffer = io.BytesIO()
+    df = DataFrame()
+    df.data = data
+    write_csv(df, buffer, encoding="utf-8", dialect=dialect)
+
+    assert buffer.getvalue().decode("utf-8") == expected_csv
+
+
+@pytest.mark.parametrize(
+    "write_encoding, read_encoding",
+    [
+        ("utf-8", "utf-8"),  # Write without BOM, read without BOM
+        ("utf-8", "utf-8-sig"),  # Write without BOM, read with BOM
+        ("utf-8-sig", "utf-8-sig"),  # Write with BOM, read with BOM
+        ("cp1252", "cp1252"),  # Western European (Windows)
+        ("iso-8859-1", "iso-8859-1"),  # Western European (ISO) / Latin 1
+    ],
+)
+def test_write_csv_encoding(write_encoding: str, read_encoding: str):
+    buffer = io.BytesIO()
+    df = DataFrame()
+    df.data = {"a": ["1", "4"], "b": ["2", "5"], "c": ["3", "6"]}
+    write_csv(df, buffer, encoding=write_encoding)
+
+    expected_csv = ",".join(df.data.keys()) + "\r\n"
+    for row in zip(*df.data.values()):
+        expected_csv += ",".join(map(str, row)) + "\r\n"
+
+    assert buffer.getvalue().decode(read_encoding) == expected_csv

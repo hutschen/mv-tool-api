@@ -12,6 +12,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import codecs
 import csv
 from typing import IO
@@ -116,7 +117,7 @@ class CSVDialect(BaseModel):
 
 def read_csv(
     file_obj: IO[bytes],
-    encoding: str = "utf-8-sig",  # Use UTF-8 with BOM by default
+    encoding: str = "utf-8-sig",  # Use UTF-8 with BOM to be compatible with Excel
     dialect: CSVDialect | None = None,
 ) -> DataFrame:
     """Read a CSV file and return a DataFrame."""
@@ -148,3 +149,26 @@ def read_csv(
     df = DataFrame()
     df.data = data_dict
     return df
+
+
+def write_csv(
+    df: DataFrame,
+    file_obj: IO[bytes],
+    encoding: str = "utf-8-sig",  # Use UTF-8 with BOM to be compatible with Excel
+    dialect: CSVDialect | None = None,
+):
+    """Writes a DataFrame to a CSV file."""
+    try:
+        csv_file_obj = codecs.getwriter(encoding)(file_obj)
+    except LookupError:
+        raise ValueHttpError(f"Unsupported encoding: {encoding}")
+
+    writer = csv.DictWriter(
+        csv_file_obj,
+        fieldnames=df.column_names,
+        **(dialect.model_dump(exclude_unset=True) if dialect else {}),
+    )
+
+    writer.writeheader()
+    for row in df:
+        writer.writerow({cell.label: cell.value for cell in row})
