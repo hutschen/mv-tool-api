@@ -23,7 +23,7 @@ from ..auth import get_jira
 from ..utils.temp_file import copy_upload_to_temp_file
 from .columns import ColumnGroup
 from .dataframe import DataFrame
-from .rw_csv import EncodingOption, get_encoding_options
+from .rw_csv import CSVDialect, EncodingOption, get_encoding_options, read_csv
 from .rw_excel import read_excel
 
 
@@ -49,8 +49,15 @@ def get_export_labels_handler(get_columns: Callable) -> Callable:
 
 
 def get_uploaded_dataframe(temp_file=Depends(copy_upload_to_temp_file)) -> DataFrame:
-    # TODO: Any other data formats can also be converted into a data frame here.
     return read_excel(temp_file)
+
+
+def get_dataframe_from_uploaded_csv(
+    temp_file=Depends(copy_upload_to_temp_file),
+    encoding: str = "utf-8-sig",
+    dialect=Depends(CSVDialect),
+) -> DataFrame:
+    return read_csv(temp_file, encoding, dialect)
 
 
 router = APIRouter(tags=["common"])
