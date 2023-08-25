@@ -163,6 +163,16 @@ def test_read_csv_invalid_encoding():
     assert "Error decoding the CSV file using the 'utf-8' encoding" in str(e_info.value)
 
 
+def test_read_csv_nonexistent_encoding():
+    csv_content = "a,b,c\n1,2,3\n4,5,6\n"
+    file_obj = io.BytesIO(csv_content.encode("utf-8"))
+
+    with pytest.raises(ValueHttpError) as e_info:
+        read_csv(file_obj, encoding="non_existent_encoding")
+
+    assert "Unsupported encoding: non_existent_encoding" in str(e_info.value)
+
+
 def test_read_csv_invalid_columns():
     csv_content = "a,b\n1,2,3\n4,5,6\n"
     file_obj = io.BytesIO(csv_content.encode("utf-8"))
