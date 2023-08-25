@@ -17,7 +17,7 @@ import codecs
 import csv
 from typing import IO
 
-from pydantic import BaseModel, constr, field_validator
+from pydantic import BaseModel, constr
 
 from ..utils.errors import ValueHttpError
 from .dataframe import DataFrame
@@ -99,20 +99,24 @@ class CSVDialect(BaseModel):
     escapechar: constr(min_length=1, max_length=1) | None = None
     lineterminator: constr(pattern="^(\n|\r\n)$") = "\r\n"
     quotechar: constr(min_length=1, max_length=1) = '"'
-    quoting: int = csv.QUOTE_MINIMAL
+    quoting: constr(pattern="^(all|minimal|nonnumeric|none)$") = "minimal"
     skipinitialspace: bool = False
 
-    @field_validator("quoting")
-    def quoting_validator(cls, value):
-        valid_values = [
-            csv.QUOTE_ALL,
-            csv.QUOTE_MINIMAL,
-            csv.QUOTE_NONNUMERIC,
-            csv.QUOTE_NONE,
-        ]
-        if value not in valid_values:
-            raise ValueError(f"Invalid quoting value, must be one of {valid_values}")
-        return value
+    def _convert_quoting(self, value: str) -> int:
+        return {
+            "all": csv.QUOTE_ALL,
+            "minimal": csv.QUOTE_MINIMAL,
+            "nonnumeric": csv.QUOTE_NONNUMERIC,
+            "none": csv.QUOTE_NONE,
+        }[value]
+
+    def to_dialect_kwargs(self):
+        kwargs = self.model_dump(exclude_unset=True)
+        try:
+            kwargs["quoting"] = self._convert_quoting(kwargs["quoting"])
+        except KeyError:
+            pass
+        return kwargs
 
 
 def read_csv(
@@ -129,7 +133,7 @@ def read_csv(
     try:
         csv_reader = csv.DictReader(
             csv_file_obj,
-            **(dialect.model_dump(exclude_unset=True) if dialect else {}),
+            **(dialect.to_dialect_kwargs() if dialect else {}),
             strict=True,
         )
 
@@ -166,7 +170,7 @@ def write_csv(
     writer = csv.DictWriter(
         csv_file_obj,
         fieldnames=df.column_names,
-        **(dialect.model_dump(exclude_unset=True) if dialect else {}),
+        **(dialect.to_dialect_kwargs() if dialect else {}),
     )
 
     writer.writeheader()

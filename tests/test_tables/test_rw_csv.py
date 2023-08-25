@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import codecs
-import csv
 import io
 from unittest.mock import patch
 
@@ -97,25 +96,25 @@ def test_get_encoding_options():
         # Test quoting option (QUOTE_ALL)
         (
             '"a","b","c"\n"1","2","3"\n"4","5","6"\n',
-            CSVDialect(quoting=csv.QUOTE_ALL, quotechar='"'),
+            CSVDialect(quoting="all", quotechar='"'),
             {"a": ["1", "4"], "b": ["2", "5"], "c": ["3", "6"]},
         ),
         # Test quoting option (QUOTE_MINIMAL)
         (
             'a,"b,c",d\n1,"2,3",4\n5,"6,7",8\n',
-            CSVDialect(quoting=csv.QUOTE_MINIMAL, quotechar='"'),
+            CSVDialect(quoting="minimal", quotechar='"'),
             {"a": ["1", "5"], "b,c": ["2,3", "6,7"], "d": ["4", "8"]},
         ),
         # Test quoting option (QUOTE_NONNUMERIC)
         (
             '"a","b","c"\n1.0,2,"3"\n4.0,5,"6"\n',
-            CSVDialect(quoting=csv.QUOTE_NONNUMERIC),
+            CSVDialect(quoting="nonnumeric"),
             {"a": [1.0, 4.0], "b": [2, 5], "c": ["3", "6"]},
         ),
         # Test quoting option (QUOTE_NONE)
         (
             'a,"b",c\n1,"2",3\n4,"5",6\n',
-            CSVDialect(quoting=csv.QUOTE_NONE),
+            CSVDialect(quoting="none"),
             {"a": ["1", "4"], '"b"': ['"2"', '"5"'], "c": ["3", "6"]},
         ),
         # Test skipinitialspace option
@@ -206,7 +205,7 @@ def test_read_csv_invalid_columns():
         # Test escapechar option
         (
             {"a": [1, 4], "b,b": [2, 5], "c": [3, 6]},
-            CSVDialect(escapechar="\\", quoting=csv.QUOTE_NONE),
+            CSVDialect(escapechar="\\", quoting="none"),
             "a,b\\,b,c\r\n1,2,3\r\n4,5,6\r\n",
         ),
         # Test lineterminator option
@@ -224,19 +223,19 @@ def test_read_csv_invalid_columns():
         # Test quoting option (QUOTE_ALL)
         (
             {"a": [1, 4], "b": [2, 5], "c": [3, 6]},
-            CSVDialect(quoting=csv.QUOTE_ALL, quotechar='"'),
+            CSVDialect(quoting="all", quotechar='"'),
             '"a","b","c"\r\n"1","2","3"\r\n"4","5","6"\r\n',
         ),
         # Test quoting option (QUOTE_MINIMAL)
         (
             {"a": [1, 5], "b,c": ["2,3", "6,7"], "d": [4, 8]},
-            CSVDialect(quoting=csv.QUOTE_MINIMAL, quotechar='"'),
+            CSVDialect(quoting="minimal", quotechar='"'),
             'a,"b,c",d\r\n1,"2,3",4\r\n5,"6,7",8\r\n',
         ),
         # Test quoting option (QUOTE_NONNUMERIC)
         (
             {"a": [1.0, 4.0], "b": [2, 5], "c": ["3", "6"]},
-            CSVDialect(quoting=csv.QUOTE_NONNUMERIC),
+            CSVDialect(quoting="nonnumeric"),
             '"a","b","c"\r\n1.0,2,"3"\r\n4.0,5,"6"\r\n',
         ),
     ],
