@@ -19,9 +19,8 @@ from typing import BinaryIO
 
 from pydantic import BaseModel, constr
 
-from mvtool.utils.temp_file import preserved_cursor_position
-
 from ..utils.errors import ValueHttpError
+from ..utils.temp_file import preserved_cursor_position
 from .dataframe import DataFrame
 
 
@@ -104,13 +103,22 @@ class CSVDialect(BaseModel):
     quoting: constr(pattern="^(all|minimal|nonnumeric|none)$") = "minimal"
     skipinitialspace: bool = False
 
-    def _convert_lineterminator(self, value: str) -> str:
+    @staticmethod
+    def _to_lineterminator(value: str) -> str:
         return {
             "lf": "\n",
             "crlf": "\r\n",
         }[value]
 
-    def _convert_quoting(self, value: str) -> int:
+    @staticmethod
+    def _from_lineterminator(value: str) -> str:
+        return {
+            "\n": "lf",
+            "\r\n": "crlf",
+        }[value]
+
+    @staticmethod
+    def _to_quoting_literal(value: str) -> int:
         return {
             "all": csv.QUOTE_ALL,
             "minimal": csv.QUOTE_MINIMAL,
@@ -118,15 +126,65 @@ class CSVDialect(BaseModel):
             "none": csv.QUOTE_NONE,
         }[value]
 
+    @staticmethod
+    def _from_quoting_literal(value: int) -> str:
+        return {
+            csv.QUOTE_ALL: "all",
+            csv.QUOTE_MINIMAL: "minimal",
+            csv.QUOTE_NONNUMERIC: "nonnumeric",
+            csv.QUOTE_NONE: "none",
+        }[value]
+
     def to_dialect_kwargs(self):
         kwargs = self.model_dump(exclude_unset=True)
         if "lineterminator" in kwargs:
-            kwargs["lineterminator"] = self._convert_lineterminator(
+            kwargs["lineterminator"] = self._to_lineterminator(kwargs["lineterminator"])
+        if "quoting" in kwargs:
+            kwargs["quoting"] = self._to_quoting_literal(kwargs["quoting"])
+        return kwargs
+
+    @classmethod
+    def from_dialect_kwargs(cls, **kwargs):
+        if "lineterminator" in kwargs:
+            kwargs["lineterminator"] = cls._from_lineterminator(
                 kwargs["lineterminator"]
             )
         if "quoting" in kwargs:
-            kwargs["quoting"] = self._convert_quoting(kwargs["quoting"])
-        return kwargs
+            kwargs["quoting"] = cls._from_quoting_literal(kwargs["quoting"])
+        return cls(**kwargs)
+
+
+def sniff_csv_dialect(
+    file_obj: BinaryIO,
+    encoding: str = "utf-8-sig",  # Use UTF-8 with BOM to be compatible with Excel
+    delimiters: str | None = ",;",
+) -> CSVDialect:
+    """Sniff the CSV dialect of a file."""
+    try:
+        csv_stream_reader = codecs.getreader(encoding)(file_obj)
+    except LookupError:
+        raise ValueHttpError(f"Unsupported encoding: {encoding}")
+
+    try:
+        with preserved_cursor_position(file_obj):
+            dialect = csv.Sniffer().sniff(csv_stream_reader.read(1024), delimiters)
+    except UnicodeDecodeError as e:
+        raise ValueHttpError(
+            f"Error decoding the CSV file using the '{encoding}' encoding: {str(e)}"
+        )
+    except csv.Error as e:
+        raise ValueHttpError(f"Error sniffing CSV dialect due to: {str(e)}")
+
+    # Convert dialect to CSVDialect
+    return CSVDialect.from_dialect_kwargs(
+        delimiter=dialect.delimiter,
+        doublequote=dialect.doublequote,
+        escapechar=dialect.escapechar,
+        lineterminator=dialect.lineterminator,
+        quotechar=dialect.quotechar,
+        quoting=dialect.quoting,
+        skipinitialspace=dialect.skipinitialspace,
+    )
 
 
 def read_csv(

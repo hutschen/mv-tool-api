@@ -24,6 +24,7 @@ from mvtool.tables.rw_csv import (
     get_encoding_options,
     lookup_encoding,
     read_csv,
+    sniff_csv_dialect,
     write_csv,
 )
 from mvtool.utils.errors import ValueHttpError
@@ -53,6 +54,60 @@ def test_get_encoding_options():
 
         # Check if only the encodings where mock_lookup_encoding returns True are included in the result
         assert {"utf-8", "ascii"} == {option.encoding for option in encoding_options}
+
+
+def test_sniff_csv_dialect():
+    csv_content = "a,b,c\r\n1,2,3\r\n4,5,6\r\n"
+    file_obj = io.BytesIO(csv_content.encode("utf-8"))
+
+    dialect = sniff_csv_dialect(file_obj, encoding="utf-8", delimiters=",;")
+
+    assert dialect.delimiter == ","
+    assert dialect.doublequote == False
+    assert dialect.escapechar == None
+    assert dialect.lineterminator == "crlf"
+    assert dialect.quotechar == '"'
+    assert dialect.quoting == "minimal"
+    assert dialect.skipinitialspace == False
+
+
+def test_sniff_csv_dialect_with_unsupported_encoding():
+    csv_content = "a,b,c\r\n1,2,3\r\n4,5,6\r\n"
+    file_obj = io.BytesIO(csv_content.encode("utf-8"))
+
+    with pytest.raises(ValueHttpError) as e_info:
+        sniff_csv_dialect(file_obj, encoding="non_existent_encoding")
+
+    assert "Unsupported encoding" in str(e_info.value)
+
+
+def test_sniff_csv_dialect_with_invalid_encoding():
+    csv_content = "ä,ö,ü\n1,2,3\n4,5,6\n"
+    file_obj = io.BytesIO(csv_content.encode("utf-16"))
+
+    with pytest.raises(ValueHttpError) as e_info:
+        sniff_csv_dialect(file_obj, encoding="utf-8")
+
+    assert "Error decoding the CSV file using" in str(e_info.value)
+
+
+def test_sniff_csv_dialect_with_invalid_csv():
+    csv_content = "Hello World"
+    file_obj = io.BytesIO(csv_content.encode("utf-8"))
+
+    with pytest.raises(ValueHttpError) as e_info:
+        sniff_csv_dialect(file_obj, encoding="utf-8")
+
+    assert "Error sniffing CSV dialect due to" in str(e_info.value)
+
+
+def test_sniff_csv_cursor_reset():
+    csv_content = "a,b,c\r\n1,2,3\r\n4,5,6\r\n"
+    file_obj = io.BytesIO(csv_content.encode("utf-8"))
+
+    # Check if cursor is reset after sniffing
+    sniff_csv_dialect(file_obj, encoding="utf-8")
+    assert file_obj.tell() == 0
 
 
 @pytest.mark.parametrize(
