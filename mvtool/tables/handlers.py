@@ -18,9 +18,10 @@
 from typing import Callable
 
 from fastapi import APIRouter, Depends, Query, Response
+from fastapi.responses import FileResponse
 
 from ..auth import get_jira
-from ..utils.temp_file import copy_upload_to_temp_file
+from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from .columns import ColumnGroup
 from .dataframe import DataFrame
 from .rw_csv import (
@@ -29,8 +30,9 @@ from .rw_csv import (
     get_encoding_options,
     read_csv,
     sniff_csv_dialect,
+    write_csv,
 )
-from .rw_excel import read_excel
+from .rw_excel import read_excel, write_excel
 
 
 def hide_columns(get_columns: Callable) -> Callable:
@@ -78,6 +80,42 @@ def get_uploaded_dataframe_handler(format: str) -> Callable:
         return get_dataframe_from_uploaded_csv
     else:
         raise ValueError(f"Unknown format: {format}")
+
+
+def get_download_excel_handler(
+    get_dataframe: Callable, sheet_name="Data", filename="data.xlsx"
+) -> Callable:
+    def handler(
+        df: DataFrame = Depends(get_dataframe),
+        temp_file=Depends(get_temp_file(".xlsx")),
+        sheet_name=sheet_name,
+        filename=filename,
+    ) -> FileResponse:
+        write_excel(df, temp_file, sheet_name)
+        return FileResponse(temp_file.name, filename=filename)
+
+    return handler
+
+
+def get_download_csv_handler(
+    get_dataframe: Callable,
+    filename="data.csv",
+) -> Callable:
+    def handler(
+        df: DataFrame = Depends(get_dataframe),
+        temp_file=Depends(get_temp_file(".csv")),
+        filename=filename,
+        encoding="utf-8-sig",
+        dialect=Depends(CSVDialect),
+    ) -> FileResponse:
+        write_csv(df, temp_file, encoding, dialect)
+        response = FileResponse(temp_file.name, filename=filename)
+        response.headers[
+            "Content-Type"
+        ] = "application/octet-stream"  # Enforce download
+        return response
+
+    return handler
 
 
 router = APIRouter(tags=["common"])
