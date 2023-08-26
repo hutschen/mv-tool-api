@@ -182,6 +182,15 @@ def test_read_csv_invalid_columns():
     assert "Error reading CSV due to" in str(e_info.value)
 
 
+def test_read_csv_cursor_reset():
+    csv_content = "a,b,c\n1,2,3\n4,5,6\n"
+    file_obj = io.BytesIO(csv_content.encode("utf-8"))
+
+    # Check if cursor is reset after reading
+    read_csv(file_obj)
+    assert file_obj.tell() == 0
+
+
 @pytest.mark.parametrize(
     "data, dialect, expected_csv",
     [
@@ -270,3 +279,13 @@ def test_write_csv_encoding(write_encoding: str, read_encoding: str):
         expected_csv += ",".join(map(str, row)) + "\r\n"
 
     assert buffer.getvalue().decode(read_encoding) == expected_csv
+
+
+def test_write_csv_cursor_reset():
+    buffer = io.BytesIO()
+    df = DataFrame()
+    df.data = {"a": [1, 4], "b": [2, 5], "c": [3, 6]}
+    write_csv(df, buffer, encoding="utf-8")
+
+    # Check if cursor is reset after writing
+    assert buffer.tell() == 0

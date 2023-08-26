@@ -15,9 +15,11 @@
 
 import codecs
 import csv
-from typing import IO
+from typing import BinaryIO
 
 from pydantic import BaseModel, constr
+
+from mvtool.utils.temp_file import preserved_cursor_position
 
 from ..utils.errors import ValueHttpError
 from .dataframe import DataFrame
@@ -128,33 +130,34 @@ class CSVDialect(BaseModel):
 
 
 def read_csv(
-    file_obj: IO[bytes],
+    file_obj: BinaryIO,
     encoding: str = "utf-8-sig",  # Use UTF-8 with BOM to be compatible with Excel
     dialect: CSVDialect | None = None,
 ) -> DataFrame:
     """Read a CSV file and return a DataFrame."""
     try:
-        csv_file_obj = codecs.getreader(encoding)(file_obj)
+        csv_stream_reader = codecs.getreader(encoding)(file_obj)
     except LookupError:
         raise ValueHttpError(f"Unsupported encoding: {encoding}")
 
     try:
         csv_reader = csv.DictReader(
-            csv_file_obj,
+            csv_stream_reader,
             **(dialect.to_dialect_kwargs() if dialect else {}),
             strict=True,
         )
 
-        # Construct a dictionary with lists of values for each column
-        data_dict = {key: [] for key in csv_reader.fieldnames}
-        for row in csv_reader:
-            for key, value in row.items():
-                data_dict[key].append(
-                    # represent empty strings as None
-                    None
-                    if isinstance(value, str) and value.strip() == ""
-                    else value
-                )
+        with preserved_cursor_position(file_obj):
+            # Construct a dictionary with lists of values for each column
+            data_dict = {key: [] for key in csv_reader.fieldnames}
+            for row in csv_reader:
+                for key, value in row.items():
+                    data_dict[key].append(
+                        # represent empty strings as None
+                        None
+                        if isinstance(value, str) and value.strip() == ""
+                        else value
+                    )
     except UnicodeDecodeError as e:
         raise ValueHttpError(
             f"Error decoding the CSV file using the '{encoding}' encoding: {str(e)}"
@@ -170,22 +173,24 @@ def read_csv(
 
 def write_csv(
     df: DataFrame,
-    file_obj: IO[bytes],
+    file_obj: BinaryIO,
     encoding: str = "utf-8-sig",  # Use UTF-8 with BOM to be compatible with Excel
     dialect: CSVDialect | None = None,
 ):
     """Writes a DataFrame to a CSV file."""
     try:
-        csv_file_obj = codecs.getwriter(encoding)(file_obj)
+        csv_stream_writer = codecs.getwriter(encoding)(file_obj)
     except LookupError:
         raise ValueHttpError(f"Unsupported encoding: {encoding}")
 
     writer = csv.DictWriter(
-        csv_file_obj,
+        csv_stream_writer,
         fieldnames=df.column_names,
         **(dialect.to_dialect_kwargs() if dialect else {}),
     )
 
-    writer.writeheader()
-    for row in df:
-        writer.writerow({cell.label: cell.value for cell in row})
+    with preserved_cursor_position(file_obj):
+        writer.writeheader()
+        for row in df:
+            writer.writerow({cell.label: cell.value for cell in row})
+        file_obj.flush()  # Make sure that all data is written
