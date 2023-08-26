@@ -14,27 +14,26 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from typing import Callable
+
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-
-from mvtool.tables.rw_csv import CSVDialect, write_csv
 
 from ..db.database import get_session
 from ..db.schema import Project
 from ..handlers.projects import Projects, get_project_filters, get_project_sort
 from ..models import ProjectImport, ProjectOutput
-from ..utils.temp_file import get_temp_file
 from .columns import Column, ColumnGroup
 from .dataframe import DataFrame
 from .handlers import (
     get_dataframe_from_uploaded_csv,
     get_dataframe_from_uploaded_excel,
+    get_download_csv_handler,
+    get_download_excel_handler,
     get_export_labels_handler,
     hide_columns,
 )
 from .jira_ import get_jira_project_columns
-from .rw_excel import write_excel
 
 
 def get_project_columns(
@@ -83,30 +82,21 @@ def _get_projects_dataframe(
     return columns.export_to_dataframe(project_list)
 
 
-@router.get("/excel/projects", response_class=FileResponse)
-def download_projects_excel(
-    df: DataFrame = Depends(_get_projects_dataframe),
-    temp_file=Depends(get_temp_file(".xlsx")),
-    sheet_name="Projects",
-    filename="projects.xlsx",
-) -> FileResponse:
-    write_excel(df, temp_file, sheet_name)
-    return FileResponse(temp_file.name, filename=filename)
+router.get(
+    "/excel/projects",
+    summary="Download projects as Excel file",
+    response_class=FileResponse,
+)(
+    get_download_excel_handler(
+        _get_projects_dataframe, sheet_name="Projects", filename="projects.xlsx"
+    )
+)
 
-
-@router.get("/csv/projects", response_class=FileResponse)
-def download_projects_csv(
-    df: DataFrame = Depends(_get_projects_dataframe),
-    temp_file=Depends(get_temp_file(".csv")),
-    filename="projects.csv",
-    encoding="utf-8-sig",
-    dialect=Depends(CSVDialect),
-) -> FileResponse:
-    write_csv(df, temp_file, encoding, dialect)
-    temp_file.file.seek(0)  # TODO: move this into write_csv
-    response = FileResponse(temp_file.name, filename=filename)
-    response.headers["Content-Type"] = "application/octet-stream"  # Enforce download
-    return response
+router.get(
+    "/csv/projects",
+    summary="Download projects as CSV file",
+    response_class=FileResponse,
+)(get_download_csv_handler(_get_projects_dataframe, filename="projects.csv"))
 
 
 def _get_upload_projects_dataframe_handler(

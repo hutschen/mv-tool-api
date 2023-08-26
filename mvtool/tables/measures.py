@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from typing import Callable
+
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
@@ -25,18 +27,18 @@ from ..handlers.catalog_modules import CatalogModules
 from ..handlers.measures import Measures, get_measure_filters, get_measure_sort
 from ..handlers.requirements import Requirements
 from ..models import MeasureImport, MeasureOutput
-from ..utils.temp_file import get_temp_file
 from .columns import Column, ColumnGroup
 from .dataframe import DataFrame
 from .documents import get_document_only_columns
 from .handlers import (
+    get_dataframe_from_uploaded_csv,
+    get_dataframe_from_uploaded_excel,
+    get_download_excel_handler,
     get_export_labels_handler,
-    get_uploaded_dataframe_handler,
     hide_columns,
 )
 from .jira_ import get_jira_issue_columns
 from .requirements import get_requirement_columns
-from .rw_excel import write_excel
 
 
 def get_measure_columns(
@@ -80,59 +82,92 @@ router.get(
 )(get_export_labels_handler(get_measure_columns))
 
 
-@router.get("/excel/measures", response_class=FileResponse)
-def download_measures_excel(
-    measures_view: Measures = Depends(),
+def _get_measures_dataframe(
+    measures: Measures = Depends(),
     where_clauses=Depends(get_measure_filters),
     sort_clauses=Depends(get_measure_sort),
     columns: ColumnGroup = Depends(hide_columns(get_measure_columns)),
-    temp_file=Depends(get_temp_file(".xlsx")),
-    sheet_name="Measures",
-    filename="measures.xlsx",
-) -> FileResponse:
-    measures = measures_view.list_measures(where_clauses, sort_clauses)
-    write_excel(columns.export_to_dataframe(measures), temp_file, sheet_name)
-    return FileResponse(temp_file.name, filename=filename)
+) -> DataFrame:
+    measure_list = measures.list_measures(where_clauses, sort_clauses)
+    return columns.export_to_dataframe(measure_list)
 
 
-@router.post("/excel/measures", status_code=201, response_model=list[MeasureOutput])
-def upload_measures_excel(
-    fallback_requirement_id: int | None = None,
-    fallback_catalog_module_id: int | None = None,
-    measures_view: Measures = Depends(),
-    requirements_view: Requirements = Depends(),
-    catalog_modules_view: CatalogModules = Depends(),
-    columns: ColumnGroup = Depends(get_measure_columns),
-    df: DataFrame = Depends(get_uploaded_dataframe_handler("excel")),
-    skip_blanks: bool = False,  # skip blank cells
-    dry_run: bool = False,  # don't save to database
-    session: Session = Depends(get_session),
-) -> list[Measure]:
-    fallback_requirement = (
-        requirements_view.get_requirement(fallback_requirement_id)
-        if fallback_requirement_id is not None
-        else None
+router.get(
+    "/excel/measures",
+    summary="Get measures as Excel file",
+    response_class=FileResponse,
+)(
+    get_download_excel_handler(
+        _get_measures_dataframe,
+        sheet_name="Measures",
+        filename="measures.xlsx",
     )
-    fallback_catalog_module = (
-        catalog_modules_view.get_catalog_module(fallback_catalog_module_id)
-        if fallback_catalog_module_id is not None
-        else None
-    )
+)
 
-    # Import the data frame
-    measure_imports = columns.import_from_dataframe(df, skip_none=skip_blanks)
-    measures = list(
-        measures_view.bulk_create_update_measures(
-            measure_imports,
-            fallback_requirement,
-            fallback_catalog_module,
-            patch=True,
-            skip_flush=dry_run,
+router.get(
+    "/csv/measures",
+    summary="Get measures as CSV file",
+    response_class=FileResponse,
+)(get_download_excel_handler(_get_measures_dataframe, filename="measures.csv"))
+
+
+def _get_upload_measures_dataframe_handler(
+    get_uploaded_dataframe: Callable,
+) -> Callable:
+    def upload_measures_dataframe(
+        fallback_requirement_id: int | None = None,
+        fallback_catalog_module_id: int | None = None,
+        measures_view: Measures = Depends(),
+        requirements_view: Requirements = Depends(),
+        catalog_modules_view: CatalogModules = Depends(),
+        columns: ColumnGroup = Depends(get_measure_columns),
+        df: DataFrame = Depends(get_uploaded_dataframe),
+        skip_blanks: bool = False,  # skip blank cells
+        dry_run: bool = False,  # don't save to database
+        session: Session = Depends(get_session),
+    ) -> list[Measure]:
+        fallback_requirement = (
+            requirements_view.get_requirement(fallback_requirement_id)
+            if fallback_requirement_id is not None
+            else None
         )
-    )
+        fallback_catalog_module = (
+            catalog_modules_view.get_catalog_module(fallback_catalog_module_id)
+            if fallback_catalog_module_id is not None
+            else None
+        )
 
-    # Rollback if dry run
-    if dry_run:
-        session.rollback()
-        return []
-    return measures
+        # Import the data frame
+        measure_imports = columns.import_from_dataframe(df, skip_none=skip_blanks)
+        measures = list(
+            measures_view.bulk_create_update_measures(
+                measure_imports,
+                fallback_requirement,
+                fallback_catalog_module,
+                patch=True,
+                skip_flush=dry_run,
+            )
+        )
+
+        # Rollback if dry run
+        if dry_run:
+            session.rollback()
+            return []
+        return measures
+
+    return upload_measures_dataframe
+
+
+router.post(
+    "/excel/measures",
+    summary="Upload measures from Excel file",
+    status_code=201,
+    response_model=list[MeasureOutput],
+)(_get_upload_measures_dataframe_handler(get_dataframe_from_uploaded_excel))
+
+router.post(
+    "/csv/measures",
+    summary="Upload measures from CSV file",
+    status_code=201,
+    response_model=list[MeasureOutput],
+)(_get_upload_measures_dataframe_handler(get_dataframe_from_uploaded_csv))
