@@ -18,6 +18,8 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
+from mvtool.tables.rw_csv import CSVDialect, write_csv
+
 from ..db.database import get_session
 from ..db.schema import Project
 from ..handlers.projects import Projects, get_project_filters, get_project_sort
@@ -71,19 +73,40 @@ router.get(
 )(get_export_labels_handler(get_project_columns))
 
 
-@router.get("/excel/projects", response_class=FileResponse)
-def download_projects_excel(
-    projects_view: Projects = Depends(),
+def _get_projects_dataframe(
+    projects: Projects = Depends(),
     where_clauses=Depends(get_project_filters),
     sort_clauses=Depends(get_project_sort),
     columns: ColumnGroup = Depends(hide_columns(get_project_columns)),
+) -> DataFrame:
+    project_list = projects.list_projects(where_clauses, sort_clauses)
+    return columns.export_to_dataframe(project_list)
+
+
+@router.get("/excel/projects", response_class=FileResponse)
+def download_projects_excel(
+    df: DataFrame = Depends(_get_projects_dataframe),
     temp_file=Depends(get_temp_file(".xlsx")),
     sheet_name="Projects",
     filename="projects.xlsx",
 ) -> FileResponse:
-    projects = projects_view.list_projects(where_clauses, sort_clauses)
-    write_excel(columns.export_to_dataframe(projects), temp_file, sheet_name)
+    write_excel(df, temp_file, sheet_name)
     return FileResponse(temp_file.name, filename=filename)
+
+
+@router.get("/csv/projects", response_class=FileResponse)
+def download_projects_csv(
+    df: DataFrame = Depends(_get_projects_dataframe),
+    temp_file=Depends(get_temp_file(".csv")),
+    filename="projects.csv",
+    encoding="utf-8-sig",
+    dialect=Depends(CSVDialect),
+) -> FileResponse:
+    write_csv(df, temp_file, encoding, dialect)
+    temp_file.file.seek(0)  # TODO: move this into write_csv
+    response = FileResponse(temp_file.name, filename=filename)
+    response.headers["Content-Type"] = "application/octet-stream"  # Enforce download
+    return response
 
 
 def _get_upload_projects_dataframe_handler(
