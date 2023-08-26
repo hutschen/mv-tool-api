@@ -23,7 +23,13 @@ from ..auth import get_jira
 from ..utils.temp_file import copy_upload_to_temp_file
 from .columns import ColumnGroup
 from .dataframe import DataFrame
-from .rw_csv import CSVDialect, EncodingOption, get_encoding_options, read_csv
+from .rw_csv import (
+    CSVDialect,
+    EncodingOption,
+    get_encoding_options,
+    read_csv,
+    sniff_csv_dialect,
+)
 from .rw_excel import read_excel
 
 
@@ -57,8 +63,11 @@ def get_dataframe_from_uploaded_excel(
 def get_dataframe_from_uploaded_csv(
     temp_file=Depends(copy_upload_to_temp_file),
     encoding: str = "utf-8-sig",
+    sniff_dialect: bool = True,
     dialect=Depends(CSVDialect),
 ) -> DataFrame:
+    if sniff_dialect:
+        dialect = sniff_csv_dialect(temp_file, encoding, dialect.delimiter)
     return read_csv(temp_file, encoding, dialect)
 
 
