@@ -16,10 +16,25 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import shutil
+from contextlib import contextmanager
 from tempfile import NamedTemporaryFile, _TemporaryFileWrapper
-from typing import Callable
+from typing import IO, Callable
 
 from fastapi import Depends, UploadFile
+
+
+@contextmanager
+def preserved_cursor_position(file_obj: IO):
+    """Context manager that preserves the cursor position of a file object.
+
+    Args:
+        file_obj (IO): The file object whose cursor position needs to be preserved.
+    """
+    cursor_pos = file_obj.tell()
+    try:
+        yield  # Here, the body of the with-statement will execute
+    finally:
+        file_obj.seek(cursor_pos)
 
 
 def get_temp_file(suffix: str | None = None) -> Callable:
