@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from typing import Callable
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
@@ -25,8 +26,9 @@ from ..utils.temp_file import get_temp_file
 from .columns import Column, ColumnGroup
 from .dataframe import DataFrame
 from .handlers import (
+    get_dataframe_from_uploaded_csv,
+    get_dataframe_from_uploaded_excel,
     get_export_labels_handler,
-    get_uploaded_dataframe_handler,
     hide_columns,
 )
 from .jira_ import get_jira_project_columns
@@ -84,25 +86,44 @@ def download_projects_excel(
     return FileResponse(temp_file.name, filename=filename)
 
 
-@router.post("/excel/projects", status_code=201, response_model=list[ProjectOutput])
-def upload_projects_excel(
-    projects_view: Projects = Depends(),
-    columns: ColumnGroup = Depends(get_project_columns),
-    df: DataFrame = Depends(get_uploaded_dataframe_handler("excel")),
-    skip_blanks: bool = False,  # skip blank cells
-    dry_run: bool = False,  # don't save to database
-    session: Session = Depends(get_session),
-) -> list[Project]:
-    # Import the data frame
-    project_imports = columns.import_from_dataframe(df, skip_none=skip_blanks)
-    projects = list(
-        projects_view.bulk_create_update_projects(
-            project_imports, patch=True, skip_flush=dry_run
+def _get_upload_projects_dataframe_handler(
+    get_uploaded_dataframe: Callable,
+) -> Callable:
+    def upload_projects_dataframe(
+        projects_view: Projects = Depends(),
+        columns: ColumnGroup = Depends(get_project_columns),
+        df: DataFrame = Depends(get_uploaded_dataframe),
+        skip_blanks: bool = False,  # skip blank cells
+        dry_run: bool = False,  # don't save to database
+        session: Session = Depends(get_session),
+    ) -> list[Project]:
+        # Import the data frame
+        project_imports = columns.import_from_dataframe(df, skip_none=skip_blanks)
+        projects = list(
+            projects_view.bulk_create_update_projects(
+                project_imports, patch=True, skip_flush=dry_run
+            )
         )
-    )
 
-    # Rollback if dry run
-    if dry_run:
-        session.rollback()
-        return []
-    return projects
+        # Rollback if dry run
+        if dry_run:
+            session.rollback()
+            return []
+        return projects
+
+    return upload_projects_dataframe
+
+
+router.post(
+    "/excel/projects",
+    summary="Upload projects from Excel file",
+    status_code=201,
+    response_model=list[ProjectOutput],
+)(_get_upload_projects_dataframe_handler(get_dataframe_from_uploaded_excel))
+
+router.post(
+    "/csv/projects",
+    summary="Upload projects from CSV file",
+    status_code=201,
+    response_model=list[ProjectOutput],
+)(_get_upload_projects_dataframe_handler(get_dataframe_from_uploaded_csv))
