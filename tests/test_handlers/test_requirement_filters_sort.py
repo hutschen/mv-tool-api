@@ -16,8 +16,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from dataclasses import asdict, dataclass
-from fastapi import HTTPException
+
 import pytest
+from fastapi import HTTPException
 
 from mvtool.handlers.requirements import get_requirement_filters, get_requirement_sort
 
@@ -76,6 +77,9 @@ class RequirementFilterParams:
     has_catalog_requirement: bool | None = None
     has_gs_absicherung: bool | None = None
     has_gs_verantwortliche: bool | None = None
+    has_completion_progress: bool | None = None
+    has_verification_progress: bool | None = None
+    has_alert: bool | None = None
     #
     # filter by search string
     search: str | None = None
@@ -134,6 +138,9 @@ class RequirementFilterParams:
         (RequirementFilterParams(has_catalog_requirement=True), 1),
         (RequirementFilterParams(has_gs_absicherung=True), 1),
         (RequirementFilterParams(has_gs_verantwortliche=True), 1),
+        (RequirementFilterParams(has_completion_progress=True), 1),
+        (RequirementFilterParams(has_verification_progress=True), 1),
+        (RequirementFilterParams(has_alert=True), 1),
         #
         # filter by search string
         (RequirementFilterParams(search="search*"), 1),
@@ -176,6 +183,12 @@ def test_get_requirement_filters(params, expected_length):
         ("compliance_status", "desc", 2),
         ("compliance_comment", "asc", 2),
         ("compliance_comment", "desc", 2),
+        ("completion_progress", "asc", 2),
+        ("completion_progress", "desc", 2),
+        ("verification_progress", "asc", 2),
+        ("verification_progress", "desc", 2),
+        ("alert", "asc", 2),
+        ("alert", "desc", 2),
     ],
 )
 def test_get_requirement_sort(sort_by, sort_order, expected_length):

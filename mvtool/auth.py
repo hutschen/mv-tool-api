@@ -100,12 +100,13 @@ def get_jira(
     try:
         yield jira_connection
     except JIRAError as error:
-        detail = None
-        if error.text:
-            detail = f"JIRAError: {error.text}"
-        if error.url:
-            detail += f" at url={error.url}"
-        raise HTTPException(error.status_code, detail)
+        details = [
+            error.text,
+            error.response.text if error.response is not None else None,
+            error.url,
+        ]
+        details_str = "; ".join([d for d in details if d]) or "Unknown error"
+        raise HTTPException(error.status_code, detail=f"JIRAError: {details_str}")
 
 
 @router.post("/token")

@@ -38,6 +38,7 @@ from mvtool.models.catalogs import (
     CatalogInput,
     CatalogOutput,
     CatalogPatch,
+    CatalogPatchMany,
     CatalogRepresentation,
 )
 from mvtool.utils.pagination import Page
@@ -114,8 +115,8 @@ def test_patch_catalogs(session: Session, catalogs: Catalogs):
     session.commit()
 
     # Patch catalogs
-    patch = CatalogPatch(reference="cherry")
-    patch_catalogs(patch, [Catalog.reference.in_(["apple", "banana"])], catalogs)
+    patch = CatalogPatchMany(reference="cherry")
+    patch_catalogs(patch, [Catalog.reference.in_(["apple", "banana"])], [], catalogs)
 
     # Check if catalogs are patched
     results = catalogs.list_catalogs()

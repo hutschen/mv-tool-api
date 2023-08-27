@@ -163,19 +163,28 @@ class JiraIssues(JiraBase):
 
     def list_jira_issues(
         self,
-        jira_project_id: str,
-        offset: conint(ge=0) = 0,
-        limit: conint(ge=0) | None = None,
+        jql_str: str | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
     ) -> Iterator[JiraIssue]:
-        jira_query = f"project = {jira_project_id}"
         jira_issues_data = self.jira.search_issues(
-            jira_query, startAt=offset, maxResults=limit
+            jql_str or "",
+            startAt=offset or 0,
+            maxResults=limit or 0,
+            validate_query=False,  # Turn off validation of JQL queries
         )
 
         for jira_issue_data in jira_issues_data:
             jira_issue = self._convert_to_jira_issue(jira_issue_data)
             self._cache_jira_issue(jira_issue)
             yield jira_issue
+
+    def count_jira_issues(self, jql_str: str | None = None) -> int:
+        return self.jira.search_issues(
+            jql_str or "",
+            maxResults=1,  # Query only one issue to get the total count, 0 queries all
+            validate_query=False,
+        ).total
 
     def create_jira_issue(
         self, jira_project_id: str, jira_issue_input: JiraIssueInput
@@ -219,18 +228,8 @@ class JiraIssues(JiraBase):
         offset: conint(ge=0) = 0,
         size: conint(ge=0) | None = None,
     ) -> Iterator[JiraIssue]:
-        if not jira_issue_ids:
-            return []
-
-        jira_query = " OR ".join(f"id = {id}" for id in jira_issue_ids)
-        jira_issues_data = self.jira.search_issues(
-            jira_query, validate_query=False, startAt=offset, maxResults=size
-        )
-
-        for jira_issue_data in jira_issues_data:
-            jira_issue = self._convert_to_jira_issue(jira_issue_data)
-            self._cache_jira_issue(jira_issue)
-            yield jira_issue
+        jql_str = " OR ".join(f"id = {id}" for id in jira_issue_ids)
+        return self.list_jira_issues(jql_str, offset, size) if jql_str else []
 
     def check_jira_issue_id(self, jira_issue_id: str | None) -> JiraIssue | None:
         """Raises an Exception if issue ID is not existing or not None."""

@@ -40,6 +40,7 @@ from mvtool.models.catalog_requirements import (
     CatalogRequirementInput,
     CatalogRequirementOutput,
     CatalogRequirementPatch,
+    CatalogRequirementPatchMany,
     CatalogRequirementRepresentation,
 )
 from mvtool.utils.pagination import Page
@@ -161,10 +162,11 @@ def test_patch_catalog_requirements(
     session.commit()
 
     # Patch catalog requirements
-    patch = CatalogRequirementPatch(reference="grape")
+    patch = CatalogRequirementPatchMany(reference="grape")
     patch_catalog_requirements(
         patch,
         [CatalogRequirement.reference.in_(["orange", "peach"])],
+        [],
         catalog_requirements,
     )
 

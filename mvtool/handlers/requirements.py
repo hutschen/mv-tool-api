@@ -18,7 +18,7 @@
 from typing import Any, Callable
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import constr
+from pydantic import conint, constr
 from sqlalchemy import Column
 
 from ..data.requirements import Requirements
@@ -27,6 +27,7 @@ from ..models.requirements import (
     RequirementInput,
     RequirementOutput,
     RequirementPatch,
+    RequirementPatchMany,
     RequirementRepresentation,
 )
 from ..utils import combine_flags
@@ -98,6 +99,7 @@ def get_requirement_filters(
     has_gs_verantwortliche: bool | None = None,
     has_completion_progress: bool | None = None,
     has_verification_progress: bool | None = None,
+    has_alert: bool | None = None,
     #
     # filter by search string
     search: str | None = None,
@@ -154,6 +156,7 @@ def get_requirement_filters(
             (CatalogRequirement.gs_verantwortliche, has_gs_verantwortliche),
             (Requirement.completion_progress, has_completion_progress),
             (Requirement.verification_progress, has_verification_progress),
+            (Requirement.compliance_status_alert, has_alert),
         )
     )
 
@@ -207,6 +210,7 @@ def get_requirement_sort(
             "compliance_comment": [Requirement.compliance_comment],
             "completion_progress": [Requirement.completion_progress],
             "verification_progress": [Requirement.verification_progress],
+            "alert": [Requirement.compliance_status_alert],
         }[sort_by]
     except KeyError:
         raise HTTPException(
@@ -293,13 +297,18 @@ def patch_requirement(
 
 @router.patch("/requirements", response_model=list[RequirementOutput])
 def patch_requirements(
-    requirement_patch: RequirementPatch,
+    requirement_patch: RequirementPatchMany,
     where_clauses=Depends(get_requirement_filters),
+    order_by_clauses=Depends(get_requirement_sort),
     requirements: Requirements = Depends(Requirements),
 ) -> list[Requirement]:
-    requirements_ = requirements.list_requirements(where_clauses)
-    for requirement in requirements_:
-        requirements.patch_requirement(requirement, requirement_patch, skip_flush=True)
+    requirements_ = requirements.list_requirements(where_clauses, order_by_clauses)
+    for counter, requirement in enumerate(requirements_):
+        requirements.patch_requirement(
+            requirement,
+            requirement_patch.to_patch(counter),
+            skip_flush=True,
+        )
     requirements._session.flush()
     return requirements_
 
@@ -395,6 +404,7 @@ def get_requirement_field_names(
         ),
         (Requirement.completion_progress, ["completion_progress"]),
         (Requirement.verification_progress, ["verification_progress"]),
+        (Requirement.compliance_status_alert, ["alert"]),
         (CatalogRequirement.gs_absicherung, ["gs_absicherung"]),
         (CatalogRequirement.gs_verantwortliche, ["gs_verantwortliche"]),
     ]:

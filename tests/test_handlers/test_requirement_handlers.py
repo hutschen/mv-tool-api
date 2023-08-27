@@ -22,7 +22,14 @@ from sqlalchemy.orm import Session
 from mvtool.data.catalog_requirements import CatalogRequirements
 from mvtool.data.projects import Projects
 from mvtool.data.requirements import Requirements
-from mvtool.db.schema import CatalogModule, CatalogRequirement, Project, Requirement
+from mvtool.db.schema import (
+    Catalog,
+    CatalogModule,
+    CatalogRequirement,
+    Measure,
+    Project,
+    Requirement,
+)
 from mvtool.handlers.requirements import (
     _create_requirement_field_values_handler,
     create_requirement,
@@ -41,6 +48,7 @@ from mvtool.models.requirements import (
     RequirementInput,
     RequirementOutput,
     RequirementPatch,
+    RequirementPatchMany,
     RequirementRepresentation,
 )
 from mvtool.utils.pagination import Page
@@ -132,9 +140,9 @@ def test_patch_requirements(session: Session, requirements: Requirements):
     session.commit()
 
     # Patch requirements
-    patch = RequirementPatch(reference="cherry")
+    patch = RequirementPatchMany(reference="cherry")
     patch_requirements(
-        patch, [Requirement.reference.in_(["apple", "banana"])], requirements
+        patch, [Requirement.reference.in_(["apple", "banana"])], [], requirements
     )
 
     # Check if requirements are patched
@@ -259,16 +267,11 @@ def test_get_requirement_field_names_default_list(requirements: Requirements):
 
 
 def test_get_requirement_field_names_full_list(
+    session: Session,
     requirements: Requirements,
-    project: Project,
-    catalog_requirement: CatalogRequirement,
 ):
-    catalog_requirement.gs_absicherung = "test"
-    catalog_requirement.gs_verantwortliche = "test"
-    requirements._session.flush()
-
-    # Create a requirement to get all fields
-    requirement_input = RequirementInput(
+    # Create a requirement that uses all fields
+    requirement = Requirement(
         reference="reference",
         summary="summary",
         description="description",
@@ -276,9 +279,23 @@ def test_get_requirement_field_names_full_list(
         milestone="milestone",
         compliance_status="C",
         compliance_comment="compliance comment",
-        catalog_requirement_id=catalog_requirement.id,
+        project=Project(name="name"),
+        catalog_requirement=CatalogRequirement(
+            summary="summary",
+            gs_absicherung="test",
+            gs_verantwortliche="test",
+            catalog_module=CatalogModule(title="title", catalog=Catalog(title="title")),
+        ),
+        measures=[
+            Measure(
+                summary="test",
+                compliance_status="PC",  # must be PC to trigger compliance alert
+                verification_method="R",  # must be set to trigger verification progress
+            ),
+        ],
     )
-    requirements.create_requirement(project, requirement_input)
+    session.add(requirement)
+    session.commit()
 
     field_names = get_requirement_field_names([], requirements)
 
@@ -297,6 +314,9 @@ def test_get_requirement_field_names_full_list(
         "catalog_requirement",
         "catalog_module",
         "catalog",
+        "verification_progress",
+        "completion_progress",
+        "alert",
         "gs_absicherung",
         "gs_verantwortliche",
     }

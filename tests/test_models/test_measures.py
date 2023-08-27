@@ -19,6 +19,8 @@
 import pytest
 
 from mvtool.db.schema import Measure
+from mvtool.models.common import AutoNumber
+from mvtool.models.measures import MeasurePatchMany
 
 
 def test_measure_jira_issue_without_getter():
@@ -62,3 +64,27 @@ def test_measure_completion_status_hint_non_compliant(
 ):
     create_measure.compliance_status = compliance_status
     assert create_measure.completion_status_hint is None
+
+
+@pytest.mark.parametrize(
+    "measure_patch_many, expected",
+    [
+        (
+            MeasurePatchMany(summary="Test"),
+            {"summary": "Test"},
+        ),
+        (
+            MeasurePatchMany(reference="Ref", summary="Test", description="Desc"),
+            {"reference": "Ref", "summary": "Test", "description": "Desc"},
+        ),
+        (
+            MeasurePatchMany(reference=AutoNumber(kind="number"), summary="Test"),
+            {"reference": AutoNumber(kind="number").to_value(0), "summary": "Test"},
+        ),
+    ],
+)
+def test_measure_patch_many_to_patch(
+    measure_patch_many: MeasurePatchMany, expected: dict
+):
+    patch = measure_patch_many.to_patch(0)
+    assert patch.model_dump(exclude_unset=True) == expected

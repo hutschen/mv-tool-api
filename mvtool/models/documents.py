@@ -17,9 +17,9 @@
 
 from typing import TYPE_CHECKING
 
-from pydantic import field_validator, ConfigDict, BaseModel
+from pydantic import BaseModel, ConfigDict, field_validator
 
-from .common import AbstractProgressCountsOutput, ETagMixin
+from .common import AbstractProgressCountsOutput, ETagMixin, AutoNumber
 
 if TYPE_CHECKING:
     from .projects import ProjectImport, ProjectOutput
@@ -39,6 +39,16 @@ class DocumentPatch(DocumentInput):
         if not v:
             raise ValueError("title must not be empty")
         return v
+
+
+class DocumentPatchMany(DocumentPatch):
+    reference: str | AutoNumber | None = None
+
+    def to_patch(self, counter: int) -> DocumentPatch:
+        items = self.model_dump(exclude_unset=True)
+        if isinstance(self.reference, AutoNumber):
+            items["reference"] = self.reference.to_value(counter)
+        return DocumentPatch(**items)
 
 
 class DocumentImport(ETagMixin, DocumentInput):

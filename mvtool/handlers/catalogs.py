@@ -27,6 +27,7 @@ from ..models.catalogs import (
     CatalogInput,
     CatalogOutput,
     CatalogPatch,
+    CatalogPatchMany,
     CatalogRepresentation,
 )
 from ..utils.filtering import (
@@ -185,13 +186,18 @@ def patch_catalog(
 
 @router.patch("/catalogs", response_model=list[CatalogOutput])
 def patch_catalogs(
-    catalog_patch: CatalogPatch,
+    catalog_patch: CatalogPatchMany,
     where_clauses=Depends(get_catalog_filters),
+    order_by_clauses=Depends(get_catalog_sort),
     catalogs: Catalogs = Depends(),
 ) -> list[Catalog]:
-    catalogs_ = catalogs.list_catalogs(where_clauses)
-    for catalog in catalogs_:
-        catalogs.patch_catalog(catalog, catalog_patch, skip_flush=True)
+    catalogs_ = catalogs.list_catalogs(where_clauses, order_by_clauses)
+    for counter, catalog in enumerate(catalogs_):
+        catalogs.patch_catalog(
+            catalog,
+            catalog_patch.to_patch(counter),
+            skip_flush=True,
+        )
     catalogs._session.flush()
     return catalogs_
 

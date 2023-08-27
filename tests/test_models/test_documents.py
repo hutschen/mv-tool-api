@@ -17,6 +17,8 @@ import pytest
 from sqlalchemy.orm import Session
 
 from mvtool.db.schema import Document, Measure, Project, Requirement
+from mvtool.models.common import AutoNumber
+from mvtool.models.documents import DocumentPatchMany
 
 
 @pytest.mark.parametrize(
@@ -141,3 +143,27 @@ def test_verified_count(
     session.flush()
 
     assert document.verified_count == expected_count
+
+
+@pytest.mark.parametrize(
+    "document_patch_many, expected",
+    [
+        (
+            DocumentPatchMany(title="Test"),
+            {"title": "Test"},
+        ),
+        (
+            DocumentPatchMany(reference="Ref", title="Test", description="Desc"),
+            {"reference": "Ref", "title": "Test", "description": "Desc"},
+        ),
+        (
+            DocumentPatchMany(reference=AutoNumber(kind="number"), title="Test"),
+            {"reference": AutoNumber(kind="number").to_value(0), "title": "Test"},
+        ),
+    ],
+)
+def test_document_patch_many_to_patch(
+    document_patch_many: DocumentPatchMany, expected: dict
+):
+    patch = document_patch_many.to_patch(0)
+    assert patch.model_dump(exclude_unset=True) == expected
