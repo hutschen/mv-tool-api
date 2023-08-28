@@ -27,7 +27,7 @@ from .dataframe import DataFrame
 class EncodingOption(BaseModel):
     name: str
     encoding: str
-    description: str
+    description: str | None = None
 
 
 def lookup_encoding(encoding: str) -> bool:
@@ -42,14 +42,14 @@ def get_encoding_options() -> list[EncodingOption]:
     """Return a list of encodings to open CSV files with."""
     common_encodings = [
         # fmt: off
-        ("UTF-8 (with BOM)", "utf-8-sig", "8-bit Unicode Transformation Format with Byte Order Mark"),
-        ("UTF-8", "utf-8", "8-bit Unicode Transformation Format"),
-        ("UTF-16 (with BOM)", "utf-16", "16-bit Unicode Transformation Format with Byte Order Mark"),
-        ("UTF-16 BE", "utf-16-be", "16-bit Unicode Transformation Format Big-Endian"),
-        ("UTF-16 LE", "utf-16-le", "16-bit Unicode Transformation Format Little-Endian"),
-        ("UTF-32 (with BOM)", "utf-32", "32-bit Unicode Transformation Format with Byte Order Mark"),
-        ("UTF-32 BE", "utf-32-be", "32-bit Unicode Transformation Format Big-Endian"),
-        ("UTF-32 LE", "utf-32-le", "32-bit Unicode Transformation Format Little-Endian"),
+        ("UTF-8 (with BOM)", "utf-8-sig", "Unicode 8-bit with Byte Order Mark"),
+        ("UTF-8", "utf-8", "Unicode 8-bit"),
+        ("UTF-16 (with BOM)", "utf-16", "Unicode 16-bit with Byte Order Mark"),
+        ("UTF-16 BE", "utf-16-be", "Unicode 16-bit Big-Endian"),
+        ("UTF-16 LE", "utf-16-le", "Unicode 16-bit Little-Endian"),
+        ("UTF-32 (with BOM)", "utf-32", "Unicode 32-bit with Byte Order Mark"),
+        ("UTF-32 BE", "utf-32-be", "Unicode 32-bit Big-Endian"),
+        ("UTF-32 LE", "utf-32-le", "Unicode 32-bit Little-Endian"),
         ("ASCII", "ascii", "American Standard Code for Information Interchange"),
         ("Windows-1252", "cp1252", "Western European (Windows)"),
         ("Windows-1250", "cp1250", "Central European (Windows)"),
