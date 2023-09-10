@@ -71,7 +71,7 @@ router.get(
 )(get_export_labels_handler(get_catalog_module_columns))
 
 
-def get_catalog_modules_dataframe(
+def _get_catalog_modules_dataframe(
     catalog_modules: CatalogModules = Depends(),
     where_clauses=Depends(get_catalog_module_filters),
     sort_clauses=Depends(get_catalog_module_sort),
@@ -80,7 +80,7 @@ def get_catalog_modules_dataframe(
     catalog_module_list = catalog_modules.list_catalog_modules(
         where_clauses, sort_clauses
     )
-    columns.export_to_dataframe(catalog_module_list)
+    return columns.export_to_dataframe(catalog_module_list)
 
 
 router.get(
@@ -89,7 +89,7 @@ router.get(
     response_class=FileResponse,
 )(
     get_download_excel_handler(
-        get_catalog_modules_dataframe,
+        _get_catalog_modules_dataframe,
         sheet_name="Catalog Modules",
         filename="catalog_modules.xlsx",
     )
@@ -101,7 +101,7 @@ router.get(
     response_class=FileResponse,
 )(
     get_download_csv_handler(
-        get_catalog_modules_dataframe,
+        _get_catalog_modules_dataframe,
         filename="catalog_modules.csv",
     )
 )
