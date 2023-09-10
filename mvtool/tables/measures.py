@@ -33,6 +33,7 @@ from .documents import get_document_only_columns
 from .handlers import (
     get_dataframe_from_uploaded_csv,
     get_dataframe_from_uploaded_excel,
+    get_download_csv_handler,
     get_download_excel_handler,
     get_export_labels_handler,
     hide_columns,
@@ -108,7 +109,7 @@ router.get(
     "/csv/measures",
     summary="Get measures as CSV file",
     response_class=FileResponse,
-)(get_download_excel_handler(_get_measures_dataframe, filename="measures.csv"))
+)(get_download_csv_handler(_get_measures_dataframe, filename="measures.csv"))
 
 
 def _get_upload_measures_dataframe_handler(
