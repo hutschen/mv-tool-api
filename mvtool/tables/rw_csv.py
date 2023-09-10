@@ -158,6 +158,7 @@ def sniff_csv_dialect(
     file_obj: BinaryIO,
     encoding: str = "utf-8-sig",  # Use UTF-8 with BOM to be compatible with Excel
     delimiters: str | None = ",;",
+    sample_size: int = 1024 * 1024,  # 1 MB
 ) -> CSVDialect:
     """Sniff the CSV dialect of a file."""
     try:
@@ -167,13 +168,18 @@ def sniff_csv_dialect(
 
     try:
         with preserved_cursor_position(file_obj):
-            dialect = csv.Sniffer().sniff(csv_stream_reader.read(1024), delimiters)
+            dialect = csv.Sniffer().sniff(
+                csv_stream_reader.read(sample_size), delimiters
+            )
     except UnicodeDecodeError as e:
         raise ValueHttpError(
             f"Error decoding the CSV file using the '{encoding}' encoding: {str(e)}"
         )
     except csv.Error as e:
         raise ValueHttpError(f"Error sniffing CSV dialect due to: {str(e)}")
+
+    if dialect is None:
+        raise ValueHttpError("Could not sniff CSV dialect")
 
     # Convert dialect to CSVDialect
     return CSVDialect.from_dialect_kwargs(
