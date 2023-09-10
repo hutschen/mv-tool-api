@@ -116,7 +116,7 @@ router.get(
     "/csv/requirements",
     summary="Download requirements as CSV file",
     response_class=FileResponse,
-)(get_download_csv_handler(_get_requirements_dataframe, filename="requirements.xlsx"))
+)(get_download_csv_handler(_get_requirements_dataframe, filename="requirements.csv"))
 
 
 def _get_upload_requirements_dataframe_handler(
