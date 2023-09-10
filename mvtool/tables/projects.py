@@ -13,19 +13,26 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from typing import Callable
+
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from ..db.schema import Project
-
 from ..db.database import get_session
+from ..db.schema import Project
 from ..handlers.projects import Projects, get_project_filters, get_project_sort
 from ..models import ProjectImport, ProjectOutput
-from ..utils.temp_file import get_temp_file
 from .columns import Column, ColumnGroup
-from .dataframe import DataFrame, write_excel
-from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
+from .dataframe import DataFrame
+from .handlers import (
+    get_dataframe_from_uploaded_csv,
+    get_dataframe_from_uploaded_excel,
+    get_download_csv_handler,
+    get_download_excel_handler,
+    get_export_labels_handler,
+    hide_columns,
+)
 from .jira_ import get_jira_project_columns
 
 
@@ -65,40 +72,71 @@ router.get(
 )(get_export_labels_handler(get_project_columns))
 
 
-@router.get("/excel/projects", response_class=FileResponse)
-def download_projects_excel(
-    projects_view: Projects = Depends(),
+def _get_projects_dataframe(
+    projects: Projects = Depends(),
     where_clauses=Depends(get_project_filters),
     sort_clauses=Depends(get_project_sort),
     columns: ColumnGroup = Depends(hide_columns(get_project_columns)),
-    temp_file=Depends(get_temp_file(".xlsx")),
-    sheet_name="Projects",
-    filename="projects.xlsx",
-) -> FileResponse:
-    projects = projects_view.list_projects(where_clauses, sort_clauses)
-    write_excel(columns.export_to_dataframe(projects), temp_file, sheet_name)
-    return FileResponse(temp_file.name, filename=filename)
+) -> DataFrame:
+    project_list = projects.list_projects(where_clauses, sort_clauses)
+    return columns.export_to_dataframe(project_list)
 
 
-@router.post("/excel/projects", status_code=201, response_model=list[ProjectOutput])
-def upload_projects_excel(
-    projects_view: Projects = Depends(),
-    columns: ColumnGroup = Depends(get_project_columns),
-    df: DataFrame = Depends(get_uploaded_dataframe),
-    skip_blanks: bool = False,  # skip blank cells
-    dry_run: bool = False,  # don't save to database
-    session: Session = Depends(get_session),
-) -> list[Project]:
-    # Import the data frame
-    project_imports = columns.import_from_dataframe(df, skip_none=skip_blanks)
-    projects = list(
-        projects_view.bulk_create_update_projects(
-            project_imports, patch=True, skip_flush=dry_run
-        )
+router.get(
+    "/excel/projects",
+    summary="Download projects as Excel file",
+    response_class=FileResponse,
+)(
+    get_download_excel_handler(
+        _get_projects_dataframe, sheet_name="Projects", filename="projects.xlsx"
     )
+)
 
-    # Rollback if dry run
-    if dry_run:
-        session.rollback()
-        return []
-    return projects
+router.get(
+    "/csv/projects",
+    summary="Download projects as CSV file",
+    response_class=FileResponse,
+)(get_download_csv_handler(_get_projects_dataframe, filename="projects.csv"))
+
+
+def _get_upload_projects_dataframe_handler(
+    get_uploaded_dataframe: Callable,
+) -> Callable:
+    def upload_projects_dataframe(
+        projects_view: Projects = Depends(),
+        columns: ColumnGroup = Depends(get_project_columns),
+        df: DataFrame = Depends(get_uploaded_dataframe),
+        skip_blanks: bool = False,  # skip blank cells
+        dry_run: bool = False,  # don't save to database
+        session: Session = Depends(get_session),
+    ) -> list[Project]:
+        # Import the data frame
+        project_imports = columns.import_from_dataframe(df, skip_none=skip_blanks)
+        projects = list(
+            projects_view.bulk_create_update_projects(
+                project_imports, patch=True, skip_flush=dry_run
+            )
+        )
+
+        # Rollback if dry run
+        if dry_run:
+            session.rollback()
+            return []
+        return projects
+
+    return upload_projects_dataframe
+
+
+router.post(
+    "/excel/projects",
+    summary="Upload projects from Excel file",
+    status_code=201,
+    response_model=list[ProjectOutput],
+)(_get_upload_projects_dataframe_handler(get_dataframe_from_uploaded_excel))
+
+router.post(
+    "/csv/projects",
+    summary="Upload projects from CSV file",
+    status_code=201,
+    response_model=list[ProjectOutput],
+)(_get_upload_projects_dataframe_handler(get_dataframe_from_uploaded_csv))

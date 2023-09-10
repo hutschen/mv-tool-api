@@ -18,16 +18,18 @@
 from fastapi import APIRouter
 
 from . import (
-    catalogs,
     catalog_modules,
     catalog_requirements,
+    catalogs,
+    documents,
+    handlers,
+    measures,
     projects,
     requirements,
-    documents,
-    measures,
 )
 
 router = APIRouter()
+router.include_router(handlers.router)
 router.include_router(catalogs.router)
 router.include_router(catalog_modules.router)
 router.include_router(catalog_requirements.router)
