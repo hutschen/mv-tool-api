@@ -15,16 +15,14 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-from tempfile import NamedTemporaryFile
+from typing import Callable
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from ..db.schema import Requirement
-
 from ..db.database import get_session
+from ..db.schema import Requirement
 from ..handlers.catalog_modules import CatalogModules
 from ..handlers.projects import Projects
 from ..handlers.requirements import (
@@ -34,11 +32,17 @@ from ..handlers.requirements import (
 )
 from ..models import RequirementOutput
 from ..models.requirements import RequirementImport
-from ..utils.temp_file import get_temp_file
 from .catalog_requirements import get_catalog_requirement_columns
 from .columns import Column, ColumnGroup
-from .dataframe import DataFrame, write_excel
-from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
+from .dataframe import DataFrame
+from .handlers import (
+    get_dataframe_from_uploaded_csv,
+    get_dataframe_from_uploaded_excel,
+    get_download_csv_handler,
+    get_download_excel_handler,
+    get_export_labels_handler,
+    hide_columns,
+)
 from .projects import get_project_columns
 
 
@@ -86,62 +90,92 @@ router.get(
 )(get_export_labels_handler(get_requirement_columns))
 
 
-@router.get("/excel/requirements", response_class=FileResponse)
-def download_requirements_excel(
-    requirements_view: Requirements = Depends(),
+def _get_requirements_dataframe(
+    requirements: Requirements = Depends(),
     where_clauses=Depends(get_requirement_filters),
     sort_clauses=Depends(get_requirement_sort),
     columns: ColumnGroup = Depends(hide_columns(get_requirement_columns)),
-    temp_file: NamedTemporaryFile = Depends(get_temp_file(".xlsx")),
-    sheet_name="Requirements",
-    filename="requirements.xlsx",
-) -> FileResponse:
-    requirements = requirements_view.list_requirements(where_clauses, sort_clauses)
-    df = columns.export_to_dataframe(requirements)
-    write_excel(df, temp_file, sheet_name=sheet_name)
-    return FileResponse(temp_file.name, filename=filename)
+) -> DataFrame:
+    requirement_list = requirements.list_requirements(where_clauses, sort_clauses)
+    return columns.export_to_dataframe(requirement_list)
 
 
-@router.post(
-    "/excel/requirements", status_code=201, response_model=list[RequirementOutput]
+router.get(
+    "/excel/requirements",
+    summary="Download requirements as Excel file",
+    response_class=FileResponse,
+)(
+    get_download_excel_handler(
+        _get_requirements_dataframe,
+        sheet_name="Requirements",
+        filename="requirements.xlsx",
+    )
 )
-def upload_requirements_excel(
-    fallback_project_id: int | None = None,
-    fallback_catalog_module_id: int | None = None,
-    project_view: Projects = Depends(),
-    catalog_modules_view: CatalogModules = Depends(),
-    requirements_view: Requirements = Depends(),
-    columns: ColumnGroup = Depends(get_requirement_columns),
-    df: DataFrame = Depends(get_uploaded_dataframe),
-    skip_blanks: bool = False,  # skip blank cells
-    dry_run: bool = False,  # don't save to database
-    session: Session = Depends(get_session),
-) -> list[Requirement]:
-    fallback_project = (
-        project_view.get_project(fallback_project_id)
-        if fallback_project_id is not None
-        else None
-    )
-    fallback_catalog_module = (
-        catalog_modules_view.get_catalog_module(fallback_catalog_module_id)
-        if fallback_catalog_module_id is not None
-        else None
-    )
 
-    # Import the data frame
-    requirement_imports = columns.import_from_dataframe(df, skip_none=skip_blanks)
-    requirements = list(
-        requirements_view.bulk_create_update_requirements(
-            requirement_imports,
-            fallback_project,
-            fallback_catalog_module,
-            patch=True,
-            skip_flush=dry_run,
+router.get(
+    "/csv/requirements",
+    summary="Download requirements as CSV file",
+    response_class=FileResponse,
+)(get_download_csv_handler(_get_requirements_dataframe, filename="requirements.csv"))
+
+
+def _get_upload_requirements_dataframe_handler(
+    get_uploaded_dataframe: Callable,
+) -> Callable:
+    def upload_requirements_dataframe(
+        fallback_project_id: int | None = None,
+        fallback_catalog_module_id: int | None = None,
+        project_view: Projects = Depends(),
+        catalog_modules_view: CatalogModules = Depends(),
+        requirements_view: Requirements = Depends(),
+        columns: ColumnGroup = Depends(get_requirement_columns),
+        df: DataFrame = Depends(get_uploaded_dataframe),
+        skip_blanks: bool = False,  # skip blank cells
+        dry_run: bool = False,  # don't save to database
+        session: Session = Depends(get_session),
+    ) -> list[Requirement]:
+        fallback_project = (
+            project_view.get_project(fallback_project_id)
+            if fallback_project_id is not None
+            else None
         )
-    )
+        fallback_catalog_module = (
+            catalog_modules_view.get_catalog_module(fallback_catalog_module_id)
+            if fallback_catalog_module_id is not None
+            else None
+        )
 
-    # Rollback if dry run
-    if dry_run:
-        session.rollback()
-        return []
-    return requirements
+        # Import the data frame
+        requirement_imports = columns.import_from_dataframe(df, skip_none=skip_blanks)
+        requirements = list(
+            requirements_view.bulk_create_update_requirements(
+                requirement_imports,
+                fallback_project,
+                fallback_catalog_module,
+                patch=True,
+                skip_flush=dry_run,
+            )
+        )
+
+        # Rollback if dry run
+        if dry_run:
+            session.rollback()
+            return []
+        return requirements
+
+    return upload_requirements_dataframe
+
+
+router.post(
+    "/excel/requirements",
+    summary="Upload requirements from Excel file",
+    status_code=201,
+    response_model=list[RequirementOutput],
+)(_get_upload_requirements_dataframe_handler(get_dataframe_from_uploaded_excel))
+
+router.post(
+    "/csv/requirements",
+    summary="Upload requirements from CSV file",
+    status_code=201,
+    response_model=list[RequirementOutput],
+)(_get_upload_requirements_dataframe_handler(get_dataframe_from_uploaded_csv))

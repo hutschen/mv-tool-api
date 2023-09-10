@@ -16,13 +16,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+from typing import Callable
+
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from ..db.schema import CatalogModule
-
 from ..db.database import get_session
+from ..db.schema import CatalogModule
 from ..handlers.catalog_modules import (
     CatalogModules,
     get_catalog_module_filters,
@@ -30,11 +31,17 @@ from ..handlers.catalog_modules import (
 )
 from ..handlers.catalogs import Catalogs
 from ..models import CatalogModuleImport, CatalogModuleOutput
-from ..utils.temp_file import get_temp_file
 from .catalogs import get_catalog_columns
 from .columns import Column, ColumnGroup
-from .dataframe import DataFrame, write_excel
-from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
+from .dataframe import DataFrame
+from .handlers import (
+    get_dataframe_from_uploaded_csv,
+    get_dataframe_from_uploaded_excel,
+    get_download_csv_handler,
+    get_download_excel_handler,
+    get_export_labels_handler,
+    hide_columns,
+)
 
 
 def get_catalog_module_columns(
@@ -64,52 +71,90 @@ router.get(
 )(get_export_labels_handler(get_catalog_module_columns))
 
 
-@router.get("/excel/catalog-modules", response_class=FileResponse)
-def download_catalog_modules_excel(
-    catalog_modules_view: CatalogModules = Depends(),
+def _get_catalog_modules_dataframe(
+    catalog_modules: CatalogModules = Depends(),
     where_clauses=Depends(get_catalog_module_filters),
     sort_clauses=Depends(get_catalog_module_sort),
     columns: ColumnGroup = Depends(hide_columns(get_catalog_module_columns)),
-    temp_file=Depends(get_temp_file(".xlsx")),
-    sheet_name="Catalog Modules",
-    filename="catalog_modules.xlsx",
-) -> FileResponse:
-    catalog_modules = catalog_modules_view.list_catalog_modules(
+) -> DataFrame:
+    catalog_module_list = catalog_modules.list_catalog_modules(
         where_clauses, sort_clauses
     )
-    write_excel(columns.export_to_dataframe(catalog_modules), temp_file, sheet_name)
-    return FileResponse(temp_file.name, filename=filename)
+    return columns.export_to_dataframe(catalog_module_list)
 
 
-@router.post(
-    "/excel/catalog-modules", status_code=201, response_model=list[CatalogModuleOutput]
+router.get(
+    "/excel/catalog-modules",
+    summary="Download catalog modules as Excel file",
+    response_class=FileResponse,
+)(
+    get_download_excel_handler(
+        _get_catalog_modules_dataframe,
+        sheet_name="Catalog Modules",
+        filename="catalog_modules.xlsx",
+    )
 )
-def upload_catalog_modules_excel(
-    fallback_catalog_id: int | None = None,
-    catalogs_view: Catalogs = Depends(),
-    catalog_modules_view: CatalogModules = Depends(),
-    columns: ColumnGroup = Depends(get_catalog_module_columns),
-    df: DataFrame = Depends(get_uploaded_dataframe),
-    skip_blanks: bool = False,  # skip blank cells
-    dry_run: bool = False,  # don't save to database
-    session: Session = Depends(get_session),
-) -> list[CatalogModule]:
-    fallback_catalog = (
-        catalogs_view.get_catalog(fallback_catalog_id)
-        if fallback_catalog_id is not None
-        else None
-    )
 
-    # Import data frame into database
-    catalog_module_imports = columns.import_from_dataframe(df, skip_none=skip_blanks)
-    catalog_modules = list(
-        catalog_modules_view.bulk_create_update_catalog_modules(
-            catalog_module_imports, fallback_catalog, patch=True, skip_flush=dry_run
+router.get(
+    "/csv/catalog-modules",
+    summary="Download catalog modules as CSV file",
+    response_class=FileResponse,
+)(
+    get_download_csv_handler(
+        _get_catalog_modules_dataframe,
+        filename="catalog_modules.csv",
+    )
+)
+
+
+def _get_upload_catalog_modules_dataframe_handler(
+    get_uploaded_dataframe: Callable,
+) -> Callable:
+    def upload_catalog_modules_dataframe(
+        fallback_catalog_id: int | None = None,
+        catalogs_view: Catalogs = Depends(),
+        catalog_modules_view: CatalogModules = Depends(),
+        columns: ColumnGroup = Depends(get_catalog_module_columns),
+        df: DataFrame = Depends(get_uploaded_dataframe),
+        skip_blanks: bool = False,  # skip blank cells
+        dry_run: bool = False,  # don't save to database
+        session: Session = Depends(get_session),
+    ) -> list[CatalogModule]:
+        fallback_catalog = (
+            catalogs_view.get_catalog(fallback_catalog_id)
+            if fallback_catalog_id is not None
+            else None
         )
-    )
 
-    # Rollback if dry run
-    if dry_run:
-        session.rollback()
-        return []
-    return catalog_modules
+        # Import data frame into database
+        catalog_module_imports = columns.import_from_dataframe(
+            df, skip_none=skip_blanks
+        )
+        catalog_modules = list(
+            catalog_modules_view.bulk_create_update_catalog_modules(
+                catalog_module_imports, fallback_catalog, patch=True, skip_flush=dry_run
+            )
+        )
+
+        # Rollback if dry run
+        if dry_run:
+            session.rollback()
+            return []
+        return catalog_modules
+
+    return upload_catalog_modules_dataframe
+
+
+router.post(
+    "/excel/catalog-modules",
+    summary="Upload catalog modules from Excel file",
+    status_code=201,
+    response_model=list[CatalogModuleOutput],
+)(_get_upload_catalog_modules_dataframe_handler(get_dataframe_from_uploaded_excel))
+
+router.post(
+    "/csv/catalog-modules",
+    summary="Upload catalog modules from CSV file",
+    status_code=201,
+    response_model=list[CatalogModuleOutput],
+)(_get_upload_catalog_modules_dataframe_handler(get_dataframe_from_uploaded_csv))

@@ -15,15 +15,14 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from tempfile import NamedTemporaryFile
+from typing import Callable
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from ..db.schema import CatalogRequirement
-
 from ..db.database import get_session
+from ..db.schema import CatalogRequirement
 from ..handlers.catalog_modules import CatalogModules
 from ..handlers.catalog_requirements import (
     CatalogRequirements,
@@ -34,11 +33,18 @@ from ..models.catalog_requirements import (
     CatalogRequirementImport,
     CatalogRequirementOutput,
 )
-from ..utils.temp_file import get_temp_file
 from .catalog_modules import get_catalog_module_columns
 from .columns import Column, ColumnGroup
-from .dataframe import DataFrame, write_excel
-from .handlers import get_export_labels_handler, get_uploaded_dataframe, hide_columns
+from .dataframe import DataFrame
+from .handlers import (
+    get_dataframe_from_uploaded_csv,
+    get_dataframe_from_uploaded_excel,
+    get_download_csv_handler,
+    get_download_excel_handler,
+    get_export_labels_handler,
+    hide_columns,
+)
+from .rw_excel import write_excel
 
 
 def get_catalog_requirement_columns(
@@ -71,61 +77,93 @@ router.get(
 )(get_export_labels_handler(get_catalog_requirement_columns))
 
 
-@router.get("/excel/catalog-requirements", response_class=FileResponse)
-def download_catalog_requirements_excel(
-    catalog_requirements_view: CatalogRequirements = Depends(),
+def _get_catalog_requirements_dataframe(
+    catalog_requirements: CatalogRequirements = Depends(),
     where_clauses=Depends(get_catalog_requirement_filters),
     sort_clauses=Depends(get_catalog_requirement_sort),
     columns: ColumnGroup = Depends(hide_columns(get_catalog_requirement_columns)),
-    temp_file: NamedTemporaryFile = Depends(get_temp_file(".xlsx")),
-    sheet_name="Catalog Requirements",
-    filename="catalog_requirements.xlsx",
-) -> FileResponse:
-    catalog_requirements = catalog_requirements_view.list_catalog_requirements(
+) -> DataFrame:
+    catalog_requirement_list = catalog_requirements.list_catalog_requirements(
         where_clauses, sort_clauses
     )
-    write_excel(
-        columns.export_to_dataframe(catalog_requirements), temp_file, sheet_name
-    )
-    return FileResponse(temp_file.name, filename=filename)
+    return columns.export_to_dataframe(catalog_requirement_list)
 
 
-@router.post(
+router.get(
     "/excel/catalog-requirements",
+    summary="Download catalog requirements as Excel file",
+    response_class=FileResponse,
+)(
+    get_download_excel_handler(
+        _get_catalog_requirements_dataframe,
+        sheet_name="Catalog Requirements",
+        filename="catalog_requirements.xlsx",
+    )
+)
+
+router.get(
+    "/csv/catalog-requirements",
+    summary="Download catalog requirements as CSV file",
+    response_class=FileResponse,
+)(
+    get_download_csv_handler(
+        _get_catalog_requirements_dataframe,
+        filename="catalog_requirements.csv",
+    )
+)
+
+
+def _get_upload_catalog_requirements_dataframe_handler(
+    get_uploaded_dataframe: Callable,
+) -> Callable:
+    def upload_catalog_requirements_dataframe(
+        fallback_catalog_module_id: int | None = None,
+        catalog_modules_view: CatalogModules = Depends(),
+        catalog_requirements_view: CatalogRequirements = Depends(),
+        columns: ColumnGroup = Depends(get_catalog_requirement_columns),
+        df: DataFrame = Depends(get_uploaded_dataframe),
+        skip_blanks: bool = False,  # skip blank cells
+        dry_run: bool = False,  # don't save to database
+        session: Session = Depends(get_session),
+    ) -> list[CatalogRequirement]:
+        fallback_catalog_module = (
+            catalog_modules_view.get_catalog_module(fallback_catalog_module_id)
+            if fallback_catalog_module_id is not None
+            else None
+        )
+
+        # Import data frame into database
+        catalog_requirement_imports = columns.import_from_dataframe(
+            df, skip_none=skip_blanks
+        )
+        catalog_requirements = list(
+            catalog_requirements_view.bulk_create_update_catalog_requirements(
+                catalog_requirement_imports,
+                fallback_catalog_module,
+                patch=True,
+                skip_flush=dry_run,
+            )
+        )
+
+        # Rollback if dry run
+        if dry_run:
+            session.rollback()
+            return []
+        return catalog_requirements
+
+    return upload_catalog_requirements_dataframe
+
+
+router.post(
+    "/excel/catalog-requirements",
+    summary="Upload catalog requirements from Excel",
     status_code=201,
     response_model=list[CatalogRequirementOutput],
-)
-def upload_catalog_requirements_excel(
-    fallback_catalog_module_id: int | None = None,
-    catalog_modules_view: CatalogModules = Depends(),
-    catalog_requirements_view: CatalogRequirements = Depends(),
-    columns: ColumnGroup = Depends(get_catalog_requirement_columns),
-    df: DataFrame = Depends(get_uploaded_dataframe),
-    skip_blanks: bool = False,  # skip blank cells
-    dry_run: bool = False,  # don't save to database
-    session: Session = Depends(get_session),
-) -> list[CatalogRequirement]:
-    fallback_catalog_module = (
-        catalog_modules_view.get_catalog_module(fallback_catalog_module_id)
-        if fallback_catalog_module_id is not None
-        else None
-    )
+)(_get_upload_catalog_requirements_dataframe_handler(get_dataframe_from_uploaded_excel))
 
-    # Import data frame into database
-    catalog_requirement_imports = columns.import_from_dataframe(
-        df, skip_none=skip_blanks
-    )
-    catalog_requirements = list(
-        catalog_requirements_view.bulk_create_update_catalog_requirements(
-            catalog_requirement_imports,
-            fallback_catalog_module,
-            patch=True,
-            skip_flush=dry_run,
-        )
-    )
-
-    # Rollback if dry run
-    if dry_run:
-        session.rollback()
-        return []
-    return catalog_requirements
+router.post(
+    "/csv/catalog-requirements",
+    summary="Upload catalog requirements from CSV",
+    status_code=201,
+    response_model=list[CatalogRequirementOutput],
+)(_get_upload_catalog_requirements_dataframe_handler(get_dataframe_from_uploaded_csv))
