@@ -60,7 +60,7 @@ def config():
 @pytest.fixture
 def jira_user_data():
     """Mocks response from JIRA API for user data."""
-    return dict(displayName="name", emailAddress="email")
+    return dict(accountId="1", displayName="name", emailAddress="email")
 
 
 @pytest.fixture

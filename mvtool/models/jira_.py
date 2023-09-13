@@ -19,6 +19,7 @@ from pydantic import ConfigDict, BaseModel
 
 
 class JiraUser(BaseModel):
+    id: str
     display_name: str
     email_address: str
 

@@ -42,9 +42,10 @@ class JiraBase:
 
 
 class JiraUsers(JiraBase):
-    def get_jira_user(self):
+    def get_jira_user(self) -> JiraUser:
         myself_data = self.jira.myself()
         return JiraUser(
+            id=myself_data["accountId"],
             display_name=myself_data["displayName"],
             email_address=myself_data["emailAddress"],
         )
