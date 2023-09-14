@@ -42,13 +42,20 @@ class JiraBase:
 
 
 class JiraUsers(JiraBase):
-    def get_jira_user(self) -> JiraUser:
-        myself_data = self.jira.myself()
+    @staticmethod
+    def _convert_to_jira_user(jira_user_data: dict) -> JiraUser:
         return JiraUser(
-            id=myself_data["accountId"],
-            display_name=myself_data["displayName"],
-            email_address=myself_data["emailAddress"],
+            id=jira_user_data["accountId"],
+            display_name=jira_user_data["displayName"],
+            email_address=jira_user_data["emailAddress"],
         )
+
+    def get_jira_user(self, jira_user_id: str | None = None) -> JiraUser:
+        if jira_user_id is not None:
+            jira_user_data = self.jira.user(jira_user_id)
+        else:
+            jira_user_data = self.jira.myself()
+        return self._convert_to_jira_user(jira_user_data)
 
 
 class JiraProjects(JiraBase):
