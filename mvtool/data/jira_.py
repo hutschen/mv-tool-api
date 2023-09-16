@@ -17,17 +17,18 @@
 
 
 from typing import Iterator
-from jira import JIRA, Issue, Project, JIRAError
-from pydantic import conint
+
 from fastapi import Depends
+from jira import JIRA, Issue, JIRAError, Project
+from pydantic import conint
 
 from ..auth import get_jira
 from ..models import (
-    JiraProject,
-    JiraIssueType,
-    JiraIssueStatus,
-    JiraIssueInput,
     JiraIssue,
+    JiraIssueInput,
+    JiraIssueStatus,
+    JiraIssueType,
+    JiraProject,
     JiraUser,
 )
 
@@ -49,6 +50,31 @@ class JiraUsers(JiraBase):
             display_name=jira_user_data["displayName"],
             email_address=jira_user_data["emailAddress"],
         )
+
+    def search_jira_users(
+        self,
+        search_str: str,
+        jira_project_key: str,
+        offset: int | None = None,
+        limit: int | None = None,
+    ) -> Iterator[JiraUser]:
+        jira_users_data = self.jira.search_allowed_users_for_issue(
+            user=search_str,
+            projectKey=jira_project_key,
+            startAt=offset or 0,
+            maxResults=limit or 0,
+        )
+
+        for jira_user_data in jira_users_data:
+            # TODO: add caching for JIRA users
+            yield self._convert_to_jira_user(jira_user_data.raw)
+
+    def count_jira_users(self, search_str: str, jira_project_key: str) -> int:
+        return self.jira.search_allowed_users_for_issue(
+            user=search_str,
+            projectKey=jira_project_key,
+            maxResults=1,  # Query only one user to get the total count, 0 queries all
+        ).total
 
     def get_jira_user(self, jira_user_id: str | None = None) -> JiraUser:
         if jira_user_id is not None:
