@@ -70,15 +70,6 @@ class JiraUsers(JiraBase):
             # TODO: add caching for JIRA users
             yield self._convert_to_jira_user(jira_user_data.raw)
 
-    def count_jira_users(self, search_str: str, jira_project_key: str) -> int:
-        # Some JIRA instances return the unfiltered total number of users, so the value is not reliable.
-        return self.jira.search_assignable_users_for_issues(
-            project=jira_project_key,
-            maxResults=1,  # Query only one user to get the total count, 0 queries all
-            query=search_str,
-            username=search_str,
-        ).total
-
     def get_jira_user(self, jira_user_id: str | None = None) -> JiraUser:
         if jira_user_id is not None:
             jira_user_data = self.jira.user(jira_user_id)
