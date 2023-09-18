@@ -46,7 +46,8 @@ class JiraUsers(JiraBase):
     @staticmethod
     def _convert_to_jira_user(jira_user_data: dict) -> JiraUser:
         return JiraUser(
-            id=jira_user_data["accountId"],
+            # JIRA user id is either "name" or "accountId" depending on JIRA server or cloud
+            id=jira_user_data.get("name") or jira_user_data["accountId"],
             display_name=jira_user_data["displayName"],
             email_address=jira_user_data["emailAddress"],
         )
