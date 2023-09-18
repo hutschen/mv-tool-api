@@ -58,11 +58,12 @@ class JiraUsers(JiraBase):
         offset: int | None = None,
         limit: int | None = None,
     ) -> Iterator[JiraUser]:
-        jira_users_data = self.jira.search_allowed_users_for_issue(
-            user=search_str,
-            projectKey=jira_project_key,
+        jira_users_data = self.jira.search_assignable_users_for_issues(
+            project=jira_project_key,
             startAt=offset or 0,
             maxResults=limit or 0,
+            query=search_str,
+            username=search_str,
         )
 
         for jira_user_data in jira_users_data:
@@ -70,10 +71,12 @@ class JiraUsers(JiraBase):
             yield self._convert_to_jira_user(jira_user_data.raw)
 
     def count_jira_users(self, search_str: str, jira_project_key: str) -> int:
-        return self.jira.search_allowed_users_for_issue(
-            user=search_str,
-            projectKey=jira_project_key,
+        # Some JIRA instances return the unfiltered total number of users, so the value is not reliable.
+        return self.jira.search_assignable_users_for_issues(
+            project=jira_project_key,
             maxResults=1,  # Query only one user to get the total count, 0 queries all
+            query=search_str,
+            username=search_str,
         ).total
 
     def get_jira_user(self, jira_user_id: str | None = None) -> JiraUser:
