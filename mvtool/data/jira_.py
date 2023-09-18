@@ -54,12 +54,12 @@ class JiraUsers(JiraBase):
     def search_jira_users(
         self,
         search_str: str,
-        jira_project_key: str,
+        jira_project_id: str,
         offset: int | None = None,
         limit: int | None = None,
     ) -> Iterator[JiraUser]:
         jira_users_data = self.jira.search_assignable_users_for_issues(
-            project=jira_project_key,
+            project=jira_project_id,
             startAt=offset or 0,
             maxResults=limit or 0,
             query=search_str,

@@ -41,23 +41,11 @@ def get_jira_user(jira_user_view: JiraUsers = Depends()):
 def search_jira_users(
     jira_project_id: str,
     search: str,
-    page_params=Depends(page_params),
-    jira_projects: JiraProjects = Depends(),
+    limit: int | None = None,
     jira_users: JiraUsers = Depends(),
 ):
-    jira_project = jira_projects.get_jira_project(jira_project_id)
     # Convert iterator to a list to force jira request in search_jira_users()
-    jira_user_list = list(
-        jira_users.search_jira_users(search, jira_project.key, **page_params)
-    )
-
-    if page_params:
-        return Page[JiraUser](
-            items=jira_user_list,
-            total_count=jira_users.count_jira_users(search, jira_project.key),
-        )
-    else:
-        return jira_user_list
+    return list(jira_users.search_jira_users(search, jira_project_id, limit=limit))
 
 
 _kwargs_jira_projects = dict(tags=["jira-project"])
