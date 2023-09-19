@@ -17,17 +17,18 @@
 
 
 from typing import Iterator
-from jira import JIRA, Issue, Project, JIRAError
-from pydantic import conint
+
 from fastapi import Depends
+from jira import JIRA, Issue, JIRAError, Project
+from pydantic import conint
 
 from ..auth import get_jira
 from ..models import (
-    JiraProject,
-    JiraIssueType,
-    JiraIssueStatus,
-    JiraIssueInput,
     JiraIssue,
+    JiraIssueInput,
+    JiraIssueStatus,
+    JiraIssueType,
+    JiraProject,
     JiraUser,
 )
 
@@ -42,12 +43,40 @@ class JiraBase:
 
 
 class JiraUsers(JiraBase):
-    def get_jira_user(self):
-        myself_data = self.jira.myself()
+    @staticmethod
+    def _convert_to_jira_user(jira_user_data: dict) -> JiraUser:
         return JiraUser(
-            display_name=myself_data["displayName"],
-            email_address=myself_data["emailAddress"],
+            # JIRA user id is either "name" or "accountId" depending on JIRA server or cloud
+            id=jira_user_data.get("name") or jira_user_data["accountId"],
+            display_name=jira_user_data["displayName"],
+            email_address=jira_user_data["emailAddress"],
         )
+
+    def search_jira_users(
+        self,
+        search_str: str,
+        jira_project_key: str,
+        offset: int | None = None,
+        limit: int | None = None,
+    ) -> Iterator[JiraUser]:
+        jira_users_data = self.jira.search_assignable_users_for_issues(
+            project=jira_project_key,  # use JIRA project key to be compatible with JIRA server
+            startAt=offset or 0,
+            maxResults=limit or 0,
+            query=search_str,
+            username=search_str,
+        )
+
+        for jira_user_data in jira_users_data:
+            # TODO: add caching for JIRA users
+            yield self._convert_to_jira_user(jira_user_data.raw)
+
+    def get_jira_user(self, jira_user_id: str | None = None) -> JiraUser:
+        if jira_user_id is not None:
+            jira_user_data = self.jira.user(jira_user_id)
+        else:
+            jira_user_data = self.jira.myself()
+        return self._convert_to_jira_user(jira_user_data)
 
 
 class JiraProjects(JiraBase):

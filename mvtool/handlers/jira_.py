@@ -17,6 +17,7 @@
 
 
 from fastapi import APIRouter, Depends, Query, Response
+from pydantic import conint
 
 from ..data.jira_ import JiraIssues, JiraIssueTypes, JiraProjects, JiraUsers
 from ..models import JiraIssue, JiraIssueInput, JiraIssueType, JiraProject, JiraUser
@@ -25,9 +26,29 @@ from ..utils.pagination import Page, page_params
 router = APIRouter()
 
 
-@router.get("/jira-user", response_model=JiraUser, tags=["jira-user"])
+_kwargs_jira_users = dict(tags=["jira-user"])
+
+
+@router.get("/jira-user", response_model=JiraUser, **_kwargs_jira_users)
 def get_jira_user(jira_user_view: JiraUsers = Depends()):
     return jira_user_view.get_jira_user()
+
+
+@router.get(
+    "/jira-projects/{jira_project_id}/jira-users",
+    response_model=Page[JiraUser] | list[JiraUser],
+    **_kwargs_jira_users,
+)
+def search_jira_users(
+    jira_project_id: str,
+    search: str,
+    limit: conint(ge=1) | None = None,
+    jira_projects: JiraProjects = Depends(),
+    jira_users: JiraUsers = Depends(),
+):
+    jira_project = jira_projects.get_jira_project(jira_project_id)
+    # Convert iterator to a list to force jira request in search_jira_users()
+    return list(jira_users.search_jira_users(search, jira_project.key, limit=limit))
 
 
 _kwargs_jira_projects = dict(tags=["jira-project"])
