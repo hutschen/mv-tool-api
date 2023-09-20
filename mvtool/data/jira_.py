@@ -19,7 +19,8 @@
 from typing import Iterator
 
 from fastapi import Depends
-from jira import JIRA, Issue, JIRAError, Project
+from jira import JIRA, JIRAError
+from jira.resources import Issue, Project, Status
 from pydantic import conint
 
 from ..auth import get_jira
@@ -173,20 +174,23 @@ class JiraIssues(JiraBase):
             else:
                 return None
 
+    @staticmethod
+    def _convert_to_jira_issue_status(data: Status) -> JiraIssueStatus:
+        return JiraIssueStatus(
+            name=data.name,
+            color_name=data.statusCategory.colorName,
+            completed=data.statusCategory.colorName.lower() == "green",
+        )
+
     def _convert_to_jira_issue(self, jira_issue_data: Issue) -> JiraIssue:
         return JiraIssue(
             id=jira_issue_data.id,
             key=jira_issue_data.key,
             summary=jira_issue_data.fields.summary,
             description=jira_issue_data.fields.description,
-            issuetype_id=jira_issue_data.fields.issuetype.id,
-            project_id=jira_issue_data.fields.project.id,
-            status=JiraIssueStatus(
-                name=jira_issue_data.fields.status.name,
-                color_name=jira_issue_data.fields.status.statusCategory.colorName,
-                completed=jira_issue_data.fields.status.statusCategory.colorName.lower()
-                == "green",
-            ),
+            issuetype_id=jira_issue_data.fields.issuetype.id,  # TODO: This should be an embedded object (JiraIssueType)
+            project_id=jira_issue_data.fields.project.id,  # TODO: This should be an embedded object (JiraProject)
+            status=self._convert_to_jira_issue_status(jira_issue_data.fields.status),
             url=self._get_jira_item_url(jira_issue_data.key),
         )
 
