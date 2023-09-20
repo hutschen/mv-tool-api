@@ -43,7 +43,7 @@ class JiraBase:
         return f"{self.jira.server_url}/browse/{item_key}"
 
     @staticmethod
-    def _convert_to_jira_user(data: dict | User) -> JiraUser:
+    def _to_jira_user_model(data: dict | User) -> JiraUser:
         data = data.raw if isinstance(data, User) else data
         return JiraUser(
             # JIRA user id is either "name" or "accountId" depending on JIRA server or cloud
@@ -52,7 +52,7 @@ class JiraBase:
             email_address=data["emailAddress"],
         )
 
-    def _convert_to_jira_project(self, data: Project) -> JiraProject:
+    def _to_jira_project_model(self, data: Project) -> JiraProject:
         return JiraProject(
             id=data.id,
             name=data.name,
@@ -61,21 +61,21 @@ class JiraBase:
         )
 
     @staticmethod
-    def _convert_to_jira_issue_type(data: IssueType) -> JiraIssueType:
+    def _to_jira_issue_type_model(data: IssueType) -> JiraIssueType:
         return JiraIssueType(
             id=data.id,
             name=data.name,
         )
 
     @staticmethod
-    def _convert_to_jira_issue_status(data: Status) -> JiraIssueStatus:
+    def _to_jira_issue_status_model(data: Status) -> JiraIssueStatus:
         return JiraIssueStatus(
             name=data.name,
             color_name=data.statusCategory.colorName,
             completed=data.statusCategory.colorName.lower() == "green",
         )
 
-    def _convert_to_jira_issue(self, data: Issue) -> JiraIssue:
+    def _to_jira_issue_model(self, data: Issue) -> JiraIssue:
         return JiraIssue(
             id=data.id,
             key=data.key,
@@ -83,7 +83,7 @@ class JiraBase:
             description=data.fields.description,
             issuetype_id=data.fields.issuetype.id,  # TODO: This should be an embedded object (JiraIssueType)
             project_id=data.fields.project.id,  # TODO: This should be an embedded object (JiraProject)
-            status=self._convert_to_jira_issue_status(data.fields.status),
+            status=self._to_jira_issue_status_model(data.fields.status),
             url=self._get_jira_item_url(data.key),
         )
 
@@ -106,14 +106,14 @@ class JiraUsers(JiraBase):
 
         for jira_user_data in jira_users_data:
             # TODO: add caching for JIRA users
-            yield self._convert_to_jira_user(jira_user_data.raw)
+            yield self._to_jira_user_model(jira_user_data.raw)
 
     def get_jira_user(self, jira_user_id: str | None = None) -> JiraUser:
         if jira_user_id is not None:
             jira_user_data = self.jira.user(jira_user_id)
         else:
             jira_user_data = self.jira.myself()
-        return self._convert_to_jira_user(jira_user_data)
+        return self._to_jira_user_model(jira_user_data)
 
 
 class JiraProjects(JiraBase):
@@ -140,12 +140,12 @@ class JiraProjects(JiraBase):
 
     def list_jira_projects(self) -> Iterator[JiraProject]:
         for jira_project_data in self.jira.projects():
-            jira_project = self._convert_to_jira_project(jira_project_data)
+            jira_project = self._to_jira_project_model(jira_project_data)
             self._cache_jira_project(jira_project)
             yield jira_project
 
     def get_jira_project(self, jira_project_id: str) -> JiraProject:
-        jira_project = self._convert_to_jira_project(self.jira.project(jira_project_id))
+        jira_project = self._to_jira_project_model(self.jira.project(jira_project_id))
         self._cache_jira_project(jira_project)
         return jira_project
 
@@ -171,7 +171,7 @@ class JiraProjects(JiraBase):
 class JiraIssueTypes(JiraBase):
     def list_jira_issue_types(self, jira_project_id: str):
         for issue_type_data in self.jira.project(jira_project_id).issueTypes:
-            yield self._convert_to_jira_issue_type(issue_type_data)
+            yield self._to_jira_issue_type_model(issue_type_data)
 
 
 class JiraIssues(JiraBase):
@@ -216,7 +216,7 @@ class JiraIssues(JiraBase):
         )
 
         for jira_issue_data in jira_issues_data:
-            jira_issue = self._convert_to_jira_issue(jira_issue_data)
+            jira_issue = self._to_jira_issue_model(jira_issue_data)
             self._cache_jira_issue(jira_issue)
             yield jira_issue
 
@@ -238,12 +238,12 @@ class JiraIssues(JiraBase):
                 issuetype=dict(id=jira_issue_input.issuetype_id),
             )
         )
-        jira_issue = self._convert_to_jira_issue(jira_issue_data)
+        jira_issue = self._to_jira_issue_model(jira_issue_data)
         self._cache_jira_issue(jira_issue)
         return jira_issue
 
     def get_jira_issue(self, jira_issue_id: str):
-        jira_issue = self._convert_to_jira_issue(self.jira.issue(jira_issue_id))
+        jira_issue = self._to_jira_issue_model(self.jira.issue(jira_issue_id))
         self._cache_jira_issue(jira_issue)
         return jira_issue
 
@@ -254,7 +254,7 @@ class JiraIssues(JiraBase):
             description=jira_issue_input.description,
             issuetype=dict(id=jira_issue_input.issuetype_id),
         )
-        jira_issue = self._convert_to_jira_issue(jira_issue_data)
+        jira_issue = self._to_jira_issue_model(jira_issue_data)
         self._cache_jira_issue(jira_issue)
         return jira_issue
 

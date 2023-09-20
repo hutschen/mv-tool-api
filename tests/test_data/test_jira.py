@@ -135,7 +135,7 @@ def test_list_jira_issue_types(jira, jira_project_data, jira_issue_type_data):
 
 
 def test_convert_to_jira_issue(jira, jira_issue_data):
-    result = JiraIssues(jira)._convert_to_jira_issue(jira_issue_data)
+    result = JiraIssues(jira)._to_jira_issue_model(jira_issue_data)
     assert isinstance(result, JiraIssue)
     assert result.id == jira_issue_data.id
     assert result.key == jira_issue_data.key
