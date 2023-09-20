@@ -20,7 +20,7 @@ from typing import Iterator
 
 from fastapi import Depends
 from jira import JIRA, JIRAError
-from jira.resources import Issue, Project, Status
+from jira.resources import Issue, IssueType, Project, Status, User
 from pydantic import conint
 
 from ..auth import get_jira
@@ -42,17 +42,53 @@ class JiraBase:
         """Generates URL for JIRA project or issue."""
         return f"{self.jira.server_url}/browse/{item_key}"
 
-
-class JiraUsers(JiraBase):
     @staticmethod
-    def _convert_to_jira_user(jira_user_data: dict) -> JiraUser:
+    def _convert_to_jira_user(data: dict | User) -> JiraUser:
+        data = data.raw if isinstance(data, User) else data
         return JiraUser(
             # JIRA user id is either "name" or "accountId" depending on JIRA server or cloud
-            id=jira_user_data.get("name") or jira_user_data["accountId"],
-            display_name=jira_user_data["displayName"],
-            email_address=jira_user_data["emailAddress"],
+            id=data.get("name") or data["accountId"],
+            display_name=data["displayName"],
+            email_address=data["emailAddress"],
         )
 
+    def _convert_to_jira_project(self, data: Project) -> JiraProject:
+        return JiraProject(
+            id=data.id,
+            name=data.name,
+            key=data.key,
+            url=self._get_jira_item_url(data.key),
+        )
+
+    @staticmethod
+    def _convert_to_jira_issue_type(data: IssueType) -> JiraIssueType:
+        return JiraIssueType(
+            id=data.id,
+            name=data.name,
+        )
+
+    @staticmethod
+    def _convert_to_jira_issue_status(data: Status) -> JiraIssueStatus:
+        return JiraIssueStatus(
+            name=data.name,
+            color_name=data.statusCategory.colorName,
+            completed=data.statusCategory.colorName.lower() == "green",
+        )
+
+    def _convert_to_jira_issue(self, data: Issue) -> JiraIssue:
+        return JiraIssue(
+            id=data.id,
+            key=data.key,
+            summary=data.fields.summary,
+            description=data.fields.description,
+            issuetype_id=data.fields.issuetype.id,  # TODO: This should be an embedded object (JiraIssueType)
+            project_id=data.fields.project.id,  # TODO: This should be an embedded object (JiraProject)
+            status=self._convert_to_jira_issue_status(data.fields.status),
+            url=self._get_jira_item_url(data.key),
+        )
+
+
+class JiraUsers(JiraBase):
     def search_jira_users(
         self,
         search_str: str,
@@ -102,14 +138,6 @@ class JiraProjects(JiraBase):
             else:
                 return None
 
-    def _convert_to_jira_project(self, jira_project_data: Project) -> JiraProject:
-        return JiraProject(
-            id=jira_project_data.id,
-            name=jira_project_data.name,
-            key=jira_project_data.key,
-            url=self._get_jira_item_url(jira_project_data.key),
-        )
-
     def list_jira_projects(self) -> Iterator[JiraProject]:
         for jira_project_data in self.jira.projects():
             jira_project = self._convert_to_jira_project(jira_project_data)
@@ -143,7 +171,7 @@ class JiraProjects(JiraBase):
 class JiraIssueTypes(JiraBase):
     def list_jira_issue_types(self, jira_project_id: str):
         for issue_type_data in self.jira.project(jira_project_id).issueTypes:
-            yield JiraIssueType.model_validate(issue_type_data)
+            yield self._convert_to_jira_issue_type(issue_type_data)
 
 
 class JiraIssues(JiraBase):
@@ -173,26 +201,6 @@ class JiraIssues(JiraBase):
                 return jira_issue
             else:
                 return None
-
-    @staticmethod
-    def _convert_to_jira_issue_status(data: Status) -> JiraIssueStatus:
-        return JiraIssueStatus(
-            name=data.name,
-            color_name=data.statusCategory.colorName,
-            completed=data.statusCategory.colorName.lower() == "green",
-        )
-
-    def _convert_to_jira_issue(self, jira_issue_data: Issue) -> JiraIssue:
-        return JiraIssue(
-            id=jira_issue_data.id,
-            key=jira_issue_data.key,
-            summary=jira_issue_data.fields.summary,
-            description=jira_issue_data.fields.description,
-            issuetype_id=jira_issue_data.fields.issuetype.id,  # TODO: This should be an embedded object (JiraIssueType)
-            project_id=jira_issue_data.fields.project.id,  # TODO: This should be an embedded object (JiraProject)
-            status=self._convert_to_jira_issue_status(jira_issue_data.fields.status),
-            url=self._get_jira_item_url(jira_issue_data.key),
-        )
 
     def list_jira_issues(
         self,
