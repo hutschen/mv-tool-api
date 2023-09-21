@@ -82,7 +82,7 @@ class JiraBase:
             summary=data.fields.summary,
             description=data.fields.description,
             issuetype_id=data.fields.issuetype.id,  # TODO: This should be an embedded object (JiraIssueType)
-            project_id=data.fields.project.id,  # TODO: This should be an embedded object (JiraProject)
+            project=self._to_jira_project_model(data.fields.project),
             status=self._to_jira_issue_status_model(data.fields.status),
             url=self._get_jira_item_url(data.key),
         )

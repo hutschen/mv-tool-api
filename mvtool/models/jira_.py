@@ -61,6 +61,6 @@ class JiraIssueImport(BaseModel):
 class JiraIssue(JiraIssueInput):
     id: str
     key: str
-    project_id: str
+    project: JiraProject
     status: JiraIssueStatus
     url: str

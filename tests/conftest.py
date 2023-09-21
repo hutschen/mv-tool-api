@@ -147,7 +147,7 @@ def jira_project(jira_project_data: jira.Project):
 
 
 @pytest.fixture
-def jira_issue(jira_issue_data, jira_issue_status):
+def jira_issue(jira_issue_data, jira_project, jira_issue_status):
     """Mocks JIRA issue."""
     return JiraIssue(
         id=jira_issue_data.id,
@@ -155,7 +155,7 @@ def jira_issue(jira_issue_data, jira_issue_status):
         summary=jira_issue_data.fields.summary,
         description=jira_issue_data.fields.description,
         issuetype_id=jira_issue_data.fields.issuetype.id,
-        project_id=jira_issue_data.fields.project.id,
+        project=jira_project,
         status=jira_issue_status,
         url=f"http://jira-server-url/browse/{jira_issue_data.key}",
     )

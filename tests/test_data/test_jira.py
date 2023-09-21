@@ -141,7 +141,7 @@ def test_convert_to_jira_issue(jira, jira_issue_data):
     assert result.key == jira_issue_data.key
     assert result.summary == jira_issue_data.fields.summary
     assert result.description == jira_issue_data.fields.description
-    assert result.project_id == jira_issue_data.fields.project.id
+    assert result.project.id == jira_issue_data.fields.project.id
     assert result.issuetype_id == jira_issue_data.fields.issuetype.id
     assert result.status.name == jira_issue_data.fields.status.name
     assert (
