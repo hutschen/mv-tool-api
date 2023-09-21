@@ -45,7 +45,7 @@ from mvtool.models import (
     ProjectInput,
     RequirementInput,
 )
-from mvtool.models.jira_ import JiraProject
+from mvtool.models.jira_ import JiraIssueType, JiraProject
 from mvtool.utils.temp_file import get_temp_file
 
 
@@ -126,6 +126,12 @@ def jira_issue_input(jira_issue_data):
 
 
 @pytest.fixture
+def jira_issue_type(jira_issue_type_data):
+    """Mocks JIRA issue type."""
+    return JiraIssueType(id=jira_issue_type_data.id, name=jira_issue_type_data.name)
+
+
+@pytest.fixture
 def jira_issue_status(jira_issue_data):
     """Mocks JIRA issue status."""
     return JiraIssueStatus(
@@ -147,14 +153,14 @@ def jira_project(jira_project_data: jira.Project):
 
 
 @pytest.fixture
-def jira_issue(jira_issue_data, jira_project, jira_issue_status):
+def jira_issue(jira_issue_data, jira_issue_type, jira_project, jira_issue_status):
     """Mocks JIRA issue."""
     return JiraIssue(
         id=jira_issue_data.id,
         key=jira_issue_data.key,
         summary=jira_issue_data.fields.summary,
         description=jira_issue_data.fields.description,
-        issuetype_id=jira_issue_data.fields.issuetype.id,
+        issuetype=jira_issue_type,
         project=jira_project,
         status=jira_issue_status,
         url=f"http://jira-server-url/browse/{jira_issue_data.key}",

@@ -58,9 +58,12 @@ class JiraIssueImport(BaseModel):
     key: str
 
 
-class JiraIssue(JiraIssueInput):
+class JiraIssue(BaseModel):
     id: str
     key: str
+    summary: str
+    description: str | None = None
+    issuetype: JiraIssueType
     project: JiraProject
     status: JiraIssueStatus
     url: str
