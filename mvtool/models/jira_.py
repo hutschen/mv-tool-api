@@ -51,6 +51,7 @@ class JiraIssueStatus(BaseModel):
 class JiraIssueInput(BaseModel):
     summary: str
     description: str | None = None
+    assignee_id: str | None = None
     issuetype_id: str
 
 
