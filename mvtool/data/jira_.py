@@ -20,7 +20,7 @@ from typing import Iterator
 
 from fastapi import Depends
 from jira import JIRA, JIRAError
-from jira.resources import Issue, IssueType, Project, Status, User
+from jira.resources import Issue, IssueType, Project, Resource, Status, User
 from pydantic import conint
 
 from ..auth import get_jira
@@ -44,7 +44,8 @@ class JiraBase:
 
     @staticmethod
     def _to_jira_user_model(data: dict | User) -> JiraUser:
-        data = data.raw if isinstance(data, User) else data
+        # Checking for Resource is more robust than checking for User
+        data = data.raw if isinstance(data, Resource) else data
         return JiraUser(
             # JIRA user id is either "name" or "accountId" depending on JIRA server or cloud
             id=data.get("name") or data["accountId"],
@@ -81,6 +82,9 @@ class JiraBase:
             key=data.key,
             summary=data.fields.summary,
             description=data.fields.description,
+            assignee=self._to_jira_user_model(data.fields.assignee)
+            if data.fields.assignee
+            else None,
             issuetype=self._to_jira_issue_type_model(data.fields.issuetype),
             project=self._to_jira_project_model(data.fields.project),
             status=self._to_jira_issue_status_model(data.fields.status),

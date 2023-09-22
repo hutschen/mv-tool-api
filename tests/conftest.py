@@ -102,6 +102,7 @@ def jira_issue_data(jira_project_data, jira_issue_type_data):
         summary = "summary"
         description = "description"
         project = jira_project_data
+        assignee = None
         issuetype = jira_issue_type_data
         status = JiraIssueStatusMock
 

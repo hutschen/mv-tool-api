@@ -63,6 +63,7 @@ class JiraIssue(BaseModel):
     key: str
     summary: str
     description: str | None = None
+    assignee: JiraUser | None = None
     issuetype: JiraIssueType
     project: JiraProject
     status: JiraIssueStatus
