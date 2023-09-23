@@ -91,6 +91,32 @@ class JiraBase:
             url=self._get_jira_item_url(data.key),
         )
 
+    def _from_jira_issue_input(
+        self, input: JiraIssueInput, jira_project_id: str | None = None
+    ) -> dict:
+        """Converts JiraIssueInput to dict for creating or updating a JIRA issue."""
+
+        # First handle the non-optional fields of JiraIssueInput
+        data = dict(
+            summary=input.summary,
+            description=input.description,
+            issuetype=dict(id=input.issuetype_id),
+        )
+
+        # Handle the optional project ID which is needed for creating a new issue
+        if jira_project_id is not None:
+            data["project"] = dict(id=jira_project_id)
+
+        # Handle the optional assignee ID
+        if input.assignee_id is not None:
+            # Define assignee_dict depending on JIRA server or cloud
+            key = "accountId" if self.jira._is_cloud else "name"
+            data["assignee"] = {key: input.assignee_id}
+        elif "assignee_id" in input.model_fields_set:
+            data["assignee"] = None
+
+        return data
+
 
 class JiraUsers(JiraBase):
     def search_jira_users(
@@ -234,15 +260,11 @@ class JiraIssues(JiraBase):
     def create_jira_issue(
         self, jira_project_id: str, jira_issue_input: JiraIssueInput
     ) -> JiraIssue:
-        jira_issue_data = self.jira.create_issue(
-            dict(
-                summary=jira_issue_input.summary,
-                description=jira_issue_input.description,
-                project=dict(id=jira_project_id),
-                issuetype=dict(id=jira_issue_input.issuetype_id),
+        jira_issue = self._to_jira_issue_model(
+            self.jira.create_issue(
+                self._from_jira_issue_input(jira_issue_input, jira_project_id)
             )
         )
-        jira_issue = self._to_jira_issue_model(jira_issue_data)
         self._cache_jira_issue(jira_issue)
         return jira_issue
 
@@ -253,11 +275,7 @@ class JiraIssues(JiraBase):
 
     def update_jira_issue(self, jira_issue_id: str, jira_issue_input: JiraIssueInput):
         jira_issue_data = self.jira.issue(jira_issue_id)
-        jira_issue_data.update(
-            summary=jira_issue_input.summary,
-            description=jira_issue_input.description,
-            issuetype=dict(id=jira_issue_input.issuetype_id),
-        )
+        jira_issue_data.update(**self._from_jira_issue_input(jira_issue_input))
         jira_issue = self._to_jira_issue_model(jira_issue_data)
         self._cache_jira_issue(jira_issue)
         return jira_issue
