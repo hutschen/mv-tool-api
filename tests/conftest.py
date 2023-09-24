@@ -175,6 +175,7 @@ def jira(config, jira_user_data, jira_project_data, jira_issue_data):
     class JiraMock:
         def __init__(self):
             self.server_url = config.jira.url
+            self._is_cloud = False
 
         def myself(self):
             return jira_user_data
