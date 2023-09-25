@@ -36,7 +36,7 @@ def get_jira_user(jira_user_view: JiraUsers = Depends()):
 
 @router.get(
     "/jira-projects/{jira_project_id}/jira-users",
-    response_model=Page[JiraUser] | list[JiraUser],
+    response_model=list[JiraUser],
     **_kwargs_jira_users,
 )
 def search_jira_users(
