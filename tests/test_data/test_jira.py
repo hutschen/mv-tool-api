@@ -16,19 +16,21 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import pytest
-from jira import JIRAError
+from jira import JIRA, JIRAError
+
+from mvtool.data.jira_ import (
+    JiraBase,
+    JiraIssues,
+    JiraIssueTypes,
+    JiraProjects,
+    JiraUsers,
+)
 from mvtool.models import (
     JiraIssue,
+    JiraIssueInput,
     JiraIssueType,
     JiraProject,
     JiraUser,
-)
-from mvtool.data.jira_ import (
-    JiraBase,
-    JiraIssueTypes,
-    JiraIssues,
-    JiraProjects,
-    JiraUsers,
 )
 
 
@@ -36,6 +38,74 @@ def test_get_jira_item_url(jira):
     item_key = "key"
     item_url = JiraBase(jira)._get_jira_item_url(item_key)
     assert item_url == f"{jira.server_url}/browse/{item_key}"
+
+
+@pytest.mark.parametrize(
+    "input, jira_project_id, is_cloud, expected",
+    [
+        # All fields are provided and jira is cloud
+        (
+            JiraIssueInput(
+                summary="Test Summary",
+                description="Test Description",
+                assignee_id="user_123",
+                issuetype_id="issue_123",
+            ),
+            "project_123",
+            True,
+            {
+                "summary": "Test Summary",
+                "description": "Test Description",
+                "issuetype": {"id": "issue_123"},
+                "project": {"id": "project_123"},
+                "assignee": {"accountId": "user_123"},
+            },
+        ),
+        # jira_project_id and assignee_id are None, jira is not cloud
+        (
+            JiraIssueInput(
+                summary="Test Summary",
+                description=None,
+                issuetype_id="issue_123",
+            ),
+            None,
+            False,
+            {
+                "summary": "Test Summary",
+                "description": None,
+                "issuetype": {"id": "issue_123"},
+            },
+        ),
+        # assignee_id is None but was explicitly set, jira is cloud
+        (
+            JiraIssueInput(
+                summary="Test Summary",
+                description="Test Description",
+                assignee_id=None,
+                issuetype_id="issue_123",
+            ),
+            "project_123",
+            True,
+            {
+                "summary": "Test Summary",
+                "description": "Test Description",
+                "issuetype": {"id": "issue_123"},
+                "project": {"id": "project_123"},
+                "assignee": None,
+            },
+        ),
+    ],
+)
+def test_from_jira_issue_input(
+    jira: JIRA,
+    input: JiraIssueInput,
+    jira_project_id: str,
+    is_cloud: bool,
+    expected: dict,
+):
+    jira._is_cloud = is_cloud
+    result = JiraBase(jira)._from_jira_issue_input(input, jira_project_id)
+    assert result == expected
 
 
 def test_get_jira_user(jira, jira_user_data):
@@ -135,14 +205,14 @@ def test_list_jira_issue_types(jira, jira_project_data, jira_issue_type_data):
 
 
 def test_convert_to_jira_issue(jira, jira_issue_data):
-    result = JiraIssues(jira)._convert_to_jira_issue(jira_issue_data)
+    result = JiraIssues(jira)._to_jira_issue_model(jira_issue_data)
     assert isinstance(result, JiraIssue)
     assert result.id == jira_issue_data.id
     assert result.key == jira_issue_data.key
     assert result.summary == jira_issue_data.fields.summary
     assert result.description == jira_issue_data.fields.description
-    assert result.project_id == jira_issue_data.fields.project.id
-    assert result.issuetype_id == jira_issue_data.fields.issuetype.id
+    assert result.project.id == jira_issue_data.fields.project.id
+    assert result.issuetype.id == jira_issue_data.fields.issuetype.id
     assert result.status.name == jira_issue_data.fields.status.name
     assert (
         result.status.color_name

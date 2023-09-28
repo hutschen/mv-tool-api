@@ -19,7 +19,8 @@
 from typing import Iterator
 
 from fastapi import Depends
-from jira import JIRA, Issue, JIRAError, Project
+from jira import JIRA, JIRAError
+from jira.resources import Issue, IssueType, Project, Resource, Status, User
 from pydantic import conint
 
 from ..auth import get_jira
@@ -41,17 +42,83 @@ class JiraBase:
         """Generates URL for JIRA project or issue."""
         return f"{self.jira.server_url}/browse/{item_key}"
 
-
-class JiraUsers(JiraBase):
     @staticmethod
-    def _convert_to_jira_user(jira_user_data: dict) -> JiraUser:
+    def _to_jira_user_model(data: dict | User) -> JiraUser:
+        # Checking for Resource is more robust than checking for User
+        data = data.raw if isinstance(data, Resource) else data
         return JiraUser(
             # JIRA user id is either "name" or "accountId" depending on JIRA server or cloud
-            id=jira_user_data.get("name") or jira_user_data["accountId"],
-            display_name=jira_user_data["displayName"],
-            email_address=jira_user_data["emailAddress"],
+            id=data.get("name") or data["accountId"],
+            display_name=data["displayName"],
+            email_address=data["emailAddress"],
         )
 
+    def _to_jira_project_model(self, data: Project) -> JiraProject:
+        return JiraProject(
+            id=data.id,
+            name=data.name,
+            key=data.key,
+            url=self._get_jira_item_url(data.key),
+        )
+
+    @staticmethod
+    def _to_jira_issue_type_model(data: IssueType) -> JiraIssueType:
+        return JiraIssueType(
+            id=data.id,
+            name=data.name,
+        )
+
+    @staticmethod
+    def _to_jira_issue_status_model(data: Status) -> JiraIssueStatus:
+        return JiraIssueStatus(
+            name=data.name,
+            color_name=data.statusCategory.colorName,
+            completed=data.statusCategory.colorName.lower() == "green",
+        )
+
+    def _to_jira_issue_model(self, data: Issue) -> JiraIssue:
+        return JiraIssue(
+            id=data.id,
+            key=data.key,
+            summary=data.fields.summary,
+            description=data.fields.description,
+            assignee=self._to_jira_user_model(data.fields.assignee)
+            if data.fields.assignee
+            else None,
+            issuetype=self._to_jira_issue_type_model(data.fields.issuetype),
+            project=self._to_jira_project_model(data.fields.project),
+            status=self._to_jira_issue_status_model(data.fields.status),
+            url=self._get_jira_item_url(data.key),
+        )
+
+    def _from_jira_issue_input(
+        self, input: JiraIssueInput, jira_project_id: str | None = None
+    ) -> dict:
+        """Converts JiraIssueInput to dict for creating or updating a JIRA issue."""
+
+        # First handle the non-optional fields of JiraIssueInput
+        data = dict(
+            summary=input.summary,
+            description=input.description,
+            issuetype=dict(id=input.issuetype_id),
+        )
+
+        # Handle the optional project ID which is needed for creating a new issue
+        if jira_project_id is not None:
+            data["project"] = dict(id=jira_project_id)
+
+        # Handle the optional assignee ID
+        if input.assignee_id is not None:
+            # Define assignee_dict depending on JIRA server or cloud
+            key = "accountId" if self.jira._is_cloud else "name"
+            data["assignee"] = {key: input.assignee_id}
+        elif "assignee_id" in input.model_fields_set:
+            data["assignee"] = None
+
+        return data
+
+
+class JiraUsers(JiraBase):
     def search_jira_users(
         self,
         search_str: str,
@@ -69,14 +136,14 @@ class JiraUsers(JiraBase):
 
         for jira_user_data in jira_users_data:
             # TODO: add caching for JIRA users
-            yield self._convert_to_jira_user(jira_user_data.raw)
+            yield self._to_jira_user_model(jira_user_data.raw)
 
     def get_jira_user(self, jira_user_id: str | None = None) -> JiraUser:
         if jira_user_id is not None:
             jira_user_data = self.jira.user(jira_user_id)
         else:
             jira_user_data = self.jira.myself()
-        return self._convert_to_jira_user(jira_user_data)
+        return self._to_jira_user_model(jira_user_data)
 
 
 class JiraProjects(JiraBase):
@@ -101,22 +168,14 @@ class JiraProjects(JiraBase):
             else:
                 return None
 
-    def _convert_to_jira_project(self, jira_project_data: Project) -> JiraProject:
-        return JiraProject(
-            id=jira_project_data.id,
-            name=jira_project_data.name,
-            key=jira_project_data.key,
-            url=self._get_jira_item_url(jira_project_data.key),
-        )
-
     def list_jira_projects(self) -> Iterator[JiraProject]:
         for jira_project_data in self.jira.projects():
-            jira_project = self._convert_to_jira_project(jira_project_data)
+            jira_project = self._to_jira_project_model(jira_project_data)
             self._cache_jira_project(jira_project)
             yield jira_project
 
     def get_jira_project(self, jira_project_id: str) -> JiraProject:
-        jira_project = self._convert_to_jira_project(self.jira.project(jira_project_id))
+        jira_project = self._to_jira_project_model(self.jira.project(jira_project_id))
         self._cache_jira_project(jira_project)
         return jira_project
 
@@ -142,7 +201,7 @@ class JiraProjects(JiraBase):
 class JiraIssueTypes(JiraBase):
     def list_jira_issue_types(self, jira_project_id: str):
         for issue_type_data in self.jira.project(jira_project_id).issueTypes:
-            yield JiraIssueType.model_validate(issue_type_data)
+            yield self._to_jira_issue_type_model(issue_type_data)
 
 
 class JiraIssues(JiraBase):
@@ -173,23 +232,6 @@ class JiraIssues(JiraBase):
             else:
                 return None
 
-    def _convert_to_jira_issue(self, jira_issue_data: Issue) -> JiraIssue:
-        return JiraIssue(
-            id=jira_issue_data.id,
-            key=jira_issue_data.key,
-            summary=jira_issue_data.fields.summary,
-            description=jira_issue_data.fields.description,
-            issuetype_id=jira_issue_data.fields.issuetype.id,
-            project_id=jira_issue_data.fields.project.id,
-            status=JiraIssueStatus(
-                name=jira_issue_data.fields.status.name,
-                color_name=jira_issue_data.fields.status.statusCategory.colorName,
-                completed=jira_issue_data.fields.status.statusCategory.colorName.lower()
-                == "green",
-            ),
-            url=self._get_jira_item_url(jira_issue_data.key),
-        )
-
     def list_jira_issues(
         self,
         jql_str: str | None = None,
@@ -204,7 +246,7 @@ class JiraIssues(JiraBase):
         )
 
         for jira_issue_data in jira_issues_data:
-            jira_issue = self._convert_to_jira_issue(jira_issue_data)
+            jira_issue = self._to_jira_issue_model(jira_issue_data)
             self._cache_jira_issue(jira_issue)
             yield jira_issue
 
@@ -218,31 +260,23 @@ class JiraIssues(JiraBase):
     def create_jira_issue(
         self, jira_project_id: str, jira_issue_input: JiraIssueInput
     ) -> JiraIssue:
-        jira_issue_data = self.jira.create_issue(
-            dict(
-                summary=jira_issue_input.summary,
-                description=jira_issue_input.description,
-                project=dict(id=jira_project_id),
-                issuetype=dict(id=jira_issue_input.issuetype_id),
+        jira_issue = self._to_jira_issue_model(
+            self.jira.create_issue(
+                self._from_jira_issue_input(jira_issue_input, jira_project_id)
             )
         )
-        jira_issue = self._convert_to_jira_issue(jira_issue_data)
         self._cache_jira_issue(jira_issue)
         return jira_issue
 
     def get_jira_issue(self, jira_issue_id: str):
-        jira_issue = self._convert_to_jira_issue(self.jira.issue(jira_issue_id))
+        jira_issue = self._to_jira_issue_model(self.jira.issue(jira_issue_id))
         self._cache_jira_issue(jira_issue)
         return jira_issue
 
     def update_jira_issue(self, jira_issue_id: str, jira_issue_input: JiraIssueInput):
         jira_issue_data = self.jira.issue(jira_issue_id)
-        jira_issue_data.update(
-            summary=jira_issue_input.summary,
-            description=jira_issue_input.description,
-            issuetype=dict(id=jira_issue_input.issuetype_id),
-        )
-        jira_issue = self._convert_to_jira_issue(jira_issue_data)
+        jira_issue_data.update(**self._from_jira_issue_input(jira_issue_input))
+        jira_issue = self._to_jira_issue_model(jira_issue_data)
         self._cache_jira_issue(jira_issue)
         return jira_issue
 
