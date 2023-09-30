@@ -19,6 +19,7 @@ from pydantic import ConfigDict, BaseModel
 
 
 class JiraUser(BaseModel):
+    id: str
     display_name: str
     email_address: str
 
@@ -50,6 +51,7 @@ class JiraIssueStatus(BaseModel):
 class JiraIssueInput(BaseModel):
     summary: str
     description: str | None = None
+    assignee_id: str | None = None
     issuetype_id: str
 
 
@@ -57,9 +59,13 @@ class JiraIssueImport(BaseModel):
     key: str
 
 
-class JiraIssue(JiraIssueInput):
+class JiraIssue(BaseModel):
     id: str
     key: str
-    project_id: str
+    summary: str
+    description: str | None = None
+    assignee: JiraUser | None = None
+    issuetype: JiraIssueType
+    project: JiraProject
     status: JiraIssueStatus
     url: str

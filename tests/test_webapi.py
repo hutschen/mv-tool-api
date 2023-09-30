@@ -87,7 +87,7 @@ def test_list_jira_issues(client, jira, jira_project_data, jira_issue_data):
     assert response.status_code == 200
     assert type(response_body) == list
     assert len(response_body) == 1
-    assert response_body[0]["project_id"] == jira_project_data.id
+    assert response_body[0]["project"]["id"] == jira_project_data.id
 
 
 def test_get_jira_issue(client, jira, jira_issue_data):

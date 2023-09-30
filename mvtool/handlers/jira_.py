@@ -17,6 +17,8 @@
 
 
 from fastapi import APIRouter, Depends, Query, Response
+from jira import JIRAError
+from pydantic import conint
 
 from ..data.jira_ import JiraIssues, JiraIssueTypes, JiraProjects, JiraUsers
 from ..models import JiraIssue, JiraIssueInput, JiraIssueType, JiraProject, JiraUser
@@ -25,9 +27,45 @@ from ..utils.pagination import Page, page_params
 router = APIRouter()
 
 
-@router.get("/jira-user", response_model=JiraUser, tags=["jira-user"])
+_kwargs_jira_users = dict(tags=["jira-user"])
+
+
+@router.get("/jira-user", response_model=JiraUser, **_kwargs_jira_users)
 def get_jira_user(jira_user_view: JiraUsers = Depends()):
     return jira_user_view.get_jira_user()
+
+
+@router.get(
+    "/jira-projects/{jira_project_id}/jira-users",
+    response_model=list[JiraUser],
+    **_kwargs_jira_users,
+)
+def search_jira_users(
+    jira_project_id: str,
+    search: str,
+    limit: conint(ge=1) | None = None,
+    jira_projects: JiraProjects = Depends(),
+    jira_users: JiraUsers = Depends(),
+):
+    jira_project = jira_projects.get_jira_project(jira_project_id)
+    # Convert iterator to a list to force jira request in search_jira_users()
+    return list(jira_users.search_jira_users(search, jira_project.key, limit=limit))
+
+
+@router.get("/jira-users", response_model=list[JiraUser], **_kwargs_jira_users)
+def get_specific_jira_users(
+    ids: list[str] = Query(min_length=1), jira_users: JiraUsers = Depends()
+):
+    # FIXME: This is an inefficient workaround to get a list of JIRA users by their IDs.
+    # Since the JIRA API does not support querying all users or users by their ids, in a
+    # future release users should be cached and updated on the fly when retrieved from
+    # JIRA.
+    for id in ids:
+        try:
+            yield jira_users.get_jira_user(id)
+        except JIRAError as error:
+            if error.status_code != 404:
+                raise error
 
 
 _kwargs_jira_projects = dict(tags=["jira-project"])
