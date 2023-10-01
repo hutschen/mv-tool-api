@@ -18,10 +18,9 @@
 
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, ConfigDict, constr, field_validator
-from pydantic_core.core_schema import FieldValidationInfo
+from pydantic import BaseModel, ConfigDict, ValidationInfo, constr, field_validator
 
-from .common import AbstractComplianceInput, ETagMixin, AutoNumber
+from .common import AbstractComplianceInput, AutoNumber, ETagMixin
 from .jira_ import JiraIssue, JiraIssueImport
 
 if TYPE_CHECKING:
@@ -42,19 +41,19 @@ class AbstractMeasureInput(AbstractComplianceInput):
     verification_comment: str | None = None
 
     @field_validator("completion_comment")
-    def completion_comment_validator(cls, v, info: FieldValidationInfo):
+    def completion_comment_validator(cls, v, info: ValidationInfo):
         return cls._dependent_field_validator(
             "completion_comment", "completion_status", v, info.data
         )
 
     @field_validator("verification_status")
-    def verification_status_validator(cls, v, info: FieldValidationInfo):
+    def verification_status_validator(cls, v, info: ValidationInfo):
         return cls._dependent_field_validator(
             "verification_status", "verification_method", v, info.data
         )
 
     @field_validator("verification_comment")
-    def verification_comment_validator(cls, v, info: FieldValidationInfo):
+    def verification_comment_validator(cls, v, info: ValidationInfo):
         return cls._dependent_field_validator(
             "verification_comment", "verification_method", v, info.data
         )
