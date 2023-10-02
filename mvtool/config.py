@@ -15,13 +15,14 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-from functools import lru_cache
 import os
-import ssl
-import yaml
 import pathlib
-from pydantic import BaseModel
+import ssl
+from functools import lru_cache
+from typing import Any
+
+import yaml
+from pydantic import BaseModel, constr, model_validator
 from uvicorn.config import LOGGING_CONFIG, SSL_PROTOCOL_VERSION
 
 from mvtool.utils.crypto import derive_key
@@ -35,6 +36,25 @@ class DatabaseConfig(BaseModel):
 class JiraConfig(BaseModel):
     url: str
     verify_ssl: bool | str = True
+
+
+class LdapAttributeConfig(BaseModel):
+    login: str
+    firstname: str | None = None
+    lastname: str | None = None
+    email: str | None = None
+
+
+class LdapConfig(BaseModel):
+    protocol: constr(pattern="^ldap$|^ldaps$") = "ldap"
+    host: str
+    port: int | None = None  # If set to None, the port is automatically set to 389 (LDAP) or 636 (LDAPS)
+    verify_ssl: bool | str = True
+    account_dn: str | None = None
+    account_password: str | None = None
+    base_dn: str
+    user_filter: str | None = None
+    attributes: LdapAttributeConfig
 
 
 class FastApiConfig(BaseModel):
@@ -93,10 +113,18 @@ class AuthConfig(BaseModel):
 
 class Config(BaseModel):
     database: DatabaseConfig
-    jira: JiraConfig
+    jira: JiraConfig | None = None
+    ldap: LdapConfig | None = None
     fastapi: FastApiConfig = FastApiConfig()
     uvicorn: UvicornConfig = UvicornConfig()
     auth: AuthConfig = AuthConfig()
+
+    @model_validator(mode="before")
+    @classmethod
+    def at_least_one_service(cls, data: Any) -> Any:
+        if isinstance(data, dict) and not data.get("jira") and not data.get("ldap"):
+            raise ValueError("At least one of jira or ldap must be set")
+        return data
 
 
 CONFIG_FILENAME = "config.yml"
