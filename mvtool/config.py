@@ -56,6 +56,18 @@ class LdapConfig(BaseModel):
     user_filter: str | None = None
     attributes: LdapAttributeConfig
 
+    @model_validator(mode="after")
+    def set_port_automatically(self) -> Any:
+        if self.port is None:
+            self.port = 636 if self.protocol == "ldaps" else 389
+        return self
+
+    @model_validator(mode="after")
+    def account_password_must_be_set(self) -> Any:
+        if self.account_dn and not self.account_password:
+            raise ValueError("account_password must be set when account_dn is set")
+        return self
+
 
 class FastApiConfig(BaseModel):
     docs_url: str | None = None  # "/docs"

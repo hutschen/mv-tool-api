@@ -23,6 +23,59 @@ from mvtool.config import (
     LdapConfig,
 )
 
+
+@pytest.mark.parametrize(
+    "protocol, port_input, expected_port",
+    [
+        ("ldap", None, 389),
+        ("ldaps", None, 636),
+        ("ldap", 1234, 1234),
+        ("ldaps", 1234, 1234),
+    ],
+)
+def test_ldap_config_set_port_automatically(protocol, port_input, expected_port):
+    data = {
+        "host": "localhost",
+        "protocol": protocol,
+        "port": port_input,
+        "base_dn": "dc=local",
+        "attributes": LdapAttributeConfig(login="uid"),
+    }
+    config = LdapConfig(**data)
+    assert config.port == expected_port
+
+
+@pytest.mark.parametrize(
+    "account_dn, account_password, should_raise",
+    [
+        (None, None, False),
+        ("cn=admin,dc=local", "password", False),
+        ("cn=admin,dc=local", None, True),
+        (None, "password", False),
+    ],
+)
+def test_ldap_config_account_password_must_be_set(
+    account_dn, account_password, should_raise
+):
+    data = {
+        "host": "localhost",
+        "base_dn": "dc=local",
+        "account_dn": account_dn,
+        "account_password": account_password,
+        "attributes": LdapAttributeConfig(login="uid"),
+    }
+
+    if should_raise:
+        with pytest.raises(
+            ValueError, match="account_password must be set when account_dn is set"
+        ):
+            LdapConfig(**data)
+    else:
+        config = LdapConfig(**data)
+        assert config.account_dn == account_dn
+        assert config.account_password == account_password
+
+
 dummy_jira_config = JiraConfig(url="http://localhost/jira")
 dummy_ldap_config = LdapConfig(
     host="localhost", base_dn="dc=local", attributes=LdapAttributeConfig(login="uid")
