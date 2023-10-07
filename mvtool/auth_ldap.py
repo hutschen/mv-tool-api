@@ -16,6 +16,7 @@
 from dataclasses import dataclass
 
 import ldap
+from jira import JIRAError
 
 from .config import LdapConfig
 from .utils.errors import ClientError, UnauthorizedError
@@ -84,3 +85,45 @@ def authenticate_ldap_user(username: str, password: str, ldap_config: LdapConfig
         lastname=user_info.get(ldap_config.attributes.lastname, [None])[0],
         email=user_info.get(ldap_config.attributes.email, [None])[0],
     )
+
+
+# FIXME: Remove this dummy class when LDAP integration is fully implemented.
+class LdapJiraDummy:
+    """
+    This class serves as a dummy to simulate an LDAP user as a JIRA user. It is used
+    because the LDAP integration is not yet fully implemented and serves as a
+    workaround. The full LDAP integration will be added in a later release.
+    """
+
+    def __init__(self, ldap_user_details: LdapUserDetails):
+        self.server_url = "http://dummy-url"
+        self._is_cloud = False
+        self.__ldap_user_details = ldap_user_details
+
+    def myself(self):
+        return dict(
+            accountId=self.__ldap_user_details.login,
+            displayName=self.__ldap_user_details.login,
+            emailAddress=self.__ldap_user_details.email,
+        )
+
+    def user(self, id):
+        if id == self.__ldap_user_details.login:
+            return self.myself()
+        else:
+            raise JIRAError("User not found", 404)
+
+    def projects(self):
+        return []
+
+    def project(self, id):
+        raise JIRAError("Project not found", 404)
+
+    def search_issues(*args, **kwargs):
+        return []
+
+    def create_issue(*args, **kwargs):
+        raise JIRAError("Cannot create issue", 500)
+
+    def issue(self, id):
+        raise JIRAError("Issue not found", 404)
