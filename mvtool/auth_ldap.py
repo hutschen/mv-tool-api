@@ -87,12 +87,15 @@ def authenticate_ldap_user(username: str, password: str, ldap_config: LdapConfig
         raise UnauthorizedError("Invalid credentials")
 
     # Return user details
+    decode_ = (
+        lambda value: value.decode(ldap_config.attributes_encoding) if value else None
+    )
     user_info = result[0][1]
     return LdapUserDetails(
-        login=user_info.get(ldap_config.attributes.login, [None])[0],
-        firstname=user_info.get(ldap_config.attributes.firstname, [None])[0],
-        lastname=user_info.get(ldap_config.attributes.lastname, [None])[0],
-        email=user_info.get(ldap_config.attributes.email, [None])[0],
+        login=decode_(user_info.get(ldap_config.attributes.login, [None])[0]),
+        firstname=decode_(user_info.get(ldap_config.attributes.firstname, [None])[0]),
+        lastname=decode_(user_info.get(ldap_config.attributes.lastname, [None])[0]),
+        email=decode_(user_info.get(ldap_config.attributes.email, [None])[0]),
     )
 
 

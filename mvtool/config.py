@@ -55,6 +55,7 @@ class LdapConfig(BaseModel):
     base_dn: str
     user_filter: str | None = None
     attributes: LdapAttributeConfig
+    attributes_encoding: str = "utf-8"
 
     @model_validator(mode="after")
     def set_port_automatically(self) -> Any:
