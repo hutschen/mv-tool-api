@@ -29,6 +29,15 @@ class LdapUserDetails:
     lastname: str | None
     email: str | None
 
+    @property
+    def display_name(self):
+        if self.firstname and self.lastname:
+            return f"{self.firstname} {self.lastname}"
+        elif self.email:
+            return self.email
+        else:
+            return self.login
+
 
 def authenticate_ldap_user(username: str, password: str, ldap_config: LdapConfig):
     # Connect to LDAP server
@@ -103,7 +112,7 @@ class LdapJiraDummy:
     def myself(self):
         return dict(
             accountId=self.__ldap_user_details.login,
-            displayName=self.__ldap_user_details.login,
+            displayName=self.__ldap_user_details.display_name,
             emailAddress=self.__ldap_user_details.email,
         )
 
