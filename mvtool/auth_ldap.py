@@ -25,9 +25,9 @@ from .utils.errors import ClientError, UnauthorizedError
 @dataclass
 class LdapUserDetails:
     login: str
-    firstname: str | None
-    lastname: str | None
-    email: str | None
+    firstname: str | None = None
+    lastname: str | None = None
+    email: str | None = None
 
     @property
     def display_name(self):

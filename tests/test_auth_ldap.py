@@ -18,7 +18,7 @@ from unittest.mock import Mock, call, patch
 import ldap
 import pytest
 
-from mvtool.auth_ldap import authenticate_ldap_user
+from mvtool.auth_ldap import LdapUserDetails, authenticate_ldap_user
 from mvtool.config import Config
 from mvtool.utils.errors import ClientError, UnauthorizedError
 
@@ -27,6 +27,21 @@ from mvtool.utils.errors import ClientError, UnauthorizedError
 def ldap_initialize_mock():
     with patch("ldap.initialize") as mock_initialize:
         yield mock_initialize
+
+
+@pytest.mark.parametrize(
+    "user_details_kwargs, expected_display_name",
+    [
+        ({"login": "jdoe", "firstname": "John", "lastname": "Doe"}, "John Doe"),
+        ({"login": "jdoe", "email": "johndoe@local"}, "johndoe@local"),
+        ({"login": "jdoe", "firstname": "John"}, "jdoe"),
+        ({"login": "jdoe", "lastname": "Doe"}, "jdoe"),
+        ({"login": "jdoe"}, "jdoe"),
+    ],
+)
+def test_ldap_user_details_display_name(user_details_kwargs, expected_display_name):
+    user_details = LdapUserDetails(**user_details_kwargs)
+    assert user_details.display_name == expected_display_name
 
 
 def test_ssl_verification_disabled(ldap_initialize_mock, config: Config):
