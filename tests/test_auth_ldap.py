@@ -17,8 +17,9 @@ from unittest.mock import Mock, call, patch
 
 import ldap
 import pytest
+from jira import JIRAError
 
-from mvtool.auth_ldap import LdapUserDetails, authenticate_ldap_user
+from mvtool.auth_ldap import LdapJiraDummy, LdapUserDetails, authenticate_ldap_user
 from mvtool.config import Config
 from mvtool.utils.errors import ClientError, UnauthorizedError
 
@@ -150,3 +151,67 @@ def test_authenticate_ldap_user_ldap_error(ldap_initialize_mock, config: Config)
     with pytest.raises(ClientError) as error_info:
         authenticate_ldap_user("jdoe", "password", config.ldap)
     assert "Error searching the LDAP directory" in error_info.value.detail
+
+
+def test_ldap_jira_dummy_myself():
+    ldap_details = LdapUserDetails(
+        login="jdoe", firstname="John", lastname="Doe", email="johndoe@local"
+    )
+    jira_dummy = LdapJiraDummy(ldap_details)
+    myself_result = jira_dummy.myself()
+
+    assert myself_result["accountId"] == "jdoe"
+    assert myself_result["displayName"] == "John Doe"
+    assert myself_result["emailAddress"] == "johndoe@local"
+
+
+def test_ldap_jira_dummy_user_found():
+    ldap_details = LdapUserDetails(login="jdoe")
+    jira_dummy = LdapJiraDummy(ldap_details)
+    user_result = jira_dummy.user("jdoe")
+
+    assert user_result["accountId"] == "jdoe"
+
+
+def test_ldap_jira_dummy_user_not_found():
+    ldap_details = LdapUserDetails(login="jdoe")
+    jira_dummy = LdapJiraDummy(ldap_details)
+
+    with pytest.raises(JIRAError, match="User not found"):
+        jira_dummy.user("other_user")
+
+
+def test_ldap_jira_dummy_projects():
+    ldap_details = LdapUserDetails(login="jdoe")
+    jira_dummy = LdapJiraDummy(ldap_details)
+    assert jira_dummy.projects() == []
+
+
+def test_ldap_jira_dummy_project():
+    ldap_details = LdapUserDetails(login="jdoe")
+    jira_dummy = LdapJiraDummy(ldap_details)
+
+    with pytest.raises(JIRAError, match="Project not found"):
+        jira_dummy.project(1)
+
+
+def test_ldap_jira_dummy_search_issues():
+    ldap_details = LdapUserDetails(login="jdoe")
+    jira_dummy = LdapJiraDummy(ldap_details)
+    assert jira_dummy.search_issues() == []
+
+
+def test_ldap_jira_dummy_create_issue():
+    ldap_details = LdapUserDetails(login="jdoe")
+    jira_dummy = LdapJiraDummy(ldap_details)
+
+    with pytest.raises(JIRAError, match="Cannot create issue"):
+        jira_dummy.create_issue()
+
+
+def test_ldap_jira_dummy_issue_method():
+    ldap_details = LdapUserDetails(login="jdoe")
+    jira_dummy = LdapJiraDummy(ldap_details)
+
+    with pytest.raises(JIRAError, match="Issue not found"):
+        jira_dummy.issue(1)
