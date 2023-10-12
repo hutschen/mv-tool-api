@@ -115,13 +115,13 @@ def test_get_jira(config):
         "mvtool.auth",
         _get_cached_jira=DEFAULT,
         _get_credentials_from_token=DEFAULT,
-        _connect_to_jira=DEFAULT,
+        _connect_to_jira_or_dummy_jira=DEFAULT,
         _cache_jira=DEFAULT,
     ) as mocks:
         mocks["_get_cached_jira"].return_value = None
         mocks["_get_credentials_from_token"].return_value = ("user", "password")
         jira_mock = Mock()
-        mocks["_connect_to_jira"].return_value = jira_mock
+        mocks["_connect_to_jira_or_dummy_jira"].return_value = jira_mock
 
         for result in get_jira("token", config):
             break
@@ -131,8 +131,8 @@ def test_get_jira(config):
         mocks["_get_credentials_from_token"].assert_called_once_with(
             "token", config.auth
         )
-        mocks["_connect_to_jira"].assert_called_once_with(
-            "user", "password", config.jira
+        mocks["_connect_to_jira_or_dummy_jira"].assert_called_once_with(
+            "user", "password", config
         )
         mocks["_cache_jira"].assert_called_once_with("token", jira_mock)
 
@@ -144,19 +144,19 @@ def test_login_for_access_token(config):
 
     with patch.multiple(
         "mvtool.auth",
-        _connect_to_jira=DEFAULT,
+        _connect_to_jira_or_dummy_jira=DEFAULT,
         _create_token=DEFAULT,
         _cache_jira=DEFAULT,
     ) as mocks:
         mocks["_create_token"].return_value = "token"
         jira_mock = Mock()
-        mocks["_connect_to_jira"].return_value = jira_mock
+        mocks["_connect_to_jira_or_dummy_jira"].return_value = jira_mock
 
         result = login_for_access_token(form_data_mock, config)
 
         assert result == {"access_token": "token", "token_type": "bearer"}
-        mocks["_connect_to_jira"].assert_called_once_with(
-            "user", "password", config.jira, validate_credentials=True
+        mocks["_connect_to_jira_or_dummy_jira"].assert_called_once_with(
+            "user", "password", config, validate_credentials=True
         )
         mocks["_create_token"].assert_called_once_with("user", "password", config.auth)
         mocks["_cache_jira"].assert_called_once_with("token", jira_mock)

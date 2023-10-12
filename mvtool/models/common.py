@@ -19,8 +19,7 @@ import json
 from hashlib import md5
 from typing import Any
 
-from pydantic import BaseModel, conint, constr, field_validator
-from pydantic_core.core_schema import FieldValidationInfo
+from pydantic import BaseModel, ValidationInfo, conint, constr, field_validator
 
 
 class ETagMixin(BaseModel):
@@ -65,7 +64,7 @@ class AbstractComplianceInput(BaseModel):
         return dependent_value
 
     @field_validator("compliance_comment")
-    def compliance_comment_validator(cls, v, info: FieldValidationInfo):
+    def compliance_comment_validator(cls, v, info: ValidationInfo):
         return cls._dependent_field_validator(
             "compliance_comment", "compliance_status", v, info.data
         )
