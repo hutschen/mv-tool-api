@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from contextlib import asynccontextmanager
+
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,40 +38,47 @@ from .config import load_config
 from .angular import AngularFiles
 
 config = load_config()
-app = FastAPI(
-    title="MV-Tool",
-    docs_url=config.fastapi.docs_url,
-    redoc_url=config.fastapi.redoc_url,
-)
-app.include_router(auth.router)
-app.include_router(jira_.router, prefix="/api")
-app.include_router(catalogs.router, prefix="/api")
-app.include_router(catalog_modules.router, prefix="/api")
-app.include_router(catalog_requirements.router, prefix="/api")
-app.include_router(projects.router, prefix="/api")
-app.include_router(tables.router, prefix="/api")
-app.include_router(requirements.router, prefix="/api")
-app.include_router(measures.router, prefix="/api")
-app.include_router(documents.router, prefix="/api")
-app.mount("/", AngularFiles(directory="htdocs", html=True))
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:8000", "http://localhost:4200"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
-@app.on_event("startup")
-def on_startup():
+def get_app(lifespan=None) -> FastAPI:
+    app = FastAPI(
+        title="MV-Tool",
+        docs_url=config.fastapi.docs_url,
+        redoc_url=config.fastapi.redoc_url,
+        lifespan=lifespan,
+    )
+    app.include_router(auth.router)
+    app.include_router(jira_.router, prefix="/api")
+    app.include_router(catalogs.router, prefix="/api")
+    app.include_router(catalog_modules.router, prefix="/api")
+    app.include_router(catalog_requirements.router, prefix="/api")
+    app.include_router(projects.router, prefix="/api")
+    app.include_router(tables.router, prefix="/api")
+    app.include_router(requirements.router, prefix="/api")
+    app.include_router(measures.router, prefix="/api")
+    app.include_router(documents.router, prefix="/api")
+    app.mount("/", AngularFiles(directory="htdocs", html=True))
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:8000", "http://localhost:4200"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    return app
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    # Startup logic
     migration.migrate(config.database)
     database.setup_connection(config.database)
-
-
-@app.on_event("shutdown")
-def on_shutdown():
+    yield
+    # Shutdown logic
     database.dispose_connection()
+
+
+app = get_app(lifespan)
 
 
 def serve():
