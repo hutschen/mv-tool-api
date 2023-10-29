@@ -20,7 +20,19 @@ import os
 import pytest
 
 from mvtool.gs_parser import GSBausteinParser
+from mvtool.gs_parser_xml import GSKompendiumParser
 from mvtool.utils import errors
+
+
+def get_gs_kompendium_filenames():
+    for filename in os.listdir("tests/data/gs_kompendium"):
+        if filename.endswith(".xml"):
+            yield os.path.join("tests/data/gs_kompendium", filename)
+
+
+@pytest.mark.parametrize("filename", get_gs_kompendium_filenames())
+def test_parse_gs_kompendium(filename):
+    GSKompendiumParser.parse(filename)
 
 
 def get_gs_baustein_filenames():
