@@ -15,14 +15,19 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import shutil
+from tempfile import NamedTemporaryFile
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
 from pydantic import constr
 from sqlalchemy import Column
+from sqlalchemy.orm import Session
 
 from ..data.catalogs import Catalogs
+from ..db.database import get_session
 from ..db.schema import Catalog
+from ..gs_parser_xml import GSKompendiumParser
 from ..models.catalogs import (
     CatalogInput,
     CatalogOutput,
@@ -38,6 +43,7 @@ from ..utils.filtering import (
     search_columns,
 )
 from ..utils.pagination import Page, page_params
+from ..utils.temp_file import get_temp_file
 
 
 def get_catalog_filters(
@@ -284,3 +290,18 @@ def get_catalog_references(
         )
     else:
         return references
+
+
+@router.post("/catalogs/gs-kompendium", status_code=201, response_model=CatalogOutput)
+def upload_gs_kompendium(
+    upload_file: UploadFile,
+    temp_file: NamedTemporaryFile = Depends(get_temp_file(".xml")),
+    session: Session = Depends(get_session),
+):
+    shutil.copyfileobj(upload_file.file, temp_file)
+
+    # Parse the XML file and save the results as a catalog in the database
+    catalog = GSKompendiumParser.parse(temp_file.name)
+    session.add(catalog)
+    session.flush()
+    return catalog
