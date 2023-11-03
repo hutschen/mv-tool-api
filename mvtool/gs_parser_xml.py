@@ -17,6 +17,7 @@ import re
 from xml.etree import ElementTree as ET
 
 from .db.schema import Catalog, CatalogModule, CatalogRequirement
+from .utils.errors import ValueHttpError
 
 
 class GSKompendiumParser:
@@ -87,7 +88,7 @@ class GSKompendiumParser:
                                 gs_verantwortliche=match.group(6),
                             )
                         else:
-                            raise ValueError(
+                            raise ValueHttpError(
                                 f"Could not parse requirement title: {title.text}"
                             )
 
@@ -104,7 +105,9 @@ class GSKompendiumParser:
                         catalog_requirements=list(cls._parse_gs_baustein(section)),
                     )
                 else:
-                    raise ValueError(f"Could not parse GS-Baustein title: {title.text}")
+                    raise ValueHttpError(
+                        f"Could not parse GS-Baustein title: {title.text}"
+                    )
 
     @classmethod
     def _parse_gs_catalog(cls, root: ET.Element):
@@ -120,7 +123,7 @@ class GSKompendiumParser:
         try:
             xml_tree = ET.parse(filename)
         except ET.ParseError as e:
-            raise ValueError(f"Could not parse XML file: {e}")
+            raise ValueHttpError(f"Could not parse XML file: {e}")
         xml_root = xml_tree.getroot()
 
         # Create a new catalog
@@ -131,4 +134,4 @@ class GSKompendiumParser:
                 catalog_modules=list(cls._parse_gs_catalog(xml_root)),
             )
         else:
-            raise ValueError("Could not find catalog title")
+            raise ValueHttpError("Could not find catalog title")
