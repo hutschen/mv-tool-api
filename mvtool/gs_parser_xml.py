@@ -117,7 +117,10 @@ class GSKompendiumParser:
 
     @classmethod
     def parse(cls, filename):
-        xml_tree = ET.parse(filename)
+        try:
+            xml_tree = ET.parse(filename)
+        except ET.ParseError as e:
+            raise ValueError(f"Could not parse XML file: {e}")
         xml_root = xml_tree.getroot()
 
         # Create a new catalog
