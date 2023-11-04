@@ -13,8 +13,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from collections import namedtuple
 import re
+from collections import namedtuple
+from dataclasses import dataclass
+from typing import Iterable
 
 GS_SCHICHT_TITLE_RE = re.compile(r"^\s*([A-Z]{3,4})\s+(.+?)\s*$")
 GS_BAUSTEIN_TITLE_RE = re.compile(r"^\s*([A-Z]{3,4}(\.[0-9]+)+)\s*(.+?)\s*$")
@@ -35,6 +37,29 @@ GSBausteinTitle = namedtuple("GSBausteinTitle", ["reference", "name"])
 GSAnforderungTitle = namedtuple(
     "GSAnforderungTitle", ["reference", "name", "gs_absicherung", "gs_verantwortliche"]
 )
+
+
+@dataclass
+class GSAnforderung:
+    title = GSAnforderungTitle
+    text: str
+
+
+@dataclass
+class GSBaustein:
+    title = GSBausteinTitle
+    gs_anforderungen: Iterable[GSAnforderung]
+
+
+@dataclass
+class GSSchicht:
+    title = GSSchichtTitle
+    gs_bausteine: Iterable[GSBaustein]
+
+
+@dataclass
+class GSKompendium:
+    gs_schichten: Iterable[GSSchicht]
 
 
 def parse_gs_schicht_title(title: str) -> GSSchichtTitle:
