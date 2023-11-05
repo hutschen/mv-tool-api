@@ -15,19 +15,19 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import shutil
-from tempfile import NamedTemporaryFile
+from tempfile import _TemporaryFileWrapper
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import constr
 from sqlalchemy import Column
 from sqlalchemy.orm import Session
 
 from ..data.catalog_modules import CatalogModules
 from ..db.database import get_session
-from ..db.schema import Catalog, CatalogModule
-from ..gs_parser import GSBausteinParser
+from ..db.schema import Catalog, CatalogModule, CatalogRequirement
+from ..gsparser.common import GSBaustein, GSParseError
+from ..gsparser.gs_baustein import parse_gs_baustein_word_file
 from ..models.catalog_modules import (
     CatalogModuleInput,
     CatalogModuleOutput,
@@ -44,7 +44,7 @@ from ..utils.filtering import (
     search_columns,
 )
 from ..utils.pagination import Page, page_params
-from ..utils.temp_file import get_temp_file
+from ..utils.temp_file import copy_upload_to_temp_file
 from .catalogs import Catalogs
 
 
@@ -333,6 +333,36 @@ def get_catalog_module_references(
         return references
 
 
+def get_gs_baustein_from_uploaded_word_file(
+    temp_file: _TemporaryFileWrapper = Depends(copy_upload_to_temp_file),
+):
+    try:
+        yield parse_gs_baustein_word_file(temp_file.name)
+    except GSParseError as error:
+        raise ValueHttpError(str(error)) from error
+
+
+def get_catalog_module_from_gs_baustein(
+    gs_baustein: GSBaustein = Depends(get_gs_baustein_from_uploaded_word_file),
+    skip_omitted: bool = False,
+) -> CatalogModule:
+    return CatalogModule(
+        reference=gs_baustein.title.reference,
+        title=gs_baustein.title.name,
+        catalog_requirements=[
+            CatalogRequirement(
+                reference=gs_anforderung.title.reference,
+                summary=gs_anforderung.title.name,
+                description="\n\n".join(gs_anforderung.text),
+                gs_absicherung=gs_anforderung.title.gs_absicherung,
+                gs_verantwortliche=gs_anforderung.title.gs_verantwortliche,
+            )
+            for gs_anforderung in gs_baustein.gs_anforderungen
+            if not (skip_omitted and gs_anforderung.omitted)
+        ],
+    )
+
+
 @router.post(
     "/catalogs/{catalog_id}/catalog-modules/gs-baustein",
     status_code=201,
@@ -340,18 +370,11 @@ def get_catalog_module_references(
 )
 def upload_gs_baustein(
     catalog_id: int,
-    upload_file: UploadFile,
-    temp_file: NamedTemporaryFile = Depends(get_temp_file(".docx")),
+    catalog_module: CatalogModule = Depends(get_catalog_module_from_gs_baustein),
     catalogs: Catalogs = Depends(),
     session: Session = Depends(get_session),
 ) -> CatalogModule:
     catalog = catalogs.get_catalog(catalog_id)
-    shutil.copyfileobj(upload_file.file, temp_file.file)
-
-    # Parse GS Baustein and save it and its requirements in the database
-    catalog_module = GSBausteinParser.parse(temp_file.name)
-    if catalog_module is None:
-        raise ValueHttpError("Could not parse GS Baustein")
 
     # Assign catalog and save catalog module to database
     session.add(catalog_module)
