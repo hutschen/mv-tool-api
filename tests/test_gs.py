@@ -19,9 +19,7 @@ import os
 
 import pytest
 
-from mvtool.gs_parser import GSBausteinParser
 from mvtool.gs_parser_xml import GSKompendiumParser
-from mvtool.utils import errors
 
 
 def get_gs_kompendium_filenames():
@@ -33,34 +31,3 @@ def get_gs_kompendium_filenames():
 @pytest.mark.parametrize("filename", get_gs_kompendium_filenames())
 def test_parse_gs_kompendium(filename):
     GSKompendiumParser.parse(filename)
-
-
-def get_gs_baustein_filenames():
-    for filename in os.listdir("tests/data/gs_bausteine"):
-        if filename.endswith(".docx") and filename not in (
-            "_invalid.docx",
-            "_corrupted.docx",
-        ):
-            yield os.path.join("tests/data/gs_bausteine", filename)
-
-
-@pytest.mark.parametrize("filename", get_gs_baustein_filenames())
-def test_parse_gs_baustein(filename):
-    gs_baustein = GSBausteinParser.parse(filename)
-    assert gs_baustein is not None
-    assert gs_baustein.title is not None
-    assert gs_baustein.catalog_requirements is not None
-
-
-def test_parse_gs_baustein_invalid():
-    with pytest.raises(errors.ValueHttpError) as error_info:
-        GSBausteinParser.parse("tests/data/gs_bausteine/_invalid.docx")
-    assert error_info.value.status_code == 400
-    assert error_info.value.detail.startswith("Could not parse")
-
-
-def test_parse_gs_baustein_corrupted():
-    with pytest.raises(errors.ValueHttpError) as error_info:
-        GSBausteinParser.parse("tests/data/gs_bausteine/_corrupted.docx")
-    assert error_info.value.status_code == 400
-    assert error_info.value.detail == "Word file seems to be corrupted"
