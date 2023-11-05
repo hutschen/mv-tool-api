@@ -41,19 +41,19 @@ GSAnforderungTitle = namedtuple(
 
 @dataclass
 class GSAnforderung:
-    title = GSAnforderungTitle
-    text: str
+    title: GSAnforderungTitle
+    text: Iterable[str]
 
 
 @dataclass
 class GSBaustein:
-    title = GSBausteinTitle
+    title: GSBausteinTitle
     gs_anforderungen: Iterable[GSAnforderung]
 
 
 @dataclass
 class GSSchicht:
-    title = GSSchichtTitle
+    title: GSSchichtTitle
     gs_bausteine: Iterable[GSBaustein]
 
 
