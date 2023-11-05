@@ -99,10 +99,6 @@ def test_parse_gs_baustein_title_invalid(invalid_title):
             GSAnforderungTitle("ABC.1.A1", "Sample Name", "S", "Role"),
         ),
         (
-            "ABC.1.1 Sample Name [Role] (S)",
-            GSAnforderungTitle("ABC.1.1", "Sample Name", "S", "Role"),
-        ),
-        (
             "ABC.1.A1 Sample Name [Role] (H)",
             GSAnforderungTitle("ABC.1.A1", "Sample Name", "H", "Role"),
         ),
@@ -138,10 +134,6 @@ def test_parse_gs_baustein_title_invalid(invalid_title):
         (
             "ABC.1.A1 Sample Name (S) [Role]",
             GSAnforderungTitle("ABC.1.A1", "Sample Name", "S", "Role"),
-        ),
-        (
-            "ABC.1.1 Sample Name (S) [Role]",
-            GSAnforderungTitle("ABC.1.1", "Sample Name", "S", "Role"),
         ),
         (
             "ABC.1.A1 Sample Name (H) [Role]",

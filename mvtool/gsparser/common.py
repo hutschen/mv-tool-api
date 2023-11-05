@@ -21,10 +21,10 @@ from typing import Iterable, cast
 GS_SCHICHT_TITLE_RE = re.compile(r"^\s*([A-Z]{3,4})\s+(.+?)\s*$")
 GS_BAUSTEIN_TITLE_RE = re.compile(r"^\s*([A-Z]{3,4}(\.[0-9]+)+)\s*(.+?)\s*$")
 GS_ANFORDERUNG_TITLE_RE_1 = re.compile(
-    r"^\s*([A-Z]{3,4}(\.[A-Z0-9]+)+)\s+([^\]]+?)\s+(\[([^\]]+)\])?\s*\((B|S|H)\)\s*$"
+    r"^\s*([A-Z]+(\.[0-9]+)+\.A[0-9]+)\s+([^\]]+?)\s+(\[([^\]]+)\])?\s*\((B|S|H)\)\s*$"
 )
 GS_ANFORDERUNG_TITLE_RE_2 = re.compile(
-    r"^\s*([A-Z]{3,4}(\.[A-Z0-9]+)+)\s+([^\]]+?)\s+\((B|S|H)\)\s*(\[([^\]]+)\])?\s*$"
+    r"^\s*([A-Z]+(\.[0-9]+)+\.A[0-9]+)\s+([^\]]+?)\s+\((B|S|H)\)\s*(\[([^\]]+)\])?\s*$"
 )
 
 
