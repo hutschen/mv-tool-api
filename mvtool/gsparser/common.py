@@ -16,7 +16,7 @@
 import re
 from collections import namedtuple
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Iterable, cast
 
 GS_SCHICHT_TITLE_RE = re.compile(r"^\s*([A-Z]{3,4})\s+(.+?)\s*$")
 GS_BAUSTEIN_TITLE_RE = re.compile(r"^\s*([A-Z]{3,4}(\.[0-9]+)+)\s*(.+?)\s*$")
@@ -43,6 +43,10 @@ GSAnforderungTitle = namedtuple(
 class GSAnforderung:
     title: GSAnforderungTitle
     text: Iterable[str]
+
+    @property
+    def omitted(self) -> bool:
+        return cast(str, self.title.name).lower() == "entfallen"
 
 
 @dataclass
