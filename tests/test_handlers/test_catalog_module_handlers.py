@@ -25,17 +25,25 @@ from sqlalchemy.orm import Session
 
 from mvtool.data.catalog_modules import CatalogModules
 from mvtool.data.catalogs import Catalogs
-from mvtool.db.schema import Catalog, CatalogModule
-from mvtool.gs_parser import GSBausteinParser
+from mvtool.db.schema import Catalog, CatalogModule, CatalogRequirement
+from mvtool.gsparser.common import (
+    GSAnforderung,
+    GSAnforderungTitle,
+    GSBaustein,
+    GSBausteinTitle,
+    GSParseError,
+)
 from mvtool.handlers.catalog_modules import (
     create_catalog_module,
     delete_catalog_module,
     delete_catalog_modules,
     get_catalog_module,
     get_catalog_module_field_names,
+    get_catalog_module_from_gs_baustein,
     get_catalog_module_references,
     get_catalog_module_representation,
     get_catalog_modules,
+    get_gs_baustein_from_uploaded_word_file,
     patch_catalog_module,
     patch_catalog_modules,
     update_catalog_module,
@@ -48,6 +56,7 @@ from mvtool.models.catalog_modules import (
     CatalogModulePatchMany,
     CatalogModuleRepresentation,
 )
+from mvtool.utils.errors import ValueHttpError
 from mvtool.utils.pagination import Page
 
 
@@ -310,64 +319,87 @@ def test_get_catalog_module_references_local_search(
     assert references == ["banana"]
 
 
-def test_upload_gs_baustein_success(
-    monkeypatch,
+def test_get_gs_baustein_from_uploaded_word_file_success(monkeypatch):
+    # Creates a mock object that returns a catalog module when called
+    mock_parse_function = Mock()
+    mock_parse_function.return_value = object()
+    mock_temp_file = Mock()
+
+    # Replace the parse_gs_baustein_word_file function with the mock object
+    monkeypatch.setattr(
+        "mvtool.handlers.catalog_modules.parse_gs_baustein_word_file",
+        mock_parse_function,
+    )
+
+    # Call the function and check if the mock object is returned
+    result = next(get_gs_baustein_from_uploaded_word_file(mock_temp_file))
+    assert result == mock_parse_function.return_value
+
+
+def test_get_gs_baustein_from_uploaded_word_file_fails(monkeypatch):
+    # Creates a mock object that throws a GSParseError when called
+    mock_parse_function = Mock(side_effect=GSParseError("Test error"))
+    mock_temp_file = Mock()
+
+    # Replace the parse_gs_baustein_word_file function with the mock object
+    monkeypatch.setattr(
+        "mvtool.handlers.catalog_modules.parse_gs_baustein_word_file",
+        mock_parse_function,
+    )
+
+    with pytest.raises(ValueHttpError, match="Test error"):
+        # next() is used to get the return value of the generator
+        next(get_gs_baustein_from_uploaded_word_file(mock_temp_file))
+
+
+@pytest.mark.parametrize("skip_omitted", [True, False])
+def test_get_catalog_module_from_gs_baustein(skip_omitted):
+    # Create a GS Baustein
+    gs_baustein = GSBaustein(
+        title=GSBausteinTitle("ABC.1", "Sample Name"),
+        gs_anforderungen=[
+            GSAnforderung(
+                title=GSAnforderungTitle("ABC.1.A1", "Sample Name", "B", "Role"),
+                text=["Sample", "text"],
+            ),
+            GSAnforderung(
+                title=GSAnforderungTitle("ABC.1.A1", "Entfallen", "B", "Role"),
+                text=["Sample", "text"],
+            ),
+        ],
+    )
+
+    # Convert the GS Baustein to a catalog module
+    catalog_module = get_catalog_module_from_gs_baustein(gs_baustein, skip_omitted)
+
+    # Check if the catalog module is created correctly
+    assert isinstance(catalog_module, CatalogModule)
+    assert catalog_module.reference == "ABC.1"
+    assert catalog_module.title == "Sample Name"
+
+    # Define the expected requirement summaries based on skip_omitted parameter
+    expected_summaries = (
+        ["Sample Name"] if skip_omitted else ["Sample Name", "Entfallen"]
+    )
+
+    # Assert that the catalog requirements match the expected results
+    for i, summary in enumerate(expected_summaries):
+        catalog_requirement: CatalogRequirement = catalog_module.catalog_requirements[i]
+        assert catalog_requirement.reference == f"ABC.1.A1"
+        assert catalog_requirement.summary == summary
+        assert catalog_requirement.gs_absicherung == "B"
+        assert catalog_requirement.gs_verantwortliche == "Role"
+        assert catalog_requirement.description == "Sample\n\ntext"
+
+
+def test_upload_gs_baustein(
     catalog: Catalog,
-    catalog_module: CatalogModule,
     session: Session,
     catalogs: Catalogs,
 ):
-    # Prepare mock objects
-    parse_mock = Mock()
-    parse_mock.return_value = catalog_module
-    monkeypatch.setattr(GSBausteinParser, "parse", parse_mock)
+    catalog_module = CatalogModule(title="Test")
+    result = upload_gs_baustein(catalog.id, catalog_module, catalogs, session)
 
-    # Create dummy file
-    upload_file = UploadFile(BytesIO(b"test"))
-
-    # Create temporary file
-    with NamedTemporaryFile(suffix=".docx") as temp_file:
-        # Funktion aufrufen
-        result = upload_gs_baustein(
-            catalog.id,
-            upload_file,
-            temp_file=temp_file,
-            catalogs=catalogs,
-            session=session,
-        )
-
-    # Check result
-    parse_mock.assert_called_once_with(temp_file.name)
+    # Check if the catalog module is assigned to the catalog
     assert result == catalog_module
     assert result.catalog == catalog
-
-
-def test_upload_gs_baustein_failure(
-    monkeypatch,
-    catalog: Catalog,
-    session: Session,
-    catalogs: Catalogs,
-):
-    # Prepare mock objects
-    parse_mock = Mock()
-    parse_mock.return_value = None
-    monkeypatch.setattr(GSBausteinParser, "parse", parse_mock)
-
-    # Create dummy file
-    upload_file = UploadFile(file=BytesIO(b"test"))
-
-    # Create temporary file
-    with NamedTemporaryFile(suffix=".docx") as temp_file:
-        # Call function and check for ValueHttpError
-        with pytest.raises(HTTPException) as exc_info:
-            upload_gs_baustein(
-                catalog.id,
-                upload_file,
-                temp_file=temp_file,
-                catalogs=catalogs,
-                session=session,
-            )
-
-    # Check result
-    parse_mock.assert_called_once_with(temp_file.name)
-    assert exc_info.value.detail == "Could not parse GS Baustein"
