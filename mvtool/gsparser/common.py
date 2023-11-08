@@ -27,6 +27,13 @@ GS_ANFORDERUNG_TITLE_RE_2 = re.compile(
     r"^\s*([A-Z]+(\.[0-9]+)+\.A[0-9]+)\s+([^\]]+?)\s+\((B|S|H)\)\s*(\[([^\]]+)\])?\s*$"
 )
 
+GS_ANFORDERUNGEN_SECTION_TITLE = "anforderungen"
+GS_ANFORDERUNGEN_SUBSECTION_TITLES = (
+    "basis-anforderungen",
+    "standard-anforderungen",
+    "anforderungen bei erhöhtem schutzbedarf",
+)
+
 
 class GSParseError(ValueError):
     pass

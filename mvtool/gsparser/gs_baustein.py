@@ -20,6 +20,8 @@ import docx
 from docx.opc.exceptions import PackageNotFoundError
 
 from .common import (
+    GS_ANFORDERUNGEN_SECTION_TITLE,
+    GS_ANFORDERUNGEN_SUBSECTION_TITLES,
     GSAnforderung,
     GSBaustein,
     GSBausteinTitle,
@@ -86,11 +88,7 @@ def _parse_gs_anforderungen_subsections(paragraphs: _ParagraphsWrapper):
     while paragraphs.next():
         if paragraphs.current.style.name == "Heading 2" and (
             cast(str, paragraphs.current.text).lower()
-            in (
-                "basis-anforderungen",
-                "standard-anforderungen",
-                "anforderungen bei erhöhtem schutzbedarf",
-            )
+            in GS_ANFORDERUNGEN_SUBSECTION_TITLES
         ):
             for gs_anforderung in _parse_gs_anforderungen(paragraphs):
                 yield gs_anforderung
@@ -104,7 +102,8 @@ def _parse_gs_anforderungen_section(paragraphs: _ParagraphsWrapper):
     while paragraphs.next():
         if (
             paragraphs.current.style.name == "Heading 1"
-            and paragraphs.current.text == "Anforderungen"
+            and cast(str, paragraphs.current.text).lower()
+            == GS_ANFORDERUNGEN_SECTION_TITLE
         ):
             return _parse_gs_anforderungen_subsections(paragraphs)
 
