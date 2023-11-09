@@ -1,6 +1,4 @@
-# coding: utf-8
-#
-# Copyright (C) 2022 Helmar Hutschenreuter
+# Copyright (C) 2023 Helmar Hutschenreuter
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -19,7 +17,19 @@ import os
 
 import pytest
 
-from mvtool.gs_parser_xml import GSKompendiumParser
+from mvtool.gsparser.common import GSKompendium, GSParseError
+from mvtool.gsparser.gs_kompendium import parse_gs_kompendium_xml_file
+
+
+def iter_gs_kompendium(gs_kompendium: GSKompendium):
+    for gs_schicht in gs_kompendium.gs_schichten:
+        yield gs_schicht
+        for gs_baustein in gs_schicht.gs_bausteine:
+            yield gs_baustein
+            for gs_anforderung in gs_baustein.gs_anforderungen:
+                yield gs_anforderung
+                for text in gs_anforderung.text:
+                    yield text
 
 
 def get_gs_kompendium_filenames():
@@ -30,4 +40,14 @@ def get_gs_kompendium_filenames():
 
 @pytest.mark.parametrize("filename", get_gs_kompendium_filenames())
 def test_parse_gs_kompendium(filename):
-    GSKompendiumParser.parse(filename)
+    gs_kompendium = parse_gs_kompendium_xml_file(filename)
+    assert gs_kompendium is not None
+    tuple(iter_gs_kompendium(gs_kompendium))  # run the parsing process
+
+
+def test_parse_gs_kompendium_corrupted():
+    """
+    Test the parsing of a valid XML file with invalid GS-Kompendium content.
+    """
+    with pytest.raises(GSParseError):
+        parse_gs_kompendium_xml_file("tests/data/corrupted")
