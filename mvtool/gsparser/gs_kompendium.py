@@ -98,10 +98,21 @@ def _parse_gs_schichten(root_elem: ET.Element) -> GSKompendium:
             )
 
 
+def _parse_gs_kompendium(root_elem: ET.Element) -> GSKompendium:
+    title_elem = root_elem.find(".//docbook:title", _XML_NAMESPACES)
+    if title_elem is None or title_elem.text is None:
+        raise GSParseError("Missing title")
+    else:
+        return GSKompendium(
+            title=title_elem.text,
+            gs_schichten=_parse_gs_schichten(root_elem),
+        )
+
+
 def parse_gs_kompendium_xml_file(file_name: str) -> GSKompendium:
     try:
         root_elem = ET.parse(file_name).getroot()
     except ET.ParseError as e:
         raise GSParseError(f"XML parsing error: {e}") from e
 
-    return GSKompendium(gs_schichten=_parse_gs_schichten(root_elem))
+    return _parse_gs_kompendium(root_elem)

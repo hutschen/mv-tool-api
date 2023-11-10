@@ -70,6 +70,7 @@ class GSSchicht:
 
 @dataclass
 class GSKompendium:
+    title: str
     gs_schichten: Iterable[GSSchicht]
 
 
