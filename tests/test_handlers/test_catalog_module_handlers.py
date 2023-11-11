@@ -15,35 +15,23 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from io import BytesIO
-from tempfile import NamedTemporaryFile
-from unittest.mock import Mock
 
 import pytest
-from fastapi import HTTPException, UploadFile
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from mvtool.data.catalog_modules import CatalogModules
 from mvtool.data.catalogs import Catalogs
-from mvtool.db.schema import Catalog, CatalogModule, CatalogRequirement
-from mvtool.gsparser.common import (
-    GSAnforderung,
-    GSAnforderungTitle,
-    GSBaustein,
-    GSBausteinTitle,
-    GSParseError,
-)
+from mvtool.db.schema import Catalog, CatalogModule
 from mvtool.handlers.catalog_modules import (
     create_catalog_module,
     delete_catalog_module,
     delete_catalog_modules,
     get_catalog_module,
     get_catalog_module_field_names,
-    get_catalog_module_from_gs_baustein,
     get_catalog_module_references,
     get_catalog_module_representation,
     get_catalog_modules,
-    get_gs_baustein_from_uploaded_word_file,
     patch_catalog_module,
     patch_catalog_modules,
     update_catalog_module,
@@ -56,7 +44,6 @@ from mvtool.models.catalog_modules import (
     CatalogModulePatchMany,
     CatalogModuleRepresentation,
 )
-from mvtool.utils.errors import ValueHttpError
 from mvtool.utils.pagination import Page
 
 
@@ -317,79 +304,6 @@ def test_get_catalog_module_references_local_search(
     # Check if the correct reference is returned after filtering
     assert isinstance(references, list)
     assert references == ["banana"]
-
-
-def test_get_gs_baustein_from_uploaded_word_file_success(monkeypatch):
-    # Creates a mock object that returns a catalog module when called
-    mock_parse_function = Mock()
-    mock_parse_function.return_value = object()
-    mock_temp_file = Mock()
-
-    # Replace the parse_gs_baustein_word_file function with the mock object
-    monkeypatch.setattr(
-        "mvtool.handlers.catalog_modules.parse_gs_baustein_word_file",
-        mock_parse_function,
-    )
-
-    # Call the function and check if the mock object is returned
-    result = next(get_gs_baustein_from_uploaded_word_file(mock_temp_file))
-    assert result == mock_parse_function.return_value
-
-
-def test_get_gs_baustein_from_uploaded_word_file_fails(monkeypatch):
-    # Creates a mock object that throws a GSParseError when called
-    mock_parse_function = Mock(side_effect=GSParseError("Test error"))
-    mock_temp_file = Mock()
-
-    # Replace the parse_gs_baustein_word_file function with the mock object
-    monkeypatch.setattr(
-        "mvtool.handlers.catalog_modules.parse_gs_baustein_word_file",
-        mock_parse_function,
-    )
-
-    with pytest.raises(ValueHttpError, match="Test error"):
-        # next() is used to get the return value of the generator
-        next(get_gs_baustein_from_uploaded_word_file(mock_temp_file))
-
-
-@pytest.mark.parametrize("skip_omitted", [True, False])
-def test_get_catalog_module_from_gs_baustein(skip_omitted):
-    # Create a GS Baustein
-    gs_baustein = GSBaustein(
-        title=GSBausteinTitle("ABC.1", "Sample Name"),
-        gs_anforderungen=[
-            GSAnforderung(
-                title=GSAnforderungTitle("ABC.1.A1", "Sample Name", "B", "Role"),
-                text=["Sample", "text"],
-            ),
-            GSAnforderung(
-                title=GSAnforderungTitle("ABC.1.A1", "Entfallen", "B", "Role"),
-                text=["Sample", "text"],
-            ),
-        ],
-    )
-
-    # Convert the GS Baustein to a catalog module
-    catalog_module = get_catalog_module_from_gs_baustein(gs_baustein, skip_omitted)
-
-    # Check if the catalog module is created correctly
-    assert isinstance(catalog_module, CatalogModule)
-    assert catalog_module.reference == "ABC.1"
-    assert catalog_module.title == "Sample Name"
-
-    # Define the expected requirement summaries based on skip_omitted parameter
-    expected_summaries = (
-        ["Sample Name"] if skip_omitted else ["Sample Name", "Entfallen"]
-    )
-
-    # Assert that the catalog requirements match the expected results
-    for i, summary in enumerate(expected_summaries):
-        catalog_requirement: CatalogRequirement = catalog_module.catalog_requirements[i]
-        assert catalog_requirement.reference == f"ABC.1.A1"
-        assert catalog_requirement.summary == summary
-        assert catalog_requirement.gs_absicherung == "B"
-        assert catalog_requirement.gs_verantwortliche == "Role"
-        assert catalog_requirement.description == "Sample\n\ntext"
 
 
 def test_upload_gs_baustein(

@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from tempfile import _TemporaryFileWrapper
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -26,9 +25,6 @@ from sqlalchemy.orm import Session
 from ..data.catalogs import Catalogs
 from ..db.database import get_session
 from ..db.schema import Catalog
-from ..gsparser.common import GSKompendium, GSParseError
-from ..gsparser.gs_kompendium import parse_gs_kompendium_xml_file
-from ..handlers.catalog_modules import get_catalog_module_from_gs_baustein
 from ..models.catalogs import (
     CatalogInput,
     CatalogOutput,
@@ -36,7 +32,6 @@ from ..models.catalogs import (
     CatalogPatchMany,
     CatalogRepresentation,
 )
-from ..utils.errors import ValueHttpError
 from ..utils.filtering import (
     filter_by_pattern_many,
     filter_by_values_many,
@@ -45,7 +40,7 @@ from ..utils.filtering import (
     search_columns,
 )
 from ..utils.pagination import Page, page_params
-from ..utils.temp_file import copy_upload_to_temp_file
+from .gs import get_catalog_from_gs_kompendium
 
 
 def get_catalog_filters(
@@ -292,30 +287,6 @@ def get_catalog_references(
         )
     else:
         return references
-
-
-def get_gs_kompendium_from_uploaded_xml_file(
-    temp_file: _TemporaryFileWrapper = Depends(copy_upload_to_temp_file),
-):
-    try:
-        yield parse_gs_kompendium_xml_file(temp_file.name)
-    except GSParseError as error:
-        raise ValueHttpError(str(error)) from error
-
-
-def get_catalog_from_gs_kompendium(
-    gs_kompendium: GSKompendium = Depends(get_gs_kompendium_from_uploaded_xml_file),
-    skip_omitted: bool = False,
-) -> Catalog:
-    return Catalog(
-        reference=gs_kompendium.title,
-        title=gs_kompendium.title,
-        catalog_modules=[
-            get_catalog_module_from_gs_baustein(gs_baustein, skip_omitted)
-            for gs_schicht in gs_kompendium.gs_schichten
-            for gs_baustein in gs_schicht.gs_bausteine
-        ],
-    )
 
 
 @router.post("/catalogs/gs-kompendium", status_code=201, response_model=CatalogOutput)

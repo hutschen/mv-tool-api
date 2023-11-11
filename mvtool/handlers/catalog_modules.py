@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from tempfile import _TemporaryFileWrapper
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -25,9 +24,7 @@ from sqlalchemy.orm import Session
 
 from ..data.catalog_modules import CatalogModules
 from ..db.database import get_session
-from ..db.schema import Catalog, CatalogModule, CatalogRequirement
-from ..gsparser.common import GSBaustein, GSParseError
-from ..gsparser.gs_baustein import parse_gs_baustein_word_file
+from ..db.schema import Catalog, CatalogModule
 from ..models.catalog_modules import (
     CatalogModuleInput,
     CatalogModuleOutput,
@@ -35,7 +32,6 @@ from ..models.catalog_modules import (
     CatalogModulePatchMany,
     CatalogModuleRepresentation,
 )
-from ..utils.errors import ValueHttpError
 from ..utils.filtering import (
     filter_by_pattern_many,
     filter_by_values_many,
@@ -44,8 +40,8 @@ from ..utils.filtering import (
     search_columns,
 )
 from ..utils.pagination import Page, page_params
-from ..utils.temp_file import copy_upload_to_temp_file
 from .catalogs import Catalogs
+from .gs import get_catalog_module_from_gs_baustein
 
 
 def get_catalog_module_filters(
@@ -331,36 +327,6 @@ def get_catalog_module_references(
         )
     else:
         return references
-
-
-def get_gs_baustein_from_uploaded_word_file(
-    temp_file: _TemporaryFileWrapper = Depends(copy_upload_to_temp_file),
-):
-    try:
-        yield parse_gs_baustein_word_file(temp_file.name)
-    except GSParseError as error:
-        raise ValueHttpError(str(error)) from error
-
-
-def get_catalog_module_from_gs_baustein(
-    gs_baustein: GSBaustein = Depends(get_gs_baustein_from_uploaded_word_file),
-    skip_omitted: bool = False,
-) -> CatalogModule:
-    return CatalogModule(
-        reference=gs_baustein.title.reference,
-        title=gs_baustein.title.name,
-        catalog_requirements=[
-            CatalogRequirement(
-                reference=gs_anforderung.title.reference,
-                summary=gs_anforderung.title.name,
-                description="\n\n".join(gs_anforderung.text),
-                gs_absicherung=gs_anforderung.title.gs_absicherung,
-                gs_verantwortliche=gs_anforderung.title.gs_verantwortliche,
-            )
-            for gs_anforderung in gs_baustein.gs_anforderungen
-            if not (skip_omitted and gs_anforderung.omitted)
-        ],
-    )
 
 
 @router.post(
