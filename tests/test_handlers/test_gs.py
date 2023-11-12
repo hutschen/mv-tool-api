@@ -23,11 +23,16 @@ from mvtool.gsparser.common import (
     GSAnforderungTitle,
     GSBaustein,
     GSBausteinTitle,
+    GSKompendium,
     GSParseError,
+    GSSchicht,
+    GSSchichtTitle,
 )
 from mvtool.handlers.gs import (
+    get_catalog_from_gs_kompendium,
     get_catalog_module_from_gs_baustein,
     get_gs_baustein_from_uploaded_word_file,
+    get_gs_kompendium_from_uploaded_xml_file,
 )
 from mvtool.utils.errors import ValueHttpError
 
@@ -65,6 +70,39 @@ def test_get_gs_baustein_from_uploaded_word_file_success(monkeypatch):
     assert result == mock_parse_function.return_value
 
 
+def test_get_gs_kompendium_from_uploaded_xml_file_fails(monkeypatch):
+    # Creates a mock object that throws a GSParseError when called
+    mock_parse_function = Mock(side_effect=GSParseError("Test error"))
+    mock_temp_file = Mock()
+
+    # Replace the parse_gs_kompendium_xml_file function with the mock object
+    monkeypatch.setattr(
+        "mvtool.handlers.gs.parse_gs_kompendium_xml_file",
+        mock_parse_function,
+    )
+
+    with pytest.raises(ValueHttpError, match="Test error"):
+        # next() is used to get the return value of the generator
+        next(get_gs_kompendium_from_uploaded_xml_file(mock_temp_file))
+
+
+def test_get_gs_kompendium_from_uploaded_xml_file_success(monkeypatch):
+    # Creates a mock object that returns a catalog module when called
+    mock_parse_function = Mock()
+    mock_parse_function.return_value = object()
+    mock_temp_file = Mock()
+
+    # Replace the parse_gs_kompendium_xml_file function with the mock object
+    monkeypatch.setattr(
+        "mvtool.handlers.gs.parse_gs_kompendium_xml_file",
+        mock_parse_function,
+    )
+
+    # Call the function and check if the mock object is returned
+    result = next(get_gs_kompendium_from_uploaded_xml_file(mock_temp_file))
+    assert result == mock_parse_function.return_value
+
+
 @pytest.mark.parametrize("skip_omitted", [True, False])
 def test_get_catalog_module_from_gs_baustein(skip_omitted):
     # Create a GS Baustein
@@ -98,6 +136,68 @@ def test_get_catalog_module_from_gs_baustein(skip_omitted):
     # Assert that the catalog requirements match the expected results
     for i, summary in enumerate(expected_summaries):
         catalog_requirement: CatalogRequirement = catalog_module.catalog_requirements[i]
+        assert catalog_requirement.reference == f"ABC.1.A1"
+        assert catalog_requirement.summary == summary
+        assert catalog_requirement.gs_absicherung == "B"
+        assert catalog_requirement.gs_verantwortliche == "Role"
+        assert catalog_requirement.description == "Sample\n\ntext"
+
+
+@pytest.mark.parametrize("skip_omitted", [True, False])
+def test_get_catalog_from_gs_kompendium(skip_omitted):
+    # Create a GS Kompendium
+    gs_kompendium = GSKompendium(
+        title="Sample Title",
+        gs_schichten=[
+            GSSchicht(
+                title=GSSchichtTitle(
+                    "Sample Reference",
+                    "Sample Name",
+                ),
+                gs_bausteine=[
+                    GSBaustein(
+                        title=GSBausteinTitle("ABC.1", "Sample Name"),
+                        gs_anforderungen=[
+                            GSAnforderung(
+                                title=GSAnforderungTitle(
+                                    "ABC.1.A1", "Sample Name", "B", "Role"
+                                ),
+                                text=["Sample", "text"],
+                            ),
+                            GSAnforderung(
+                                title=GSAnforderungTitle(
+                                    "ABC.1.A1", "Entfallen", "B", "Role"
+                                ),
+                                text=["Sample", "text"],
+                            ),
+                        ],
+                    )
+                ],
+            )
+        ],
+    )
+
+    # Convert the GS Kompendium to a catalog
+    catalog = get_catalog_from_gs_kompendium(gs_kompendium, skip_omitted)
+
+    # Check if the catalog is created correctly
+    assert catalog.reference == None
+    assert catalog.title == "Sample Title"
+
+    catalog_module: CatalogModule = catalog.catalog_modules[0]
+    assert catalog_module.reference == "ABC.1"
+    assert catalog_module.title == "Sample Name"
+
+    # Define the expected requirement summaries based on skip_omitted parameter
+    expected_summaries = (
+        ["Sample Name"] if skip_omitted else ["Sample Name", "Entfallen"]
+    )
+
+    # Assert that the catalog requirements match the expected results
+    for i, summary in enumerate(expected_summaries):
+        catalog_requirement: CatalogRequirement = catalog.catalog_modules[
+            0
+        ].catalog_requirements[i]
         assert catalog_requirement.reference == f"ABC.1.A1"
         assert catalog_requirement.summary == summary
         assert catalog_requirement.gs_absicherung == "B"

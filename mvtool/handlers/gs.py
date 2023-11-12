@@ -69,7 +69,6 @@ def get_catalog_from_gs_kompendium(
     skip_omitted: bool = False,
 ) -> Catalog:
     return Catalog(
-        reference=gs_kompendium.title,
         title=gs_kompendium.title,
         catalog_modules=[
             get_catalog_module_from_gs_baustein(gs_baustein, skip_omitted)
