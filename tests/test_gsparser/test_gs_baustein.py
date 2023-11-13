@@ -1,6 +1,4 @@
-# coding: utf-8
-#
-# Copyright (C) 2022 Helmar Hutschenreuter
+# Copyright (C) 2023 Helmar Hutschenreuter
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -19,8 +17,8 @@ import os
 
 import pytest
 
-from mvtool.gs_parser import GSBausteinParser
-from mvtool.utils import errors
+from mvtool.gsparser.common import GSBaustein, GSParseError
+from mvtool.gsparser.gs_baustein import parse_gs_baustein_word_file
 
 
 def get_gs_baustein_filenames():
@@ -32,23 +30,34 @@ def get_gs_baustein_filenames():
             yield os.path.join("tests/data/gs_bausteine", filename)
 
 
+def iter_gs_baustein(gs_baustein: GSBaustein):
+    for gs_anforderung in gs_baustein.gs_anforderungen:
+        yield gs_anforderung
+        for text in gs_anforderung.text:
+            yield text
+
+
 @pytest.mark.parametrize("filename", get_gs_baustein_filenames())
 def test_parse_gs_baustein(filename):
-    gs_baustein = GSBausteinParser.parse(filename)
+    gs_baustein = parse_gs_baustein_word_file(filename)
     assert gs_baustein is not None
-    assert gs_baustein.title is not None
-    assert gs_baustein.catalog_requirements is not None
+    tuple(iter_gs_baustein(gs_baustein))  # run the parsing process
 
 
 def test_parse_gs_baustein_invalid():
-    with pytest.raises(errors.ValueHttpError) as error_info:
-        GSBausteinParser.parse("tests/data/gs_bausteine/_invalid.docx")
-    assert error_info.value.status_code == 400
-    assert error_info.value.detail.startswith("Could not parse")
+    """
+    Test the parsing of a valid Word file with invalid GS-Baustein content.
+    """
+    gs_baustein = parse_gs_baustein_word_file("tests/data/gs_bausteine/_invalid.docx")
+    assert gs_baustein is not None
+
+    with pytest.raises(GSParseError):
+        tuple(iter_gs_baustein(gs_baustein))  # run the parsing process
 
 
 def test_parse_gs_baustein_corrupted():
-    with pytest.raises(errors.ValueHttpError) as error_info:
-        GSBausteinParser.parse("tests/data/gs_bausteine/_corrupted.docx")
-    assert error_info.value.status_code == 400
-    assert error_info.value.detail == "Word file seems to be corrupted"
+    """
+    Test the parsing of a corrupted Word file.
+    """
+    with pytest.raises(GSParseError, match="Word file seems to be corrupt"):
+        parse_gs_baustein_word_file("tests/data/gs_bausteine/_corrupted.docx")

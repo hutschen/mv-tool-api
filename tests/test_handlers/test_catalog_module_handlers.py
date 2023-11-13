@@ -15,18 +15,14 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from io import BytesIO
-from tempfile import NamedTemporaryFile
-from unittest.mock import Mock
 
 import pytest
-from fastapi import HTTPException, UploadFile
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from mvtool.data.catalog_modules import CatalogModules
 from mvtool.data.catalogs import Catalogs
 from mvtool.db.schema import Catalog, CatalogModule
-from mvtool.gs_parser import GSBausteinParser
 from mvtool.handlers.catalog_modules import (
     create_catalog_module,
     delete_catalog_module,
@@ -310,64 +306,14 @@ def test_get_catalog_module_references_local_search(
     assert references == ["banana"]
 
 
-def test_upload_gs_baustein_success(
-    monkeypatch,
+def test_upload_gs_baustein(
     catalog: Catalog,
-    catalog_module: CatalogModule,
     session: Session,
     catalogs: Catalogs,
 ):
-    # Prepare mock objects
-    parse_mock = Mock()
-    parse_mock.return_value = catalog_module
-    monkeypatch.setattr(GSBausteinParser, "parse", parse_mock)
+    catalog_module = CatalogModule(title="Test")
+    result = upload_gs_baustein(catalog.id, catalog_module, catalogs, session)
 
-    # Create dummy file
-    upload_file = UploadFile(BytesIO(b"test"))
-
-    # Create temporary file
-    with NamedTemporaryFile(suffix=".docx") as temp_file:
-        # Funktion aufrufen
-        result = upload_gs_baustein(
-            catalog.id,
-            upload_file,
-            temp_file=temp_file,
-            catalogs=catalogs,
-            session=session,
-        )
-
-    # Check result
-    parse_mock.assert_called_once_with(temp_file.name)
+    # Check if the catalog module is assigned to the catalog
     assert result == catalog_module
     assert result.catalog == catalog
-
-
-def test_upload_gs_baustein_failure(
-    monkeypatch,
-    catalog: Catalog,
-    session: Session,
-    catalogs: Catalogs,
-):
-    # Prepare mock objects
-    parse_mock = Mock()
-    parse_mock.return_value = None
-    monkeypatch.setattr(GSBausteinParser, "parse", parse_mock)
-
-    # Create dummy file
-    upload_file = UploadFile(file=BytesIO(b"test"))
-
-    # Create temporary file
-    with NamedTemporaryFile(suffix=".docx") as temp_file:
-        # Call function and check for ValueHttpError
-        with pytest.raises(HTTPException) as exc_info:
-            upload_gs_baustein(
-                catalog.id,
-                upload_file,
-                temp_file=temp_file,
-                catalogs=catalogs,
-                session=session,
-            )
-
-    # Check result
-    parse_mock.assert_called_once_with(temp_file.name)
-    assert exc_info.value.detail == "Could not parse GS Baustein"

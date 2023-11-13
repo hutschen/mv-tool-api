@@ -15,11 +15,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import shutil
-from tempfile import NamedTemporaryFile
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import constr
 from sqlalchemy import Column
 from sqlalchemy.orm import Session
@@ -27,7 +25,6 @@ from sqlalchemy.orm import Session
 from ..data.catalog_modules import CatalogModules
 from ..db.database import get_session
 from ..db.schema import Catalog, CatalogModule
-from ..gs_parser import GSBausteinParser
 from ..models.catalog_modules import (
     CatalogModuleInput,
     CatalogModuleOutput,
@@ -35,7 +32,6 @@ from ..models.catalog_modules import (
     CatalogModulePatchMany,
     CatalogModuleRepresentation,
 )
-from ..utils.errors import ValueHttpError
 from ..utils.filtering import (
     filter_by_pattern_many,
     filter_by_values_many,
@@ -44,8 +40,8 @@ from ..utils.filtering import (
     search_columns,
 )
 from ..utils.pagination import Page, page_params
-from ..utils.temp_file import get_temp_file
 from .catalogs import Catalogs
+from .gs import get_catalog_module_from_gs_baustein
 
 
 def get_catalog_module_filters(
@@ -340,18 +336,11 @@ def get_catalog_module_references(
 )
 def upload_gs_baustein(
     catalog_id: int,
-    upload_file: UploadFile,
-    temp_file: NamedTemporaryFile = Depends(get_temp_file(".docx")),
+    catalog_module: CatalogModule = Depends(get_catalog_module_from_gs_baustein),
     catalogs: Catalogs = Depends(),
     session: Session = Depends(get_session),
 ) -> CatalogModule:
     catalog = catalogs.get_catalog(catalog_id)
-    shutil.copyfileobj(upload_file.file, temp_file.file)
-
-    # Parse GS Baustein and save it and its requirements in the database
-    catalog_module = GSBausteinParser.parse(temp_file.name)
-    if catalog_module is None:
-        raise ValueHttpError("Could not parse GS Baustein")
 
     # Assign catalog and save catalog module to database
     session.add(catalog_module)
