@@ -47,8 +47,13 @@ def authenticate_ldap_user(username: str, password: str, ldap_config: LdapConfig
     # Handle SSL verification
     if ldap_config.verify_ssl == False:
         conn.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
+        # Apply TLS options, see https://stackoverflow.com/a/38136255/20196429
+        conn.set_option(ldap.OPT_X_TLS_NEWCTX, 0)
     elif isinstance(ldap_config.verify_ssl, str):
+        # The following option does not work under macOS, see
+        # https://github.com/python-ldap/python-ldap/issues/301#issuecomment-589306427
         conn.set_option(ldap.OPT_X_TLS_CACERTFILE, ldap_config.verify_ssl)
+        conn.set_option(ldap.OPT_X_TLS_NEWCTX, 0)  # Apply TLS options, see above
 
     # Bind account if account_dn is provided
     if ldap_config.account_dn and ldap_config.account_password:
