@@ -49,8 +49,11 @@ def test_ssl_verification_disabled(ldap_initialize_mock, config: Config):
     config.ldap.verify_ssl = False
     authenticate_ldap_user("jdoe", "password", config.ldap)
     ldap_conn_mock = ldap_initialize_mock.return_value
-    ldap_conn_mock.set_option.assert_called_with(
-        ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER
+    ldap_conn_mock.set_option.assert_has_calls(
+        [
+            call(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER),
+            call(ldap.OPT_X_TLS_NEWCTX, 0),
+        ]
     )
 
 
@@ -65,8 +68,11 @@ def test_ssl_cert_path(ldap_initialize_mock, config: Config):
     config.ldap.verify_ssl = "/path/to/cert"
     authenticate_ldap_user("jdoe", "password", config.ldap)
     ldap_conn_mock = ldap_initialize_mock.return_value
-    ldap_conn_mock.set_option.assert_called_with(
-        ldap.OPT_X_TLS_CACERTFILE, "/path/to/cert"
+    ldap_conn_mock.set_option.assert_has_calls(
+        [
+            call(ldap.OPT_X_TLS_CACERTFILE, "/path/to/cert"),
+            call(ldap.OPT_X_TLS_NEWCTX, 0),
+        ]
     )
 
 
