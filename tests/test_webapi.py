@@ -20,7 +20,7 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from jira import JIRAError
 
-from mvtool import app
+from mvtool import get_app
 from mvtool.auth import get_jira
 from mvtool.db.database import get_session
 from mvtool.db.schema import CatalogRequirement, Document, Project, Requirement
@@ -36,10 +36,7 @@ def client(jira, session):
         except JIRAError as error:
             raise HTTPException(error.status_code, error.text)
 
-    # remove event handlers to avoid side effects
-    app.router.on_startup = []
-    app.router.on_shutdown = []
-
+    app = get_app()
     with TestClient(app) as client:
         app.dependency_overrides[get_session] = lambda: session
         app.dependency_overrides[get_jira] = get_jira_override

@@ -20,8 +20,10 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import constr
 from sqlalchemy import Column
+from sqlalchemy.orm import Session
 
 from ..data.catalogs import Catalogs
+from ..db.database import get_session
 from ..db.schema import Catalog
 from ..models.catalogs import (
     CatalogInput,
@@ -38,6 +40,7 @@ from ..utils.filtering import (
     search_columns,
 )
 from ..utils.pagination import Page, page_params
+from .gs import get_catalog_from_gs_kompendium
 
 
 def get_catalog_filters(
@@ -284,3 +287,13 @@ def get_catalog_references(
         )
     else:
         return references
+
+
+@router.post("/catalogs/gs-kompendium", status_code=201, response_model=CatalogOutput)
+def upload_gs_kompendium(
+    catalog: Catalog = Depends(get_catalog_from_gs_kompendium),
+    session: Session = Depends(get_session),
+):
+    session.add(catalog)
+    session.flush()
+    return catalog

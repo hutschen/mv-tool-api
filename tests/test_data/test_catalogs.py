@@ -24,6 +24,7 @@ from sqlalchemy.sql import select
 
 from mvtool.data.catalogs import Catalogs
 from mvtool.db.schema import Catalog
+from mvtool.handlers.catalogs import upload_gs_kompendium
 from mvtool.models.catalogs import CatalogImport, CatalogInput, CatalogPatch
 from mvtool.utils.errors import NotFoundError
 
@@ -392,3 +393,12 @@ def test_convert_catalog_imports(catalogs: Catalogs):
     for catalog_import in catalog_imports:
         catalog = catalog_map[catalog_import.etag]
         assert catalog.title == catalog_import.title
+
+
+def test_upload_gs_kompendium(session: Session):
+    catalog = Catalog(reference="reference", title="title")
+    result = upload_gs_kompendium(catalog, session)
+
+    # Check if the catalog is created
+    assert result == catalog
+    assert catalog.id is not None
