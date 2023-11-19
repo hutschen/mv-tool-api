@@ -710,3 +710,27 @@ def test_migration_35374d36bf2f_add_verification_status_field(
 
         # check if verification status of unverified measure is set to None
         assert unverified_measure["verification_status"] is None
+
+
+def test_migration_2dba78eeec85_add_user(
+    alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
+):
+    # Check if user table does not exist before migration
+    alembic_runner.migrate_up_before("2dba78eeec85")
+    inspector = sa.inspect(alembic_engine)
+    assert "user" not in inspector.get_table_names()
+
+    # Perform migration and check if user table exists with correct columns
+    alembic_runner.migrate_up_one()
+    inspector = sa.inspect(alembic_engine)
+    assert "user" in inspector.get_table_names()
+    assert set(c["name"] for c in inspector.get_columns("user")) == {
+        "id",
+        "created",
+        "updated",
+        "last_login",
+        "source",
+        "username",
+        "display_name",
+        "is_admin",
+    }
