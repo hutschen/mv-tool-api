@@ -16,6 +16,7 @@
 from datetime import datetime
 
 from sqlalchemy import (
+    Boolean,
     Column,
     DateTime,
     ForeignKey,
@@ -137,6 +138,15 @@ class ProgressCountsMixin:
             (cls.verification_count != 0, cls.verified_count / cls.verification_count),
             else_=None,
         )
+
+
+class User(CommonFieldsMixin, Base):
+    __tablename__ = "user"
+    last_login = Column(DateTime, default=datetime.utcnow, nullable=False)
+    source = Column(String, nullable=False)
+    username = Column(String, nullable=False, unique=True)
+    display_name = Column(String, nullable=False)
+    is_admin = Column(Boolean, nullable=False, default=False)
 
 
 class Catalog(CommonFieldsMixin, Base):
