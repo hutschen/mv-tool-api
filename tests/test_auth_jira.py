@@ -1,5 +1,3 @@
-# coding: utf-8
-#
 # Copyright (C) 2022 Helmar Hutschenreuter
 #
 # This program is free software: you can redistribute it and/or modify
@@ -21,7 +19,7 @@ from cryptography.fernet import InvalidToken
 
 from jira import JIRAError
 import pytest
-from mvtool.auth import (
+from mvtool.auth_jira import (
     _cache_jira,
     _connect_to_jira,
     _create_token,
@@ -34,7 +32,7 @@ from mvtool.auth import (
 
 def test_connect_to_jira(config):
     username, password, jira_config = ("user", "password", config.jira)
-    with patch("mvtool.auth.JIRA") as jira_mock:
+    with patch("mvtool.auth_jira.JIRA") as jira_mock:
         _connect_to_jira(username, password, jira_config)
         jira_mock.assert_called_once_with(
             jira_config.url,
@@ -45,7 +43,7 @@ def test_connect_to_jira(config):
 
 def test_connect_to_jira_validate_credentials(config):
     username, password, jira_config = ("user", "password", config.jira)
-    with patch("mvtool.auth.JIRA") as jira_mock:
+    with patch("mvtool.auth_jira.JIRA") as jira_mock:
         jira_mock.return_value = Mock()
         _connect_to_jira(username, password, jira_config, validate_credentials=True)
         jira_mock.assert_called_once_with(
@@ -58,7 +56,7 @@ def test_connect_to_jira_validate_credentials(config):
 
 def test_connect_to_jira_raise_jira_error(config):
     username, password, jira_config = ("user", "password", config.jira)
-    with patch("mvtool.auth.JIRA") as jira_mock:
+    with patch("mvtool.auth_jira.JIRA") as jira_mock:
         jira_mock.side_effect = JIRAError("Jira error")
         with pytest.raises(HTTPException) as error_info:
             _connect_to_jira(username, password, jira_config)
@@ -66,13 +64,13 @@ def test_connect_to_jira_raise_jira_error(config):
 
 
 def test_cache_jira():
-    with patch("mvtool.auth._jira_connections_cache", {}) as cache_mock:
+    with patch("mvtool.auth_jira._jira_connections_cache", {}) as cache_mock:
         _cache_jira("token", None)
         assert len(cache_mock) == 1
 
 
 def test_get_cached_jira():
-    with patch("mvtool.auth._jira_connections_cache", {}) as cache_mock:
+    with patch("mvtool.auth_jira._jira_connections_cache", {}) as cache_mock:
         jira_mock = Mock()
         _cache_jira("token", jira_mock)
         assert len(cache_mock) == 1
@@ -80,12 +78,12 @@ def test_get_cached_jira():
 
 
 def test_get_cached_jira_fails():
-    with patch("mvtool.auth._jira_connections_cache", {}) as cache_mock:
+    with patch("mvtool.auth_jira._jira_connections_cache", {}) as cache_mock:
         assert _get_cached_jira("token") is None
 
 
 def test_create_token(config):
-    with patch("mvtool.auth.encrypt") as encrypt_mock:
+    with patch("mvtool.auth_jira.encrypt") as encrypt_mock:
         encrypt_mock.return_value = "encrypted"
         token = _create_token("user", "password", config.auth)
         assert token == "encrypted"
@@ -95,7 +93,7 @@ def test_create_token(config):
 
 
 def test_get_credentials_from_token(config):
-    with patch("mvtool.auth.decrypt") as decrypt_mock:
+    with patch("mvtool.auth_jira.decrypt") as decrypt_mock:
         decrypt_mock.return_value = '["user", "password"]'
         username, password = _get_credentials_from_token("token", config.auth)
         assert username == "user"
@@ -103,7 +101,7 @@ def test_get_credentials_from_token(config):
 
 
 def test_get_credentials_from_token_invalid_token(config):
-    with patch("mvtool.auth.decrypt") as decrypt_mock:
+    with patch("mvtool.auth_jira.decrypt") as decrypt_mock:
         decrypt_mock.side_effect = InvalidToken()
         with pytest.raises(HTTPException) as error_info:
             _get_credentials_from_token("token", config.auth)
@@ -112,7 +110,7 @@ def test_get_credentials_from_token_invalid_token(config):
 
 def test_get_jira(config):
     with patch.multiple(
-        "mvtool.auth",
+        "mvtool.auth_jira",
         _get_cached_jira=DEFAULT,
         _get_credentials_from_token=DEFAULT,
         _connect_to_jira_or_dummy_jira=DEFAULT,
@@ -143,7 +141,7 @@ def test_login_for_access_token(config):
     form_data_mock.password = "password"
 
     with patch.multiple(
-        "mvtool.auth",
+        "mvtool.auth_jira",
         _connect_to_jira_or_dummy_jira=DEFAULT,
         _create_token=DEFAULT,
         _cache_jira=DEFAULT,

@@ -23,7 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .db import database
 
-from . import auth, migration, tables
+from . import auth_jira, migration, tables
 from .handlers import (
     jira_,
     projects,
@@ -47,7 +47,7 @@ def get_app(lifespan=None) -> FastAPI:
         redoc_url=config.fastapi.redoc_url,
         lifespan=lifespan,
     )
-    app.include_router(auth.router)
+    app.include_router(auth_jira.router)
     app.include_router(jira_.router, prefix="/api")
     app.include_router(catalogs.router, prefix="/api")
     app.include_router(catalog_modules.router, prefix="/api")

@@ -22,7 +22,7 @@ from sqlalchemy import Column, func
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import Select, select
 
-from ..auth import get_jira
+from ..auth_jira import get_jira
 from ..db.database import delete_from_db, get_session, read_from_db
 from ..db.schema import Catalog
 from ..models.catalogs import CatalogImport, CatalogInput, CatalogPatch
