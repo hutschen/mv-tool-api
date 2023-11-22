@@ -20,7 +20,7 @@ from typing import Callable
 from fastapi import APIRouter, Depends, Query, Response
 from fastapi.responses import FileResponse
 
-from ..auth_jira import get_jira
+from ..auth.jira_ import get_jira
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
 from .columns import ColumnGroup
 from .dataframe import DataFrame

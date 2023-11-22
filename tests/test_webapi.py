@@ -21,7 +21,7 @@ from fastapi.testclient import TestClient
 from jira import JIRAError
 
 from mvtool import get_app
-from mvtool.auth_jira import get_jira
+from mvtool.auth.jira_ import get_jira
 from mvtool.db.database import get_session
 from mvtool.db.schema import CatalogRequirement, Document, Project, Requirement
 from mvtool.models.jira_ import JiraIssueInput

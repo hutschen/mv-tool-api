@@ -16,18 +16,19 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import json
-from threading import Lock
-from jira import JIRA, JIRAError
-from cachetools import TTLCache
 from hashlib import sha256
+from threading import Lock
+
+from cachetools import TTLCache
 from cryptography.fernet import InvalidToken
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from jira import JIRA, JIRAError
 
-from .auth_ldap import LdapJiraDummy, authenticate_ldap_user
-from .utils.errors import UnauthorizedError
-from .utils.crypto import decrypt, encrypt
-from .config import load_config, Config, JiraConfig, AuthConfig
+from .ldap_ import LdapJiraDummy, authenticate_ldap_user
+from ..config import AuthConfig, Config, JiraConfig, load_config
+from ..utils.crypto import decrypt, encrypt
+from ..utils.errors import UnauthorizedError
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")

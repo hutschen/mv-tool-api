@@ -23,7 +23,7 @@ from jira import JIRA, JIRAError
 from jira.resources import Issue, IssueType, Project, Resource, Status, User
 from pydantic import conint
 
-from ..auth_jira import get_jira
+from ..auth.jira_ import get_jira
 from ..models import (
     JiraIssue,
     JiraIssueInput,

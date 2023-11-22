@@ -18,8 +18,8 @@ from dataclasses import dataclass
 import ldap
 from jira import JIRAError
 
-from .config import LdapConfig
-from .utils.errors import ClientError, UnauthorizedError
+from ..config import LdapConfig
+from ..utils.errors import ClientError, UnauthorizedError
 
 
 @dataclass
