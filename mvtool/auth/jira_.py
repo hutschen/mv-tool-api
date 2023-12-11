@@ -15,20 +15,17 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import json
 from hashlib import sha256
 from threading import Lock
 
 from cachetools import TTLCache
-from cryptography.fernet import InvalidToken
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jira import JIRA, JIRAError
 
+from ..config import Config, JiraConfig, load_config
+from .token import create_token, get_credentials_from_token
 from .ldap_ import LdapJiraDummy, authenticate_ldap_user
-from ..config import AuthConfig, Config, JiraConfig, load_config
-from ..utils.crypto import decrypt, encrypt
-from ..utils.errors import UnauthorizedError
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
@@ -100,27 +97,13 @@ def _get_cached_jira(token: str) -> JIRA | None:
     return jira_connection
 
 
-def _create_token(username: str, password: str, auth_config: AuthConfig) -> str:
-    # encrypt user credentials and return token
-    token = encrypt(json.dumps([username, password]), auth_config.derived_key)
-    return token
-
-
-def _get_credentials_from_token(token: str, auth_config: AuthConfig) -> tuple[str, str]:
-    try:
-        decrypted_token = decrypt(token, auth_config.derived_key)
-    except InvalidToken as error:
-        raise UnauthorizedError("Invalid token") from error
-    return json.loads(decrypted_token)
-
-
 def get_jira(
     token: str = Depends(oauth2_scheme), config: Config = Depends(load_config)
 ) -> JIRA:
     # get jira connection from cache or create new one
     jira_connection = _get_cached_jira(token)
     if jira_connection is None:
-        username, password = _get_credentials_from_token(token, config.auth)
+        username, password = get_credentials_from_token(token, config.auth)
         jira_connection = _connect_to_jira_or_dummy_jira(username, password, config)
         _cache_jira(token, jira_connection)
 
@@ -146,6 +129,6 @@ def login_for_access_token(
     jira_connection = _connect_to_jira_or_dummy_jira(
         form_data.username, form_data.password, config, validate_credentials=True
     )
-    token = _create_token(form_data.username, form_data.password, config.auth)
+    token = create_token(form_data.username, form_data.password, config.auth)
     _cache_jira(token, jira_connection)
     return {"access_token": token, "token_type": "bearer"}

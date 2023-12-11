@@ -20,12 +20,11 @@ from cryptography.fernet import InvalidToken
 from fastapi import HTTPException
 from jira import JIRAError
 
+from mvtool.auth.token import create_token, get_credentials_from_token
 from mvtool.auth.jira_ import (
     _cache_jira,
     _connect_to_jira,
-    _create_token,
     _get_cached_jira,
-    _get_credentials_from_token,
     get_jira,
     login_for_access_token,
 )
@@ -84,9 +83,9 @@ def test_get_cached_jira_fails():
 
 
 def test_create_token(config):
-    with patch("mvtool.auth.jira_.encrypt") as encrypt_mock:
+    with patch("mvtool.auth.token.encrypt") as encrypt_mock:
         encrypt_mock.return_value = "encrypted"
-        token = _create_token("user", "password", config.auth)
+        token = create_token("user", "password", config.auth)
         assert token == "encrypted"
         encrypt_mock.assert_called_once_with(
             '["user", "password"]', config.auth.derived_key
@@ -94,18 +93,18 @@ def test_create_token(config):
 
 
 def test_get_credentials_from_token(config):
-    with patch("mvtool.auth.jira_.decrypt") as decrypt_mock:
+    with patch("mvtool.auth.token.decrypt") as decrypt_mock:
         decrypt_mock.return_value = '["user", "password"]'
-        username, password = _get_credentials_from_token("token", config.auth)
+        username, password = get_credentials_from_token("token", config.auth)
         assert username == "user"
         assert password == "password"
 
 
 def test_get_credentials_from_token_invalid_token(config):
-    with patch("mvtool.auth.jira_.decrypt") as decrypt_mock:
+    with patch("mvtool.auth.token.decrypt") as decrypt_mock:
         decrypt_mock.side_effect = InvalidToken()
         with pytest.raises(HTTPException) as error_info:
-            _get_credentials_from_token("token", config.auth)
+            get_credentials_from_token("token", config.auth)
         assert error_info.value.status_code == 401
 
 
@@ -113,12 +112,12 @@ def test_get_jira(config):
     with patch.multiple(
         "mvtool.auth.jira_",
         _get_cached_jira=DEFAULT,
-        _get_credentials_from_token=DEFAULT,
+        get_credentials_from_token=DEFAULT,
         _connect_to_jira_or_dummy_jira=DEFAULT,
         _cache_jira=DEFAULT,
     ) as mocks:
         mocks["_get_cached_jira"].return_value = None
-        mocks["_get_credentials_from_token"].return_value = ("user", "password")
+        mocks["get_credentials_from_token"].return_value = ("user", "password")
         jira_mock = Mock()
         mocks["_connect_to_jira_or_dummy_jira"].return_value = jira_mock
 
@@ -127,7 +126,7 @@ def test_get_jira(config):
 
         assert result is jira_mock
         mocks["_get_cached_jira"].assert_called_once_with("token")
-        mocks["_get_credentials_from_token"].assert_called_once_with(
+        mocks["get_credentials_from_token"].assert_called_once_with(
             "token", config.auth
         )
         mocks["_connect_to_jira_or_dummy_jira"].assert_called_once_with(
@@ -144,10 +143,10 @@ def test_login_for_access_token(config):
     with patch.multiple(
         "mvtool.auth.jira_",
         _connect_to_jira_or_dummy_jira=DEFAULT,
-        _create_token=DEFAULT,
+        create_token=DEFAULT,
         _cache_jira=DEFAULT,
     ) as mocks:
-        mocks["_create_token"].return_value = "token"
+        mocks["create_token"].return_value = "token"
         jira_mock = Mock()
         mocks["_connect_to_jira_or_dummy_jira"].return_value = jira_mock
 
@@ -157,5 +156,5 @@ def test_login_for_access_token(config):
         mocks["_connect_to_jira_or_dummy_jira"].assert_called_once_with(
             "user", "password", config, validate_credentials=True
         )
-        mocks["_create_token"].assert_called_once_with("user", "password", config.auth)
+        mocks["create_token"].assert_called_once_with("user", "password", config.auth)
         mocks["_cache_jira"].assert_called_once_with("token", jira_mock)
