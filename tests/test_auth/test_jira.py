@@ -111,13 +111,13 @@ def test_get_jira(config):
         "mvtool.auth",
         get_cached_session=DEFAULT,
         get_credentials_from_token=DEFAULT,
-        _connect_to_jira_or_dummy_jira=DEFAULT,
+        _authenticate_user=DEFAULT,
         cache_session=DEFAULT,
     ) as mocks:
         mocks["get_cached_session"].return_value = None
         mocks["get_credentials_from_token"].return_value = ("user", "password")
         jira_mock = Mock()
-        mocks["_connect_to_jira_or_dummy_jira"].return_value = jira_mock
+        mocks["_authenticate_user"].return_value = jira_mock
 
         for result in get_jira("token", config):
             break
@@ -127,9 +127,7 @@ def test_get_jira(config):
         mocks["get_credentials_from_token"].assert_called_once_with(
             "token", config.auth
         )
-        mocks["_connect_to_jira_or_dummy_jira"].assert_called_once_with(
-            "user", "password", config
-        )
+        mocks["_authenticate_user"].assert_called_once_with("user", "password", config)
         mocks["cache_session"].assert_called_once_with("token", jira_mock)
 
 
@@ -140,18 +138,18 @@ def test_login_for_access_token(config):
 
     with patch.multiple(
         "mvtool.auth",
-        _connect_to_jira_or_dummy_jira=DEFAULT,
+        _authenticate_user=DEFAULT,
         create_token=DEFAULT,
         cache_session=DEFAULT,
     ) as mocks:
         mocks["create_token"].return_value = "token"
         jira_mock = Mock()
-        mocks["_connect_to_jira_or_dummy_jira"].return_value = jira_mock
+        mocks["_authenticate_user"].return_value = jira_mock
 
         result = login_for_access_token(form_data_mock, config)
 
         assert result == {"access_token": "token", "token_type": "bearer"}
-        mocks["_connect_to_jira_or_dummy_jira"].assert_called_once_with(
+        mocks["_authenticate_user"].assert_called_once_with(
             "user", "password", config, validate_credentials=True
         )
         mocks["create_token"].assert_called_once_with("user", "password", config.auth)

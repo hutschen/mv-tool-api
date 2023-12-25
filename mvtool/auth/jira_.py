@@ -15,12 +15,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 from fastapi import HTTPException
 from jira import JIRA, JIRAError
 
-from ..config import Config, JiraConfig
-from .ldap_ import LdapJiraDummy, authenticate_ldap_user
+from ..config import JiraConfig
 
 
 def authenticate_jira_user(
@@ -45,33 +43,3 @@ def authenticate_jira_user(
             detail += f" at url={error.url}"
         raise HTTPException(error.status_code, detail)
     return jira_connection
-
-
-# FIXME: Remove this function when LDAP integration is fully implemented.
-def _connect_to_jira_or_dummy_jira(
-    username: str, password: str, config: Config, validate_credentials: bool = False
-) -> JIRA | LdapJiraDummy:
-    """
-    This function is a temporary solution for the quick integration of LDAP. If LDAP is
-    configured, an attempt is first made to connect to LDAP. If this fails, a connection
-    to JIRA is established. Either a JIRA connection or a JIRA dummy connection is
-    returned. The latter simulates a JIRA connection, allowing LDAP to be used without
-    requiring changes elsewhere in the code.
-    """
-
-    # LDAP is disabled, so connect to JIRA directly
-    if config.ldap is None:
-        return authenticate_jira_user(
-            username, password, config.jira, validate_credentials
-        )
-
-    # LDAP is enabled, so try to connect to LDAP first
-    try:
-        return authenticate_ldap_user(username, password, config.ldap)
-    except HTTPException as error:
-        # LDAP connection failed, so try to connect to JIRA if JIRA is enabled
-        if config.jira is None:
-            raise error
-        return authenticate_jira_user(
-            username, password, config.jira, validate_credentials
-        )

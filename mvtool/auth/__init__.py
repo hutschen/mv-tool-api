@@ -19,11 +19,41 @@ from jira import JIRA, JIRAError
 
 from ..config import Config, load_config
 from .cache import cache_session, get_cached_session
-from .jira_ import _connect_to_jira_or_dummy_jira
+from .jira_ import authenticate_jira_user
+from .ldap_ import LdapJiraDummy, authenticate_ldap_user
 from .token import create_token, get_credentials_from_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+
+
+def _authenticate_user(
+    username: str, password: str, config: Config, validate_credentials: bool = False
+) -> JIRA | LdapJiraDummy:
+    """
+    This function is a temporary solution for the quick integration of LDAP. If LDAP is
+    configured, an attempt is first made to connect to LDAP. If this fails, a connection
+    to JIRA is established. Either a JIRA connection or a JIRA dummy connection is
+    returned. The latter simulates a JIRA connection, allowing LDAP to be used without
+    requiring changes elsewhere in the code.
+    """
+
+    # If LDAP is disabled, so connect directly to JIRA
+    if config.ldap is None:
+        return authenticate_jira_user(
+            username, password, config.jira, validate_credentials
+        )
+
+    # If LDAP is enabled, try connecting to LDAP first
+    try:
+        return authenticate_ldap_user(username, password, config.ldap)
+    except HTTPException as error:
+        # If LDAP connection failed, so try to connect to JIRA if JIRA is enabled
+        if config.jira is None:
+            raise error
+        return authenticate_jira_user(
+            username, password, config.jira, validate_credentials
+        )
 
 
 @router.post("/token")
@@ -32,7 +62,7 @@ def login_for_access_token(
     config: Config = Depends(load_config),
 ):
     # check user credentials
-    jira_connection = _connect_to_jira_or_dummy_jira(
+    jira_connection = _authenticate_user(
         form_data.username, form_data.password, config, validate_credentials=True
     )
     token = create_token(form_data.username, form_data.password, config.auth)
@@ -47,7 +77,7 @@ def get_jira(
     jira_connection = get_cached_session(token)
     if jira_connection is None:
         username, password = get_credentials_from_token(token, config.auth)
-        jira_connection = _connect_to_jira_or_dummy_jira(username, password, config)
+        jira_connection = _authenticate_user(username, password, config)
         cache_session(token, jira_connection)
 
     # yield jira_connection to catch JIRA errors
