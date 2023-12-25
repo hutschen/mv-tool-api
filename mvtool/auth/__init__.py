@@ -31,29 +31,31 @@ def _authenticate_user(
     username: str, password: str, config: Config, validate_credentials: bool = False
 ) -> JIRA | LdapJiraDummy:
     """
-    This function is a temporary solution for the quick integration of LDAP. If LDAP is
-    configured, an attempt is first made to connect to LDAP. If this fails, a connection
-    to JIRA is established. Either a JIRA connection or a JIRA dummy connection is
-    returned. The latter simulates a JIRA connection, allowing LDAP to be used without
-    requiring changes elsewhere in the code.
+    This function chooses the appropriate authentication method for a user, either LDAP
+    or JIRA. It first attempts to authenticate via LDAP if it is configured. If LDAP
+    authentication fails and JIRA is configured, it then attempts to authenticate via
+    JIRA. An HTTPException is raised if both LDAP and JIRA are not configured or if all
+    authentication attempts fail.
     """
 
-    # If LDAP is disabled, so connect directly to JIRA
-    if config.ldap is None:
+    # Check if LDAP is enabled and try to authenticate
+    if config.ldap is not None:
+        try:
+            return authenticate_ldap_user(username, password, config.ldap)
+        except HTTPException:
+            # If LDAP authentication fails, continue to try JIRA authentication
+            pass
+
+    # Check if JIRA is enabled and try to authenticate
+    if config.jira is not None:
         return authenticate_jira_user(
             username, password, config.jira, validate_credentials
         )
 
-    # If LDAP is enabled, try connecting to LDAP first
-    try:
-        return authenticate_ldap_user(username, password, config.ldap)
-    except HTTPException as error:
-        # If LDAP connection failed, so try to connect to JIRA if JIRA is enabled
-        if config.jira is None:
-            raise error
-        return authenticate_jira_user(
-            username, password, config.jira, validate_credentials
-        )
+    # If neither LDAP nor JIRA is configured, raise an exception
+    raise HTTPException(
+        status_code=500, detail="No authentication sources are configured."
+    )
 
 
 @router.post("/token")
@@ -72,7 +74,7 @@ def login_for_access_token(
 
 def get_jira(
     token: str = Depends(oauth2_scheme), config: Config = Depends(load_config)
-) -> JIRA:
+) -> JIRA | LdapJiraDummy:
     # get jira connection from cache or create new one
     jira_connection = get_cached_session(token)
     if jira_connection is None:
