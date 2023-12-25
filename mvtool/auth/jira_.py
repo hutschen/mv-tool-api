@@ -23,7 +23,7 @@ from ..config import Config, JiraConfig
 from .ldap_ import LdapJiraDummy, authenticate_ldap_user
 
 
-def _connect_to_jira(
+def authenticate_jira_user(
     username: str,
     password: str,
     jira_config: JiraConfig,
@@ -61,7 +61,9 @@ def _connect_to_jira_or_dummy_jira(
 
     # LDAP is disabled, so connect to JIRA directly
     if config.ldap is None:
-        return _connect_to_jira(username, password, config.jira, validate_credentials)
+        return authenticate_jira_user(
+            username, password, config.jira, validate_credentials
+        )
 
     # LDAP is enabled, so try to connect to LDAP first
     try:
@@ -70,4 +72,6 @@ def _connect_to_jira_or_dummy_jira(
         # LDAP connection failed, so try to connect to JIRA if JIRA is enabled
         if config.jira is None:
             raise error
-        return _connect_to_jira(username, password, config.jira, validate_credentials)
+        return authenticate_jira_user(
+            username, password, config.jira, validate_credentials
+        )

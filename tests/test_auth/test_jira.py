@@ -22,14 +22,14 @@ from jira import JIRAError
 
 from mvtool.auth import get_jira, login_for_access_token
 from mvtool.auth.cache import cache_session, get_cached_session
-from mvtool.auth.jira_ import _connect_to_jira
+from mvtool.auth.jira_ import authenticate_jira_user
 from mvtool.auth.token import create_token, get_credentials_from_token
 
 
 def test_connect_to_jira(config):
     username, password, jira_config = ("user", "password", config.jira)
     with patch("mvtool.auth.jira_.JIRA") as jira_mock:
-        _connect_to_jira(username, password, jira_config)
+        authenticate_jira_user(username, password, jira_config)
         jira_mock.assert_called_once_with(
             jira_config.url,
             dict(verify=jira_config.verify_ssl),
@@ -41,7 +41,9 @@ def test_connect_to_jira_validate_credentials(config):
     username, password, jira_config = ("user", "password", config.jira)
     with patch("mvtool.auth.jira_.JIRA") as jira_mock:
         jira_mock.return_value = Mock()
-        _connect_to_jira(username, password, jira_config, validate_credentials=True)
+        authenticate_jira_user(
+            username, password, jira_config, validate_credentials=True
+        )
         jira_mock.assert_called_once_with(
             jira_config.url,
             dict(verify=jira_config.verify_ssl),
@@ -55,7 +57,7 @@ def test_connect_to_jira_raise_jira_error(config):
     with patch("mvtool.auth.jira_.JIRA") as jira_mock:
         jira_mock.side_effect = JIRAError("Jira error")
         with pytest.raises(HTTPException) as error_info:
-            _connect_to_jira(username, password, jira_config)
+            authenticate_jira_user(username, password, jira_config)
         assert "Jira error" in error_info.value.detail
 
 
