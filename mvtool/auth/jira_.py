@@ -15,23 +15,18 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from hashlib import sha256
-from threading import Lock
 
-from cachetools import TTLCache
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jira import JIRA, JIRAError
 
 from ..config import Config, JiraConfig, load_config
-from .token import create_token, get_credentials_from_token
+from .cache import cache_session, get_cached_session
 from .ldap_ import LdapJiraDummy, authenticate_ldap_user
+from .token import create_token, get_credentials_from_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
-
-_jira_connections_cache = TTLCache(maxsize=1000, ttl=5 * 60)
-_jira_connections_cache_lock = Lock()
 
 
 def _connect_to_jira(
@@ -84,28 +79,15 @@ def _connect_to_jira_or_dummy_jira(
         return _connect_to_jira(username, password, config.jira, validate_credentials)
 
 
-def _cache_jira(token: str, jira: JIRA):
-    cache_key = sha256(token.encode("utf-8")).hexdigest()
-    with _jira_connections_cache_lock:
-        _jira_connections_cache[cache_key] = jira
-
-
-def _get_cached_jira(token: str) -> JIRA | None:
-    cache_key = sha256(token.encode("utf-8")).hexdigest()
-    with _jira_connections_cache_lock:
-        jira_connection = _jira_connections_cache.get(cache_key, None)
-    return jira_connection
-
-
 def get_jira(
     token: str = Depends(oauth2_scheme), config: Config = Depends(load_config)
 ) -> JIRA:
     # get jira connection from cache or create new one
-    jira_connection = _get_cached_jira(token)
+    jira_connection = get_cached_session(token)
     if jira_connection is None:
         username, password = get_credentials_from_token(token, config.auth)
         jira_connection = _connect_to_jira_or_dummy_jira(username, password, config)
-        _cache_jira(token, jira_connection)
+        cache_session(token, jira_connection)
 
     # yield jira_connection to catch JIRA errors
     try:
@@ -130,5 +112,5 @@ def login_for_access_token(
         form_data.username, form_data.password, config, validate_credentials=True
     )
     token = create_token(form_data.username, form_data.password, config.auth)
-    _cache_jira(token, jira_connection)
+    cache_session(token, jira_connection)
     return {"access_token": token, "token_type": "bearer"}
