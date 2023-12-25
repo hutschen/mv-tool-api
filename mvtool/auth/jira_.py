@@ -67,7 +67,7 @@ def _connect_to_jira_or_dummy_jira(
 
     # LDAP is enabled, so try to connect to LDAP first
     try:
-        return LdapJiraDummy(authenticate_ldap_user(username, password, config.ldap))
+        return authenticate_ldap_user(username, password, config.ldap)
     except HTTPException as error:
         # LDAP connection failed, so try to connect to JIRA if JIRA is enabled
         if config.jira is None:

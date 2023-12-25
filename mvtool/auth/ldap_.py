@@ -39,6 +39,48 @@ class LdapUserDetails:
             return self.login
 
 
+# FIXME: Remove this dummy class when LDAP integration is fully implemented.
+class LdapJiraDummy:
+    """
+    This class serves as a dummy to simulate an LDAP user as a JIRA user. It is used
+    because the LDAP integration is not yet fully implemented and serves as a
+    workaround. The full LDAP integration will be added in a later release.
+    """
+
+    def __init__(self, ldap_user_details: LdapUserDetails):
+        self.server_url = "http://dummy-url"
+        self._is_cloud = False
+        self.__ldap_user_details = ldap_user_details
+
+    def myself(self):
+        return dict(
+            accountId=self.__ldap_user_details.login,
+            displayName=self.__ldap_user_details.display_name,
+            emailAddress=self.__ldap_user_details.email,
+        )
+
+    def user(self, id):
+        if id == self.__ldap_user_details.login:
+            return self.myself()
+        else:
+            raise JIRAError("User not found", 404)
+
+    def projects(self):
+        return []
+
+    def project(self, id):
+        raise JIRAError("Project not found", 404)
+
+    def search_issues(*args, **kwargs):
+        return []
+
+    def create_issue(*args, **kwargs):
+        raise JIRAError("Cannot create issue", 500)
+
+    def issue(self, id):
+        raise JIRAError("Issue not found", 404)
+
+
 def authenticate_ldap_user(username: str, password: str, ldap_config: LdapConfig):
     # Connect to LDAP server
     uri = f"{ldap_config.protocol}://{ldap_config.host}:{ldap_config.port}"
@@ -96,51 +138,13 @@ def authenticate_ldap_user(username: str, password: str, ldap_config: LdapConfig
         lambda value: value.decode(ldap_config.attributes_encoding) if value else None
     )
     user_info = result[0][1]
-    return LdapUserDetails(
-        login=decode_(user_info.get(ldap_config.attributes.login, [None])[0]),
-        firstname=decode_(user_info.get(ldap_config.attributes.firstname, [None])[0]),
-        lastname=decode_(user_info.get(ldap_config.attributes.lastname, [None])[0]),
-        email=decode_(user_info.get(ldap_config.attributes.email, [None])[0]),
-    )
-
-
-# FIXME: Remove this dummy class when LDAP integration is fully implemented.
-class LdapJiraDummy:
-    """
-    This class serves as a dummy to simulate an LDAP user as a JIRA user. It is used
-    because the LDAP integration is not yet fully implemented and serves as a
-    workaround. The full LDAP integration will be added in a later release.
-    """
-
-    def __init__(self, ldap_user_details: LdapUserDetails):
-        self.server_url = "http://dummy-url"
-        self._is_cloud = False
-        self.__ldap_user_details = ldap_user_details
-
-    def myself(self):
-        return dict(
-            accountId=self.__ldap_user_details.login,
-            displayName=self.__ldap_user_details.display_name,
-            emailAddress=self.__ldap_user_details.email,
+    return LdapJiraDummy(
+        LdapUserDetails(
+            # fmt: off
+            login=decode_(user_info.get(ldap_config.attributes.login, [None])[0]),
+            firstname=decode_(user_info.get(ldap_config.attributes.firstname, [None])[0]),
+            lastname=decode_(user_info.get(ldap_config.attributes.lastname, [None])[0]),
+            email=decode_(user_info.get(ldap_config.attributes.email, [None])[0]),
+            # fmt: on
         )
-
-    def user(self, id):
-        if id == self.__ldap_user_details.login:
-            return self.myself()
-        else:
-            raise JIRAError("User not found", 404)
-
-    def projects(self):
-        return []
-
-    def project(self, id):
-        raise JIRAError("Project not found", 404)
-
-    def search_issues(*args, **kwargs):
-        return []
-
-    def create_issue(*args, **kwargs):
-        raise JIRAError("Cannot create issue", 500)
-
-    def issue(self, id):
-        raise JIRAError("Issue not found", 404)
+    )
