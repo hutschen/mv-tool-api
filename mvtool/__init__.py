@@ -21,9 +21,8 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import migration, tables
+from . import auth, migration, tables
 from .angular import AngularFiles
-from .auth import jira_ as auth_jira
 from .config import load_config
 from .db import database
 from .handlers import (
@@ -47,7 +46,7 @@ def get_app(lifespan=None) -> FastAPI:
         redoc_url=config.fastapi.redoc_url,
         lifespan=lifespan,
     )
-    app.include_router(auth_jira.router)
+    app.include_router(auth.router)
     app.include_router(jira_.router, prefix="/api")
     app.include_router(catalogs.router, prefix="/api")
     app.include_router(catalog_modules.router, prefix="/api")

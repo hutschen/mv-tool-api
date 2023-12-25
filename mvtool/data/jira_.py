@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 from typing import Iterator
 
 from fastapi import Depends
@@ -23,7 +22,7 @@ from jira import JIRA, JIRAError
 from jira.resources import Issue, IssueType, Project, Resource, Status, User
 from pydantic import conint
 
-from ..auth.jira_ import get_jira
+from ..auth import get_jira
 from ..models import (
     JiraIssue,
     JiraIssueInput,

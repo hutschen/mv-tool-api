@@ -20,8 +20,9 @@ from cryptography.fernet import InvalidToken
 from fastapi import HTTPException
 from jira import JIRAError
 
+from mvtool.auth import get_jira, login_for_access_token
 from mvtool.auth.cache import cache_session, get_cached_session
-from mvtool.auth.jira_ import _connect_to_jira, get_jira, login_for_access_token
+from mvtool.auth.jira_ import _connect_to_jira
 from mvtool.auth.token import create_token, get_credentials_from_token
 
 
@@ -105,7 +106,7 @@ def test_get_credentials_from_token_invalid_token(config):
 
 def test_get_jira(config):
     with patch.multiple(
-        "mvtool.auth.jira_",
+        "mvtool.auth",
         get_cached_session=DEFAULT,
         get_credentials_from_token=DEFAULT,
         _connect_to_jira_or_dummy_jira=DEFAULT,
@@ -136,7 +137,7 @@ def test_login_for_access_token(config):
     form_data_mock.password = "password"
 
     with patch.multiple(
-        "mvtool.auth.jira_",
+        "mvtool.auth",
         _connect_to_jira_or_dummy_jira=DEFAULT,
         create_token=DEFAULT,
         cache_session=DEFAULT,
