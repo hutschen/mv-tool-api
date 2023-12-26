@@ -19,7 +19,7 @@ import ldap
 import pytest
 from jira import JIRAError
 
-from mvtool.auth_ldap import LdapJiraDummy, LdapUserDetails, authenticate_ldap_user
+from mvtool.auth.ldap_ import LdapJiraDummy, LdapUserDetails, authenticate_ldap_user
 from mvtool.config import Config
 from mvtool.utils.errors import ClientError, UnauthorizedError
 

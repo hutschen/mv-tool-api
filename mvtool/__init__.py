@@ -21,21 +21,20 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .db import database
-
 from . import auth, migration, tables
+from .angular import AngularFiles
+from .config import load_config
+from .db import database
 from .handlers import (
-    jira_,
-    projects,
-    requirements,
-    measures,
-    documents,
-    catalogs,
     catalog_modules,
     catalog_requirements,
+    catalogs,
+    documents,
+    jira_,
+    measures,
+    projects,
+    requirements,
 )
-from .config import load_config
-from .angular import AngularFiles
 
 config = load_config()
 
