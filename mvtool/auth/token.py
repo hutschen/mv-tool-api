@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import json
+import time
 
 from cryptography.fernet import InvalidToken
 
@@ -23,9 +24,15 @@ from ..utils.errors import UnauthorizedError
 
 
 def create_token(username: str, password: str, auth_config: AuthConfig) -> str:
-    # encrypt user credentials and return token
-    token = encrypt(json.dumps([username, password]), auth_config.derived_key)
-    return token
+    expiration_time = (
+        int(time.time()) + auth_config.ttl
+        if auth_config.ttl and 0 < auth_config.ttl
+        else None
+    )
+    return encrypt(
+        json.dumps([username, password, expiration_time]),
+        auth_config.derived_key,
+    )
 
 
 def get_credentials_from_token(token: str, auth_config: AuthConfig) -> tuple[str, str]:
@@ -33,4 +40,7 @@ def get_credentials_from_token(token: str, auth_config: AuthConfig) -> tuple[str
         decrypted_token = decrypt(token, auth_config.derived_key)
     except InvalidToken as error:
         raise UnauthorizedError("Invalid token") from error
-    return json.loads(decrypted_token)
+    username, password, expiration_time = json.loads(decrypted_token)
+    if expiration_time and expiration_time < int(time.time()):
+        raise UnauthorizedError("Token expired")
+    return username, password

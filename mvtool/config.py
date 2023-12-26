@@ -22,7 +22,7 @@ from functools import lru_cache
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, constr, model_validator
+from pydantic import BaseModel, conint, constr, model_validator
 from uvicorn.config import LOGGING_CONFIG, SSL_PROTOCOL_VERSION
 
 from mvtool.utils.crypto import derive_key
@@ -118,6 +118,7 @@ class UvicornConfig(BaseModel):
 
 class AuthConfig(BaseModel):
     secret: str | bytes = os.urandom(32)
+    ttl: conint(gt=0) | None = None
 
     @property
     def derived_key(self) -> bytes:
