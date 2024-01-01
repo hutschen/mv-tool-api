@@ -51,15 +51,19 @@ def test_completion_count(
 
 
 @pytest.mark.parametrize(
-    "completion_statuses, expected_count",
+    "completion_statuses, expected_open_count, expected_in_progress_count, expected_completed_count",
     [
-        (["completed", "completed"], 2),  # all measures completed
-        (["open", "in progress"], 0),  # all measures incomplete
-        (["completed", "open"], 1),  # one measure completed, one measure incomplete
+        (["completed", "completed"], 0, 0, 2),  # all measures completed
+        (["open", "in progress"], 1, 1, 0),  # all measures incomplete
+        (["completed", "open"], 1, 0, 1),  # one measure completed, one incomplete
     ],
 )
-def test_completed_count(
-    session: Session, completion_statuses: list[str], expected_count: int
+def test_completion_counts(
+    session: Session,
+    completion_statuses: list[str],
+    expected_open_count: int,
+    expected_in_progress_count: int,
+    expected_completed_count: int,
 ):
     document = Document(title="test", project=Project(name="test"))
     measures = []
@@ -76,7 +80,9 @@ def test_completed_count(
     session.add_all(measures)
     session.flush()
 
-    assert document.completed_count == expected_count
+    assert document.open_count == expected_open_count
+    assert document.in_progress_count == expected_in_progress_count
+    assert document.completed_count == expected_completed_count
 
 
 @pytest.mark.parametrize(
