@@ -83,6 +83,18 @@ class ProgressCountsMixin:
         return cls._get_completion_count_query(cls.id).scalar_subquery()
 
     @hybrid_property
+    def open_count(self) -> int:
+        session = Session.object_session(self)
+        return session.execute(
+            self._get_completion_status_count_query(self.id, "open")
+        ).scalar()
+
+    @open_count.inplace.expression
+    @classmethod
+    def _open_count_expression(cls):
+        return cls._get_completion_status_count_query(cls.id, "open").scalar_subquery()
+
+    @hybrid_property
     def completed_count(self) -> int:
         session = Session.object_session(self)
         return session.execute(
