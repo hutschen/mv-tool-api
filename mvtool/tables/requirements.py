@@ -43,22 +43,15 @@ from .handlers import (
     get_export_labels_handler,
     hide_columns,
 )
-from .projects import get_project_columns
+from .projects import get_project_only_columns
+from .status import get_status_columns
 
 
-def get_requirement_columns(
-    catalog_requirement_columns: ColumnGroup = Depends(get_catalog_requirement_columns),
-    project_columns: ColumnGroup = Depends(get_project_columns),
-) -> ColumnGroup[RequirementImport, Requirement]:
-    catalog_requirement_columns.attr_name = "catalog_requirement"
-    project_columns.attr_name = "project"
-
+def get_requirement_only_columns() -> ColumnGroup[RequirementImport, Requirement]:
     return ColumnGroup(
         RequirementImport,
         "Requirement",
         [
-            catalog_requirement_columns,
-            project_columns,
             Column("ID", "id"),
             Column("Reference", "reference"),
             Column("Summary", "summary", required=True),
@@ -67,18 +60,28 @@ def get_requirement_columns(
             Column("Compliance Comment", "compliance_comment"),
             Column("Target Object", "target_object"),
             Column("Milestone", "milestone"),
-            Column(
-                "Completion Progress",
-                "completion_progress",
-                Column.EXPORT_ONLY,
-            ),
-            Column(
-                "Verification Progress",
-                "verification_progress",
-                Column.EXPORT_ONLY,
-            ),
         ],
     )
+
+
+def get_requirement_without_status_columns(
+    catalog_requirement_columns: ColumnGroup = Depends(get_catalog_requirement_columns),
+    project_columns: ColumnGroup = Depends(get_project_only_columns),
+    requirement_columns: ColumnGroup = Depends(get_requirement_only_columns),
+) -> ColumnGroup[RequirementImport, Requirement]:
+    catalog_requirement_columns.attr_name = "catalog_requirement"
+    project_columns.attr_name = "project"
+    requirement_columns.columns.insert(0, catalog_requirement_columns)
+    requirement_columns.columns.insert(0, project_columns)
+    return requirement_columns
+
+
+def get_requirement_columns(
+    requirement_columns: ColumnGroup = Depends(get_requirement_without_status_columns),
+    status_columns: tuple[Column] = Depends(get_status_columns),
+) -> ColumnGroup[RequirementImport, Requirement]:
+    requirement_columns.columns.extend(status_columns)
+    return requirement_columns
 
 
 router = APIRouter(tags=["requirement"])

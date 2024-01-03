@@ -39,16 +39,16 @@ from .handlers import (
     hide_columns,
 )
 from .jira_ import get_jira_issue_columns
-from .requirements import get_requirement_columns
+from .requirements import get_requirement_without_status_columns
 
 
 def get_measure_columns(
-    requirement_columns: ColumnGroup = Depends(get_requirement_columns),
-    document_only_columns: ColumnGroup = Depends(get_document_only_columns),
+    requirement_columns: ColumnGroup = Depends(get_requirement_without_status_columns),
+    document_columns: ColumnGroup = Depends(get_document_only_columns),
     jira_issue_columns: ColumnGroup = Depends(get_jira_issue_columns),
 ) -> ColumnGroup[MeasureImport, Measure]:
     requirement_columns.attr_name = "requirement"
-    document_only_columns.attr_name = "document"
+    document_columns.attr_name = "document"
     jira_issue_columns.attr_name = "jira_issue"
 
     return ColumnGroup(
@@ -60,7 +60,7 @@ def get_measure_columns(
             Column("Reference", "reference"),
             Column("Summary", "summary", required=True),
             Column("Description", "description"),
-            document_only_columns,
+            document_columns,
             Column("Compliance Status", "compliance_status"),
             Column("Compliance Comment", "compliance_comment"),
             jira_issue_columns,
