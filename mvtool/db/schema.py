@@ -53,9 +53,11 @@ class ProgressCountsMixin:
         )
 
     @classmethod
-    def _get_completed_count_query(cls, id: int | Column) -> Select:
+    def _get_completion_status_count_query(
+        cls, id: int | Column, completion_status: str
+    ) -> Select:
         return cls._get_completion_count_query(id).where(
-            Measure.completion_status == "completed"
+            Measure.completion_status == completion_status
         )
 
     @classmethod
@@ -81,14 +83,44 @@ class ProgressCountsMixin:
         return cls._get_completion_count_query(cls.id).scalar_subquery()
 
     @hybrid_property
+    def open_count(self) -> int:
+        session = Session.object_session(self)
+        return session.execute(
+            self._get_completion_status_count_query(self.id, "open")
+        ).scalar()
+
+    @open_count.inplace.expression
+    @classmethod
+    def _open_count_expression(cls):
+        return cls._get_completion_status_count_query(cls.id, "open").scalar_subquery()
+
+    @hybrid_property
+    def in_progress_count(self) -> int:
+        session = Session.object_session(self)
+        return session.execute(
+            self._get_completion_status_count_query(self.id, "in progress")
+        ).scalar()
+
+    @in_progress_count.inplace.expression
+    @classmethod
+    def _in_progress_count_expression(cls):
+        return cls._get_completion_status_count_query(
+            cls.id, "in_progress"
+        ).scalar_subquery()
+
+    @hybrid_property
     def completed_count(self) -> int:
         session = Session.object_session(self)
-        return session.execute(self._get_completed_count_query(self.id)).scalar()
+        return session.execute(
+            self._get_completion_status_count_query(self.id, "completed")
+        ).scalar()
 
     @completed_count.inplace.expression
     @classmethod
     def _completed_count_expression(cls):
-        return cls._get_completed_count_query(cls.id).scalar_subquery()
+        return cls._get_completion_status_count_query(
+            cls.id, "completed"
+        ).scalar_subquery()
 
     @hybrid_property
     def verification_count(self) -> int:

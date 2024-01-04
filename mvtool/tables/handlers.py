@@ -15,10 +15,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 from typing import Callable
 
 from fastapi import APIRouter, Depends, Query, Response
 from fastapi.responses import FileResponse
+from starlette.background import BackgroundTask
 
 from ..auth import get_jira
 from ..utils.temp_file import copy_upload_to_temp_file, get_temp_file
@@ -87,12 +89,16 @@ def get_download_excel_handler(
 ) -> Callable:
     def handler(
         df: DataFrame = Depends(get_dataframe),
-        temp_file=Depends(get_temp_file(".xlsx")),
+        temp_file=Depends(get_temp_file(".xlsx", delete=False)),
         sheet_name=sheet_name,
         filename=filename,
     ) -> FileResponse:
         write_excel(df, temp_file, sheet_name)
-        return FileResponse(temp_file.name, filename=filename)
+        return FileResponse(
+            temp_file.name,
+            background=BackgroundTask(os.remove, temp_file.name),  # Delete temp file
+            filename=filename,
+        )
 
     return handler
 
@@ -103,17 +109,18 @@ def get_download_csv_handler(
 ) -> Callable:
     def handler(
         df: DataFrame = Depends(get_dataframe),
-        temp_file=Depends(get_temp_file(".csv")),
+        temp_file=Depends(get_temp_file(".csv", delete=False)),
         filename=filename,
         encoding="utf-8-sig",
         dialect=Depends(CSVDialect),
     ) -> FileResponse:
         write_csv(df, temp_file, encoding, dialect)
-        response = FileResponse(temp_file.name, filename=filename)
-        response.headers[
-            "Content-Type"
-        ] = "application/octet-stream"  # Enforce download
-        return response
+        return FileResponse(
+            temp_file.name,
+            background=BackgroundTask(os.remove, temp_file.name),  # Delete temp file
+            filename=filename,
+            headers={"Content-Type": "application/octet-stream"},  # Enforce download
+        )
 
     return handler
 

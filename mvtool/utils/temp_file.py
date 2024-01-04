@@ -37,7 +37,7 @@ def preserved_cursor_position(file_obj: IO):
         file_obj.seek(cursor_pos)
 
 
-def get_temp_file(suffix: str | None = None) -> Callable:
+def get_temp_file(suffix: str | None = None, delete: bool = True) -> Callable:
     """Creates a callable that returns a context manager which yields a temporary file.
 
     This should be used together with fastapi's Depends() function.
@@ -50,7 +50,7 @@ def get_temp_file(suffix: str | None = None) -> Callable:
     """
 
     def get_temp_file():
-        with NamedTemporaryFile(suffix=suffix) as temp_file:
+        with NamedTemporaryFile(suffix=suffix, delete=delete) as temp_file:
             yield temp_file
 
     return get_temp_file

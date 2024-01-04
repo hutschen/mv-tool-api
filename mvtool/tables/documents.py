@@ -36,7 +36,8 @@ from .handlers import (
     get_export_labels_handler,
     hide_columns,
 )
-from .projects import get_project_columns
+from .projects import get_project_only_columns
+from .status import get_status_columns
 
 
 def get_document_only_columns() -> ColumnGroup[DocumentImport, Document]:
@@ -48,27 +49,19 @@ def get_document_only_columns() -> ColumnGroup[DocumentImport, Document]:
             Column("Reference", "reference"),
             Column("Title", "title", required=True),
             Column("Description", "description"),
-            Column(
-                "Completion Progress",
-                "completion_progress",
-                Column.EXPORT_ONLY,
-            ),
-            Column(
-                "Verification Progress",
-                "verification_progress",
-                Column.EXPORT_ONLY,
-            ),
         ],
     )
 
 
 def get_document_columns(
-    project_columns: ColumnGroup = Depends(get_project_columns),
-    document_only_columns: ColumnGroup = Depends(get_document_only_columns),
+    project_columns: ColumnGroup = Depends(get_project_only_columns),
+    document_columns: ColumnGroup = Depends(get_document_only_columns),
+    status_columns: tuple[Column] = Depends(get_status_columns),
 ) -> ColumnGroup[DocumentImport, Document]:
     project_columns.attr_name = "project"
-    document_only_columns.columns.insert(0, project_columns)
-    return document_only_columns
+    document_columns.columns.insert(0, project_columns)
+    document_columns.columns.extend(status_columns)
+    return document_columns
 
 
 router = APIRouter(tags=["document"])
