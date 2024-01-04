@@ -34,9 +34,10 @@ from .handlers import (
     hide_columns,
 )
 from .jira_ import get_jira_project_columns
+from .status import get_status_columns
 
 
-def get_project_columns(
+def get_project_only_columns(
     jira_project_columns: ColumnGroup = Depends(get_jira_project_columns),
 ) -> ColumnGroup[ProjectImport, Project]:
     jira_project_columns.attr_name = "jira_project"
@@ -49,18 +50,16 @@ def get_project_columns(
             Column("Name", "name", required=True),
             Column("Description", "description"),
             jira_project_columns,
-            Column(
-                "Completion Progress",
-                "completion_progress",
-                Column.EXPORT_ONLY,
-            ),
-            Column(
-                "Verification Progress",
-                "verification_progress",
-                Column.EXPORT_ONLY,
-            ),
         ],
     )
+
+
+def get_project_columns(
+    project_columns: ColumnGroup = Depends(get_project_only_columns),
+    status_columns: tuple[Column] = Depends(get_status_columns),
+) -> ColumnGroup[ProjectImport, Project]:
+    project_columns.columns.extend(status_columns)
+    return project_columns
 
 
 router = APIRouter(tags=["project"])
@@ -104,7 +103,7 @@ def _get_upload_projects_dataframe_handler(
 ) -> Callable:
     def upload_projects_dataframe(
         projects_view: Projects = Depends(),
-        columns: ColumnGroup = Depends(get_project_columns),
+        columns: ColumnGroup = Depends(get_project_only_columns),
         df: DataFrame = Depends(get_uploaded_dataframe),
         skip_blanks: bool = False,  # skip blank cells
         dry_run: bool = False,  # don't save to database
