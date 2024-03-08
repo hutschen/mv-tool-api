@@ -1,9 +1,9 @@
 {
   "name": "MV-Tool-API",
-  "build": {
-    "context": "..",
-    "dockerfile": "Dockerfile"
-  },
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "forwardPorts": [],
   "customizations": {
     "vscode": {
       "settings": {
@@ -24,8 +24,5 @@
         "ymotongpoo.licenser"
       ]
     }
-  },
-  "forwardPorts": [],
-  "workspaceFolder": "/workspace",
-  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
+  }
 }
