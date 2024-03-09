@@ -16,11 +16,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated
 
-from pydantic import BaseModel, ConfigDict, constr, field_validator
+from pydantic import BaseModel, ConfigDict, StringConstraints, field_validator
 
-from .common import ETagMixin, AutoNumber
+from .common import AutoNumber, ETagMixin
 from .requirements import AbstractRequirementInput
 
 if TYPE_CHECKING:
@@ -29,7 +29,10 @@ if TYPE_CHECKING:
 
 class CatalogRequirementInput(AbstractRequirementInput):
     # Special fields for IT Grundschutz Kompendium
-    gs_absicherung: constr(pattern=r"^(B|S|H)$") | None = None
+    # TODO: Define custom type GSAbsicherung centrally
+    gs_absicherung: Annotated[str, StringConstraints(pattern=r"^(B|S|H)$")] | None = (
+        None
+    )
     gs_verantwortliche: str | None = None
 
 
@@ -73,5 +76,5 @@ class CatalogRequirementOutput(CatalogRequirementInput):
     catalog_module: "CatalogModuleOutput"
 
     # Special fields for IT Grundschutz Kompendium
-    gs_absicherung: constr(pattern=r"^(B|S|H)$") | None
+    gs_absicherung: Annotated[str, StringConstraints(pattern=r"^(B|S|H)$")] | None
     gs_verantwortliche: str | None

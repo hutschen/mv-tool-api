@@ -16,9 +16,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated
 
-from pydantic import BaseModel, ConfigDict, ValidationInfo, constr, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    StringConstraints,
+    ValidationInfo,
+    field_validator,
+)
 
 from .common import AbstractComplianceInput, AutoNumber, ETagMixin
 from .jira_ import JiraIssue, JiraIssueImport
@@ -32,12 +38,24 @@ class AbstractMeasureInput(AbstractComplianceInput):
     reference: str | None = None
     summary: str
     description: str | None = None
-    completion_status: constr(pattern=r"^(open|in progress|completed)$") | None = None
+    # TODO: Define custom type CompletionStatus centrally
+    completion_status: (
+        Annotated[str, StringConstraints(pattern=r"^(open|in progress|completed)$")]
+        | None
+    ) = None
     completion_comment: str | None = None
-    verification_method: constr(pattern=r"^(I|T|R)$") | None = None
-    verification_status: constr(
-        pattern=r"^(verified|partially verified|not verified)$"
-    ) | None = None
+    # TODO: Define custom type VerificationMethod centrally
+    verification_method: (
+        Annotated[str, StringConstraints(pattern=r"^(I|T|R)$")] | None
+    ) = None
+    # TODO: Define custom type VerificationStatus centrally
+    verification_status: (
+        Annotated[
+            str,
+            StringConstraints(pattern=r"^(verified|partially verified|not verified)$"),
+        ]
+        | None
+    ) = None
     verification_comment: str | None = None
 
     @field_validator("completion_comment")
