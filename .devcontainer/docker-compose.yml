@@ -10,7 +10,22 @@ services:
     ports:
       - '8000:8000'
     depends_on:
+      - ldap
       - db
+
+  ldap:
+    image: bitnami/openldap:2.5
+    environment:
+      LDAP_ADMIN_USERNAME: 'admin'
+      LDAP_ADMIN_PASSWORD: 'adminpasswd'
+      LDAP_USERS: 'user01,user02'
+      LDAP_PASSWORDS: 'passwd01,passwd02'
+      LDAP_ROOT: 'dc=example,dc=org'
+      LDAP_ADMIN_DN: 'cn=admin,dc=example,dc=org'
+    ports:
+      - '1389:1389'
+    volumes:
+      - ldap_data:/bitnami/openldap
 
   db:
     image: postgres:15.6
@@ -24,4 +39,5 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
 volumes:
+  ldap_data:
   postgres_data:
