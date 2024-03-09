@@ -3,6 +3,7 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "app",
   "workspaceFolder": "/workspace",
+  "postCreateCommand": "if [ ! -f config.yml ]; then cp .devcontainer/config.yml config.yml; fi",
   "forwardPorts": [],
   "customizations": {
     "vscode": {

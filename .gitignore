@@ -6,6 +6,7 @@ __pycache__
 .mypy_cache
 .pytest_cache
 config.yml
+!.devcontainer/config.yml
 *.db
 
 # Pytest
