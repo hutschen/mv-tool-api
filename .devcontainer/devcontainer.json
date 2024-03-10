@@ -1,0 +1,29 @@
+{
+  "name": "MV-Tool-API",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "postCreateCommand": "if [ ! -f config.yml ]; then cp .devcontainer/config.yml config.yml; fi",
+  "forwardPorts": [],
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.shell.linux": "/bin/zsh",
+        "python.pythonPath": "~/.local/share/virtualenvs/workspace-dqq3IVyd/bin/python",
+        "python.terminal.activateEnvironment": true
+      },
+      "extensions": [
+        "esbenp.prettier-vscode",
+        "github.vscode-github-actions",
+        "gruntfuggly.todo-tree",
+        "ms-python.python",
+        "ms-python.black-formatter",
+        "ms-python.isort",
+        "visualstudioexptteam.intellicode-api-usage-examples",
+        "VisualStudioExptTeam.vscodeintellicode",
+        "ymotongpoo.licenser"
+      ]
+    }
+  }
+}

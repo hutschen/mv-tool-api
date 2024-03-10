@@ -1,0 +1,17 @@
+ldap:
+  host: ldap
+  port: 1389
+  account_dn: cn=admin,dc=example,dc=org
+  account_password: adminpasswd
+  base_dn: dc=example,dc=org
+  attributes:
+    login: uid
+database:
+  url: postgresql+psycopg2://user:passwd@db/mvtool
+fastapi:
+  docs_url: /docs
+  redoc_url: /redoc
+uvicorn:
+  port: 8000
+  reload: true
+  log_level: info

@@ -3,8 +3,10 @@
 # Project specific
 *.pyc
 __pycache__
+.mypy_cache
 .pytest_cache
 config.yml
+!.devcontainer/config.yml
 *.db
 
 # Pytest
@@ -43,3 +45,6 @@ licenses.md
 
 # SSL certificates and keys
 *.pem
+
+# macOS
+.DS_Store
