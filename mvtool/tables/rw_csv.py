@@ -94,17 +94,22 @@ def get_encoding_options() -> list[EncodingOption]:
     ]
 
 
+CSVDelimiter = Annotated[str, StringConstraints(min_length=1, max_length=1)]
+CSVEscapeChar = Annotated[str, StringConstraints(min_length=1, max_length=1)]
+CSVLineTerminator = Annotated[str, StringConstraints(pattern="^(lf|crlf)$")]
+CSVQuoteChar = Annotated[str, StringConstraints(min_length=1, max_length=1)]
+CSVQuoting = Annotated[
+    str, StringConstraints(pattern="^(all|minimal|nonnumeric|none)$")
+]
+
+
 class CSVDialect(BaseModel):
-    delimiter: Annotated[str, StringConstraints(min_length=1, max_length=1)] = ","
+    delimiter: CSVDelimiter = ","
     doublequote: bool = True
-    escapechar: Annotated[str, StringConstraints(min_length=1, max_length=1)] | None = (
-        None
-    )
-    lineterminator: Annotated[str, StringConstraints(pattern="^(lf|crlf)$")] = "crlf"
-    quotechar: Annotated[str, StringConstraints(min_length=1, max_length=1)] = '"'
-    quoting: Annotated[
-        str, StringConstraints(pattern="^(all|minimal|nonnumeric|none)$")
-    ] = "minimal"
+    escapechar: CSVEscapeChar | None = None
+    lineterminator: CSVLineTerminator = "crlf"
+    quotechar: CSVQuoteChar = '"'
+    quoting: CSVQuoting = "minimal"
     skipinitialspace: bool = False
 
     @staticmethod

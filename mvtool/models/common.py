@@ -55,11 +55,11 @@ class AutoNumber(BaseModel):
         return f"{prefix}{counter * self.step + self.start}{suffix}"
 
 
+ComplianceStatus = Annotated[str, StringConstraints(pattern=r"^(C|PC|NC|N/A)$")]
+
+
 class AbstractComplianceInput(BaseModel):
-    # TODO: Define custom type ComplianceStatus centrally
-    compliance_status: (
-        Annotated[str, StringConstraints(pattern=r"^(C|PC|NC|N/A)$")] | None
-    ) = None
+    compliance_status: ComplianceStatus | None = None
     compliance_comment: str | None = None
 
     @classmethod

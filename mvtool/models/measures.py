@@ -34,28 +34,23 @@ if TYPE_CHECKING:
     from .requirements import RequirementImport, RequirementOutput
 
 
+CompletionStatus = Annotated[
+    str, StringConstraints(pattern=r"^(open|in progress|completed)$")
+]
+VerificationMethod = Annotated[str, StringConstraints(pattern=r"^(I|T|R)$")]
+VerificationStatus = Annotated[
+    str, StringConstraints(pattern=r"^(verified|partially verified|not verified)$")
+]
+
+
 class AbstractMeasureInput(AbstractComplianceInput):
     reference: str | None = None
     summary: str
     description: str | None = None
-    # TODO: Define custom type CompletionStatus centrally
-    completion_status: (
-        Annotated[str, StringConstraints(pattern=r"^(open|in progress|completed)$")]
-        | None
-    ) = None
+    completion_status: CompletionStatus | None = None
     completion_comment: str | None = None
-    # TODO: Define custom type VerificationMethod centrally
-    verification_method: (
-        Annotated[str, StringConstraints(pattern=r"^(I|T|R)$")] | None
-    ) = None
-    # TODO: Define custom type VerificationStatus centrally
-    verification_status: (
-        Annotated[
-            str,
-            StringConstraints(pattern=r"^(verified|partially verified|not verified)$"),
-        ]
-        | None
-    ) = None
+    verification_method: VerificationMethod | None = None
+    verification_status: VerificationStatus | None = None
     verification_comment: str | None = None
 
     @field_validator("completion_comment")
