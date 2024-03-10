@@ -15,9 +15,9 @@
 
 import codecs
 import csv
-from typing import BinaryIO
+from typing import Annotated, BinaryIO
 
-from pydantic import BaseModel, constr
+from pydantic import BaseModel, StringConstraints
 
 from ..utils.errors import ValueHttpError
 from ..utils.temp_file import preserved_cursor_position
@@ -94,13 +94,22 @@ def get_encoding_options() -> list[EncodingOption]:
     ]
 
 
+CSVDelimiter = Annotated[str, StringConstraints(min_length=1, max_length=1)]
+CSVEscapeChar = Annotated[str, StringConstraints(min_length=1, max_length=1)]
+CSVLineTerminator = Annotated[str, StringConstraints(pattern="^(lf|crlf)$")]
+CSVQuoteChar = Annotated[str, StringConstraints(min_length=1, max_length=1)]
+CSVQuoting = Annotated[
+    str, StringConstraints(pattern="^(all|minimal|nonnumeric|none)$")
+]
+
+
 class CSVDialect(BaseModel):
-    delimiter: constr(min_length=1, max_length=1) = ","
+    delimiter: CSVDelimiter = ","
     doublequote: bool = True
-    escapechar: constr(min_length=1, max_length=1) | None = None
-    lineterminator: constr(pattern="^(lf|crlf)$") = "crlf"
-    quotechar: constr(min_length=1, max_length=1) = '"'
-    quoting: constr(pattern="^(all|minimal|nonnumeric|none)$") = "minimal"
+    escapechar: CSVEscapeChar | None = None
+    lineterminator: CSVLineTerminator = "crlf"
+    quotechar: CSVQuoteChar = '"'
+    quoting: CSVQuoting = "minimal"
     skipinitialspace: bool = False
 
     @staticmethod

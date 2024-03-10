@@ -16,10 +16,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import constr
+from pydantic import StringConstraints
 from sqlalchemy import Column
 
 from ..data.measures import Measures
@@ -220,7 +220,9 @@ def get_measure_filters(
 
 def get_measure_sort(
     sort_by: str | None = None,
-    sort_order: constr(pattern=r"^(asc|desc)$") | None = None,
+    sort_order: (
+        Annotated[str, StringConstraints(pattern=r"^(asc|desc)$")] | None
+    ) = None,
 ) -> list[Any]:
     if not (sort_by and sort_order):
         return []

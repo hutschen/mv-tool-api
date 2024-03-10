@@ -17,9 +17,15 @@
 
 import json
 from hashlib import md5
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import BaseModel, ValidationInfo, conint, constr, field_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    StringConstraints,
+    ValidationInfo,
+    field_validator,
+)
 
 
 class ETagMixin(BaseModel):
@@ -37,9 +43,9 @@ class ETagMixin(BaseModel):
 
 
 class AutoNumber(BaseModel):
-    kind: constr(pattern=r"^(number)$")
-    start: conint(ge=1) = 1
-    step: conint(ge=1) = 1
+    kind: Annotated[str, StringConstraints(pattern=r"^(number)$")]
+    start: Annotated[int, Field(ge=1)] = 1
+    step: Annotated[int, Field(ge=1)] = 1
     prefix: str | None = None
     suffix: str | None = None
 
@@ -49,8 +55,11 @@ class AutoNumber(BaseModel):
         return f"{prefix}{counter * self.step + self.start}{suffix}"
 
 
+ComplianceStatus = Annotated[str, StringConstraints(pattern=r"^(C|PC|NC|N/A)$")]
+
+
 class AbstractComplianceInput(BaseModel):
-    compliance_status: constr(pattern=r"^(C|PC|NC|N/A)$") | None = None
+    compliance_status: ComplianceStatus | None = None
     compliance_comment: str | None = None
 
     @classmethod

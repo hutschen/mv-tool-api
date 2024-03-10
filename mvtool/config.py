@@ -19,13 +19,13 @@ import os
 import pathlib
 import ssl
 from functools import lru_cache
-from typing import Any
+from typing import Annotated, Any
 
 import yaml
-from pydantic import BaseModel, constr, model_validator
+from pydantic import BaseModel, StringConstraints, model_validator
 from uvicorn.config import LOGGING_CONFIG, SSL_PROTOCOL_VERSION
 
-from mvtool.utils.crypto import derive_key
+from .utils.crypto import derive_key
 
 
 class DatabaseConfig(BaseModel):
@@ -46,9 +46,11 @@ class LdapAttributeConfig(BaseModel):
 
 
 class LdapConfig(BaseModel):
-    protocol: constr(pattern="^ldap$|^ldaps$") = "ldap"
+    protocol: Annotated[str, StringConstraints(pattern="^ldap$|^ldaps$")] = "ldap"
     host: str
-    port: int | None = None  # If set to None, the port is automatically set to 389 (LDAP) or 636 (LDAPS)
+    port: int | None = (
+        None  # If set to None, the port is automatically set to 389 (LDAP) or 636 (LDAPS)
+    )
     verify_ssl: bool | str = True
     account_dn: str | None = None
     account_password: str | None = None
