@@ -31,3 +31,21 @@ alembic-revision:
 
 alembic-upgrade:
 	pipenv run alembic upgrade head
+
+docker-env-up:
+	docker compose \
+		--project-name mv-tool-api_devcontainer \
+		--file .devcontainer/docker-compose.yml \
+		up -d db ldap 
+
+docker-env-down:
+	docker compose \
+		--project-name mv-tool-api_devcontainer \
+		--file .devcontainer/docker-compose.yml \
+		down db ldap
+
+docker-env-clean:
+	docker compose \
+		--project-name mv-tool-api_devcontainer \
+		--file .devcontainer/docker-compose.yml \
+		down db ldap --volumes
