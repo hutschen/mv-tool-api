@@ -5,10 +5,11 @@ Revises: ad9f6e7bc41b
 Create Date: 2022-10-07 21:40:28.491366
 
 """
-from alembic import op
-import sqlalchemy as sa
-from datetime import datetime
 
+from datetime import datetime, timezone
+
+import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "ab13bba14886"
@@ -42,8 +43,8 @@ def upgrade() -> None:
 
     # Otherwise generate a corresponding catalog
     catalog_data = {
-        "created": datetime.utcnow(),
-        "updated": datetime.utcnow(),
+        "created": datetime.now(timezone.utc),
+        "updated": datetime.now(timezone.utc),
         "title": "Default Catalog",
         "description": "This catalog has been automatically generated",
     }

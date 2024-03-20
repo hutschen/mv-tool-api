@@ -13,18 +13,20 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from datetime import datetime
+from datetime import datetime, timezone
+
 import pytest
 import sqlalchemy as sa
 from pytest_alembic import MigrationContext
 from pytest_alembic.tests import (
-    test_single_head_revision,
-    test_upgrade,
-    test_up_down_consistency,
     test_model_definitions_match_ddl,
+    test_single_head_revision,
+    test_up_down_consistency,
+    test_upgrade,
 )
+
 from mvtool.config import Config
-from mvtool.migration import migrate, get_alembic_config
+from mvtool.migration import get_alembic_config, migrate
 
 
 @pytest.fixture
@@ -122,7 +124,7 @@ def test_migrate_ad9f6e7bc41b_add_catalog_module(
     alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
 ):
     gs_baustein_id = 42
-    timestamp = datetime.utcnow()
+    timestamp = datetime.now(timezone.utc)
     alembic_runner.migrate_up_before("ad9f6e7bc41b")
     alembic_runner.insert_into(
         "project",
@@ -179,7 +181,7 @@ def test_migrate_ad9f6e7bc41b_add_catalog_module(
 def test_migration_ab13bba14886_add_catalog(
     alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
 ):
-    timestamp = datetime.utcnow()
+    timestamp = datetime.now(timezone.utc)
     catalog_module_ids = list(range(1, 5))
     alembic_runner.migrate_up_before("ab13bba14886")
     for catalog_module_id in catalog_module_ids:
@@ -215,7 +217,7 @@ def test_migration_ab13bba14886_add_catalog(
 def test_migration_4cd3702a9e46_add_catalog_requirement(
     alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
 ):
-    timestamp = datetime.utcnow()
+    timestamp = datetime.now(timezone.utc)
     catalog_module_id = 1
     catalog_requirement_ids = set(range(1, 5))
     requirement_ids = set(
@@ -288,7 +290,7 @@ def test_migration_4cd3702a9e46_add_catalog_requirement(
 def test_migration_f94ba991ae4e_rename_field_completed_to_verified(
     alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
 ):
-    timestamp = datetime.utcnow()
+    timestamp = datetime.now(timezone.utc)
     measure_id = 1
     alembic_runner.migrate_up_before("f94ba991ae4e")
     alembic_runner.insert_into(
@@ -316,7 +318,7 @@ def test_migration_f94ba991ae4e_rename_field_completed_to_verified(
 def test_migration_ba56d996e585_add_verification_fields(
     alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
 ):
-    timestamp = datetime.utcnow()
+    timestamp = datetime.now(timezone.utc)
     measure_id = 1
     alembic_runner.migrate_up_before("ba56d996e585")
     alembic_runner.insert_into(
@@ -344,7 +346,7 @@ def test_migration_ba56d996e585_add_verification_fields(
 def test_migration_676ab3fb1339_add_milestone_field(
     alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
 ):
-    timestamp = datetime.utcnow()
+    timestamp = datetime.now(timezone.utc)
     requirement_id = 1
     alembic_runner.migrate_up_before("676ab3fb1339")
     alembic_runner.insert_into(
@@ -372,7 +374,7 @@ def test_migration_676ab3fb1339_add_milestone_field(
 def test_migration_dea7e0cd1bf9_add_reference_field_to_measure(
     alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
 ):
-    timestamp = datetime.utcnow()
+    timestamp = datetime.now(timezone.utc)
     measure_id = 1
     alembic_runner.migrate_up_before("dea7e0cd1bf9")
     alembic_runner.insert_into(
@@ -399,7 +401,7 @@ def test_migration_dea7e0cd1bf9_add_reference_field_to_measure(
 def test_migration_71cd375292ec_add_compliance_fields_to_measure(
     alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
 ):
-    timestamp = datetime.utcnow()
+    timestamp = datetime.now(timezone.utc)
     measure_id = 1
     alembic_runner.migrate_up_before("71cd375292ec")
     alembic_runner.insert_into(
@@ -427,7 +429,7 @@ def test_migration_71cd375292ec_add_compliance_fields_to_measure(
 def test_migration_e47b89bcaa77_add_completion_fields(
     alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
 ):
-    timestamp = datetime.utcnow()
+    timestamp = datetime.now(timezone.utc)
     measure_id = 1
     alembic_runner.migrate_up_before("e47b89bcaa77")
     alembic_runner.insert_into(
@@ -456,7 +458,7 @@ def test_migration_13be50ec3471_remove_gs_anforderung_reference_field(
     alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
 ):
     # Insert two catalog requirements, one with a reference, one without
-    timestamp = datetime.utcnow()
+    timestamp = datetime.now(timezone.utc)
     with_ref_id = 1
     without_ref_id = 2
     alembic_runner.migrate_up_before("13be50ec3471")
@@ -514,7 +516,7 @@ def test_migration_bef7008ddd94_remove_gs_reference_field(
     alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
 ):
     # Insert two catalog modules, one with a reference, one without
-    timestamp = datetime.utcnow()
+    timestamp = datetime.now(timezone.utc)
     with_ref_id = 1
     without_ref_id = 2
     alembic_runner.migrate_up_before("bef7008ddd94")
@@ -571,7 +573,7 @@ def test_migration_c083b27f9c47_verification_validators(
 ):
     # Insert two measures, one with invalid verification fields,
     # one with valid verification fields
-    timestamp = datetime.utcnow()
+    timestamp = datetime.now(timezone.utc)
     unverified_measure_id = 1
     invalid_measure_id = 2
     valid_measure_id = 3
@@ -660,7 +662,7 @@ def test_migration_35374d36bf2f_add_verification_status_field(
     alembic_runner: MigrationContext, alembic_engine: sa.engine.Engine
 ):
     # Insert two measure, one with verified == true, one with verified == false
-    timestamp = datetime.utcnow()
+    timestamp = datetime.now(timezone.utc)
     verified_measure_id = 1
     unverified_measure_id = 2
     alembic_runner.migrate_up_before("35374d36bf2f")
