@@ -30,8 +30,8 @@ services:
   db:
     image: postgres:15.6
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: passwd
+      POSTGRES_USER: pguser
+      POSTGRES_PASSWORD: pgpasswd
       POSTGRES_DB: mvtool
     ports:
       - '5432:5432'
