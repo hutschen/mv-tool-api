@@ -13,24 +13,37 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Using a Debian-based lightweight base image
-FROM python:3.12-slim
+# Using a lightweight Alpine-based base image
+FROM python:3.12.5-alpine3.20
 
-# Install dependencies including gcc, libldap2-dev, libsasl2-dev to build python-ldap,
-# add a custom bash prompt and enable bash-completion for all users
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-       make \
-       git \
-       bash-completion \
-       gcc \
-       libldap2-dev \
-       libsasl2-dev \
-       bash \
-    && rm -rf /var/lib/apt/lists/* \
-    && pip3 install --upgrade pip pipenv \
+# Install general dependencies for development:
+# - bash, bash-completion, make, git
+#
+# Install project dependencies:
+# - mailcap for inferring MIME types from file extensions
+# - libpq is the PostgreSQL client library
+# - openldap-clients for LDAP support
+# - build-deps, build-base for building Python C extensions
+# - libpq-dev to build psycopg2 for PostgreSQL support
+# - openldap-dev to build python-ldap for LDAP support
+# - libffi-dev for building Python C extensions that require ffi
+RUN apk update \
+    && apk add --no-cache \
+        bash \
+        bash-completion \
+        make \
+        git \
+        mailcap \
+        libpq \
+        openldap-clients \
+        build-base \
+        libpq-dev \
+        openldap-dev \
+        libffi-dev \
+    && pip3 install --no-cache-dir --upgrade pip pipenv \
     && echo 'PS1=" \W ➜ "' >> ~/.bashrc \
-    && echo "if [ -f /etc/bash_completion ]; then . /etc/bash_completion; fi" >> ~/.bashrc
+    && echo "if [ -f /usr/share/bash-completion/bash_completion ]; then . /usr/share/bash-completion/bash_completion; fi" >> ~/.bashrc \
+    && sed -i 's|/bin/sh|/bin/bash|' /etc/passwd
 
 # Set working directory
 WORKDIR /mv-tool-api
