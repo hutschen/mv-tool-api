@@ -16,24 +16,25 @@
 # Using a Debian-based lightweight base image
 FROM python:3.12-slim
 
-# Set working directory
-WORKDIR /workspace
-
-# Install dependencies including gcc, libldap2-dev, libsasl2-dev to build python-ldap
-COPY ./Pipfile ./Pipfile.lock ./
+# Install dependencies including gcc, libldap2-dev, libsasl2-dev to build python-ldap,
+# add a custom bash prompt and enable bash-completion for all users
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
        make \
        git \
-       zsh \
-       curl \
+       bash-completion \
        gcc \
        libldap2-dev \
        libsasl2-dev \
+       bash \
     && rm -rf /var/lib/apt/lists/* \
-    && pip3 install --upgrade pip \
-    && pip3 install pipenv \
-    && pipenv install --ignore-pipfile --dev
+    && pip3 install --upgrade pip pipenv \
+    && echo 'PS1=" \W ➜ "' >> ~/.bashrc \
+    && echo "if [ -f /etc/bash_completion ]; then . /etc/bash_completion; fi" >> ~/.bashrc
 
-# Install Oh-My-Zsh
-RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+# Set working directory
+WORKDIR /mv-tool-api
+
+# Create Pipenv and install Python dependencies
+COPY Pipfile Pipfile.lock ./
+RUN pipenv install --ignore-pipfile --dev
