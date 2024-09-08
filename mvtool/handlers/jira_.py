@@ -16,9 +16,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Query, Response
 from jira import JIRAError
-from pydantic import conint
+from pydantic import Field
 
 from ..data.jira_ import JiraIssues, JiraIssueTypes, JiraProjects, JiraUsers
 from ..models import JiraIssue, JiraIssueInput, JiraIssueType, JiraProject, JiraUser
@@ -43,7 +45,7 @@ def get_jira_user(jira_user_view: JiraUsers = Depends()):
 def search_jira_users(
     jira_project_id: str,
     search: str,
-    limit: conint(ge=1) | None = None,
+    limit: Annotated[int, Field(ge=1)] | None = None,
     jira_projects: JiraProjects = Depends(),
     jira_users: JiraUsers = Depends(),
 ):

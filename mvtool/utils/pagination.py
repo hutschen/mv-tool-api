@@ -15,13 +15,14 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Generic, TypeVar
+from typing import Annotated, Generic, TypeVar
 
-from pydantic import BaseModel, conint
+from pydantic import BaseModel, Field
 
 
 def page_params(
-    page: conint(gt=0) | None = None, page_size: conint(gt=0) | None = None
+    page: Annotated[int, Field(gt=0)] | None = None,
+    page_size: Annotated[int, Field(gt=0)] | None = None,
 ) -> dict[str, int]:
     if page and page_size:
         return dict(
@@ -36,4 +37,4 @@ T = TypeVar("T")
 
 class Page(BaseModel, Generic[T]):
     items: list[T]
-    total_count: conint(ge=0)
+    total_count: Annotated[int, Field(ge=0)]

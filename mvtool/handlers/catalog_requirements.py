@@ -15,10 +15,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import constr
+from pydantic import StringConstraints
 from sqlalchemy import Column
 
 from ..data.catalog_requirements import CatalogRequirements
@@ -137,7 +137,9 @@ def get_catalog_requirement_filters(
 
 def get_catalog_requirement_sort(
     sort_by: str | None = None,
-    sort_order: constr(pattern=r"^(asc|desc)$") | None = None,
+    sort_order: (
+        Annotated[str, StringConstraints(pattern=r"^(asc|desc)$")] | None
+    ) = None,
 ) -> list[Any]:
     if not (sort_by and sort_order):
         return []

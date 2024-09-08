@@ -15,12 +15,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Iterator
+from typing import Annotated, Iterator
 
 from fastapi import Depends
 from jira import JIRA, JIRAError
 from jira.resources import Issue, IssueType, Project, Resource, Status, User
-from pydantic import conint
+from pydantic import Field
 
 from ..auth import get_jira
 from ..models import (
@@ -81,9 +81,11 @@ class JiraBase:
             key=data.key,
             summary=data.fields.summary,
             description=data.fields.description,
-            assignee=self._to_jira_user_model(data.fields.assignee)
-            if data.fields.assignee
-            else None,
+            assignee=(
+                self._to_jira_user_model(data.fields.assignee)
+                if data.fields.assignee
+                else None
+            ),
             issuetype=self._to_jira_issue_type_model(data.fields.issuetype),
             project=self._to_jira_project_model(data.fields.project),
             status=self._to_jira_issue_status_model(data.fields.status),
@@ -287,8 +289,8 @@ class JiraIssues(JiraBase):
     def get_jira_issues(
         self,
         jira_issue_ids: tuple[str],
-        offset: conint(ge=0) = 0,
-        size: conint(ge=0) | None = None,
+        offset: Annotated[int, Field(ge=0)] = 0,
+        size: Annotated[int, Field(ge=0)] | None = None,
     ) -> Iterator[JiraIssue]:
         jql_str = " OR ".join(f"id = {id}" for id in jira_issue_ids)
         return self.list_jira_issues(jql_str, offset, size) if jql_str else []

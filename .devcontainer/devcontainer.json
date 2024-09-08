@@ -1,0 +1,23 @@
+{
+  "name": "mv-tool-api",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "dev",
+  "workspaceFolder": "/mv-tool-api",
+  "postCreateCommand": "if [ ! -f config.yml ]; then cp .devcontainer/config.yml config.yml; fi",
+  "forwardPorts": [],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "esbenp.prettier-vscode",
+        "github.vscode-github-actions",
+        "gruntfuggly.todo-tree",
+        "ms-python.python",
+        "ms-python.black-formatter",
+        "ms-python.isort",
+        "visualstudioexptteam.intellicode-api-usage-examples",
+        "VisualStudioExptTeam.vscodeintellicode",
+        "ymotongpoo.licenser"
+      ]
+    }
+  }
+}
