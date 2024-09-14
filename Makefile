@@ -1,5 +1,5 @@
 serve:
-	python ./run.py
+	python ./serve.py
 
 test:
 	pytest
