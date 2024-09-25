@@ -14,7 +14,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import pytest
-from mvtool.utils.iteration import CachedIterable
+
+from mvtool.utils.iteration import CachedIterable, cache_iterable
 
 
 def test_cached_iterable_basic():
@@ -110,3 +111,26 @@ def test_cached_iterable_interrupted_first_iteration(interrupted_generator):
     second_iteration = list(iterable)
 
     assert second_iteration == [0, 1, 2]
+
+
+# Check if the cache_iterable wrapps the input data correctly
+@pytest.mark.parametrize(
+    "input_data, expected_type",
+    [
+        # A list remains a list
+        ([1, 2, 3], list),
+        # An iterator is converted to CachedIterable
+        (iter([1, 2, 3]), CachedIterable),
+        # A generator is converted to CachedIterable
+        ((x for x in range(3)), CachedIterable),
+        # CachedIterable remains CachedIterable (no double wrapping)
+        (CachedIterable([1, 2, 3]), CachedIterable),
+        # A string remains a string
+        ("abc", str),
+    ],
+)
+def test_cache_iterable(input_data, expected_type):
+    result = cache_iterable(input_data)
+    assert isinstance(
+        result, expected_type
+    ), f"Expected type {expected_type}, but got {type(result)}"
