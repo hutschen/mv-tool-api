@@ -16,7 +16,7 @@
 import re
 from collections import namedtuple
 from dataclasses import dataclass
-from typing import Iterable, cast
+from typing import Generator, Iterable, cast
 
 GS_SCHICHT_TITLE_RE = re.compile(r"^\s*([A-Z]{3,4})\s+(.+?)\s*$")
 GS_BAUSTEIN_TITLE_RE = re.compile(r"^\s*([A-Z]{3,4}(\.[0-9]+)+)\s*(.+?)\s*$")
@@ -110,3 +110,42 @@ def parse_gs_anforderung_title(title: str) -> GSAnforderungTitle:
             )
         else:
             raise GSParseError(f"Invalid GS-Anforderung title: {title}")
+
+
+def split_gs_anforderung_text(text: str) -> Generator[str, None, None]:
+    """
+    Takes a requirement text as input and returns a list of sub-requirements by
+    splitting the text into full sentences, ensuring that modal verbs are included in
+    their corresponding sentences.
+    """
+    # Regular expression pattern to identify modal verbs and their grammatical forms
+    modal_pattern = (
+        r"\b(MUSS|MÜSS(?:E|EN|TE|TEN)|SOLL(?:E|EN|TE|TEN)?|DARF|DÜRF(?:E|EN|TE|TEN))\b"
+    )
+
+    # Split the text into sentences (using punctuation marks as delimiters)
+    sentences = re.split(r"(?<=[.!?])\s+", text)
+
+    current_sub_requirement = ""
+    first_modal_verb_found = False
+
+    # Go through each sentence and check for modal verbs
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if re.search(modal_pattern, sentence):
+            if first_modal_verb_found:
+                if current_sub_requirement:
+                    yield current_sub_requirement.strip()
+                # Start a new sub-requirement with the modal verb
+                current_sub_requirement = sentence
+            else:
+                # Add additional sentence to the current sub-requirement
+                current_sub_requirement += " " + sentence
+                first_modal_verb_found = True
+        else:
+            # Add additional sentence to the current sub-requirement
+            current_sub_requirement += " " + sentence
+
+    # Yield the last accumulated requirement if it exists
+    if current_sub_requirement:
+        yield current_sub_requirement.strip()
