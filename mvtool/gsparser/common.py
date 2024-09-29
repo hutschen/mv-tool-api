@@ -18,6 +18,8 @@ from collections import namedtuple
 from dataclasses import dataclass
 from typing import Generator, Iterable, cast
 
+from mvtool.utils.iteration import cache_iterable
+
 GS_SCHICHT_TITLE_RE = re.compile(r"^\s*([A-Z]{3,4})\s+(.+?)\s*$")
 GS_BAUSTEIN_TITLE_RE = re.compile(r"^\s*([A-Z]{3,4}(\.[0-9]+)+)\s*(.+?)\s*$")
 GS_ANFORDERUNG_TITLE_RE_1 = re.compile(
@@ -47,9 +49,22 @@ GSAnforderungTitle = namedtuple(
 
 
 @dataclass
+class GSTeilanforderung:
+    text: str
+
+
+@dataclass
 class GSAnforderung:
     title: GSAnforderungTitle
     text: Iterable[str]
+
+    def __post_init__(self):
+        self.text = cache_iterable(self.text)
+
+    @property
+    def gs_teilanforderungen(self) -> Generator[GSTeilanforderung, None, None]:
+        for text in split_gs_anforderung_text(" ".join(self.text)):
+            yield GSTeilanforderung(text)
 
     @property
     def omitted(self) -> bool:
