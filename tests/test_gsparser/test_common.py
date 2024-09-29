@@ -23,6 +23,7 @@ from mvtool.gsparser.common import (
     parse_gs_anforderung_title,
     parse_gs_baustein_title,
     parse_gs_schicht_title,
+    split_gs_anforderung_text,
 )
 
 
@@ -182,3 +183,72 @@ def test_parse_gs_anforderung_title_valid(title, expected):
 def test_parse_gs_anforderung_title_invalid(invalid_title):
     with pytest.raises(GSParseError, match="Invalid GS-Anforderung title"):
         parse_gs_anforderung_title(invalid_title)
+
+
+@pytest.mark.parametrize(
+    "expected",
+    [
+        # Empty string
+        [""],
+        # Single sentence with modal verb
+        ["Die Führungskraft MUSS die Entscheidung treffen."],
+        # Single sentence without modal verb
+        ["Die Führungskraft trifft die Entscheidung."],
+        # Sentences without modal verbs
+        [
+            "Die Führungskraft trifft die Entscheidung."
+            + " Sie handelt dabei nach dem vorgegebenen Prozess."
+        ],
+        # First sentence with modal verb, second sentence without modal verb
+        [
+            "Die Führungskraft MUSS die Entscheidung treffen."
+            + " Sie handelt dabei nach dem vorgegebenen Prozess."
+        ],
+        # First sentence without modal, second sentence with modal verb
+        [
+            "Die Führungskraft trifft die Entscheidung."
+            + " Sie MUSS dabei nach dem vorgegebenen Prozess handeln."
+        ],
+        # First sentence without modal verb, second sentence with modal verb,
+        # third sentence without modal verb
+        [
+            "Die Führungskraft trifft die Entscheidung."
+            + " Sie MUSS dabei nach dem vorgegebenen Prozess handeln.",
+            "Die Mitarbeitenden MÜSSEN die Anweisungen befolgen.",
+        ],
+        # First sentence with modal verb, second sentence without modal verb,
+        # third sentence with modal verb
+        [
+            "Die Führungskraft MUSS die Entscheidung treffen."
+            + " Sie handelt dabei nach dem vorgegebenen Prozess.",
+            "Die Mitarbeitenden MÜSSEN die Anweisungen befolgen.",
+        ],
+        # Multiple sentences with multiple forms of modal verb "muss"
+        [
+            "Die Führungskraft MUSS die Entscheidung treffen.",
+            "Die Mitarbeitenden MÜSSEN die Anweisungen befolgen.",
+            "Die Entschiedung MÜSSTE im Sinne des Teams getroffen werden.",
+            "Die Mitarbeitenden MÜSSTEN die Führungskraft unterstützen.",
+            "Die Führungskraft MÜSSE die Mitarbeitenden unterstützen.",
+        ],
+        # Multiple with multiple forms of modal verb "soll"
+        [
+            "Die Führungskraft SOLL die Entscheidung treffen.",
+            "Die Mitarbeitenden SOLLEN die Anweisungen befolgen.",
+            "Die Entschiedung SOLLTE im Sinne des Teams getroffen werden.",
+            "Die Mitarbeitenden SOLLTEN die Führungskraft unterstützen.",
+            "Die Führungskraft SOLLE die Mitarbeitenden unterstützen.",
+        ],
+        # Multiple with multiple forms of modal verb "darf"
+        [
+            "Die Führungskraft DARF die Entscheidung treffen.",
+            "Die Mitarbeitenden DÜRFEN die Anweisungen befolgen.",
+            "Die Entschiedung DÜRFTE im Sinne des Teams getroffen werden.",
+            "Die Mitarbeitenden DÜRFTEN die Führungskraft unterstützen.",
+            "Die Führungskraft DÜRFE die Mitarbeitenden unterstützen.",
+        ],
+    ],
+)
+def test_split_requirements_by_sentences_2(expected):
+    text = " ".join(expected)
+    assert list(split_gs_anforderung_text(text)) == expected
