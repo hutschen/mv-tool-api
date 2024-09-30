@@ -39,7 +39,7 @@ from ..utils.errors import NotFoundError
 from ..utils.etag_map import get_from_etag_map
 from ..utils.fallback import fallback
 from ..utils.filtering import filter_for_existence
-from ..utils.iteration import CachedIterable
+from ..utils.iteration import cache_iterable
 from ..utils.models import field_is_set
 from .requirements import Requirements
 
@@ -240,7 +240,7 @@ class Measures:
         patch: bool = False,
         skip_flush: bool = False,
     ) -> Iterator[Measure]:
-        measure_imports = CachedIterable(measure_imports)
+        measure_imports = cache_iterable(measure_imports)
         fallback_project = (
             fallback_requirement.project if fallback_requirement else None
         )

@@ -29,7 +29,7 @@ from ..utils.errors import NotFoundError
 from ..utils.etag_map import get_from_etag_map
 from ..utils.fallback import fallback
 from ..utils.filtering import filter_for_existence
-from ..utils.iteration import CachedIterable
+from ..utils.iteration import cache_iterable
 from ..utils.models import field_is_set
 from .catalog_requirements import CatalogRequirements
 from .projects import Projects
@@ -206,7 +206,7 @@ class Requirements:
         patch: bool = False,
         skip_flush: bool = False,
     ) -> Iterator[Requirement]:
-        requirement_imports = CachedIterable(requirement_imports)
+        requirement_imports = cache_iterable(requirement_imports)
 
         # Convert project imports to projects
         projects_map = self._projects.convert_project_imports(

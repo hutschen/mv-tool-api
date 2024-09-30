@@ -30,7 +30,7 @@ from ..utils.errors import NotFoundError
 from ..utils.etag_map import get_from_etag_map
 from ..utils.fallback import fallback
 from ..utils.filtering import filter_for_existence
-from ..utils.iteration import CachedIterable
+from ..utils.iteration import cache_iterable
 from .projects import Projects
 
 
@@ -181,7 +181,7 @@ class Documents:
         patch: bool = False,
         skip_flush: bool = False,
     ) -> Iterator[Document]:
-        document_imports = CachedIterable(document_imports)
+        document_imports = cache_iterable(document_imports)
 
         # Convert project imports to projects
         projects_map = self._projects.convert_project_imports(

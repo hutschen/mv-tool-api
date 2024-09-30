@@ -28,7 +28,7 @@ from ..db.schema import Catalog
 from ..models.catalogs import CatalogImport, CatalogInput, CatalogPatch
 from ..utils.errors import NotFoundError
 from ..utils.filtering import filter_for_existence
-from ..utils.iteration import CachedIterable
+from ..utils.iteration import cache_iterable
 
 
 class Catalogs:
@@ -171,7 +171,7 @@ class Catalogs:
         Raises:
             NotFoundError: If a catalog to be updated is not found in the database.
         """
-        catalog_imports = CachedIterable(catalog_imports)
+        catalog_imports = cache_iterable(catalog_imports)
 
         # Get catalogs to be updated from the database
         ids = [c.id for c in catalog_imports if c.id is not None]

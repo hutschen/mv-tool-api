@@ -20,7 +20,7 @@ from typing import Collection, Generator, Generic, Iterable, Iterator, TypeVar
 from pydantic import BaseModel, ValidationError
 
 from ..utils.errors import ValueHttpError
-from ..utils.iteration import CachedIterable
+from ..utils.iteration import cache_iterable
 from .dataframe import Cell, DataFrame
 
 E = TypeVar("E", bound=BaseModel)  # Export model
@@ -277,7 +277,7 @@ class ColumnGroup(Generic[I, E]):
             RowValidationError: If there is a validation error while creating the import
                 model instance.
         """
-        row = CachedIterable(row)  # make sure we can iterate multiple times
+        row = cache_iterable(row)  # make sure we can iterate multiple times
         columns: dict[str, Column] = {}  # associate cell labels and columns
         required_labels: set[str] = set()  # required labels
         column_groups: list[ColumnGroup] = []  # subordinated columns groups (nodes)

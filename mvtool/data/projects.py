@@ -26,7 +26,7 @@ from ..db.database import delete_from_db, get_session, read_from_db
 from ..db.schema import Project
 from ..models.projects import ProjectImport, ProjectInput, ProjectPatch
 from ..utils.errors import NotFoundError
-from ..utils.iteration import CachedIterable
+from ..utils.iteration import cache_iterable
 from ..utils.models import field_is_set
 from .jira_ import JiraProjects
 
@@ -179,7 +179,7 @@ class Projects:
         patch: bool = False,
         skip_flush: bool = False,
     ):
-        project_imports = CachedIterable(project_imports)
+        project_imports = cache_iterable(project_imports)
 
         # Get projects to be updated from the database
         ids = [p.id for p in project_imports if p.id is not None]

@@ -33,7 +33,7 @@ from ..utils.errors import NotFoundError
 from ..utils.etag_map import get_from_etag_map
 from ..utils.fallback import fallback
 from ..utils.filtering import filter_for_existence
-from ..utils.iteration import CachedIterable
+from ..utils.iteration import cache_iterable
 from .catalog_modules import CatalogModules
 
 
@@ -184,7 +184,7 @@ class CatalogRequirements:
         patch: bool = False,
         skip_flush: bool = False,
     ) -> Iterator[CatalogRequirement]:
-        catalog_requirement_imports = CachedIterable(catalog_requirement_imports)
+        catalog_requirement_imports = cache_iterable(catalog_requirement_imports)
 
         # Convert catalog module imports to catalog modules
         catalog_modules_map = self._catalog_modules.convert_catalog_module_imports(
