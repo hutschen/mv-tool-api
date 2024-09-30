@@ -15,7 +15,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Generic, Iterable, Iterator, TypeVar
+from collections.abc import Iterator
+from typing import Generic, Iterable, TypeVar
 
 T = TypeVar("T")
 
@@ -42,3 +43,14 @@ class CachedIterable(Generic[T]):
                 break
             self.cache.append(item)
             yield item
+
+
+def cache_iterable(iterable: Iterable[T]) -> Iterable[T]:
+    """Wraps an iterator in a CachedIterable so that it can be iterated multiple times.
+    If the given iterable is not an iterator, it is returned as is.
+    """
+    return (
+        CachedIterable(iterable)
+        if isinstance(iterable, Iterator) and not isinstance(iterable, CachedIterable)
+        else iterable
+    )
