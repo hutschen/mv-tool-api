@@ -21,6 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import StringConstraints
 from sqlalchemy import Column
 
+from ..data.measures import Measures
 from ..data.requirements import Requirements
 from ..db.schema import Catalog, CatalogModule, CatalogRequirement, Project, Requirement
 from ..models.requirements import (
@@ -341,22 +342,28 @@ def delete_requirements(
 def import_requirements_from_catalog_modules(
     project_id: int,
     catalog_module_ids: list[int],
+    auto_create_measures: bool = False,
     projects: Projects = Depends(Projects),
     catalog_requirements: CatalogRequirements = Depends(),
     requirements: Requirements = Depends(Requirements),
+    measures: Measures = Depends(Measures),
 ) -> list[Requirement]:
-    return list(
-        requirements.bulk_create_requirements_from_catalog_requirements(
-            projects.get_project(project_id),
-            catalog_requirements.list_catalog_requirements(
-                [
-                    filter_by_values(
-                        CatalogRequirement.catalog_module_id, catalog_module_ids
-                    )
-                ]
-            ),
-        )
-    )
+    imported_requirements = []
+    for requirement in requirements.bulk_create_requirements_from_catalog_requirements(
+        projects.get_project(project_id),
+        catalog_requirements.list_catalog_requirements(
+            [filter_by_values(CatalogRequirement.catalog_module_id, catalog_module_ids)]
+        ),
+        skip_flush=True,
+    ):
+        # create measures for requirements if auto_create_measures is set
+        if auto_create_measures:
+            measures.create_measures_from_requirement_description(
+                requirement, skip_flush=True
+            )
+        imported_requirements.append(requirement)
+    requirements._session.flush()
+    return imported_requirements
 
 
 @router.get(
