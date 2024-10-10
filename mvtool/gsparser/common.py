@@ -63,8 +63,14 @@ class GSAnforderung:
 
     @property
     def gs_teilanforderungen(self) -> Generator[GSTeilanforderung, None, None]:
-        for text in split_gs_anforderung_text(" ".join(self.text)):
-            yield GSTeilanforderung(text)
+        """
+        Split the requirement text into sub-requirement texts and return them as
+        instances of GSTeilanforderung.
+        """
+        for text in self.text:
+            for subtext in split_gs_anforderung_text(text):
+                if subtext.strip():
+                    yield GSTeilanforderung(subtext)
 
     @property
     def omitted(self) -> bool:
@@ -129,9 +135,9 @@ def parse_gs_anforderung_title(title: str) -> GSAnforderungTitle:
 
 def split_gs_anforderung_text(text: str) -> Generator[str, None, None]:
     """
-    Takes a requirement text as input and returns a list of sub-requirements by
-    splitting the text into full sentences, ensuring that modal verbs are included in
-    their corresponding sentences.
+    Takes a requirement text as input and splits it into sub-requirement texts. The
+    splitting is done by identifying German modal verbs (e.g., "MUSS", "SOLL", "DARF").
+    If the text contains no modal verbs, it is returned unchanged.
     """
     # Regular expression pattern to identify modal verbs and their grammatical forms
     modal_pattern = (
