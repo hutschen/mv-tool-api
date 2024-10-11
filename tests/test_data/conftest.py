@@ -15,10 +15,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from typing import Generator
+
 import pytest
 from sqlalchemy.orm import Session
 
-from mvtool.db import database
 from mvtool.data.catalog_modules import CatalogModules
 from mvtool.data.catalog_requirements import CatalogRequirements
 from mvtool.data.catalogs import Catalogs
@@ -27,6 +28,7 @@ from mvtool.data.jira_ import JiraIssues, JiraProjects
 from mvtool.data.measures import Measures
 from mvtool.data.projects import Projects
 from mvtool.data.requirements import Requirements
+from mvtool.db import database
 from mvtool.db.schema import Catalog, CatalogModule, Project, Requirement
 from mvtool.models.catalog_modules import CatalogModuleInput
 from mvtool.models.catalog_requirements import CatalogRequirementInput
@@ -39,7 +41,7 @@ from mvtool.models.requirements import RequirementInput
 
 
 @pytest.fixture
-def session(config) -> Session:
+def session(config) -> Generator[Session, None, None]:
     database.setup_connection(config.database)
     database.create_all()
 
