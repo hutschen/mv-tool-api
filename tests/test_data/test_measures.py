@@ -857,3 +857,47 @@ def test_bulk_create_update_measures_skip_flush(
 
     # Check if the flush method was not called
     measures.session.flush.assert_not_called()
+
+
+def test_create_measures_from_requirement_description(
+    measures: Measures, requirement: Requirement
+):
+    measure_summaries = [
+        "Die Führungskraft SOLLTE die Entscheidung treffen.",
+        "Sie MUSS dabei nach dem vorgegebenen Prozess handeln.",
+        "Die Mitarbeitenden MÜSSEN die Anweisungen befolgen.",
+    ]
+    requirement.description = " ".join(measure_summaries)
+
+    assert requirement.measures == []
+    resulting_measure_summaries = [
+        m.summary
+        for m in measures.create_measures_from_requirement_description(requirement)
+    ]
+    assert resulting_measure_summaries == measure_summaries
+
+
+def test_create_measures_from_requirement_description_none(
+    measures: Measures, requirement: Requirement
+):
+    requirement.description = None
+    assert requirement.measures == []
+    assert (
+        list(measures.create_measures_from_requirement_description(requirement)) == []
+    )
+
+
+@pytest.mark.parametrize("skip_flush", [True, False])
+def test_create_measures_from_requirement_description_skip_flush(
+    skip_flush: bool, measures: Measures, requirement: Requirement
+):
+    requirement.description = "Die Führungskraft SOLLTE die Entscheidung treffen."
+    measures.session = Mock(wraps=measures.session)
+    assert measures.session.flush.called is False
+    # use list() to force the generator to be evaluated
+    list(
+        measures.create_measures_from_requirement_description(
+            requirement, skip_flush=skip_flush
+        )
+    )
+    assert measures.session.flush.called == (not skip_flush)

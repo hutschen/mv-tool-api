@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from typing import Any, Iterable, Iterator
+from typing import Any, Generator, Iterable, Iterator
 
 from fastapi import Depends
 from sqlalchemy import Column, func
@@ -32,6 +32,7 @@ from ..db.schema import (
     Measure,
     Requirement,
 )
+from ..gsparser.common import split_gs_anforderung_text
 from ..handlers.documents import Documents
 from ..handlers.jira_ import JiraIssues
 from ..models.measures import MeasureImport, MeasureInput, MeasurePatch
@@ -320,6 +321,22 @@ class Measures:
                         )
                 measure.jira_issue_id = jira_issue.id if jira_issue else None
 
+            yield measure
+
+        if not skip_flush:
+            self.session.flush()
+
+    def create_measures_from_requirement_description(
+        self, requirement: Requirement, skip_flush: bool = False
+    ) -> Generator[Measure, None, None]:
+        # Don't create measures if requirement has no description
+        if not requirement.description:
+            return
+
+        for measure_summary in split_gs_anforderung_text(requirement.description):
+            measure = Measure(summary=measure_summary)
+            self.session.add(measure)
+            measure.requirement = requirement
             yield measure
 
         if not skip_flush:
