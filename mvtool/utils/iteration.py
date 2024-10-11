@@ -15,8 +15,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from collections import deque
 from collections.abc import Iterator
-from typing import Generic, Iterable, TypeVar
+from typing import Any, Generator, Generic, Iterable, TypeVar
 
 T = TypeVar("T")
 
@@ -54,3 +55,8 @@ def cache_iterable(iterable: Iterable[T]) -> Iterable[T]:
         if isinstance(iterable, Iterator) and not isinstance(iterable, CachedIterable)
         else iterable
     )
+
+
+def exhaust_generator(gen: Generator[Any, None, None]) -> None:
+    """Force the execution of a generator without storing the results."""
+    deque(gen, maxlen=0)

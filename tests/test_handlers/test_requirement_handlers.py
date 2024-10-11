@@ -20,6 +20,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from mvtool.data.catalog_requirements import CatalogRequirements
+from mvtool.data.measures import Measures
 from mvtool.data.projects import Projects
 from mvtool.data.requirements import Requirements
 from mvtool.db.schema import (
@@ -186,27 +187,39 @@ def test_delete_requirements(session: Session, requirements: Requirements):
     assert results[0].summary == "cherry"
 
 
+@pytest.mark.parametrize("auto_create_measures", [True, False])
 def test_import_requirements_from_catalog_modules(
+    auto_create_measures: bool,
     projects: Projects,
     catalog_requirements: CatalogRequirements,
     requirements: Requirements,
+    measures: Measures,
     project: Project,
     catalog_module: CatalogModule,
     catalog_requirement: CatalogRequirement,
 ):
     catalog_module_ids = [catalog_module.id]
+    # a requirement description is required to auto create measures
+    catalog_requirement.description = "description"
     imported_requirements = list(
         import_requirements_from_catalog_modules(
             project.id,
             catalog_module_ids,
-            projects,
-            catalog_requirements,
-            requirements,
+            auto_create_measures=auto_create_measures,
+            projects=projects,
+            catalog_requirements=catalog_requirements,
+            requirements=requirements,
+            measures=measures,
         )
     )
 
     assert len(imported_requirements) == 1
     assert imported_requirements[0].catalog_requirement_id == catalog_requirement.id
+    if auto_create_measures:
+        assert len(imported_requirements[0].measures) == 1
+        assert imported_requirements[0].measures[0].summary == "description"
+    else:
+        assert len(imported_requirements[0].measures) == 0
 
 
 def test_get_requirement_representations_list(

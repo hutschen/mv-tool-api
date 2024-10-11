@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
 from typing import Annotated, Any, Callable
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -40,6 +41,7 @@ from ..utils.filtering import (
     filter_for_existence_many,
     search_columns,
 )
+from ..utils.iteration import exhaust_generator
 from ..utils.pagination import Page, page_params
 from .catalog_requirements import CatalogRequirements
 from .projects import Projects
@@ -358,8 +360,10 @@ def import_requirements_from_catalog_modules(
     ):
         # create measures for requirements if auto_create_measures is set
         if auto_create_measures:
-            measures.create_measures_from_requirement_description(
-                requirement, skip_flush=True
+            exhaust_generator(
+                measures.create_measures_from_requirement_description(
+                    requirement, skip_flush=True
+                )
             )
         imported_requirements.append(requirement)
     requirements._session.flush()
